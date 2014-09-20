@@ -1,0 +1,8 @@
+bin
+obj
+*.layout
+*.depend
+voxels-debug
+voxels
+*~
+*.save
