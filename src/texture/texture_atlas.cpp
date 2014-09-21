@@ -18,6 +18,7 @@
 #include "texture/texture_atlas.h"
 #include <iostream>
 #include <cstdlib>
+#include <cassert>
 
 using namespace std;
 
@@ -344,3 +345,80 @@ TextureAtlas::ActivatorRailOff(0, 0, 16, 16),
              TextureAtlas::WoodShovel(272, 112, 16, 16),
              TextureAtlas::Wool(288, 112, 16, 16),
              TextureAtlas::Selection(288, 224, 32, 32);
+
+const TextureAtlas &TextureAtlas::Fire(int index)
+{
+    assert(index >= 0 && index < FireFrameCount());
+    switch(index)
+    {
+    case 0:
+        return Fire0;
+    case 1:
+        return Fire1;
+    case 2:
+        return Fire2;
+    case 3:
+        return Fire3;
+    case 4:
+        return Fire4;
+    case 5:
+        return Fire5;
+    case 6:
+        return Fire6;
+    case 7:
+        return Fire7;
+    case 8:
+        return Fire8;
+    case 9:
+        return Fire9;
+    case 10:
+        return Fire10;
+    case 11:
+        return Fire11;
+    case 12:
+        return Fire12;
+    case 13:
+        return Fire13;
+    case 14:
+        return Fire14;
+    case 15:
+        return Fire15;
+    case 16:
+        return Fire16;
+    case 17:
+        return Fire17;
+    case 18:
+        return Fire18;
+    case 19:
+        return Fire19;
+    case 20:
+        return Fire20;
+    case 21:
+        return Fire21;
+    case 22:
+        return Fire22;
+    case 23:
+        return Fire23;
+    case 24:
+        return Fire24;
+    case 25:
+        return Fire25;
+    case 26:
+        return Fire26;
+    case 27:
+        return Fire27;
+    case 28:
+        return Fire28;
+    case 29:
+        return Fire29;
+    case 30:
+        return Fire30;
+    default:
+        return Fire31;
+    }
+}
+
+int TextureAtlas::FireFrameCount()
+{
+    return 32;
+}

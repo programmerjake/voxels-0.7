@@ -45,6 +45,8 @@ public:
 	{
 	    return TextureDescriptor(texture, (float)left / textureXRes, (float)(left + width) / textureXRes, 1 - (float)(top + height) / textureYRes, 1 - (float)top / textureYRes);
 	}
+	static const TextureAtlas &Fire(int index);
+	static int FireFrameCount();
 	static const TextureAtlas
 	ActivatorRailOff,
     ActivatorRailOn,

@@ -7,7 +7,7 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/voxels-0" prefix_auto="1" extension_auto="1" />
+				<Option output="voxels-debug" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -16,7 +16,7 @@
 				</Compiler>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/voxels-0" prefix_auto="1" extension_auto="1" />
+				<Option output="voxels" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -30,13 +30,22 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-std=c++11" />
 			<Add option="-fexceptions" />
+			<Add option="`sdl2-config --cflags`" />
 			<Add directory="include" />
 		</Compiler>
+		<Linker>
+			<Add option="`sdl2-config --libs`" />
+			<Add library="png" />
+			<Add library="vorbis" />
+			<Add library="ogg" />
+			<Add library="vorbisfile" />
+			<Add library="z" />
+			<Add library="GL" />
+		</Linker>
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
-		<Unit filename="include/networking/client.h" />
-		<Unit filename="include/networking/server.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
 		<Unit filename="include/platform/event.h" />
@@ -79,8 +88,6 @@
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
-		<Unit filename="src/networking/client.cpp" />
-		<Unit filename="src/networking/server.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />

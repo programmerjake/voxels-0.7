@@ -15,6 +15,7 @@
  * MA 02110-1301, USA.
  *
  */
+#if 0
 #include "networking/client.h"
 #include "networking/server.h"
 #include "stream/stream.h"
@@ -157,3 +158,128 @@ int main(int argc, char ** argv)
     }
     return myMain(args);
 }
+#else
+#include "platform/audio.h"
+#include "platform/platform.h"
+#include "platform/event.h"
+#include "render/text.h"
+#include "render/renderer.h"
+#include "util/util.h"
+#include <memory>
+#include <sstream>
+#include <cwchar>
+#include <string>
+
+using namespace std;
+
+constexpr int maxBackgroundFileNumber = 17;
+
+Audio loadAudio(int fileNumber)
+{
+    assert(fileNumber >= 1 && fileNumber <= 17);
+    wostringstream ss;
+    ss << L"background";
+    if(fileNumber > 1)
+        ss << fileNumber;
+    ss << L".ogg";
+    return Audio(ss.str(), true);
+}
+
+struct MyEventHandler : public EventHandler
+{
+    bool done = false;
+    shared_ptr<PlayingAudio> playingAudio;
+    int audioIndex = 1;
+    float volume = 0.5f;
+    bool handleKeyDown(KeyDownEvent &event) override
+    {
+        if(event.key == KeyboardKey_Up)
+        {
+            if(playingAudio)
+                playingAudio->volume(volume = limit<float>(volume + 0.1f, 0, 1));
+        }
+        else if(event.key == KeyboardKey_Down)
+        {
+            if(playingAudio)
+                playingAudio->volume(volume = limit<float>(volume - 0.1f, 0, 1));
+        }
+        else if(event.key == KeyboardKey_Escape)
+            done = true;
+        else if(event.key == KeyboardKey_Left)
+        {
+            audioIndex += maxBackgroundFileNumber - 2;
+            audioIndex %= maxBackgroundFileNumber;
+            audioIndex++;
+            auto newPlayingAudio = loadAudio(audioIndex).play(volume, true);
+            if(playingAudio)
+                playingAudio->stop();
+            playingAudio = newPlayingAudio;
+        }
+        else if(event.key == KeyboardKey_Right)
+        {
+            audioIndex %= maxBackgroundFileNumber;
+            audioIndex++;
+            auto newPlayingAudio = loadAudio(audioIndex).play(volume, true);
+            if(playingAudio)
+                playingAudio->stop();
+            playingAudio = newPlayingAudio;
+        }
+        else
+            return false;
+        return true;
+    }
+    bool handleKeyPress(KeyPressEvent &event) override
+    {
+        return false;
+    }
+    bool handleKeyUp(KeyUpEvent &event) override
+    {
+        return false;
+    }
+    bool handleMouseDown(MouseDownEvent &event) override
+    {
+        return false;
+    }
+    bool handleMouseMove(MouseMoveEvent &event) override
+    {
+        return false;
+    }
+    bool handleMouseScroll(MouseScrollEvent &event) override
+    {
+        return false;
+    }
+    bool handleMouseUp(MouseUpEvent &event) override
+    {
+        return false;
+    }
+    bool handleQuit(QuitEvent &event) override
+    {
+        bool retval = !done;
+        done = true;
+        return retval;
+    }
+};
+
+int main()
+{
+    startGraphics();
+    shared_ptr<MyEventHandler> eh = make_shared<MyEventHandler>();
+    eh->playingAudio = loadAudio(eh->audioIndex).play(eh->volume, true);
+    Renderer r;
+    while(!eh->done)
+    {
+        Display::initFrame();
+        Display::clear();
+        wostringstream ss;
+        ss << L"Press ESC to exit.\nPlaying file #" << eh->audioIndex;
+        wstring msg = ss.str();
+        float msgHeight = Text::height(msg);
+        float msgWidth = Text::width(msg);
+        float scale = min<float>(Display::scaleX() * 2 / msgWidth, Display::scaleY() * 2 / msgHeight);
+        r << transform(Matrix::scale(scale).concat(Matrix::translate(-msgWidth / 2 * scale, -msgHeight / 2 * scale, -1)), Text::mesh(ss.str(), RGBF(0.75, 0.75, 0.75)));
+        Display::flip(60);
+        Display::handleEvents(eh);
+    }
+    return 0;
+}
+#endif
