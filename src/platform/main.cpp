@@ -191,17 +191,23 @@ struct MyEventHandler : public EventHandler
     shared_ptr<PlayingAudio> playingAudio;
     int audioIndex = 1;
     float volume = 0.5f;
+    double getCurrentPlayTime()
+    {
+        if(playingAudio)
+            return playingAudio->PlayingAudio::currentTime();
+        return 0;
+    }
     bool handleKeyDown(KeyDownEvent &event) override
     {
         if(event.key == KeyboardKey_Up)
         {
             if(playingAudio)
-                playingAudio->volume(volume = limit<float>(volume + 0.1f, 0, 1));
+                playingAudio->volume(volume = limit<float>(volume * 1.1f, 0, 1));
         }
         else if(event.key == KeyboardKey_Down)
         {
             if(playingAudio)
-                playingAudio->volume(volume = limit<float>(volume - 0.1f, 0, 1));
+                playingAudio->volume(volume = limit<float>(volume / 1.1f, 0, 1));
         }
         else if(event.key == KeyboardKey_Escape)
             done = true;
@@ -271,7 +277,7 @@ int main()
         Display::initFrame();
         Display::clear();
         wostringstream ss;
-        ss << L"Press ESC to exit.\nPlaying file #" << eh->audioIndex;
+        ss << L"Press ESC to exit.\nPlaying file #" << eh->audioIndex << "\nVolume: " << 100 * 1e-3 * std::floor(1e3 * eh->volume + 0.5) << "%\nTime: " << 1e-2 * std::floor(eh->getCurrentPlayTime() * 1e2 + 0.5);
         wstring msg = ss.str();
         float msgHeight = Text::height(msg);
         float msgWidth = Text::width(msg);

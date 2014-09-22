@@ -44,17 +44,17 @@ public:
             return -1;
         return (double)count / samplesPerSecond();
     }
-    virtual uint64_t decodeAudioBlock(int16_t * data, uint64_t samplesCount) = 0; // returns number of samples decoded
+    virtual uint64_t decodeAudioBlock(float * data, uint64_t samplesCount) = 0; // returns number of samples decoded
 };
 
 class MemoryAudioDecoder final : public AudioDecoder
 {
-    vector<int16_t> samples;
+    vector<float> samples;
     unsigned sampleRate;
     size_t currentLocation;
     unsigned channels;
 public:
-    MemoryAudioDecoder(const vector<int16_t> &data, unsigned sampleRate, unsigned channelCount)
+    MemoryAudioDecoder(const vector<float> &data, unsigned sampleRate, unsigned channelCount)
         : samples(data), sampleRate(sampleRate), currentLocation(0), channels(channelCount)
     {
         assert(sampleRate > 0);
@@ -73,7 +73,7 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(int16_t * data, uint64_t samplesCount) override // returns number of samples decoded
+    virtual uint64_t decodeAudioBlock(float * data, uint64_t samplesCount) override // returns number of samples decoded
     {
         uint64_t retval = 0;
         for(uint64_t i = 0; i < samplesCount && currentLocation < samples.size(); i++)
@@ -94,7 +94,7 @@ class ResampleAudioDecoder final : public AudioDecoder
 {
     shared_ptr<AudioDecoder> decoder;
     uint64_t position = 0; // in samples
-    vector<int16_t> buffer;
+    vector<float> buffer;
     uint64_t bufferStartPosition = 0; // in values
     unsigned sampleRate, channels;
 public:
@@ -120,7 +120,7 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(int16_t * data, uint64_t sampleCount) override
+    virtual uint64_t decodeAudioBlock(float * data, uint64_t sampleCount) override
     {
         if(numSamples() != Unknown)
             sampleCount = min(numSamples() - position, sampleCount);
@@ -157,7 +157,7 @@ public:
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = (int16_t)(int)((1 - t) * buffer[j + (size_t)(startIndex - bufferStartPosition)] + t * buffer[j + (size_t)(endIndex - bufferStartPosition)]);
+                    *data++ = ((1 - t) * buffer[j + (size_t)(startIndex - bufferStartPosition)] + t * buffer[j + (size_t)(endIndex - bufferStartPosition)]);
                 }
             }
             else
@@ -176,7 +176,7 @@ class RedistributeChannelsAudioDecoder final : public AudioDecoder
 {
     shared_ptr<AudioDecoder> decoder;
     unsigned channels;
-    vector<int16_t> buffer;
+    vector<float> buffer;
 public:
     RedistributeChannelsAudioDecoder(shared_ptr<AudioDecoder> decoder, unsigned channelCountIn)
         : decoder(decoder), channels(channelCountIn)
@@ -194,9 +194,8 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(int16_t * data, uint64_t sampleCount) override
+    virtual uint64_t decodeAudioBlock(float * data, uint64_t sampleCount) override
     {
-        constexpr int int16_min = numeric_limits<int16_t>::min(), int16_max = numeric_limits<int16_t>::max();
         unsigned sourceChannels = decoder->channelCount();
         buffer.resize(sampleCount * sourceChannels);
         sampleCount = decoder->decodeAudioBlock(buffer.data(), sampleCount);
@@ -234,9 +233,9 @@ public:
             case 3:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
                     *data++ = (2 * channel1 + channel2) / 3;
                     *data++ = (channel2 + 2 * channel3) / 3;
                 }
@@ -244,10 +243,10 @@ public:
             case 4:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
                     *data++ = (channel1 + channel3) / 2;
                     *data++ = (channel2 + channel4) / 2;
                 }
@@ -255,11 +254,11 @@ public:
             case 5:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
                     *data++ = (2 * channel1 + channel2 + 2 * channel4) / 5;
                     *data++ = (2 * channel3 + channel2 + 2 * channel5) / 5;
                 }
@@ -267,21 +266,21 @@ public:
             case 6:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
-                    int channel6 = buffer[bufferIndex++];
-                    *data++ = limit((2 * channel1 + channel2 + 2 * channel4) / 5 + channel6, int16_min, int16_max);
-                    *data++ = limit((2 * channel3 + channel2 + 2 * channel5) / 5 + channel6, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
+                    float channel6 = buffer[bufferIndex++];
+                    *data++ = (2 * channel1 + channel2 + 2 * channel4) / 5 + channel6;
+                    *data++ = (2 * channel3 + channel2 + 2 * channel5) / 5 + channel6;
                 }
                 break;
             default:
                 assert(false);
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int sum = 0;
+                    float sum = 0;
                     for(size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
@@ -306,11 +305,11 @@ public:
             case 2:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    *data++ = (5 * channel1 - channel2) / 4;
                     *data++ = (channel1 + channel2) / 2;
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
+                    *data++ = (5 * channel2 - channel1) / 4;
                 }
                 break;
             case 3:
@@ -324,23 +323,23 @@ public:
             case 4:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    *data++ = limit((5 * (channel1 + channel3) - channel2 - channel4) / 8, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    *data++ = (5 * (channel1 + channel3) - channel2 - channel4) / 8;
                     *data++ = (channel1 + channel2 + channel3 + channel4) / 4;
-                    *data++ = limit((5 * (channel2 + channel4) - channel1 - channel3) / 8, int16_min, int16_max);
+                    *data++ = (5 * (channel2 + channel4) - channel1 - channel3) / 8;
                 }
                 break;
             case 5:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
                     *data++ = (channel1 + channel4) / 2;
                     *data++ = channel2;
                     *data++ = (channel3 + channel5) / 2;
@@ -349,22 +348,22 @@ public:
             case 6:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
-                    int channel6 = buffer[bufferIndex++];
-                    *data++ = limit((channel1 + channel4) / 2 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel2 + channel6, -0x8000, 0x7FFF);
-                    *data++ = limit((channel3 + channel5) / 2 + channel6, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
+                    float channel6 = buffer[bufferIndex++];
+                    *data++ = (channel1 + channel4) / 2 + channel6;
+                    *data++ = channel2 + channel6;
+                    *data++ = (channel3 + channel5) / 2 + channel6;
                 }
                 break;
             default:
                 assert(false);
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int sum = 0;
+                    float sum = 0;
                     for(size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
@@ -391,8 +390,8 @@ public:
             case 2:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
                     *data++ = channel1;
                     *data++ = channel2;
                     *data++ = channel1;
@@ -402,9 +401,9 @@ public:
             case 3:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
                     *data++ = (2 * channel1 + channel2) / 3;
                     *data++ = (channel2 + 2 * channel3) / 3;
                     *data++ = (2 * channel1 + channel2) / 3;
@@ -423,11 +422,11 @@ public:
             case 5:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
                     *data++ = (2 * channel1 + channel2) / 3;
                     *data++ = (2 * channel3 + channel2) / 3;
                     *data++ = channel4;
@@ -437,23 +436,23 @@ public:
             case 6:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
-                    int channel6 = buffer[bufferIndex++];
-                    *data++ = limit((2 * channel1 + channel2) / 3 + channel6, int16_min, int16_max);
-                    *data++ = limit((2 * channel3 + channel2) / 3 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel4 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel5 + channel6, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
+                    float channel6 = buffer[bufferIndex++];
+                    *data++ = (2 * channel1 + channel2) / 3 + channel6;
+                    *data++ = (2 * channel3 + channel2) / 3 + channel6;
+                    *data++ = channel4 + channel6;
+                    *data++ = channel5 + channel6;
                 }
                 break;
             default:
                 assert(false);
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int sum = 0;
+                    float sum = 0;
                     for(size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
@@ -482,21 +481,21 @@ public:
             case 2:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    *data++ = (5 * channel1 - channel2) / 4;
                     *data++ = (channel1 + channel2) / 2;
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
+                    *data++ = (5 * channel2 - channel1) / 4;
+                    *data++ = (5 * channel1 - channel2) / 4;
+                    *data++ = (5 * channel2 - channel1) / 4;
                 }
                 break;
             case 3:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
                     *data++ = channel1;
                     *data++ = channel2;
                     *data++ = channel3;
@@ -507,25 +506,25 @@ public:
             case 4:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    *data++ = (5 * channel1 - channel2) / 4;
                     *data++ = (channel1 + channel2 + channel3 + channel4) / 4;
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
+                    *data++ = (5 * channel2 - channel1) / 4;
+                    *data++ = (5 * channel1 - channel2) / 4;
+                    *data++ = (5 * channel2 - channel1) / 4;
                 }
                 break;
             case 5:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
                     *data++ = channel1;
                     *data++ = channel2;
                     *data++ = channel3;
@@ -536,24 +535,24 @@ public:
             case 6:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
-                    int channel6 = buffer[bufferIndex++];
-                    *data++ = limit(channel1 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel2 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel3 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel4 + channel6, int16_min, int16_max);
-                    *data++ = limit(channel5 + channel6, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
+                    float channel6 = buffer[bufferIndex++];
+                    *data++ = channel1 + channel6;
+                    *data++ = channel2 + channel6;
+                    *data++ = channel3 + channel6;
+                    *data++ = channel4 + channel6;
+                    *data++ = channel5 + channel6;
                 }
                 break;
             default:
                 assert(false);
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int sum = 0;
+                    float sum = 0;
                     for(size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
@@ -584,22 +583,22 @@ public:
             case 2:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    *data++ = (5 * channel1 - channel2) / 4;
                     *data++ = (channel1 + channel2) / 2;
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
+                    *data++ = (5 * channel2 - channel1) / 4;
+                    *data++ = (5 * channel1 - channel2) / 4;
+                    *data++ = (5 * channel2 - channel1) / 4;
                     *data++ = (channel1 + channel2) / 2;
                 }
                 break;
             case 3:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
                     *data++ = channel1;
                     *data++ = channel2;
                     *data++ = channel3;
@@ -611,26 +610,26 @@ public:
             case 4:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    *data++ = (5 * channel1 - channel2) / 4;
                     *data++ = (channel1 + channel2 + channel3 + channel4) / 4;
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel1 - channel2) / 4, int16_min, int16_max);
-                    *data++ = limit((5 * channel2 - channel1) / 4, int16_min, int16_max);
+                    *data++ = (5 * channel2 - channel1) / 4;
+                    *data++ = (5 * channel1 - channel2) / 4;
+                    *data++ = (5 * channel2 - channel1) / 4;
                     *data++ = (channel1 + channel2 + channel3 + channel4) / 4;
                 }
                 break;
             case 5:
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int channel1 = buffer[bufferIndex++];
-                    int channel2 = buffer[bufferIndex++];
-                    int channel3 = buffer[bufferIndex++];
-                    int channel4 = buffer[bufferIndex++];
-                    int channel5 = buffer[bufferIndex++];
+                    float channel1 = buffer[bufferIndex++];
+                    float channel2 = buffer[bufferIndex++];
+                    float channel3 = buffer[bufferIndex++];
+                    float channel4 = buffer[bufferIndex++];
+                    float channel5 = buffer[bufferIndex++];
                     *data++ = channel1;
                     *data++ = channel2;
                     *data++ = channel3;
@@ -654,7 +653,7 @@ public:
                 assert(false);
                 for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
-                    int sum = 0;
+                    float sum = 0;
                     for(size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
@@ -673,7 +672,7 @@ public:
             assert(false);
             for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
             {
-                int sum = 0;
+                float sum = 0;
                 for(size_t j = 0; j < sourceChannels; j++)
                     sum += buffer[bufferIndex++];
                 for(size_t j = 0; j < channels; j++)
@@ -717,7 +716,7 @@ public:
     {
     }
     explicit Audio(wstring resourceName, bool isStreaming = false);
-    explicit Audio(const vector<int16_t> &data, unsigned sampleRate, unsigned channelCount);
+    explicit Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCount);
     shared_ptr<PlayingAudio> play(float volume = 1, bool looped = false);
     inline shared_ptr<PlayingAudio> play(bool looped)
     {

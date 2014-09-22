@@ -17,7 +17,7 @@ private:
     unsigned channels;
     unsigned sampleRate;
     uint64_t curPos = 0;
-    vector<int16_t> buffer;
+    vector<float> buffer;
     size_t currentBufferPos = 0;
     static size_t read_fn(void * dataPtr_in, size_t blockSize, size_t numBlocks, void * dataSource)
     {
@@ -48,14 +48,19 @@ private:
         buffer.resize(buffer.capacity());
         int currentSection;
         currentBufferPos = 0;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-        buffer.resize(ov_read(&ovf, (char *)buffer.data(), buffer.size() * sizeof(int16_t), 0, sizeof(int16_t), 1, &currentSection) / sizeof(int16_t));
-#elif __BYTE_ORDER == __BIG_ENDIAN
-        buffer.resize(ov_read(&ovf, (char *)buffer.data(), buffer.size() * sizeof(int16_t), 1, sizeof(int16_t), 1, &currentSection) / sizeof(int16_t));
-#else
-#error invalid endian value
-#endif
-        assert(buffer.size() % channels == 0);
+        float **pcmChannels = nullptr;
+        long sampleCountLong = ov_read_float(&ovf, &pcmChannels, buffer.size() / channels, &currentSection);
+        if(sampleCountLong < 0)
+            sampleCountLong = 0;
+        size_t sampleCount = sampleCountLong;
+        buffer.resize(sampleCount * channels);
+        for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+        {
+            for(unsigned channel = 0; channel < channels; channel++)
+            {
+                buffer[bufferIndex++] = pcmChannels[channel][sample];
+            }
+        }
     }
 public:
     OggVorbisDecoder(shared_ptr<stream::Reader> reader)
@@ -105,7 +110,7 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(int16_t * data, uint64_t readCount) override // returns number of samples decoded
+    virtual uint64_t decodeAudioBlock(float * data, uint64_t readCount) override // returns number of samples decoded
     {
         uint64_t retval = 0;
         size_t dataIndex = 0;
