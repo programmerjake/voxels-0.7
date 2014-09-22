@@ -55,7 +55,6 @@
 		<Unit filename="include/render/generate.h" />
 		<Unit filename="include/render/mesh.h" />
 		<Unit filename="include/render/render_layer.h" />
-		<Unit filename="include/render/render_object.h" />
 		<Unit filename="include/render/renderer.h" />
 		<Unit filename="include/render/text.h" />
 		<Unit filename="include/render/triangle.h" />

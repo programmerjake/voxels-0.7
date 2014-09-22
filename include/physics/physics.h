@@ -25,6 +25,7 @@
 #include "util/variable_set.h"
 #include "script/script.h"
 #include "util/enum_traits.h"
+#include "util/block_chunk.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -32,6 +33,7 @@
 #include <functional>
 #include <iostream>
 #include <cmath>
+#include <tuple>
 
 using namespace std;
 
@@ -198,6 +200,25 @@ private:
     double currentTime = 0;
     int variableSetIndex = 0;
 public:
+    typedef shared_ptr<int> BlockType;
+    #warning change BlockType to actual type
+    typedef BlockChunk<BlockType> ChunkType;
+    unordered_map<PositionI, ChunkType> chunks;
+    ChunkType &getOrAddChunk(PositionI pos)
+    {
+        if(chunks.count(pos) == 0)
+        {
+            chunks.insert(make_pair(pos, ChunkType(pos)));
+        }
+        return chunks.at(pos);
+    }
+    const BlockType &getBlock(PositionI pos)
+    {
+        PositionI cpos = ChunkType::getChunkBasePosition(pos);
+        PositionI rpos = ChunkType::getChunkRelativePosition(pos);
+        return getOrAddChunk(cpos).blocks[rpos.x][rpos.y][rpos.z];
+    }
+    #warning finish changing to keep blocks in PhysicsWorld and not dynamically add them to the dynamic objects set
     static constexpr float distanceEPS = 20 * eps;
     static constexpr float timeEPS = eps;
     inline double getCurrentTime() const
