@@ -97,6 +97,28 @@ struct write<PhysicsConstraint>
 };
 }
 
+struct BlockShape final
+{
+    VectorF offset, extents;
+    BlockShape()
+        : offset(0), extents(-1)
+    {
+    }
+    BlockShape(std::nullptr_t)
+        : BlockShape()
+    {
+    }
+    BlockShape(VectorF offset, VectorF extents)
+        : offset(offset), extents(extents)
+    {
+        assert(extents.x > 0 && extents.y > 0 && extents.z > 0);
+    }
+    bool empty() const
+    {
+        return extents.x <= 0;
+    }
+};
+
 class PhysicsObject final : public enable_shared_from_this<PhysicsObject>
 {
     friend class PhysicsWorld;
@@ -124,6 +146,24 @@ private:
     PhysicsObject(const PhysicsObject &) = delete;
     const PhysicsObject & operator =(const PhysicsObject &) = delete;
     PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type);
+    void setToBlock(const BlockShape &shape, PositionI blockPosition)
+    {
+        if(shape.empty())
+        {
+            type = Type::Empty;
+            return;
+        }
+        PositionF p = shape.offset + blockPosition;
+        position[0] = p;
+        position[1] = p;
+        velocity[0] = VectorF(0);
+        velocity[1] = VectorF(0);
+        affectedByGravity = false;
+        isStatic_ = true;
+        type = Type::Box;
+        extents = shape.extents;
+        supported = true;
+    }
 public:
     static shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, shared_ptr<PhysicsWorld> world);
     static shared_ptr<PhysicsObject> makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, shared_ptr<PhysicsWorld> world);
@@ -193,28 +233,6 @@ public:
     bool isSupportedBy(const PhysicsObject & rt) const;
 };
 
-struct BlockShape final
-{
-    VectorF offset, extents;
-    BlockShape()
-        : offset(0), extents(-1)
-    {
-    }
-    BlockShape(std::nullptr_t)
-        : BlockShape()
-    {
-    }
-    BlockShape(VectorF offset, VectorF extents)
-        : offset(offset), extents(extents)
-    {
-        assert(extents.x > 0 && extents.y > 0 && extents.z > 0);
-    }
-    bool empty() const
-    {
-        return extents.x <= 0;
-    }
-};
-
 class PhysicsWorld final : public enable_shared_from_this<PhysicsWorld>
 {
     friend class PhysicsObject;
@@ -248,7 +266,14 @@ public:
         PositionI rpos = ChunkType::getChunkRelativePosition(pos);
         return getOrAddChunk(cpos).blocks[rpos.x][rpos.y][rpos.z];
     }
-    #warning finish changing to keep blocks in PhysicsWorld and not dynamically add them to the dynamic objects set
+private:
+    void setObjectToBlock(shared_ptr<PhysicsObject> &object, PositionI pos)
+    {
+        if(object == nullptr)
+            object = PhysicsObject::makeEmpty(pos, VectorF(0), shared_from_this());
+        object->setToBlock(getBlockShape(getBlock(pos)), pos);
+    }
+public:
     static constexpr float distanceEPS = 20 * eps;
     static constexpr float timeEPS = eps;
     inline double getCurrentTime() const
@@ -838,6 +863,31 @@ inline void PhysicsWorld::runToTime(double stopTime)
                         anyCollisions = true;
                         objectA->adjustPosition(*objectB);
                         //cout << "collision" << endl;
+                    }
+                }
+                minX = ifloor(fMinX);
+                maxX = iceil(fMaxX);
+                float fMinY = position.y - extents.y;
+                float fMaxY = position.y + extents.y;
+                int minY = ifloor(fMinY);
+                int maxY = iceil(fMaxY);
+                minZ = ifloor(fMinZ);
+                maxZ = iceil(fMaxZ);
+                shared_ptr<PhysicsObject> objectB;
+                for(int xPosition = minX; xPosition <= maxX; xPosition++)
+                {
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++)
+                    {
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
+                        {
+                            PositionI bpos = PositionI(xPosition, yPosition, zPosition, position.d);
+                            setObjectToBlock(objectB, bpos);
+                            if(objectA->collides(*objectB))
+                            {
+                                anyCollisions = true;
+                                objectA->adjustPosition(*objectB);
+                            }
+                        }
                     }
                 }
                 if(objectA->constraints)

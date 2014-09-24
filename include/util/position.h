@@ -28,6 +28,8 @@
 
 using namespace std;
 
+class PositionF;
+
 struct PositionI : public VectorI
 {
     Dimension d;
@@ -146,6 +148,12 @@ struct PositionI : public VectorI
         VectorI::write(writer);
         stream::write<Dimension>(writer, d);
     }
+    friend PositionF operator +(const VectorF &a, const PositionI &b);
+    friend PositionF operator +(const PositionI &a, const VectorF &b);
+    friend PositionF operator -(const VectorF &a, const PositionI &b);
+    friend PositionF operator -(const PositionI &a, const VectorF &b);
+    friend PositionF operator *(const VectorF &a, const PositionI &b);
+    friend PositionF operator *(const PositionI &a, const VectorF &b);
 };
 
 namespace std
@@ -167,7 +175,7 @@ struct PositionF : public VectorF
         : d(Dimension::Overworld)
     {
     }
-    explicit PositionF(PositionI p)
+    PositionF(PositionI p)
         : VectorF(p.x, p.y, p.z), d(p.d)
     {
     }
@@ -231,6 +239,22 @@ struct PositionF : public VectorF
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
+    friend bool operator ==(const VectorI & a, const PositionF & b)
+    {
+        return a.x == b.x && a.y == b.y && a.z == b.z;
+    }
+    friend bool operator !=(const VectorI & a, const PositionF & b)
+    {
+        return a.x != b.x || a.y != b.y || a.z != b.z;
+    }
+    friend bool operator ==(const PositionF & a, const VectorI & b)
+    {
+        return a.x == b.x && a.y == b.y && a.z == b.z;
+    }
+    friend bool operator !=(const PositionF & a, const VectorI & b)
+    {
+        return a.x != b.x || a.y != b.y || a.z != b.z;
+    }
     friend PositionF operator +(PositionF a, VectorF b)
     {
         return PositionF((VectorF)a + b, a.d);
@@ -252,6 +276,30 @@ struct PositionF : public VectorF
         return PositionF((VectorF)a * b, a.d);
     }
     friend PositionF operator *(VectorF a, PositionF b)
+    {
+        return PositionF(a * (VectorF)b, b.d);
+    }
+    friend PositionF operator +(PositionF a, VectorI b)
+    {
+        return PositionF((VectorF)a + b, a.d);
+    }
+    friend PositionF operator +(VectorI a, PositionF b)
+    {
+        return PositionF(a + (VectorF)b, b.d);
+    }
+    friend PositionF operator -(PositionF a, VectorI b)
+    {
+        return PositionF((VectorF)a - b, a.d);
+    }
+    friend PositionF operator -(VectorI a, PositionF b)
+    {
+        return PositionF(a - (VectorF)b, b.d);
+    }
+    friend PositionF operator *(PositionF a, VectorI b)
+    {
+        return PositionF((VectorF)a * b, a.d);
+    }
+    friend PositionF operator *(VectorI a, PositionF b)
     {
         return PositionF(a * (VectorF)b, b.d);
     }
@@ -337,6 +385,36 @@ struct PositionF : public VectorF
         stream::write<Dimension>(writer, d);
     }
 };
+
+inline PositionF operator +(const VectorF &a, const PositionI &b)
+{
+    return a + (PositionF)b;
+}
+
+inline PositionF operator +(const PositionI &a, const VectorF &b)
+{
+    return (PositionF)a + b;
+}
+
+inline PositionF operator -(const VectorF &a, const PositionI &b)
+{
+    return a - (PositionF)b;
+}
+
+inline PositionF operator -(const PositionI &a, const VectorF &b)
+{
+    return (PositionF)a - b;
+}
+
+inline PositionF operator *(const VectorF &a, const PositionI &b)
+{
+    return a * (PositionF)b;
+}
+
+inline PositionF operator *(const PositionI &a, const VectorF &b)
+{
+    return (PositionF)a * b;
+}
 
 inline PositionF transform(const Matrix &tform, PositionF p)
 {
