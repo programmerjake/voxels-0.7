@@ -193,6 +193,28 @@ public:
     bool isSupportedBy(const PhysicsObject & rt) const;
 };
 
+struct BlockShape final
+{
+    VectorF offset, extents;
+    BlockShape()
+        : offset(0), extents(-1)
+    {
+    }
+    BlockShape(std::nullptr_t)
+        : BlockShape()
+    {
+    }
+    BlockShape(VectorF offset, VectorF extents)
+        : offset(offset), extents(extents)
+    {
+        assert(extents.x > 0 && extents.y > 0 && extents.z > 0);
+    }
+    bool empty() const
+    {
+        return extents.x <= 0;
+    }
+};
+
 class PhysicsWorld final : public enable_shared_from_this<PhysicsWorld>
 {
     friend class PhysicsObject;
@@ -201,6 +223,14 @@ private:
     int variableSetIndex = 0;
 public:
     typedef shared_ptr<int> BlockType;
+private:
+    static BlockShape getBlockShape(BlockType bt)
+    {
+        if(bt != nullptr && *bt == 0)
+            return BlockShape(nullptr);
+        return BlockShape(VectorF(0.5f), VectorF(0.5f));
+    }
+public:
     #warning change BlockType to actual type
     typedef BlockChunk<BlockType> ChunkType;
     unordered_map<PositionI, ChunkType> chunks;
