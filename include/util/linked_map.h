@@ -140,7 +140,7 @@ public:
         bucket_count_ = new_bucket_count;
     }
 private:
-    template <typename ValueT>
+    template <typename ValueT, typename DerivedType>
     struct iterator_base : public std::iterator<std::bidirectional_iterator_tag, ValueT>
     {
         friend class linked_map;
@@ -156,13 +156,13 @@ private:
             : pointer(nullptr), container(nullptr)
         {
         }
-        template <typename U>
-        constexpr bool operator ==(iterator_base<U> r) const
+        template <typename U, typename V>
+        constexpr bool operator ==(iterator_base<U, V> r) const
         {
             return pointer == r.pointer;
         }
-        template <typename U>
-        constexpr bool operator !=(iterator_base<U> r) const
+        template <typename U, typename V>
+        constexpr bool operator !=(iterator_base<U, V> r) const
         {
             return pointer != r.pointer;
         }
@@ -174,43 +174,43 @@ private:
         {
             return pointer->value;
         }
-        const iterator_base & operator ++()
+        const DerivedType & operator ++()
         {
             if(pointer == nullptr)
                 pointer = container->list_head;
             else
                 pointer = pointer->list_next;
-            return *this;
+            return *static_cast<const DerivedType *>(this);
         }
-        const iterator_base & operator --()
+        const DerivedType & operator --()
         {
             if(pointer == nullptr)
                 pointer = container->list_tail;
             else
                 pointer = pointer->list_prev;
-            return *this;
+            return *static_cast<const DerivedType *>(this);
         }
-        const iterator_base operator ++(int)
+        const DerivedType operator ++(int)
         {
             Node * initial_pointer = pointer;
             if(pointer == nullptr)
                 pointer = container->list_head;
             else
                 pointer = pointer->list_next;
-            return iterator_base(initial_pointer, container);
+            return DerivedType(initial_pointer, container);
         }
-        const iterator_base operator --(int)
+        const DerivedType operator --(int)
         {
             Node * initial_pointer = pointer;
             if(pointer == nullptr)
                 pointer = container->list_tail;
             else
                 pointer = pointer->list_prev;
-            return iterator_base(initial_pointer, container);
+            return DerivedType(initial_pointer, container);
         }
     };
 public:
-    struct iterator final : public iterator_base<value_type>
+    struct iterator final : public iterator_base<value_type, iterator>
     {
         friend class linked_map;
         constexpr iterator()
@@ -218,11 +218,11 @@ public:
         }
     private:
         constexpr iterator(Node * pointer, const linked_map * container)
-            : iterator_base<value_type>(pointer, container)
+            : iterator_base<value_type, iterator>(pointer, container)
         {
         }
     };
-    struct const_iterator final : public iterator_base<const value_type>
+    struct const_iterator final : public iterator_base<const value_type, const_iterator>
     {
         friend class linked_map;
         constexpr const_iterator()
@@ -234,7 +234,7 @@ public:
         }
     private:
         constexpr const_iterator(Node * pointer, const linked_map * container)
-            : iterator_base<const value_type>(pointer, container)
+            : iterator_base<const value_type, const_iterator>(pointer, container)
         {
         }
     };

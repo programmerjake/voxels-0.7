@@ -189,25 +189,46 @@ struct MyEventHandler : public EventHandler
 {
     bool done = false;
     shared_ptr<PlayingAudio> playingAudio;
-    int audioIndex = 1;
-    float volume = 0.5f;
+    int audioIndex = 3;
+    float volume = 0.1f;
     double getCurrentPlayTime()
     {
         if(playingAudio)
             return playingAudio->PlayingAudio::currentTime();
         return 0;
     }
+    void startAudio()
+    {
+        auto newPlayingAudio = loadAudio(audioIndex).play(volume, false);
+        if(playingAudio)
+            playingAudio->stop();
+        playingAudio = newPlayingAudio;
+    }
+    void idleLoop()
+    {
+        if(playingAudio)
+            if(!playingAudio->isPlaying())
+                playingAudio = nullptr;
+        if(!playingAudio)
+        {
+            audioIndex %= maxBackgroundFileNumber;
+            audioIndex++;
+            startAudio();
+        }
+    }
     bool handleKeyDown(KeyDownEvent &event) override
     {
         if(event.key == KeyboardKey_Up)
         {
+            volume = limit<float>(volume * 1.1f, 0, 1);
             if(playingAudio)
-                playingAudio->volume(volume = limit<float>(volume * 1.1f, 0, 1));
+                playingAudio->volume(volume);
         }
         else if(event.key == KeyboardKey_Down)
         {
+            volume = limit<float>(volume / 1.1f, 0, 1);
             if(playingAudio)
-                playingAudio->volume(volume = limit<float>(volume / 1.1f, 0, 1));
+                playingAudio->volume(volume);
         }
         else if(event.key == KeyboardKey_Escape)
             done = true;
@@ -216,19 +237,13 @@ struct MyEventHandler : public EventHandler
             audioIndex += maxBackgroundFileNumber - 2;
             audioIndex %= maxBackgroundFileNumber;
             audioIndex++;
-            auto newPlayingAudio = loadAudio(audioIndex).play(volume, true);
-            if(playingAudio)
-                playingAudio->stop();
-            playingAudio = newPlayingAudio;
+            startAudio();
         }
         else if(event.key == KeyboardKey_Right)
         {
             audioIndex %= maxBackgroundFileNumber;
             audioIndex++;
-            auto newPlayingAudio = loadAudio(audioIndex).play(volume, true);
-            if(playingAudio)
-                playingAudio->stop();
-            playingAudio = newPlayingAudio;
+            startAudio();
         }
         else
             return false;
@@ -270,7 +285,7 @@ int main()
 {
     startGraphics();
     shared_ptr<MyEventHandler> eh = make_shared<MyEventHandler>();
-    eh->playingAudio = loadAudio(eh->audioIndex).play(eh->volume, true);
+    eh->startAudio();
     Renderer r;
     while(!eh->done)
     {
@@ -285,6 +300,7 @@ int main()
         r << transform(Matrix::scale(scale).concat(Matrix::translate(-msgWidth / 2 * scale, -msgHeight / 2 * scale, -1)), Text::mesh(ss.str(), RGBF(0.75, 0.75, 0.75)));
         Display::flip(60);
         Display::handleEvents(eh);
+        eh->idleLoop();
     }
     return 0;
 }

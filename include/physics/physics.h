@@ -26,6 +26,7 @@
 #include "script/script.h"
 #include "util/enum_traits.h"
 #include "util/block_chunk.h"
+#include "block/block.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -96,28 +97,6 @@ struct write<PhysicsConstraint>
     }
 };
 }
-
-struct BlockShape final
-{
-    VectorF offset, extents;
-    BlockShape()
-        : offset(0), extents(-1)
-    {
-    }
-    BlockShape(std::nullptr_t)
-        : BlockShape()
-    {
-    }
-    BlockShape(VectorF offset, VectorF extents)
-        : offset(offset), extents(extents)
-    {
-        assert(extents.x > 0 && extents.y > 0 && extents.z > 0);
-    }
-    bool empty() const
-    {
-        return extents.x <= 0;
-    }
-};
 
 class PhysicsObject final : public enable_shared_from_this<PhysicsObject>
 {
@@ -239,18 +218,15 @@ class PhysicsWorld final : public enable_shared_from_this<PhysicsWorld>
 private:
     double currentTime = 0;
     int variableSetIndex = 0;
-public:
-    typedef shared_ptr<int> BlockType;
 private:
-    static BlockShape getBlockShape(BlockType bt)
+    static BlockShape getBlockShape(const Block &b)
     {
-        if(bt != nullptr && *bt == 0)
-            return BlockShape(nullptr);
-        return BlockShape(VectorF(0.5f), VectorF(0.5f));
+        if(!b)
+            return BlockShape(VectorF(0.5f), VectorF(0.5f));
+        return b.descriptor->blockShape;
     }
 public:
-    #warning change BlockType to actual type
-    typedef BlockChunk<BlockType> ChunkType;
+    typedef BlockChunk<Block> ChunkType;
     unordered_map<PositionI, ChunkType> chunks;
     ChunkType &getOrAddChunk(PositionI pos)
     {
@@ -260,7 +236,7 @@ public:
         }
         return chunks.at(pos);
     }
-    const BlockType &getBlock(PositionI pos)
+    const Block &getBlock(PositionI pos)
     {
         PositionI cpos = ChunkType::getChunkBasePosition(pos);
         PositionI rpos = ChunkType::getChunkRelativePosition(pos);

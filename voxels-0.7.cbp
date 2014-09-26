@@ -44,6 +44,7 @@
 			<Add library="z" />
 			<Add library="GL" />
 		</Linker>
+		<Unit filename="include/block/block.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/physics/physics.h" />
@@ -86,6 +87,7 @@
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
+		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
