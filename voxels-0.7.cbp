@@ -45,6 +45,7 @@
 			<Add library="GL" />
 		</Linker>
 		<Unit filename="include/block/block.h" />
+		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/physics/physics.h" />
@@ -91,6 +92,7 @@
 		<Unit filename="include/util/vector.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="src/block/block.cpp" />
+		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />

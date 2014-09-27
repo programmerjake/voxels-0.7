@@ -19,7 +19,6 @@
 #define RENDER_LAYER_H_INCLUDED
 
 #include <cstdint>
-#include "stream/stream.h"
 #include "util/enum_traits.h"
 
 using namespace std;

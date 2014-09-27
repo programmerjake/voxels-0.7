@@ -134,7 +134,7 @@ public:
                 return;
             bool drewAny = false;
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
-            for(BlockFace bf : enum_traits<BlockFace>)
+            for(BlockFace bf : enum_traits<BlockFace>())
             {
                 BlockIterator i = blockIterator;
                 i.moveToward(bf);
@@ -150,7 +150,7 @@ public:
         }
         else
         {
-            renderDynamic(block, dest, blockIterator);
+            renderDynamic(block, dest, blockIterator, rl);
         }
     }
     virtual Block moveStep(const Block &block, BlockIterator blockIterator) const

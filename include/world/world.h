@@ -17,6 +17,7 @@ using namespace std;
 class World final
 {
 private:
+    typedef PhysicsWorld::ChunkType ChunkType;
     shared_ptr<PhysicsWorld> physicsWorld;
     struct MeshesWithModifiedFlag
     {
@@ -33,7 +34,7 @@ private:
         MeshesWithModifiedFlag overallMeshes;
         static constexpr int GroupingSizeLog2 = 3;
         static constexpr int32_t GroupingSize = 1 << GroupingSizeLog2, GroupingFloorMask = -GroupingSize, GroupingModMask = GroupingSize - 1;
-        array<array<array<MeshesWithModifiedFlag, PhysicsWorld::ChunkType::chunkSizeZ / GroupingSize>, PhysicsWorld::ChunkType::chunkSizeY / GroupingSize>, PhysicsWorld::ChunkType::chunkSizeX / GroupingSize> groupMeshes;
+        array<array<array<MeshesWithModifiedFlag, ChunkType::chunkSizeZ / GroupingSize>, ChunkType::chunkSizeY / GroupingSize>, ChunkType::chunkSizeX / GroupingSize> groupMeshes;
         RenderCacheChunk(PositionI basePosition)
             : basePosition(basePosition)
         {
@@ -83,11 +84,11 @@ private:
             for(RenderLayer rl : enum_traits<RenderLayer>)
                 overallMeshes.meshes[rl].clear();
             blockIterator.moveTo(basePosition);
-            for(int32_t gx = 0; gx < PhysicsWorld::ChunkType::chunkSizeX; gx += GroupingSize)
+            for(int32_t gx = 0; gx < ChunkType::chunkSizeX; gx += GroupingSize)
             {
-                for(int32_t gy = 0; gy < PhysicsWorld::ChunkType::chunkSizeY; gy += GroupingSize)
+                for(int32_t gy = 0; gy < ChunkType::chunkSizeY; gy += GroupingSize)
                 {
-                    for(int32_t gz = 0; gz < PhysicsWorld::ChunkType::chunkSizeZ; gz += GroupingSize)
+                    for(int32_t gz = 0; gz < ChunkType::chunkSizeZ; gz += GroupingSize)
                     {
                         const enum_array<Mesh, RenderLayer> &meshes = updateGroupMeshes(blockIterator, VectorI(gx, gy, gz));
                         for(RenderLayer rl : enum_traits<RenderLayer>)
@@ -123,18 +124,18 @@ public:
     void updateCachedMeshes(PositionI viewPosition, int32_t viewDistance)
     {
         assert(viewDistance >= 0);
-        PositionI minPosition = PhysicsWorld::ChunkType::getChunkBasePosition(viewPosition - VectorI(viewDistance));
-        PositionI maxPosition = PhysicsWorld::ChunkType::getChunkBasePosition(viewPosition + VectorI(viewDistance));
+        PositionI minPosition = ChunkType::getChunkBasePosition(viewPosition - VectorI(viewDistance));
+        PositionI maxPosition = ChunkType::getChunkBasePosition(viewPosition + VectorI(viewDistance));
         PositionI pos = minPosition;
         for(RenderLayer rl : enum_traits<RenderLayer>)
         {
             cachedMeshes.writeRef()[rl].clear();
         }
-        for(pos.x = minPosition.x; pos.x <= maxPosition.x; pos.x += PhysicsWorld::ChunkType::chunkSizeX)
+        for(pos.x = minPosition.x; pos.x <= maxPosition.x; pos.x += ChunkType::chunkSizeX)
         {
-            for(pos.y = minPosition.y; pos.y <= maxPosition.y; pos.y += PhysicsWorld::ChunkType::chunkSizeY)
+            for(pos.y = minPosition.y; pos.y <= maxPosition.y; pos.y += ChunkType::chunkSizeY)
             {
-                for(pos.z = minPosition.z; pos.z <= maxPosition.z; pos.z += PhysicsWorld::ChunkType::chunkSizeZ)
+                for(pos.z = minPosition.z; pos.z <= maxPosition.z; pos.z += ChunkType::chunkSizeZ)
                 {
                     const enum_array<Mesh, RenderLayer> &chunkMeshes = makeChunkMeshes(pos);
                     for(RenderLayer rl : enum_traits<RenderLayer>)
@@ -145,6 +146,30 @@ public:
             }
         }
         cachedMeshes.finishWrite();
+    }
+    BlockIterator getBlockIterator(PositionI pos)
+    {
+        return physicsWorld->getBlockIterator(pos);
+    }
+    const Block getBlock(PositionI pos)
+    {
+        return physicsWorld->getBlock(pos);
+    }
+    void invalidate(PositionI pos)
+    {
+        physicsWorld->getOrAddChunk(ChunkType::getChunkBasePosition(pos)).onChange();
+        getOrMakeRenderCacheChunk(ChunkType::getChunkBasePosition(pos)).invalidatePosition((VectorI)ChunkType::getChunkRelativePosition(pos));
+    }
+    void setBlock(PositionI pos, Block block)
+    {
+        PositionI basePosition = ChunkType::getChunkBasePosition(pos);
+        VectorI relativePosition = ChunkType::getChunkRelativePosition(pos);
+        ChunkType &chunk = physicsWorld->getOrAddChunk(basePosition);
+        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
+        for(int dx : {-1, 0, 1})
+            for(int dy : {-1, 0, 1})
+                for(int dz : {-1, 0, 1})
+                    invalidate(pos + VectorI(dx, dy, dz));
     }
 };
 
