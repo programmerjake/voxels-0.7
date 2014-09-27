@@ -17,9 +17,22 @@
  */
 #include "block/block.h"
 
-BlockDescriptor::BlockDescriptor(wstring name, BlockShape blockShape)
-    : name(name), blockShape(blockShape)
+BlockDescriptor::BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ)
+    : name(name), blockShape(blockShape), isStaticMesh(isStaticMesh)
 {
+    isFaceBlocked[BlockFace::NX] = isFaceBlockedNX;
+    isFaceBlocked[BlockFace::PX] = isFaceBlockedPX;
+    isFaceBlocked[BlockFace::NY] = isFaceBlockedNY;
+    isFaceBlocked[BlockFace::PY] = isFaceBlockedPY;
+    isFaceBlocked[BlockFace::NZ] = isFaceBlockedNZ;
+    isFaceBlocked[BlockFace::PZ] = isFaceBlockedPZ;
+    this->meshCenter = meshCenter;
+    meshFace[BlockFace::NX] = meshFaceNX;
+    meshFace[BlockFace::PX] = meshFacePX;
+    meshFace[BlockFace::NY] = meshFaceNY;
+    meshFace[BlockFace::PY] = meshFacePY;
+    meshFace[BlockFace::NZ] = meshFaceNZ;
+    meshFace[BlockFace::PZ] = meshFacePZ;
     BlockDescriptors.add(this);
 }
 

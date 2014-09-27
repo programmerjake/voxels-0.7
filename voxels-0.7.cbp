@@ -71,6 +71,8 @@
 		<Unit filename="include/util/arena_allocator.h" />
 		<Unit filename="include/util/balanced_tree.h" />
 		<Unit filename="include/util/block_chunk.h" />
+		<Unit filename="include/util/block_face.h" />
+		<Unit filename="include/util/block_iterator.h" />
 		<Unit filename="include/util/cached_variable.h" />
 		<Unit filename="include/util/circular_deque.h" />
 		<Unit filename="include/util/color.h" />

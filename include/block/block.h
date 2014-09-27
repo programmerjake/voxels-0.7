@@ -26,27 +26,28 @@
 #include <tuple>
 #include <stdexcept>
 #include <iterator>
+#include <utility>
 #include "util/linked_map.h"
 #include "util/vector.h"
+#include "render/mesh.h"
+#include "util/block_face.h"
 
 using namespace std;
 
 class BlockDescriptor;
 
 typedef const BlockDescriptor *BlockDescriptorPointer;
-typedef const BlockDescriptor &BlockDescriptorReference;
 
 struct Block final
 {
     BlockDescriptorPointer descriptor;
-    int32_t integerData;
-    shared_ptr<void> extraData;
+    shared_ptr<void> data;
     Block()
-        : descriptor(nullptr), integerData(0), extraData(nullptr)
+        : descriptor(nullptr), data(nullptr)
     {
     }
-    Block(BlockDescriptorPointer descriptor, int32_t integerData = 0, shared_ptr<void> extraData = nullptr)
-        : descriptor(descriptor), integerData(integerData), extraData(extraData)
+    Block(BlockDescriptorPointer descriptor, shared_ptr<void> data = nullptr)
+        : descriptor(descriptor), data(data)
     {
     }
     bool good() const
@@ -60,6 +61,11 @@ struct Block final
     bool operator !() const
     {
         return !good();
+    }
+    bool operator ==(const Block &r) const;
+    bool operator !=(const Block &r) const
+    {
+        return !operator ==(r);
     }
 };
 
@@ -85,6 +91,8 @@ struct BlockShape final
     }
 };
 
+#include "util/block_iterator.h"
+
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
@@ -92,11 +100,92 @@ class BlockDescriptor
 public:
     const wstring name;
 protected:
-    BlockDescriptor(wstring name, BlockShape blockShape);
-    virtual ~BlockDescriptor();
+    BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ);
+    BlockDescriptor(wstring name, BlockShape blockShape, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ)
+        : BlockDescriptor(name, blockShape, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh())
+    {
+    }
 public:
+    virtual ~BlockDescriptor();
     const BlockShape blockShape;
+    const bool isStaticMesh;
+    enum_array<bool, BlockFace> isFaceBlocked;
+protected:
+    /** generate dynamic mesh
+     the generated mesh is relative to the block's position
+     */
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator) const
+    {
+        assert(false); // shouldn't be called
+    }
+    Mesh meshCenter;
+    enum_array<Mesh, BlockFace> meshFace;
+public:
+    /** generate mesh
+     the generated mesh is relative to the block's position
+     */
+    void render(const Block &block, Mesh &dest, BlockIterator blockIterator) const
+    {
+        if(isStaticMesh)
+        {
+            bool drewAny = false;
+            for(BlockFace bf : enum_traits<BlockFace>)
+            {
+                BlockIterator i = blockIterator;
+                i.moveToward(bf);
+                if(!*i)
+                    continue;
+                if(i->descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                    continue;
+                dest.append(meshFace[bf]);
+                drewAny = true;
+            }
+            if(drewAny)
+                dest.append(meshCenter);
+        }
+        else
+        {
+            renderDynamic(block, dest, blockIterator);
+        }
+    }
+    virtual Block moveStep(const Block &block, BlockIterator blockIterator) const
+    {
+        return block;
+    }
+    virtual bool isDataEqual(const shared_ptr<void> &a, const shared_ptr<void> &b) const
+    {
+        return a == b;
+    }
+    virtual size_t hashData(const shared_ptr<void> &data) const
+    {
+        return std::hash<shared_ptr<void>>()(data);
+    }
 };
+
+inline bool Block::operator==(const Block &r) const
+{
+    if(descriptor != r.descriptor)
+        return false;
+    if(descriptor == nullptr)
+        return true;
+    if(data == r.data)
+        return true;
+    return descriptor->isDataEqual(data, r.data);
+}
+
+namespace std
+{
+template <>
+struct hash<Block> final
+{
+    size_t operator ()(const Block &b) const
+    {
+        if(b.descriptor == nullptr)
+            return 0;
+        return std::hash<BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
+    }
+};
+}
 
 class BlockDescriptors_t final
 {
@@ -197,6 +286,6 @@ public:
     }
 };
 
-static const BlockDescriptors_t BlockDescriptors;
+static constexpr BlockDescriptors_t BlockDescriptors;
 
 #endif // BLOCK_H_INCLUDED

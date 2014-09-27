@@ -11,7 +11,7 @@ template <typename T>
 struct enum_traits;
 
 template <typename T>
-struct enum_iterator : public std::iterator<std::random_access_iterator_tag, T>
+struct enum_iterator : public std::iterator<std::random_access_iterator_tag, const T>
 {
     T value;
     constexpr enum_iterator()

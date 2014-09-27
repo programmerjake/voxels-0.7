@@ -32,9 +32,17 @@ struct BlockChunk
     {
         return PositionI(pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1), pos.d);
     }
+    static constexpr VectorI getChunkBasePosition(VectorI pos)
+    {
+        return VectorI(pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1));
+    }
     static constexpr PositionI getChunkRelativePosition(PositionI pos)
     {
         return PositionI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1), pos.d);
+    }
+    static constexpr VectorI getChunkRelativePosition(VectorI pos)
+    {
+        return VectorI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
     }
     array<array<array<T, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
     BlockChunk(const BlockChunk & rt)
