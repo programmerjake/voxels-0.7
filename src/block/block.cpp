@@ -17,8 +17,8 @@
  */
 #include "block/block.h"
 
-BlockDescriptor::BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ)
-    : name(name), blockShape(blockShape), isStaticMesh(isStaticMesh)
+BlockDescriptor::BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer)
+    : name(name), blockShape(blockShape), isStaticMesh(isStaticMesh), staticRenderLayer(staticRenderLayer)
 {
     isFaceBlocked[BlockFace::NX] = isFaceBlockedNX;
     isFaceBlocked[BlockFace::PX] = isFaceBlockedPX;

@@ -31,6 +31,7 @@
 #include "util/vector.h"
 #include "render/mesh.h"
 #include "util/block_face.h"
+#include "render/render_layer.h"
 
 using namespace std;
 
@@ -100,9 +101,9 @@ class BlockDescriptor
 public:
     const wstring name;
 protected:
-    BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ);
+    BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
     BlockDescriptor(wstring name, BlockShape blockShape, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh())
+        : BlockDescriptor(name, blockShape, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
     {
     }
 public:
@@ -112,23 +113,27 @@ public:
     enum_array<bool, BlockFace> isFaceBlocked;
 protected:
     /** generate dynamic mesh
-     the generated mesh is relative to the block's position
+     the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl) const
     {
         assert(false); // shouldn't be called
     }
     Mesh meshCenter;
     enum_array<Mesh, BlockFace> meshFace;
+    const RenderLayer staticRenderLayer;
 public:
     /** generate mesh
-     the generated mesh is relative to the block's position
+     the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator blockIterator) const
+    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl) const
     {
         if(isStaticMesh)
         {
+            if(rl != staticRenderLayer)
+                return;
             bool drewAny = false;
+            Matrix tform = Matrix::translate((VectorF)blockIterator.position());
             for(BlockFace bf : enum_traits<BlockFace>)
             {
                 BlockIterator i = blockIterator;
@@ -137,11 +142,11 @@ public:
                     continue;
                 if(i->descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
                     continue;
-                dest.append(meshFace[bf]);
+                dest.append(transform(tform, meshFace[bf]));
                 drewAny = true;
             }
             if(drewAny)
-                dest.append(meshCenter);
+                dest.append(transform(tform, meshCenter));
         }
         else
         {

@@ -27,6 +27,7 @@
 #include "util/enum_traits.h"
 #include "util/block_chunk.h"
 #include "block/block.h"
+#include "util/block_iterator.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -239,8 +240,12 @@ public:
     const Block &getBlock(PositionI pos)
     {
         PositionI cpos = ChunkType::getChunkBasePosition(pos);
-        PositionI rpos = ChunkType::getChunkRelativePosition(pos);
+        VectorI rpos = ChunkType::getChunkRelativePosition(pos);
         return getOrAddChunk(cpos).blocks[rpos.x][rpos.y][rpos.z];
+    }
+    BlockIterator getBlockIterator(PositionI pos)
+    {
+        return BlockIterator(&chunks, pos);
     }
 private:
     void setObjectToBlock(shared_ptr<PhysicsObject> &object, PositionI pos)
