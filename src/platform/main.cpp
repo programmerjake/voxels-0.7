@@ -165,10 +165,16 @@ int main(int argc, char ** argv)
 #include "render/text.h"
 #include "render/renderer.h"
 #include "util/util.h"
+#include "world/world.h"
+#include "player/player.h"
+#include "block/builtin/air.h"
+#include "block/builtin/stone.h"
 #include <memory>
 #include <sstream>
 #include <cwchar>
 #include <string>
+#include <thread>
+#include <atomic>
 
 using namespace std;
 
@@ -187,10 +193,29 @@ Audio loadAudio(int fileNumber)
 
 struct MyEventHandler : public EventHandler
 {
-    bool done = false;
     shared_ptr<PlayingAudio> playingAudio;
     int audioIndex = 3;
     float volume = 0.1f;
+    float theta = 0, phi = 0, deltaTheta = 0, deltaPhi = 0;
+    PositionF position = PositionF(0.5f, 0.5f, 0.5f, Dimension::Overworld);
+    World world;
+    int32_t viewDistance = 64;
+    Matrix getForwardMatrix()
+    {
+        return Matrix::rotateY(-theta);
+    }
+    Matrix getOrientMatrix()
+    {
+        return Matrix::rotateX(phi).concat(getForwardMatrix());
+    }
+    Matrix getPlayerMatrix()
+    {
+        return getOrientMatrix().concat(Matrix::translate((VectorF)position));
+    }
+    void drawWorld(Renderer &renderer)
+    {
+        ::drawWorld(world, renderer, getPlayerMatrix(), position.d, viewDistance);
+    }
     double getCurrentPlayTime()
     {
         if(playingAudio)
@@ -206,6 +231,10 @@ struct MyEventHandler : public EventHandler
     }
     void idleLoop()
     {
+        deltaTheta *= 0.5f;
+        deltaPhi *= 0.5f;
+        theta = std::fmod(theta + deltaTheta, (float)(M_PI * 2));
+        phi = limit<float>(phi + deltaPhi, -M_PI / 2, M_PI / 2);
         if(playingAudio)
             if(!playingAudio->isPlaying())
                 playingAudio = nullptr;
@@ -215,6 +244,10 @@ struct MyEventHandler : public EventHandler
             audioIndex++;
             startAudio();
         }
+        PositionI pos = PositionI(rand() % 11 - 5, rand() % 11 - 5, rand() % 11 - 5, Dimension::Overworld);
+        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
+        if(pos != (PositionI)position)
+            world.setBlock(pos, block);
     }
     bool handleKeyDown(KeyDownEvent &event) override
     {
@@ -263,7 +296,9 @@ struct MyEventHandler : public EventHandler
     }
     bool handleMouseMove(MouseMoveEvent &event) override
     {
-        return false;
+        deltaTheta += event.deltaX / 300;
+        deltaPhi -= event.deltaY / 300;
+        return true;
     }
     bool handleMouseScroll(MouseScrollEvent &event) override
     {
@@ -279,25 +314,77 @@ struct MyEventHandler : public EventHandler
         done = true;
         return retval;
     }
+    void generateChunk(PositionI chunkBasePosition)
+    {
+        for(int32_t rx = 0; rx < World::ChunkType::chunkSizeX; rx++)
+        {
+            for(int32_t ry = 0; ry < World::ChunkType::chunkSizeY; ry++)
+            {
+                for(int32_t rz = 0; rz < World::ChunkType::chunkSizeZ; rz++)
+                {
+                    PositionI pos = chunkBasePosition + VectorI(rx, ry, rz);
+                    Block block = Block(Blocks::builtin::Air::descriptor());
+                    float x = pos.x / 3.0, z = pos.z / 3.0;
+                    if(pos.y < 5 * sin(x * z))
+                        block = Block(Blocks::builtin::Stone::descriptor());
+                    world.setBlock(pos, block);
+                }
+            }
+        }
+    }
+    atomic_bool done;
+    thread meshGeneratorThread;
+    MyEventHandler()
+        : done(false)
+    {
+        PositionI minPosition = World::ChunkType::getChunkBasePosition(PositionI(-16, -16, -16, Dimension::Overworld));
+        PositionI maxPosition = World::ChunkType::getChunkBasePosition(PositionI(16, 16, 16, Dimension::Overworld));
+        PositionI cpos = minPosition;
+        for(cpos.x = minPosition.x; cpos.x <= maxPosition.x; cpos.x += World::ChunkType::chunkSizeX)
+        {
+            cout << cpos.x << " : " << minPosition.x << " - " << maxPosition.x << "\x1b[K\r" << flush;
+            for(cpos.y = minPosition.y; cpos.y <= maxPosition.y; cpos.y += World::ChunkType::chunkSizeY)
+            {
+                for(cpos.z = minPosition.z; cpos.z <= maxPosition.z; cpos.z += World::ChunkType::chunkSizeZ)
+                {
+                    generateChunk(cpos);
+                }
+            }
+        }
+        cout << "\r\x1b[K" << flush;
+        meshGeneratorThread = thread([&]()
+        {
+            while(!done)
+                world.updateMeshes((PositionI)position, viewDistance);
+        });
+    }
+    ~MyEventHandler()
+    {
+        done = true;
+        meshGeneratorThread.join();
+    }
 };
 
 int main()
 {
-    startGraphics();
     shared_ptr<MyEventHandler> eh = make_shared<MyEventHandler>();
+    startGraphics();
     eh->startAudio();
     Renderer r;
+    Display::grabMouse(true);
     while(!eh->done)
     {
         Display::initFrame();
         Display::clear();
+        eh->drawWorld(r);
+        Display::initOverlay();
         wostringstream ss;
         ss << L"Press ESC to exit.\nPlaying file #" << eh->audioIndex << "\nVolume: " << 100 * 1e-3 * std::floor(1e3 * eh->volume + 0.5) << "%\nTime: " << 1e-2 * std::floor(eh->getCurrentPlayTime() * 1e2 + 0.5);
         wstring msg = ss.str();
         float msgHeight = Text::height(msg);
         float msgWidth = Text::width(msg);
         float scale = min<float>(Display::scaleX() * 2 / msgWidth, Display::scaleY() * 2 / msgHeight);
-        r << transform(Matrix::scale(scale).concat(Matrix::translate(-msgWidth / 2 * scale, -msgHeight / 2 * scale, -1)), Text::mesh(ss.str(), RGBF(0.75, 0.75, 0.75)));
+        r << transform(Matrix::scale(scale).concat(Matrix::translate(-msgWidth / 2 * scale, -msgHeight / 2 * scale, -1)), Text::mesh(ss.str(), RGBF(0.75, 0.75, 1)));
         Display::flip(60);
         Display::handleEvents(eh);
         eh->idleLoop();

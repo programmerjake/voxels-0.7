@@ -46,8 +46,11 @@ public:
     explicit Image(wstring resourceName);
     explicit Image(unsigned w, unsigned h);
     explicit Image(ColorI c);
-    Image();
-    Image(nullptr_t)
+    constexpr Image()
+        : data(nullptr)
+    {
+    }
+    constexpr Image(nullptr_t)
         : Image()
     {
     }
@@ -64,7 +67,7 @@ public:
     {
         return data->h;
     }
-    operator bool() const
+    explicit operator bool() const
     {
         return data != nullptr;
     }
@@ -79,6 +82,22 @@ public:
     friend bool operator !=(Image l, Image r)
     {
         return l.data != r.data;
+    }
+    friend bool operator ==(std::nullptr_t, Image r)
+    {
+        return nullptr == r.data;
+    }
+    friend bool operator !=(std::nullptr_t, Image r)
+    {
+        return nullptr != r.data;
+    }
+    friend bool operator ==(Image l, std::nullptr_t)
+    {
+        return l.data == nullptr;
+    }
+    friend bool operator !=(Image l, std::nullptr_t)
+    {
+        return l.data != nullptr;
     }
     void write(stream::Writer &writer, VariableSet &variableSet) const;
     static Image read(stream::Reader &reader, VariableSet &variableSet);

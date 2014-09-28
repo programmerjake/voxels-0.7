@@ -231,11 +231,12 @@ public:
     unordered_map<PositionI, ChunkType> chunks;
     ChunkType &getOrAddChunk(PositionI pos)
     {
-        if(chunks.count(pos) == 0)
+        auto iter = chunks.find(pos);
+        if(iter == chunks.end())
         {
-            chunks.insert(make_pair(pos, ChunkType(pos)));
+            iter = std::get<0>(chunks.insert(make_pair(pos, ChunkType(pos))));
         }
-        return chunks.at(pos);
+        return std::get<1>(*iter);
     }
     const Block &getBlock(PositionI pos)
     {

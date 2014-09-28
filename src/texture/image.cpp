@@ -47,11 +47,6 @@ Image::Image(ColorI c)
     setPixel(0, 0, c);
 }
 
-Image::Image()
-    : data(nullptr)
-{
-}
-
 Image::data_t::~data_t()
 {
     static_assert(sizeof(uint32_t) == sizeof(GLuint), "GLuint is not the same size as uint32_t");

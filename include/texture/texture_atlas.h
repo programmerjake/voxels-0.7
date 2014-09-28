@@ -22,13 +22,14 @@
 
 class TextureAtlas final
 {
+	static Image texture_;
 public:
-	static const Image texture;
+    static const Image &texture();
 	const int left, top, width, height;
     const float minU, maxU, minV, maxV;
 	enum {textureXRes = 512, textureYRes = 512};
     static constexpr float pixelOffset = 0.05f;
-	explicit TextureAtlas(int left, int top, int width, int height)
+	constexpr TextureAtlas(int left, int top, int width, int height)
         : left(left), top(top), width(width), height(height),
         minU((left + pixelOffset) / textureXRes),
         maxU((left + width - pixelOffset) / textureXRes),
@@ -39,11 +40,11 @@ public:
 	const TextureAtlas & operator =(const TextureAtlas &) = delete;
 	TextureDescriptor td() const
 	{
-		return TextureDescriptor(texture, minU, maxU, minV, maxV);
+		return TextureDescriptor(texture(), minU, maxU, minV, maxV);
 	}
 	TextureDescriptor tdNoOffset() const
 	{
-	    return TextureDescriptor(texture, (float)left / textureXRes, (float)(left + width) / textureXRes, 1 - (float)(top + height) / textureYRes, 1 - (float)top / textureYRes);
+	    return TextureDescriptor(texture(), (float)left / textureXRes, (float)(left + width) / textureXRes, 1 - (float)(top + height) / textureYRes, 1 - (float)top / textureYRes);
 	}
 	static const TextureAtlas &Fire(int index);
 	static int FireFrameCount();
