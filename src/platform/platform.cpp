@@ -444,233 +444,233 @@ static KeyboardKey translateKey(SDL_Scancode input)
     switch(input)
     {
     case SDL_SCANCODE_BACKSPACE:
-        return KeyboardKey_Backspace;
+        return KeyboardKey::Backspace;
     case SDL_SCANCODE_TAB:
-        return KeyboardKey_Tab;
+        return KeyboardKey::Tab;
     case SDL_SCANCODE_CLEAR:
-        return KeyboardKey_Clear;
+        return KeyboardKey::Clear;
     case SDL_SCANCODE_RETURN:
-        return KeyboardKey_Return;
+        return KeyboardKey::Return;
     case SDL_SCANCODE_PAUSE:
-        return KeyboardKey_Pause;
+        return KeyboardKey::Pause;
     case SDL_SCANCODE_ESCAPE:
-        return KeyboardKey_Escape;
+        return KeyboardKey::Escape;
     case SDL_SCANCODE_SPACE:
-        return KeyboardKey_Space;
+        return KeyboardKey::Space;
     case SDL_SCANCODE_APOSTROPHE:
-        return KeyboardKey_SQuote;
+        return KeyboardKey::SQuote;
     case SDL_SCANCODE_COMMA:
-        return KeyboardKey_Comma;
+        return KeyboardKey::Comma;
     case SDL_SCANCODE_MINUS:
-        return KeyboardKey_Dash;
+        return KeyboardKey::Dash;
     case SDL_SCANCODE_PERIOD:
-        return KeyboardKey_Period;
+        return KeyboardKey::Period;
     case SDL_SCANCODE_SLASH:
-        return KeyboardKey_FSlash;
+        return KeyboardKey::FSlash;
     case SDL_SCANCODE_0:
-        return KeyboardKey_Num0;
+        return KeyboardKey::Num0;
     case SDL_SCANCODE_1:
-        return KeyboardKey_Num1;
+        return KeyboardKey::Num1;
     case SDL_SCANCODE_2:
-        return KeyboardKey_Num2;
+        return KeyboardKey::Num2;
     case SDL_SCANCODE_3:
-        return KeyboardKey_Num3;
+        return KeyboardKey::Num3;
     case SDL_SCANCODE_4:
-        return KeyboardKey_Num4;
+        return KeyboardKey::Num4;
     case SDL_SCANCODE_5:
-        return KeyboardKey_Num5;
+        return KeyboardKey::Num5;
     case SDL_SCANCODE_6:
-        return KeyboardKey_Num6;
+        return KeyboardKey::Num6;
     case SDL_SCANCODE_7:
-        return KeyboardKey_Num7;
+        return KeyboardKey::Num7;
     case SDL_SCANCODE_8:
-        return KeyboardKey_Num8;
+        return KeyboardKey::Num8;
     case SDL_SCANCODE_9:
-        return KeyboardKey_Num9;
+        return KeyboardKey::Num9;
     case SDL_SCANCODE_SEMICOLON:
-        return KeyboardKey_Semicolon;
+        return KeyboardKey::Semicolon;
     case SDL_SCANCODE_EQUALS:
-        return KeyboardKey_Equals;
+        return KeyboardKey::Equals;
     case SDL_SCANCODE_LEFTBRACKET:
-        return KeyboardKey_LBracket;
+        return KeyboardKey::LBracket;
     case SDL_SCANCODE_BACKSLASH:
-        return KeyboardKey_BSlash;
+        return KeyboardKey::BSlash;
     case SDL_SCANCODE_RIGHTBRACKET:
-        return KeyboardKey_RBracket;
+        return KeyboardKey::RBracket;
     case SDL_SCANCODE_A:
-        return KeyboardKey_A;
+        return KeyboardKey::A;
     case SDL_SCANCODE_B:
-        return KeyboardKey_B;
+        return KeyboardKey::B;
     case SDL_SCANCODE_C:
-        return KeyboardKey_C;
+        return KeyboardKey::C;
     case SDL_SCANCODE_D:
-        return KeyboardKey_D;
+        return KeyboardKey::D;
     case SDL_SCANCODE_E:
-        return KeyboardKey_E;
+        return KeyboardKey::E;
     case SDL_SCANCODE_F:
-        return KeyboardKey_F;
+        return KeyboardKey::F;
     case SDL_SCANCODE_G:
-        return KeyboardKey_G;
+        return KeyboardKey::G;
     case SDL_SCANCODE_H:
-        return KeyboardKey_H;
+        return KeyboardKey::H;
     case SDL_SCANCODE_I:
-        return KeyboardKey_I;
+        return KeyboardKey::I;
     case SDL_SCANCODE_J:
-        return KeyboardKey_J;
+        return KeyboardKey::J;
     case SDL_SCANCODE_K:
-        return KeyboardKey_K;
+        return KeyboardKey::K;
     case SDL_SCANCODE_L:
-        return KeyboardKey_L;
+        return KeyboardKey::L;
     case SDL_SCANCODE_M:
-        return KeyboardKey_M;
+        return KeyboardKey::M;
     case SDL_SCANCODE_N:
-        return KeyboardKey_N;
+        return KeyboardKey::N;
     case SDL_SCANCODE_O:
-        return KeyboardKey_O;
+        return KeyboardKey::O;
     case SDL_SCANCODE_P:
-        return KeyboardKey_P;
+        return KeyboardKey::P;
     case SDL_SCANCODE_Q:
-        return KeyboardKey_Q;
+        return KeyboardKey::Q;
     case SDL_SCANCODE_R:
-        return KeyboardKey_R;
+        return KeyboardKey::R;
     case SDL_SCANCODE_S:
-        return KeyboardKey_S;
+        return KeyboardKey::S;
     case SDL_SCANCODE_T:
-        return KeyboardKey_T;
+        return KeyboardKey::T;
     case SDL_SCANCODE_U:
-        return KeyboardKey_U;
+        return KeyboardKey::U;
     case SDL_SCANCODE_V:
-        return KeyboardKey_V;
+        return KeyboardKey::V;
     case SDL_SCANCODE_W:
-        return KeyboardKey_W;
+        return KeyboardKey::W;
     case SDL_SCANCODE_X:
-        return KeyboardKey_X;
+        return KeyboardKey::X;
     case SDL_SCANCODE_Y:
-        return KeyboardKey_Y;
+        return KeyboardKey::Y;
     case SDL_SCANCODE_Z:
-        return KeyboardKey_Z;
+        return KeyboardKey::Z;
     case SDL_SCANCODE_DELETE:
-        return KeyboardKey_Delete;
+        return KeyboardKey::Delete;
     case SDL_SCANCODE_KP_0:
-        return KeyboardKey_KPad0;
+        return KeyboardKey::KPad0;
     case SDL_SCANCODE_KP_1:
-        return KeyboardKey_KPad1;
+        return KeyboardKey::KPad1;
     case SDL_SCANCODE_KP_2:
-        return KeyboardKey_KPad2;
+        return KeyboardKey::KPad2;
     case SDL_SCANCODE_KP_3:
-        return KeyboardKey_KPad3;
+        return KeyboardKey::KPad3;
     case SDL_SCANCODE_KP_4:
-        return KeyboardKey_KPad4;
+        return KeyboardKey::KPad4;
     case SDL_SCANCODE_KP_5:
-        return KeyboardKey_KPad5;
+        return KeyboardKey::KPad5;
     case SDL_SCANCODE_KP_6:
-        return KeyboardKey_KPad6;
+        return KeyboardKey::KPad6;
     case SDL_SCANCODE_KP_7:
-        return KeyboardKey_KPad7;
+        return KeyboardKey::KPad7;
     case SDL_SCANCODE_KP_8:
-        return KeyboardKey_KPad8;
+        return KeyboardKey::KPad8;
     case SDL_SCANCODE_KP_9:
-        return KeyboardKey_KPad8;
+        return KeyboardKey::KPad8;
     case SDL_SCANCODE_KP_PERIOD:
-        return KeyboardKey_KPadPeriod;
+        return KeyboardKey::KPadPeriod;
     case SDL_SCANCODE_KP_DIVIDE:
-        return KeyboardKey_KPadFSlash;
+        return KeyboardKey::KPadFSlash;
     case SDL_SCANCODE_KP_MULTIPLY:
-        return KeyboardKey_KPadStar;
+        return KeyboardKey::KPadStar;
     case SDL_SCANCODE_KP_MINUS:
-        return KeyboardKey_KPadDash;
+        return KeyboardKey::KPadDash;
     case SDL_SCANCODE_KP_PLUS:
-        return KeyboardKey_KPadPlus;
+        return KeyboardKey::KPadPlus;
     case SDL_SCANCODE_KP_ENTER:
-        return KeyboardKey_KPadReturn;
+        return KeyboardKey::KPadReturn;
     case SDL_SCANCODE_KP_EQUALS:
-        return KeyboardKey_KPadEquals;
+        return KeyboardKey::KPadEquals;
     case SDL_SCANCODE_UP:
-        return KeyboardKey_Up;
+        return KeyboardKey::Up;
     case SDL_SCANCODE_DOWN:
-        return KeyboardKey_Down;
+        return KeyboardKey::Down;
     case SDL_SCANCODE_RIGHT:
-        return KeyboardKey_Right;
+        return KeyboardKey::Right;
     case SDL_SCANCODE_LEFT:
-        return KeyboardKey_Left;
+        return KeyboardKey::Left;
     case SDL_SCANCODE_INSERT:
-        return KeyboardKey_Insert;
+        return KeyboardKey::Insert;
     case SDL_SCANCODE_HOME:
-        return KeyboardKey_Home;
+        return KeyboardKey::Home;
     case SDL_SCANCODE_END:
-        return KeyboardKey_End;
+        return KeyboardKey::End;
     case SDL_SCANCODE_PAGEUP:
-        return KeyboardKey_PageUp;
+        return KeyboardKey::PageUp;
     case SDL_SCANCODE_PAGEDOWN:
-        return KeyboardKey_PageDown;
+        return KeyboardKey::PageDown;
     case SDL_SCANCODE_F1:
-        return KeyboardKey_F1;
+        return KeyboardKey::F1;
     case SDL_SCANCODE_F2:
-        return KeyboardKey_F2;
+        return KeyboardKey::F2;
     case SDL_SCANCODE_F3:
-        return KeyboardKey_F3;
+        return KeyboardKey::F3;
     case SDL_SCANCODE_F4:
-        return KeyboardKey_F4;
+        return KeyboardKey::F4;
     case SDL_SCANCODE_F5:
-        return KeyboardKey_F5;
+        return KeyboardKey::F5;
     case SDL_SCANCODE_F6:
-        return KeyboardKey_F6;
+        return KeyboardKey::F6;
     case SDL_SCANCODE_F7:
-        return KeyboardKey_F7;
+        return KeyboardKey::F7;
     case SDL_SCANCODE_F8:
-        return KeyboardKey_F8;
+        return KeyboardKey::F8;
     case SDL_SCANCODE_F9:
-        return KeyboardKey_F9;
+        return KeyboardKey::F9;
     case SDL_SCANCODE_F10:
-        return KeyboardKey_F10;
+        return KeyboardKey::F10;
     case SDL_SCANCODE_F11:
-        return KeyboardKey_F11;
+        return KeyboardKey::F11;
     case SDL_SCANCODE_F12:
-        return KeyboardKey_F12;
+        return KeyboardKey::F12;
     case SDL_SCANCODE_F13:
     case SDL_SCANCODE_F14:
     case SDL_SCANCODE_F15:
         // TODO (jacob#): implement keys
-        return KeyboardKey_Unknown;
+        return KeyboardKey::Unknown;
     case SDL_SCANCODE_NUMLOCKCLEAR:
-        return KeyboardKey_NumLock;
+        return KeyboardKey::NumLock;
     case SDL_SCANCODE_CAPSLOCK:
-        return KeyboardKey_CapsLock;
+        return KeyboardKey::CapsLock;
     case SDL_SCANCODE_SCROLLLOCK:
-        return KeyboardKey_ScrollLock;
+        return KeyboardKey::ScrollLock;
     case SDL_SCANCODE_RSHIFT:
-        return KeyboardKey_RShift;
+        return KeyboardKey::RShift;
     case SDL_SCANCODE_LSHIFT:
-        return KeyboardKey_LShift;
+        return KeyboardKey::LShift;
     case SDL_SCANCODE_RCTRL:
-        return KeyboardKey_RCtrl;
+        return KeyboardKey::RCtrl;
     case SDL_SCANCODE_LCTRL:
-        return KeyboardKey_LCtrl;
+        return KeyboardKey::LCtrl;
     case SDL_SCANCODE_RALT:
-        return KeyboardKey_RAlt;
+        return KeyboardKey::RAlt;
     case SDL_SCANCODE_LALT:
-        return KeyboardKey_LAlt;
+        return KeyboardKey::LAlt;
     case SDL_SCANCODE_RGUI:
-        return KeyboardKey_RMeta;
+        return KeyboardKey::RMeta;
     case SDL_SCANCODE_LGUI:
-        return KeyboardKey_LMeta;
+        return KeyboardKey::LMeta;
     case SDL_SCANCODE_MODE:
-        return KeyboardKey_Mode;
+        return KeyboardKey::Mode;
     case SDL_SCANCODE_HELP:
         // TODO (jacob#): implement keys
-        return KeyboardKey_Unknown;
+        return KeyboardKey::Unknown;
     case SDL_SCANCODE_PRINTSCREEN:
-        return KeyboardKey_PrintScreen;
+        return KeyboardKey::PrintScreen;
     case SDL_SCANCODE_SYSREQ:
-        return KeyboardKey_SysRequest;
+        return KeyboardKey::SysRequest;
     case SDL_SCANCODE_MENU:
-        return KeyboardKey_Menu;
+        return KeyboardKey::Menu;
     case SDL_SCANCODE_POWER:
     case SDL_SCANCODE_UNDO:
         // TODO (jacob#): implement keys
-        return KeyboardKey_Unknown;
+        return KeyboardKey::Unknown;
     default:
-        return KeyboardKey_Unknown;
+        return KeyboardKey::Unknown;
     }
 }
 
@@ -743,11 +743,7 @@ static MouseButton translateButton(Uint8 button)
     }
 }
 
-static bool &keyState(KeyboardKey key)
-{
-    static bool state[KeyboardKey_max + 1 - KeyboardKey_min];
-    return state[static_cast<int>(key) + KeyboardKey_min];
-}
+static enum_array<bool, KeyboardKey> keyState;
 
 static MouseButton buttonState = MouseButton_None;
 
@@ -781,15 +777,15 @@ static Event *makeEvent()
         case SDL_KEYDOWN:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            Event *retval = new KeyDownEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState(key));
-            keyState(key) = true;
+            Event *retval = new KeyDownEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
+            keyState[key] = true;
             return retval;
         }
         case SDL_KEYUP:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
             Event *retval = new KeyUpEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
-            keyState(key) = false;
+            keyState[key] = false;
             return retval;
         }
         case SDL_MOUSEMOTION:
@@ -850,7 +846,7 @@ struct DefaultEventHandler : public EventHandler
     }
     virtual bool handleKeyDown(KeyDownEvent &event) override
     {
-        if(event.key == KeyboardKey_F4 && (event.mods & KeyboardModifiers_Alt) != 0)
+        if(event.key == KeyboardKey::F4 && (event.mods & KeyboardModifiers_Alt) != 0)
         {
             needQuitEvent = true;
             return true;

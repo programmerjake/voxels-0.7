@@ -20,6 +20,7 @@
 
 #include "platform/platform.h"
 #include <memory>
+#include "util/enum_traits.h"
 
 class KeyDownEvent;
 class MouseUpEvent;
@@ -58,6 +59,7 @@ public:
         Type_KeyDown,
         Type_KeyPress,
         Type_Quit,
+        DEFINE_ENUM_LIMITS(Type_MouseUp, Type_Quit)
     };
     const Type type;
 protected:

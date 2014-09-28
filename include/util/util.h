@@ -95,24 +95,4 @@ public:
     }
 };
 
-uint32_t makeSeed();
-
-inline uint32_t makeSeed(wstring str)
-{
-    if(str == L"")
-    {
-        return makeSeed();
-    }
-
-    uint32_t retval = 0;
-
-    for(wchar_t ch : str)
-    {
-        retval *= 9;
-        retval += ch;
-    }
-
-    return retval;
-}
-
 #endif // UTIL_H

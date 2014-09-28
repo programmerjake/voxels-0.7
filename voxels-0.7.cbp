@@ -95,6 +95,7 @@
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
 		<Unit filename="include/world/world.h" />
+		<Unit filename="include/world/world_generator.h" />
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
@@ -116,6 +117,7 @@
 		<Unit filename="src/util/matrix.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />
+		<Unit filename="src/world/world.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

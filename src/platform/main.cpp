@@ -167,14 +167,15 @@ int main(int argc, char ** argv)
 #include "util/util.h"
 #include "world/world.h"
 #include "player/player.h"
-#include "block/builtin/air.h"
-#include "block/builtin/stone.h"
 #include <memory>
 #include <sstream>
 #include <cwchar>
 #include <string>
 #include <thread>
 #include <atomic>
+#include "util/flag.h"
+#include "block/builtin/air.h"
+#include "block/builtin/stone.h"
 
 using namespace std;
 
@@ -199,7 +200,9 @@ struct MyEventHandler : public EventHandler
     float theta = 0, phi = 0, deltaTheta = 0, deltaPhi = 0;
     PositionF position = PositionF(0.5f, 0.5f, 0.5f, Dimension::Overworld);
     World world;
-    int32_t viewDistance = 64;
+    int32_t viewDistance = 48;
+    enum_array<bool, KeyboardKey> currentKeyState;
+    bool paused = false;
     Matrix getForwardMatrix()
     {
         return Matrix::rotateY(-theta);
@@ -248,39 +251,75 @@ struct MyEventHandler : public EventHandler
         Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
         if(pos != (PositionI)position)
             world.setBlock(pos, block);
+        checkGenerate = world.needGenerateChunks();
+        world.mergeGeneratedChunk();
+        VectorF leftVector = getForwardMatrix().apply(VectorF(-1, 0, 0));
+        VectorF forwardVector = getForwardMatrix().apply(VectorF(0, 0, -1));
+        VectorF upVector = VectorF(0, 1, 0);
+        VectorF moveDirection = VectorF(0);
+        if(currentKeyState[KeyboardKey::LShift] || currentKeyState[KeyboardKey::RShift])
+            moveDirection -= upVector;
+        if(currentKeyState[KeyboardKey::Space])
+            moveDirection += upVector;
+        if(currentKeyState[KeyboardKey::A])
+            moveDirection += leftVector;
+        if(currentKeyState[KeyboardKey::D])
+            moveDirection -= leftVector;
+        if(currentKeyState[KeyboardKey::W])
+            moveDirection += forwardVector;
+        if(currentKeyState[KeyboardKey::S])
+            moveDirection -= forwardVector;
+        if(currentKeyState[KeyboardKey::F])
+            moveDirection *= 2.5;
+        moveDirection *= 2;
+        if(!paused)
+            position += Display::frameDeltaTime() * moveDirection;
     }
     bool handleKeyDown(KeyDownEvent &event) override
     {
-        if(event.key == KeyboardKey_Up)
+        currentKeyState[event.key] = true;
+        if(event.key == KeyboardKey::Up)
         {
             volume = limit<float>(volume * 1.1f, 0, 1);
             if(playingAudio)
                 playingAudio->volume(volume);
         }
-        else if(event.key == KeyboardKey_Down)
+        else if(event.key == KeyboardKey::Down)
         {
             volume = limit<float>(volume / 1.1f, 0, 1);
             if(playingAudio)
                 playingAudio->volume(volume);
         }
-        else if(event.key == KeyboardKey_Escape)
+        else if(event.key == KeyboardKey::Escape)
             done = true;
-        else if(event.key == KeyboardKey_Left)
+        else if(event.key == KeyboardKey::Left)
         {
             audioIndex += maxBackgroundFileNumber - 2;
             audioIndex %= maxBackgroundFileNumber;
             audioIndex++;
             startAudio();
         }
-        else if(event.key == KeyboardKey_Right)
+        else if(event.key == KeyboardKey::Right)
         {
             audioIndex %= maxBackgroundFileNumber;
             audioIndex++;
             startAudio();
         }
+        else if(event.key == KeyboardKey::P)
+        {
+            if(!event.isRepetition)
+            {
+                paused = !paused;
+                setMouseGrab();
+            }
+        }
         else
             return false;
         return true;
+    }
+    void setMouseGrab()
+    {
+        Display::grabMouse(!paused);
     }
     bool handleKeyPress(KeyPressEvent &event) override
     {
@@ -288,6 +327,7 @@ struct MyEventHandler : public EventHandler
     }
     bool handleKeyUp(KeyUpEvent &event) override
     {
+        currentKeyState[event.key] = false;
         return false;
     }
     bool handleMouseDown(MouseDownEvent &event) override
@@ -296,8 +336,11 @@ struct MyEventHandler : public EventHandler
     }
     bool handleMouseMove(MouseMoveEvent &event) override
     {
-        deltaTheta += event.deltaX / 300;
-        deltaPhi -= event.deltaY / 300;
+        if(!paused)
+        {
+            deltaTheta += event.deltaX / 300;
+            deltaPhi -= event.deltaY / 300;
+        }
         return true;
     }
     bool handleMouseScroll(MouseScrollEvent &event) override
@@ -334,24 +377,46 @@ struct MyEventHandler : public EventHandler
     }
     atomic_bool done;
     thread meshGeneratorThread;
+    flag checkGenerate;
+    vector<thread> chunkGeneratorThreads;
     MyEventHandler()
-        : done(false)
+        : done(false), checkGenerate(true)
     {
+        for(bool &v : currentKeyState)
+            v = false;
         PositionI minPosition = World::ChunkType::getChunkBasePosition(PositionI(-16, -16, -16, Dimension::Overworld));
         PositionI maxPosition = World::ChunkType::getChunkBasePosition(PositionI(16, 16, 16, Dimension::Overworld));
         PositionI cpos = minPosition;
         for(cpos.x = minPosition.x; cpos.x <= maxPosition.x; cpos.x += World::ChunkType::chunkSizeX)
         {
-            cout << cpos.x << " : " << minPosition.x << " - " << maxPosition.x << "\x1b[K\r" << flush;
             for(cpos.y = minPosition.y; cpos.y <= maxPosition.y; cpos.y += World::ChunkType::chunkSizeY)
             {
                 for(cpos.z = minPosition.z; cpos.z <= maxPosition.z; cpos.z += World::ChunkType::chunkSizeZ)
                 {
-                    generateChunk(cpos);
+                    world.scheduleGenerateChunk(cpos);
                 }
             }
         }
-        cout << "\r\x1b[K" << flush;
+        chunkGeneratorThreads.resize(5);
+        for(thread &t : chunkGeneratorThreads)
+        {
+            t = thread([this]()
+            {
+                while(!done)
+                {
+                    checkGenerate.wait();
+                    if(done)
+                        return;
+                    if(!world.generateChunk())
+                        checkGenerate = false;
+                }
+            });
+        }
+        while(world.generateChunk())
+        {
+            world.mergeGeneratedChunks();
+        }
+        world.updateMeshes((PositionI)position, viewDistance);
         meshGeneratorThread = thread([&]()
         {
             while(!done)
@@ -361,7 +426,10 @@ struct MyEventHandler : public EventHandler
     ~MyEventHandler()
     {
         done = true;
+        checkGenerate = true;
         meshGeneratorThread.join();
+        for(thread &t : chunkGeneratorThreads)
+            t.join();
     }
 };
 
@@ -371,7 +439,7 @@ int main()
     startGraphics();
     eh->startAudio();
     Renderer r;
-    Display::grabMouse(true);
+    eh->setMouseGrab();
     while(!eh->done)
     {
         Display::initFrame();

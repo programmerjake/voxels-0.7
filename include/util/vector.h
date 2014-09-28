@@ -37,11 +37,7 @@ struct VectorI
         : x(x), y(y), z(z)
     {
     }
-
-private:
-    VectorI(float x, float y, float z) = delete;
 public:
-
     constexpr VectorI(int32_t v = 0)
         : x(v), y(v), z(v)
     {
