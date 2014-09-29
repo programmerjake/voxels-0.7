@@ -372,6 +372,10 @@ public:
             return false;
         return true;
     }
+    void move(double deltaTime)
+    {
+        physicsWorld->stepTime(deltaTime);
+    }
 };
 
 #include "world/world_generator.h"

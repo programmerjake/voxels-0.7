@@ -274,6 +274,7 @@ struct MyEventHandler : public EventHandler
         moveDirection *= 2;
         if(!paused)
             position += Display::frameDeltaTime() * moveDirection;
+        world.move(Display::frameDeltaTime());
     }
     bool handleKeyDown(KeyDownEvent &event) override
     {

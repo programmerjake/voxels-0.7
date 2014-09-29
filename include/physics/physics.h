@@ -62,19 +62,50 @@ struct PhysicsProperties final
     }
 };
 
-class PhysicsConstraint final
+struct PhysicsConstraintData
 {
-    shared_ptr<Script> script;
-public:
-    PhysicsConstraint(shared_ptr<Script> script)
-        : script(script)
+    virtual ~PhysicsConstraintData()
     {
-        assert(script);
     }
-    void operator()(PositionF &position, VectorF &velocity) const;
-    shared_ptr<Script> getScript() const
+};
+
+struct PhysicsConstraintDescriptor
+{
+protected:
+    constexpr PhysicsConstraintDescriptor()
     {
-        return script;
+    }
+public:
+    virtual ~PhysicsConstraintDescriptor()
+    {
+    }
+    virtual void run(const shared_ptr<PhysicsConstraintData> &data, PositionF &position, VectorF &velocity) const = 0;
+};
+
+struct PhysicsConstraint final
+{
+    const PhysicsConstraintDescriptor *descriptor;
+    shared_ptr<PhysicsConstraintData> data;
+    PhysicsConstraint(const PhysicsConstraintDescriptor *descriptor = nullptr, shared_ptr<PhysicsConstraintData> data = nullptr)
+        : descriptor(descriptor), data(data)
+    {
+    }
+    void operator()(PositionF &position, VectorF &velocity) const
+    {
+        if(descriptor != nullptr)
+            descriptor->run(data, position, velocity);
+    }
+    bool empty() const
+    {
+        return descriptor == nullptr;
+    }
+    static PhysicsConstraint read(stream::Reader &reader, VariableSet &variableSet)
+    {
+        throw stream::IOException("can't read a physics constraint");
+    }
+    void write(stream::Writer &writer, VariableSet &variableSet) const
+    {
+        throw stream::IOException("can't write a physics constraint");
     }
 };
 
@@ -84,7 +115,7 @@ template <>
 struct read<PhysicsConstraint> : public read_base<PhysicsConstraint>
 {
     read(Reader &reader, VariableSet &variableSet)
-        : read_base<PhysicsConstraint>(PhysicsConstraint((PhysicsConstraint)stream::read<Script>(reader, variableSet)))
+        : read_base<PhysicsConstraint>(PhysicsConstraint::read(reader, variableSet))
     {
     }
 };
@@ -94,7 +125,7 @@ struct write<PhysicsConstraint>
 {
     write(Writer &writer, VariableSet &variableSet, PhysicsConstraint value)
     {
-        stream::write<Script>(writer, variableSet, value.getScript());
+        value.write(writer, variableSet);
     }
 };
 }
