@@ -51,6 +51,7 @@
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
+		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
 		<Unit filename="include/platform/event.h" />
@@ -100,6 +101,7 @@
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
+		<Unit filename="src/entity/entity.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />

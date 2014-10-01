@@ -43,7 +43,7 @@ struct Block final
 {
     BlockDescriptorPointer descriptor;
     shared_ptr<void> data;
-    Block()
+    constexpr Block()
         : descriptor(nullptr), data(nullptr)
     {
     }

@@ -381,10 +381,10 @@ protected:
         DEFINE_ENUM_LIMITS(Empty, Cylinder)
     };
 public:
-    static shared_ptr<PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
-    static shared_ptr<PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
-    static shared_ptr<PhysicsObjectConstructor> empty();
-    static shared_ptr<PhysicsObjectConstructor> read(stream::Reader & reader, VariableSet &variableSet)
+    static shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
+    static shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
+    static shared_ptr<const PhysicsObjectConstructor> empty();
+    static shared_ptr<const PhysicsObjectConstructor> read(stream::Reader & reader, VariableSet &variableSet)
     {
         Shape shape = stream::read<Shape>(reader);
         switch(shape)
@@ -468,9 +468,9 @@ public:
     }
 };
 
-inline shared_ptr<PhysicsObjectConstructor> PhysicsObjectConstructor::cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints)
+inline shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints)
 {
-    return shared_ptr<PhysicsObjectConstructor>(new PhysicsObjectConstructorCylinder(radius, yExtent, affectedByGravity, isStatic, properties, constraints));
+    return shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorCylinder(radius, yExtent, affectedByGravity, isStatic, properties, constraints));
 }
 
 class PhysicsObjectConstructorBox final : public PhysicsObjectConstructor
@@ -508,9 +508,9 @@ public:
     }
 };
 
-inline shared_ptr<PhysicsObjectConstructor> PhysicsObjectConstructor::boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints)
+inline shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints)
 {
-    return shared_ptr<PhysicsObjectConstructor>(new PhysicsObjectConstructorBox(extents, affectedByGravity, isStatic, properties, constraints));
+    return shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorBox(extents, affectedByGravity, isStatic, properties, constraints));
 }
 
 struct PhysicsObjectConstructorEmpty final : public PhysicsObjectConstructor
@@ -525,9 +525,9 @@ struct PhysicsObjectConstructorEmpty final : public PhysicsObjectConstructor
     }
 };
 
-inline shared_ptr<PhysicsObjectConstructor> PhysicsObjectConstructor::empty()
+inline shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::empty()
 {
-    return shared_ptr<PhysicsObjectConstructor>(new PhysicsObjectConstructorEmpty);
+    return shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorEmpty);
 }
 
 inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type)

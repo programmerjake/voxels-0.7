@@ -1,3 +1,4 @@
+#include "entity/entity.h"
 #ifndef WORLD_H_INCLUDED
 #define WORLD_H_INCLUDED
 
@@ -17,6 +18,7 @@
 #include "util/cached_variable.h"
 #include "platform/platform.h"
 #include "util/unlock_guard.h"
+#include "util/linked_map.h"
 
 using namespace std;
 
@@ -163,6 +165,8 @@ private:
     unordered_set<PositionI> generatedChunksSet;
     unordered_set<PositionI> needGenerateChunksSet;
     list<PositionI> needGenerateChunksList;
+    linked_map<PositionI, list<Entity>> entities;
+    size_t entityCount = 0;
 public:
     World(SeedType seed, shared_ptr<const WorldGenerator> worldGenerator)
         : physicsWorld(make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), cachedMeshesInvalid(true)
@@ -325,9 +329,9 @@ public:
         }
         invalidateRange(basePos - VectorI(1), basePos + VectorI(xSize, ySize, zSize));
     }
-    void merge(const World &other)
+    void merge(World &other)
     {
-        #warning add merging entities
+        assert(&other != this);
         for(auto &element : other.physicsWorld->chunks)
         {
             const ChunkType &chunk = std::get<1>(element);
@@ -336,6 +340,12 @@ public:
         for(auto e : other.generatedChunksSet)
         {
             generatedChunksSet.insert(e);
+        }
+        for(pair<const PositionI, list<Entity>> &v : other.entities)
+        {
+            list<Entity> &src = std::get<1>(v);
+            list<Entity> &dest = entities[std::get<0>(v)];
+            dest.splice(dest.end(), src);
         }
     }
     bool mergeGeneratedChunk()
@@ -372,9 +382,91 @@ public:
             return false;
         return true;
     }
+private:
+    bool putEntityInProperChunk(list<Entity> &srcList, list<Entity>::iterator iter)
+    {
+        if(!*iter)
+            return false;
+        if(!iter->physicsObject)
+            return false;
+        if(iter->physicsObject->isDestroyed())
+            return false;
+        PositionF pos = iter->physicsObject->getPosition();
+        PositionI chunkPos = ChunkType::getChunkBasePosition((PositionI)pos);
+        list<Entity> &l = entities[chunkPos];
+        if(&l != &srcList)
+            l.splice(l.end(), srcList, iter);
+        return true;
+    }
+public:
     void move(double deltaTime)
     {
+        vector<pair<list<Entity> *, list<Entity>::iterator>> entitiesList;
+        entitiesList.reserve(entityCount);
+        for(pair<const PositionI, list<Entity>> &v : entities)
+        {
+            list<Entity> &l = std::get<1>(v);
+            for(auto i = l.begin(); i != l.end();)
+            {
+                if(*i && i->physicsObject && !i->physicsObject->isDestroyed())
+                    entitiesList.push_back(make_pair(&l, i++));
+                else
+                    i = l.erase(i);
+            }
+        }
+        for(auto i : entitiesList)
+        {
+            assert(*std::get<1>(i));
+            std::get<1>(i)->descriptor->moveStep(*std::get<1>(i), *this, deltaTime);
+        }
         physicsWorld->stepTime(deltaTime);
+        for(auto i : entitiesList)
+        {
+            if(!*std::get<1>(i))
+                continue;
+            putEntityInProperChunk(*std::get<0>(i), std::get<1>(i));
+        }
+    }
+    void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity = VectorF(0), shared_ptr<void> data = nullptr)
+    {
+        assert(descriptor != nullptr);
+        Entity e = Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), data);
+        list<Entity> l;
+        l.push_back(e);
+        if(!putEntityInProperChunk(l, l.begin()))
+        {
+            assert(false);
+        }
+    }
+    void generateEntityMeshes(enum_array<Mesh, RenderLayer> &entityMeshes, PositionI viewPosition, int32_t viewDistance)
+    {
+        assert(viewDistance >= 0);
+        PositionI minPosition = ChunkType::getChunkBasePosition(viewPosition - VectorI(viewDistance));
+        PositionI maxPosition = ChunkType::getChunkBasePosition(viewPosition + VectorI(viewDistance));
+        PositionI pos = minPosition;
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            entityMeshes[rl].clear();
+        }
+        for(pos.x = minPosition.x; pos.x <= maxPosition.x; pos.x += ChunkType::chunkSizeX)
+        {
+            for(pos.y = minPosition.y; pos.y <= maxPosition.y; pos.y += ChunkType::chunkSizeY)
+            {
+                for(pos.z = minPosition.z; pos.z <= maxPosition.z; pos.z += ChunkType::chunkSizeZ)
+                {
+                    for(RenderLayer rl : enum_traits<RenderLayer>())
+                    {
+                        const list<Entity> &l = entities[pos];
+                        for(const Entity & e : l)
+                        {
+                            if(!e)
+                                continue;
+                            e.descriptor->render(e, entityMeshes[rl], rl);
+                        }
+                    }
+                }
+            }
+        }
     }
 };
 
