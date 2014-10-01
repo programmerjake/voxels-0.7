@@ -409,9 +409,14 @@ public:
             for(auto i = l.begin(); i != l.end();)
             {
                 if(*i && i->physicsObject && !i->physicsObject->isDestroyed())
+                {
                     entitiesList.push_back(make_pair(&l, i++));
+                }
                 else
+                {
                     i = l.erase(i);
+                    entityCount--;
+                }
             }
         }
         for(auto i : entitiesList)
@@ -433,7 +438,11 @@ public:
         Entity e = Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), data);
         list<Entity> l;
         l.push_back(e);
-        if(!putEntityInProperChunk(l, l.begin()))
+        if(putEntityInProperChunk(l, l.begin()))
+        {
+            entityCount++;
+        }
+        else
         {
             assert(false);
         }
