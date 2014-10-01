@@ -6,6 +6,7 @@
 #include "util/color.h"
 #include "stream/stream.h"
 #include <algorithm>
+#include <tuple>
 
 using namespace std;
 
@@ -114,6 +115,20 @@ struct Triangle
         stream::write<ColorF>(writer, c3);
         stream::write<TextureCoord>(writer, t3);
         stream::write<VectorF>(writer, n3);
+    }
+    constexpr VectorF getPlaneNormal() const
+    {
+        return normalizeNoThrow(cross(p1 - p2, p1 - p3));
+    }
+private:
+    constexpr pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
+    {
+        return pair<VectorF, float>(normal, -dot(p1, normal));
+    }
+public:
+    constexpr pair<VectorF, float> getPlaneEquation() const
+    {
+        return getPlaneEquationHelper(getPlaneNormal());
     }
 };
 

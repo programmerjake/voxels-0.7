@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 			</Target>
 			<Target title="Release">
@@ -58,6 +59,7 @@
 		<Unit filename="include/platform/platform.h" />
 		<Unit filename="include/platform/platformgl.h" />
 		<Unit filename="include/player/player.h" />
+		<Unit filename="include/ray_casting/ray_casting.h" />
 		<Unit filename="include/render/generate.h" />
 		<Unit filename="include/render/mesh.h" />
 		<Unit filename="include/render/render_layer.h" />

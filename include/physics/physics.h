@@ -44,8 +44,11 @@ class PhysicsWorld;
 struct PhysicsProperties final
 {
     float bounceFactor, slideFactor;
-    PhysicsProperties(float bounceFactor = sqrt(0.5f), float slideFactor = 1 - sqrt(0.5f))
-        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f))
+    typedef uint32_t CollisionMaskType;
+    CollisionMaskType collisionMask;
+    static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF;
+    explicit PhysicsProperties(CollisionMaskType collisionMask = defaultCollisionMask, float bounceFactor = sqrt(0.5f), float slideFactor = 1 - sqrt(0.5f))
+        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), collisionMask(collisionMask)
     {
     }
     static PhysicsProperties read(stream::Reader & reader)
@@ -53,12 +56,14 @@ struct PhysicsProperties final
         PhysicsProperties retval;
         retval.bounceFactor = stream::read_limited<float32_t>(reader, 0, 1);
         retval.slideFactor = stream::read_limited<float32_t>(reader, 0, 1);
+        retval.collisionMask = stream::read<CollisionMaskType>(reader);
         return retval;
     }
     void write(stream::Writer & writer) const
     {
         stream::write<float32_t>(writer, bounceFactor);
         stream::write<float32_t>(writer, slideFactor);
+        stream::write<CollisionMaskType>(writer, collisionMask);
     }
 };
 
@@ -174,6 +179,7 @@ private:
         type = Type::Box;
         extents = shape.extents;
         supported = true;
+        properties = PhysicsProperties((PhysicsProperties::CollisionMaskType)1);
     }
 public:
     static shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, shared_ptr<PhysicsWorld> world);
@@ -622,6 +628,8 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 {
     if(isEmpty() || rt.isEmpty())
         return false;
+    if((properties.collisionMask & rt.properties.collisionMask) == 0)
+        return false;
     auto world = getWorld();
     assert(world == rt.getWorld());
     PositionF lPosition = getPosition();
@@ -710,8 +718,10 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 shared_ptr<PhysicsObject> objectA = *i;
                 if(!objectA || objectA->isDestroyed())
                     continue;
-                objectA->position[getOldVariableSetIndex()] = objectA->getPosition();
-                objectA->velocity[getOldVariableSetIndex()] = objectA->getVelocity();
+                PositionF position = objectA->getPosition();
+                VectorF velocity = objectA->getVelocity();
+                objectA->position[getOldVariableSetIndex()] = position;
+                objectA->velocity[getOldVariableSetIndex()] = velocity;
                 objectA->objectTime[getOldVariableSetIndex()] = currentTime;
                 objectA->supported = false;
                 if(objectA->isEmpty())
@@ -722,6 +732,31 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 {
                     objectA->supported = true;
                     continue;
+                }
+                VectorF fMin = position - objectA->extents;
+                VectorF fMax = position + objectA->extents;
+                int minX = ifloor(fMin.x);
+                int maxX = iceil(fMax.x);
+                int minY = ifloor(fMin.y);
+                int maxY = iceil(fMax.y);
+                int minZ = ifloor(fMin.z);
+                int maxZ = iceil(fMax.z);
+                shared_ptr<PhysicsObject> objectB;
+                for(int xPosition = minX; xPosition <= maxX; xPosition++)
+                {
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++)
+                    {
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
+                        {
+                            PositionI bpos = PositionI(xPosition, yPosition, zPosition, position.d);
+                            setObjectToBlock(objectB, bpos);
+                            bool supported = objectA->isSupportedBy(*objectB);
+                            if(supported)
+                            {
+                                objectA->supported = true;
+                            }
+                        }
+                    }
                 }
                 for(auto j = objectsVector.begin(); j != i; j++)
                 {
@@ -930,6 +965,8 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
 {
     if(isStatic())
         return;
+    if((properties.collisionMask & rt.properties.collisionMask) == 0)
+        return;
     PositionF aPosition = getPosition();
     PositionF bPosition = rt.getPosition();
     VectorF aVelocity = getVelocity();
@@ -1107,6 +1144,8 @@ inline bool PhysicsObject::isSupportedBy(const PhysicsObject & rt) const
     if(isStatic())
         return false;
     if(!rt.isSupported() && !rt.isStatic())
+        return false;
+    if((properties.collisionMask & rt.properties.collisionMask) == 0)
         return false;
     PositionF aPosition = getPosition();
     PositionF bPosition = rt.getPosition();
