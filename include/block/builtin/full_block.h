@@ -46,6 +46,22 @@ protected:
     {
     }
 public:
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, World &world, RayCasting::Ray ray) const
+    {
+        if(ray.dimension() != blockIterator.position().d)
+            return RayCasting::Collision(world);
+        tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+        if(!std::get<0>(collision))
+            return RayCasting::Collision(world);
+        if(std::get<1>(collision) < RayCasting::Ray::eps)
+        {
+            collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+            if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
+                return RayCasting::Collision(world);
+            std::get<1>(collision) = RayCasting::Ray::eps;
+        }
+        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position());
+    }
 };
 }
 }

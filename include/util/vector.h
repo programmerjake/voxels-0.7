@@ -177,7 +177,7 @@ struct VectorF
     {
     }
 
-    explicit operator VectorI() const
+    explicit constexpr operator VectorI() const
     {
         return VectorI(ifloor(x), ifloor(y), ifloor(z));
     }

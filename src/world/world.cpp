@@ -3,6 +3,7 @@
 #include <random>
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
+#include "entity/builtin/items/stone.h"
 #include <cmath>
 
 using namespace std;
@@ -55,6 +56,13 @@ public:
             }
         }
         world.setBlockRange<false>(chunkBasePosition, blocks);
+        constexpr float newEntityHeight = 3.5f;
+        PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(1, 0, 0);
+        if(World::ChunkType::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
+        {
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos);
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos + VectorF(0, 1, 0));
+        }
     }
 };
 

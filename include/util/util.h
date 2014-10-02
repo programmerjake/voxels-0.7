@@ -34,12 +34,12 @@ constexpr T limit(const T v, const T minV, const T maxV)
     return maxV < v ? maxV : (v < minV ? minV : v);
 }
 
-inline int ifloor(float v)
+constexpr int ifloor(float v)
 {
     return floor(v);
 }
 
-inline int iceil(float v)
+constexpr int iceil(float v)
 {
     return ceil(v);
 }

@@ -45,10 +45,13 @@ struct PhysicsProperties final
 {
     float bounceFactor, slideFactor;
     typedef uint32_t CollisionMaskType;
-    CollisionMaskType collisionMask;
-    static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF;
-    explicit PhysicsProperties(CollisionMaskType collisionMask = defaultCollisionMask, float bounceFactor = sqrt(0.5f), float slideFactor = 1 - sqrt(0.5f))
-        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), collisionMask(collisionMask)
+    CollisionMaskType myCollisionMask; // for checking when this object is colliding with other objects
+    CollisionMaskType othersCollisionMask; // for checking when other objects are colliding with this object
+    static constexpr CollisionMaskType blockCollisionMask = 0x1;
+    static constexpr CollisionMaskType itemCollisionMask = 0x2;
+    static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF & ~itemCollisionMask;
+    explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask, CollisionMaskType othersCollisionMask = defaultCollisionMask, float bounceFactor = sqrt(0.5f), float slideFactor = 1 - sqrt(0.5f))
+        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), myCollisionMask(myCollisionMask), othersCollisionMask(othersCollisionMask)
     {
     }
     static PhysicsProperties read(stream::Reader & reader)
@@ -56,14 +59,20 @@ struct PhysicsProperties final
         PhysicsProperties retval;
         retval.bounceFactor = stream::read_limited<float32_t>(reader, 0, 1);
         retval.slideFactor = stream::read_limited<float32_t>(reader, 0, 1);
-        retval.collisionMask = stream::read<CollisionMaskType>(reader);
+        retval.myCollisionMask = stream::read<CollisionMaskType>(reader);
+        retval.othersCollisionMask = stream::read<CollisionMaskType>(reader);
         return retval;
     }
     void write(stream::Writer & writer) const
     {
         stream::write<float32_t>(writer, bounceFactor);
         stream::write<float32_t>(writer, slideFactor);
-        stream::write<CollisionMaskType>(writer, collisionMask);
+        stream::write<CollisionMaskType>(writer, myCollisionMask);
+        stream::write<CollisionMaskType>(writer, othersCollisionMask);
+    }
+    bool canCollideWith(const PhysicsProperties &r) const
+    {
+        return myCollisionMask & r.othersCollisionMask;
     }
 };
 
@@ -179,8 +188,9 @@ private:
         type = Type::Box;
         extents = shape.extents;
         supported = true;
-        properties = PhysicsProperties((PhysicsProperties::CollisionMaskType)1);
+        properties = PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::blockCollisionMask);
     }
+    static shared_ptr<PhysicsObject> makeEmptyNoAddToWorld(PositionF position, VectorF velocity, shared_ptr<PhysicsWorld> world);
 public:
     static shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, shared_ptr<PhysicsWorld> world);
     static shared_ptr<PhysicsObject> makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, shared_ptr<PhysicsWorld> world);
@@ -236,7 +246,9 @@ public:
     }
     shared_ptr<PhysicsWorld> getWorld() const
     {
-        return world.lock();
+        shared_ptr<PhysicsWorld> world = this->world.lock();
+        assert(world);
+        return world;
     }
     const PhysicsProperties & getProperties() const
     {
@@ -248,6 +260,7 @@ public:
     bool collides(const PhysicsObject & rt) const;
     void adjustPosition(const PhysicsObject & rt);
     bool isSupportedBy(const PhysicsObject & rt) const;
+    void transferToNewWorld(shared_ptr<PhysicsWorld> newWorld);
 };
 
 class PhysicsWorld final : public enable_shared_from_this<PhysicsWorld>
@@ -289,7 +302,7 @@ private:
     void setObjectToBlock(shared_ptr<PhysicsObject> &object, PositionI pos)
     {
         if(object == nullptr)
-            object = PhysicsObject::makeEmpty(pos, VectorF(0), shared_from_this());
+            object = PhysicsObject::makeEmptyNoAddToWorld(pos, VectorF(0), shared_from_this());
         object->setToBlock(getBlockShape(getBlock(pos)), pos);
     }
 public:
@@ -370,6 +383,16 @@ public:
     }
 };
 
+inline void PhysicsObject::transferToNewWorld(shared_ptr<PhysicsWorld> newWorld)
+{
+    shared_ptr<PhysicsWorld> world = getWorld();
+    if(world == newWorld)
+        return;
+    world->removeObject(shared_from_this());
+    newWorld->addObject(shared_from_this());
+    this->world = newWorld;
+}
+
 class PhysicsObjectConstructor : public enable_shared_from_this<PhysicsObjectConstructor>
 {
 public:
@@ -387,8 +410,8 @@ protected:
         DEFINE_ENUM_LIMITS(Empty, Cylinder)
     };
 public:
-    static shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
-    static shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints);
+    static shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints = {});
+    static shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, vector<PhysicsConstraint> constraints = {});
     static shared_ptr<const PhysicsObjectConstructor> empty();
     static shared_ptr<const PhysicsObjectConstructor> read(stream::Reader & reader, VariableSet &variableSet)
     {
@@ -572,6 +595,11 @@ inline shared_ptr<PhysicsObject> PhysicsObject::makeEmpty(PositionF position, Ve
     return retval;
 }
 
+inline shared_ptr<PhysicsObject> PhysicsObject::makeEmptyNoAddToWorld(PositionF position, VectorF velocity, shared_ptr<PhysicsWorld> world)
+{
+    return shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, false, true, VectorF(), world, PhysicsProperties(), Type::Empty));
+}
+
 inline PhysicsObject::~PhysicsObject()
 {
 }
@@ -628,7 +656,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 {
     if(isEmpty() || rt.isEmpty())
         return false;
-    if((properties.collisionMask & rt.properties.collisionMask) == 0)
+    if(!properties.canCollideWith(rt.properties))
         return false;
     auto world = getWorld();
     assert(world == rt.getWorld());
@@ -690,16 +718,18 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 
 inline void PhysicsWorld::runToTime(double stopTime)
 {
-    float stepDuration = 1 / 600.0f;
-    size_t stepCount = (size_t)ceil((stopTime - currentTime) / stepDuration - timeEPS);
-    for(size_t i = 1; i <= stepCount; i++)
+    cout << "objects.size(): " << objects.size() << endl;
+    float stepDuration = 1 / 60.0f;
+    size_t stepCount = (size_t)ceil((stopTime - currentTime) / stepDuration - 0.1f);
+    constexpr float searchEps = 0.1f;
+    for(size_t step = 1; step <= stepCount; step++)
     {
-        if(i >= stepCount)
+        if(step >= stepCount)
             currentTime = stopTime;
         else
             currentTime += stepDuration;
         bool anyCollisions = true;
-        for(size_t i = 0; i < 10 && anyCollisions; i++)
+        for(size_t i = 0; i < 2 && anyCollisions; i++)
         {
             anyCollisions = false;
             vector<shared_ptr<PhysicsObject>> objectsVector(objects.begin(), objects.end());
@@ -733,8 +763,8 @@ inline void PhysicsWorld::runToTime(double stopTime)
                     objectA->supported = true;
                     continue;
                 }
-                VectorF fMin = position - objectA->extents;
-                VectorF fMax = position + objectA->extents;
+                VectorF fMin = position - objectA->extents - VectorF(searchEps);
+                VectorF fMax = position + objectA->extents + VectorF(searchEps);
                 int minX = ifloor(fMin.x);
                 int maxX = iceil(fMax.x);
                 int minY = ifloor(fMin.y);
@@ -841,12 +871,12 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 collideObjectsList.resize(startCollideObjectsListSize);
                 PositionF position = objectA->getPosition();
                 VectorF extents = objectA->getExtents();
-                float fMinX = position.x - extents.x;
-                float fMaxX = position.x + extents.x;
+                float fMinX = position.x - extents.x - searchEps;
+                float fMaxX = position.x + extents.x + searchEps;
                 int minX = ifloor(fMinX * xScaleFactor);
                 int maxX = iceil(fMaxX * xScaleFactor);
-                float fMinZ = position.z - extents.z;
-                float fMaxZ = position.z + extents.z;
+                float fMinZ = position.z - extents.z - searchEps;
+                float fMaxZ = position.z + extents.z + searchEps;
                 int minZ = ifloor(fMinZ * zScaleFactor);
                 int maxZ = iceil(fMaxZ * zScaleFactor);
                 array<HashNode *, smallHashPrime> perObjectHashTable;
@@ -915,8 +945,8 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 }
                 minX = ifloor(fMinX);
                 maxX = iceil(fMaxX);
-                float fMinY = position.y - extents.y;
-                float fMaxY = position.y + extents.y;
+                float fMinY = position.y - extents.y - searchEps;
+                float fMaxY = position.y + extents.y + searchEps;
                 int minY = ifloor(fMinY);
                 int maxY = iceil(fMaxY);
                 minZ = ifloor(fMinZ);
@@ -965,7 +995,7 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
 {
     if(isStatic())
         return;
-    if((properties.collisionMask & rt.properties.collisionMask) == 0)
+    if(!properties.canCollideWith(rt.properties))
         return;
     PositionF aPosition = getPosition();
     PositionF bPosition = rt.getPosition();
@@ -1145,7 +1175,9 @@ inline bool PhysicsObject::isSupportedBy(const PhysicsObject & rt) const
         return false;
     if(!rt.isSupported() && !rt.isStatic())
         return false;
-    if((properties.collisionMask & rt.properties.collisionMask) == 0)
+    if(!properties.canCollideWith(rt.properties))
+        return false;
+    if(isEmpty() || rt.isEmpty())
         return false;
     PositionF aPosition = getPosition();
     PositionF bPosition = rt.getPosition();

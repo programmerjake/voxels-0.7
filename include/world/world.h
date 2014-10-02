@@ -19,6 +19,7 @@
 #include "platform/platform.h"
 #include "util/unlock_guard.h"
 #include "util/linked_map.h"
+#include "ray_casting/ray_casting.h"
 
 using namespace std;
 
@@ -344,9 +345,18 @@ public:
         for(pair<const PositionI, list<Entity>> &v : other.entities)
         {
             list<Entity> &src = std::get<1>(v);
+            for(Entity &e : src)
+            {
+                if(e.physicsObject != nullptr)
+                {
+                    e.physicsObject->transferToNewWorld(physicsWorld);
+                }
+            }
             list<Entity> &dest = entities[std::get<0>(v)];
             dest.splice(dest.end(), src);
         }
+        entityCount += other.entityCount;
+        other.entityCount = 0;
     }
     bool mergeGeneratedChunk()
     {

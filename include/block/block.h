@@ -32,6 +32,7 @@
 #include "render/mesh.h"
 #include "util/block_face.h"
 #include "render/render_layer.h"
+#include "ray_casting/ray_casting.h"
 
 using namespace std;
 
@@ -164,6 +165,10 @@ public:
     virtual size_t hashData(const shared_ptr<void> &data) const
     {
         return std::hash<shared_ptr<void>>()(data);
+    }
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, World &world, RayCasting::Ray ray) const
+    {
+        return RayCasting::Collision(world);
     }
 };
 

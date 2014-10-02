@@ -3,6 +3,7 @@
 
 #include "physics/physics.h"
 #include "util/linked_map.h"
+#include "ray_casting/ray_casting.h"
 #include <cwchar>
 #include <memory>
 #include <string>
@@ -64,6 +65,10 @@ public:
     {
     }
     virtual void render(const Entity &entity, Mesh &dest, RenderLayer rl) const = 0;
+    virtual RayCasting::Collision getRayCollision(Entity &entity, World &world, RayCasting::Ray ray) const
+    {
+        return RayCasting::Collision(world);
+    }
 };
 
 class EntityDescriptors_t final

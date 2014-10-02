@@ -198,7 +198,7 @@ struct MyEventHandler : public EventHandler
     int audioIndex = 3;
     float volume = 0.1f;
     float theta = 0, phi = 0, deltaTheta = 0, deltaPhi = 0;
-    PositionF position = PositionF(0.5f, 0.5f, 0.5f, Dimension::Overworld);
+    PositionF position = PositionF(0.5f, 4.5f, 0.5f, Dimension::Overworld);
     World world;
     int32_t viewDistance = 48;
     enum_array<bool, KeyboardKey> currentKeyState;
@@ -247,10 +247,10 @@ struct MyEventHandler : public EventHandler
             audioIndex++;
             startAudio();
         }
-        PositionI pos = PositionI(rand() % 11 - 5, rand() % 11 - 5, rand() % 11 - 5, Dimension::Overworld);
-        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
-        if(pos != (PositionI)position)
-            world.setBlock(pos, block);
+//        PositionI pos = PositionI(rand() % 11 - 5, rand() % 11 - 5, rand() % 11 - 5, Dimension::Overworld);
+//        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
+//        if(pos != (PositionI)position)
+//            world.setBlock(pos, block);
         checkGenerate = world.needGenerateChunks();
         world.mergeGeneratedChunk();
         VectorF leftVector = getForwardMatrix().apply(VectorF(-1, 0, 0));

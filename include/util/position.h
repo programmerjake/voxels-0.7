@@ -33,79 +33,79 @@ class PositionF;
 struct PositionI : public VectorI
 {
     Dimension d;
-    PositionI()
+    constexpr PositionI()
         : d(Dimension::Overworld)
     {
     }
-    PositionI(int32_t x, int32_t y, int32_t z, Dimension d)
+    constexpr PositionI(int32_t x, int32_t y, int32_t z, Dimension d)
         : VectorI(x, y, z), d(d)
     {
     }
-    PositionI(VectorF p, Dimension d)
+    constexpr PositionI(VectorF p, Dimension d)
         : VectorI(p), d(d)
     {
     }
-    PositionI(VectorI p, Dimension d)
+    constexpr PositionI(VectorI p, Dimension d)
         : VectorI(p), d(d)
     {
     }
-    friend bool operator ==(const PositionI & a, const PositionI & b)
+    friend constexpr bool operator ==(const PositionI & a, const PositionI & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z && a.d == b.d;
     }
-    friend bool operator !=(const PositionI & a, const PositionI & b)
+    friend constexpr bool operator !=(const PositionI & a, const PositionI & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z || a.d != b.d;
     }
-    friend bool operator ==(const VectorI & a, const PositionI & b)
+    friend constexpr bool operator ==(const VectorI & a, const PositionI & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const VectorI & a, const PositionI & b)
+    friend constexpr bool operator !=(const VectorI & a, const PositionI & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend bool operator ==(const PositionI & a, const VectorI & b)
+    friend constexpr bool operator ==(const PositionI & a, const VectorI & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const PositionI & a, const VectorI & b)
+    friend constexpr bool operator !=(const PositionI & a, const VectorI & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend PositionI operator +(PositionI a, VectorI b)
+    friend constexpr PositionI operator +(PositionI a, VectorI b)
     {
         return PositionI((VectorI)a + b, a.d);
     }
-    friend PositionI operator +(VectorI a, PositionI b)
+    friend constexpr PositionI operator +(VectorI a, PositionI b)
     {
         return PositionI(a + (VectorI)b, b.d);
     }
-    friend PositionI operator -(PositionI a, VectorI b)
+    friend constexpr PositionI operator -(PositionI a, VectorI b)
     {
         return PositionI((VectorI)a - b, a.d);
     }
-    friend PositionI operator -(VectorI a, PositionI b)
+    friend constexpr PositionI operator -(VectorI a, PositionI b)
     {
         return PositionI(a - (VectorI)b, b.d);
     }
-    friend PositionI operator *(PositionI a, VectorI b)
+    friend constexpr PositionI operator *(PositionI a, VectorI b)
     {
         return PositionI((VectorI)a * b, a.d);
     }
-    friend PositionI operator *(VectorI a, PositionI b)
+    friend constexpr PositionI operator *(VectorI a, PositionI b)
     {
         return PositionI(a * (VectorI)b, b.d);
     }
-    friend PositionI operator *(PositionI a, int32_t b)
+    friend constexpr PositionI operator *(PositionI a, int32_t b)
     {
         return PositionI((VectorI)a * b, a.d);
     }
-    friend PositionI operator *(int32_t a, PositionI b)
+    friend constexpr PositionI operator *(int32_t a, PositionI b)
     {
         return PositionI(a * (VectorI)b, b.d);
     }
-    PositionI operator -() const
+    constexpr PositionI operator -() const
     {
         return PositionI(-(VectorI)*this, d);
     }
@@ -129,11 +129,11 @@ struct PositionI : public VectorI
         *(VectorI *)this *= rt;
         return *this;
     }
-    friend VectorI operator +(const PositionI & l, const PositionI & r)
+    friend constexpr VectorI operator +(const PositionI & l, const PositionI & r)
     {
         return (VectorI)l + (VectorI)r;
     }
-    friend VectorI operator -(const PositionI & l, const PositionI & r)
+    friend constexpr VectorI operator -(const PositionI & l, const PositionI & r)
     {
         return (VectorI)l - (VectorI)r;
     }
@@ -148,12 +148,12 @@ struct PositionI : public VectorI
         VectorI::write(writer);
         stream::write<Dimension>(writer, d);
     }
-    friend PositionF operator +(const VectorF &a, const PositionI &b);
-    friend PositionF operator +(const PositionI &a, const VectorF &b);
-    friend PositionF operator -(const VectorF &a, const PositionI &b);
-    friend PositionF operator -(const PositionI &a, const VectorF &b);
-    friend PositionF operator *(const VectorF &a, const PositionI &b);
-    friend PositionF operator *(const PositionI &a, const VectorF &b);
+    friend constexpr PositionF operator +(const VectorF &a, const PositionI &b);
+    friend constexpr PositionF operator +(const PositionI &a, const VectorF &b);
+    friend constexpr PositionF operator -(const VectorF &a, const PositionI &b);
+    friend constexpr PositionF operator -(const PositionI &a, const VectorF &b);
+    friend constexpr PositionF operator *(const VectorF &a, const PositionI &b);
+    friend constexpr PositionF operator *(const PositionI &a, const VectorF &b);
 };
 
 namespace std
@@ -161,7 +161,7 @@ namespace std
 template <>
 struct hash<PositionI>
 {
-    size_t operator ()(const PositionI & v) const
+    constexpr size_t operator ()(const PositionI & v) const
     {
         return (size_t)v.x + (size_t)v.y * 97 + (size_t)v.z * 8191 + (size_t)v.d * 65537;
     }
@@ -171,151 +171,151 @@ struct hash<PositionI>
 struct PositionF : public VectorF
 {
     Dimension d;
-    PositionF()
+    constexpr PositionF()
         : d(Dimension::Overworld)
     {
     }
-    PositionF(PositionI p)
+    constexpr PositionF(PositionI p)
         : VectorF(p.x, p.y, p.z), d(p.d)
     {
     }
-    PositionF(float x, float y, float z, Dimension d)
+    constexpr PositionF(float x, float y, float z, Dimension d)
         : VectorF(x, y, z), d(d)
     {
     }
-    PositionF(VectorF p, Dimension d)
+    constexpr PositionF(VectorF p, Dimension d)
         : VectorF(p.x, p.y, p.z), d(d)
     {
     }
-    PositionF(VectorI p, Dimension d)
+    constexpr PositionF(VectorI p, Dimension d)
         : VectorF(p.x, p.y, p.z), d(d)
     {
     }
-    explicit operator PositionI() const
+    explicit constexpr operator PositionI() const
     {
         return PositionI(VectorF(x, y, z), d);
     }
-    explicit operator VectorF() const
+    explicit constexpr operator VectorF() const
     {
         return VectorF(x, y, z);
     }
-    friend bool operator ==(const PositionF & a, const PositionI & b)
+    friend constexpr bool operator ==(const PositionF & a, const PositionI & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z && a.d == b.d;
     }
-    friend bool operator !=(const PositionF & a, const PositionI & b)
+    friend constexpr bool operator !=(const PositionF & a, const PositionI & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z || a.d != b.d;
     }
-    friend bool operator ==(const PositionI & a, const PositionF & b)
+    friend constexpr bool operator ==(const PositionI & a, const PositionF & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z && a.d == b.d;
     }
-    friend bool operator !=(const PositionI & a, const PositionF & b)
+    friend constexpr bool operator !=(const PositionI & a, const PositionF & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z || a.d != b.d;
     }
-    friend bool operator ==(const PositionF & a, const PositionF & b)
+    friend constexpr bool operator ==(const PositionF & a, const PositionF & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z && a.d == b.d;
     }
-    friend bool operator !=(const PositionF & a, const PositionF & b)
+    friend constexpr bool operator !=(const PositionF & a, const PositionF & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z || a.d != b.d;
     }
-    friend bool operator ==(const VectorF & a, const PositionF & b)
+    friend constexpr bool operator ==(const VectorF & a, const PositionF & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const VectorF & a, const PositionF & b)
+    friend constexpr bool operator !=(const VectorF & a, const PositionF & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend bool operator ==(const PositionF & a, const VectorF & b)
+    friend constexpr bool operator ==(const PositionF & a, const VectorF & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const PositionF & a, const VectorF & b)
+    friend constexpr bool operator !=(const PositionF & a, const VectorF & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend bool operator ==(const VectorI & a, const PositionF & b)
+    friend constexpr bool operator ==(const VectorI & a, const PositionF & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const VectorI & a, const PositionF & b)
+    friend constexpr bool operator !=(const VectorI & a, const PositionF & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend bool operator ==(const PositionF & a, const VectorI & b)
+    friend constexpr bool operator ==(const PositionF & a, const VectorI & b)
     {
         return a.x == b.x && a.y == b.y && a.z == b.z;
     }
-    friend bool operator !=(const PositionF & a, const VectorI & b)
+    friend constexpr bool operator !=(const PositionF & a, const VectorI & b)
     {
         return a.x != b.x || a.y != b.y || a.z != b.z;
     }
-    friend PositionF operator +(PositionF a, VectorF b)
+    friend constexpr PositionF operator +(PositionF a, VectorF b)
     {
         return PositionF((VectorF)a + b, a.d);
     }
-    friend PositionF operator +(VectorF a, PositionF b)
+    friend constexpr PositionF operator +(VectorF a, PositionF b)
     {
         return PositionF(a + (VectorF)b, b.d);
     }
-    friend PositionF operator -(PositionF a, VectorF b)
+    friend constexpr PositionF operator -(PositionF a, VectorF b)
     {
         return PositionF((VectorF)a - b, a.d);
     }
-    friend PositionF operator -(VectorF a, PositionF b)
+    friend constexpr PositionF operator -(VectorF a, PositionF b)
     {
         return PositionF(a - (VectorF)b, b.d);
     }
-    friend PositionF operator *(PositionF a, VectorF b)
+    friend constexpr PositionF operator *(PositionF a, VectorF b)
     {
         return PositionF((VectorF)a * b, a.d);
     }
-    friend PositionF operator *(VectorF a, PositionF b)
+    friend constexpr PositionF operator *(VectorF a, PositionF b)
     {
         return PositionF(a * (VectorF)b, b.d);
     }
-    friend PositionF operator +(PositionF a, VectorI b)
+    friend constexpr PositionF operator +(PositionF a, VectorI b)
     {
         return PositionF((VectorF)a + b, a.d);
     }
-    friend PositionF operator +(VectorI a, PositionF b)
+    friend constexpr PositionF operator +(VectorI a, PositionF b)
     {
         return PositionF(a + (VectorF)b, b.d);
     }
-    friend PositionF operator -(PositionF a, VectorI b)
+    friend constexpr PositionF operator -(PositionF a, VectorI b)
     {
         return PositionF((VectorF)a - b, a.d);
     }
-    friend PositionF operator -(VectorI a, PositionF b)
+    friend constexpr PositionF operator -(VectorI a, PositionF b)
     {
         return PositionF(a - (VectorF)b, b.d);
     }
-    friend PositionF operator *(PositionF a, VectorI b)
+    friend constexpr PositionF operator *(PositionF a, VectorI b)
     {
         return PositionF((VectorF)a * b, a.d);
     }
-    friend PositionF operator *(VectorI a, PositionF b)
+    friend constexpr PositionF operator *(VectorI a, PositionF b)
     {
         return PositionF(a * (VectorF)b, b.d);
     }
-    friend PositionF operator *(PositionF a, float b)
+    friend constexpr PositionF operator *(PositionF a, float b)
     {
         return PositionF((VectorF)a * b, a.d);
     }
-    friend PositionF operator *(float a, PositionF b)
+    friend constexpr PositionF operator *(float a, PositionF b)
     {
         return PositionF(a * (VectorF)b, b.d);
     }
-    friend PositionF operator /(PositionF a, float b)
+    friend constexpr PositionF operator /(PositionF a, float b)
     {
         return PositionF((VectorF)a / b, a.d);
     }
-    PositionF operator -() const
+    constexpr PositionF operator -() const
     {
         return PositionF(-(VectorF)*this, d);
     }
@@ -349,27 +349,27 @@ struct PositionF : public VectorF
         *(VectorF *)this /= rt;
         return *this;
     }
-    friend VectorF operator +(const PositionF & l, const PositionF & r)
+    friend constexpr VectorF operator +(const PositionF & l, const PositionF & r)
     {
         return (VectorF)l + (VectorF)r;
     }
-    friend VectorF operator -(const PositionF & l, const PositionF & r)
+    friend constexpr VectorF operator -(const PositionF & l, const PositionF & r)
     {
         return (VectorF)l - (VectorF)r;
     }
-    friend VectorF operator +(const PositionI & l, const PositionF & r)
+    friend constexpr VectorF operator +(const PositionI & l, const PositionF & r)
     {
         return (VectorI)l + (VectorF)r;
     }
-    friend VectorF operator -(const PositionI & l, const PositionF & r)
+    friend constexpr VectorF operator -(const PositionI & l, const PositionF & r)
     {
         return (VectorI)l - (VectorF)r;
     }
-    friend VectorF operator +(const PositionF & l, const PositionI & r)
+    friend constexpr VectorF operator +(const PositionF & l, const PositionI & r)
     {
         return (VectorF)l + (VectorI)r;
     }
-    friend VectorF operator -(const PositionF & l, const PositionI & r)
+    friend constexpr VectorF operator -(const PositionF & l, const PositionI & r)
     {
         return (VectorF)l - (VectorI)r;
     }
@@ -386,32 +386,32 @@ struct PositionF : public VectorF
     }
 };
 
-inline PositionF operator +(const VectorF &a, const PositionI &b)
+inline constexpr PositionF operator +(const VectorF &a, const PositionI &b)
 {
     return a + (PositionF)b;
 }
 
-inline PositionF operator +(const PositionI &a, const VectorF &b)
+inline constexpr PositionF operator +(const PositionI &a, const VectorF &b)
 {
     return (PositionF)a + b;
 }
 
-inline PositionF operator -(const VectorF &a, const PositionI &b)
+inline constexpr PositionF operator -(const VectorF &a, const PositionI &b)
 {
     return a - (PositionF)b;
 }
 
-inline PositionF operator -(const PositionI &a, const VectorF &b)
+inline constexpr PositionF operator -(const PositionI &a, const VectorF &b)
 {
     return (PositionF)a - b;
 }
 
-inline PositionF operator *(const VectorF &a, const PositionI &b)
+inline constexpr PositionF operator *(const VectorF &a, const PositionI &b)
 {
     return a * (PositionF)b;
 }
 
-inline PositionF operator *(const PositionI &a, const VectorF &b)
+inline constexpr PositionF operator *(const PositionI &a, const VectorF &b)
 {
     return (PositionF)a * b;
 }

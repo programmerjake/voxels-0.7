@@ -52,6 +52,9 @@
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
+		<Unit filename="include/entity/builtin/block_item.h" />
+		<Unit filename="include/entity/builtin/item.h" />
+		<Unit filename="include/entity/builtin/items/stone.h" />
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
