@@ -34,6 +34,12 @@ private:
     shared_ptr<PhysicsWorld> physicsWorld;
     shared_ptr<const WorldGenerator> worldGenerator;
     SeedType worldGeneratorSeed;
+public:
+    SeedType getWorldGeneratorSeed() const
+    {
+        return worldGeneratorSeed;
+    }
+private:
     struct MeshesWithModifiedFlag
     {
         atomic_bool modified;
