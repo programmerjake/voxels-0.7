@@ -493,6 +493,10 @@ public:
             }
         }
     }
+    inline double getCurrentTime() const
+    {
+        return physicsWorld->getCurrentTime();
+    }
 };
 
 #include "world/world_generator.h"

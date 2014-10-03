@@ -173,9 +173,11 @@ int main(int argc, char ** argv)
 #include <string>
 #include <thread>
 #include <atomic>
+#include <random>
 #include "util/flag.h"
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
+#include "entity/builtin/items/stone.h"
 
 using namespace std;
 
@@ -203,6 +205,7 @@ struct MyEventHandler : public EventHandler
     int32_t viewDistance = 48;
     enum_array<bool, KeyboardKey> currentKeyState;
     bool paused = false;
+    default_random_engine rg;
     Matrix getForwardMatrix()
     {
         return Matrix::rotateY(-theta);
@@ -251,6 +254,18 @@ struct MyEventHandler : public EventHandler
 //        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
 //        if(pos != (PositionI)position)
 //            world.setBlock(pos, block);
+        constexpr float blockThrowPeriod = 0.1f;
+        for(int i = (int)(std::floor((world.getCurrentTime() + Display::frameDeltaTime()) / blockThrowPeriod) - std::floor(world.getCurrentTime() / blockThrowPeriod)); i > 0; i--)
+        {
+            VectorF dir;
+            do
+            {
+                dir = VectorF(uniform_real_distribution<float>(-1, 1)(rg), uniform_real_distribution<float>(-1, 1)(rg), uniform_real_distribution<float>(-1, 1)(rg));
+            }
+            while(abs(dir) > 1);
+            dir = dir * 0.1f + 5 * getOrientMatrix().apply(VectorF(0, 0, -1));
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), position + normalize(dir), dir);
+        }
         checkGenerate = world.needGenerateChunks();
         world.mergeGeneratedChunk();
         VectorF leftVector = getForwardMatrix().apply(VectorF(-1, 0, 0));
