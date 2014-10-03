@@ -18,7 +18,7 @@ public:
     }
 private:
     Air()
-        : BlockDescriptor(L"builtin.air", BlockShape(nullptr), true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
+        : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
     {
     }
 };

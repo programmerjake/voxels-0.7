@@ -69,6 +69,7 @@ public:
     {
         return RayCasting::Collision(world);
     }
+    virtual Matrix getSelectionBoxTransform(const Entity &entity) const = 0;
 };
 
 class EntityDescriptors_t final

@@ -102,7 +102,13 @@ public:
         else
             return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
     }
+    friend Ray transform(Matrix tform, Ray r);
 };
+
+inline Ray transform(Matrix tform, Ray r)
+{
+    return Ray(transform(tform, r.startPosition), tform.applyNoTranslate(r.direction));
+}
 
 struct Collision final
 {

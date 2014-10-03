@@ -30,6 +30,7 @@ using namespace std;
 
 class BlockIterator final
 {
+    friend class World;
     BlockChunk<Block> *chunk;
     unordered_map<PositionI, BlockChunk<Block>> *chunks;
     PositionI currentBasePosition;

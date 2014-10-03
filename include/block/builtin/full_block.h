@@ -37,12 +37,12 @@ private:
         return Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td);
     }
 protected:
-    FullBlock(wstring name, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
-        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
+    FullBlock(wstring name, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
+        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
     {
     }
-    FullBlock(wstring name, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
-        : FullBlock(name, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, td, td, td, td, td, td, rl)
+    FullBlock(wstring name, LightProperties lightProperties, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
+        : FullBlock(name, lightProperties, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, td, td, td, td, td, td, rl)
     {
     }
 public:

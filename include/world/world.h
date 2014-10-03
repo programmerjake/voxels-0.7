@@ -20,6 +20,7 @@
 #include "util/unlock_guard.h"
 #include "util/linked_map.h"
 #include "ray_casting/ray_casting.h"
+#include "util/flag.h"
 
 using namespace std;
 
@@ -174,6 +175,157 @@ private:
     list<PositionI> needGenerateChunksList;
     linked_map<PositionI, list<Entity>> entities;
     size_t entityCount = 0;
+    enum class BlockUpdateType
+    {
+        Lighting,
+        DEFINE_ENUM_LIMITS(Lighting, Lighting)
+    };
+    typedef PositionI BlockUpdate;
+    struct BlockUpdateChunk
+    {
+        const PositionI chunkPosition;
+        typedef atomic_bool BaseType;
+        array<array<array<enum_array<BaseType, BlockUpdateType>, ChunkType::chunkSizeZ>, ChunkType::chunkSizeY>, ChunkType::chunkSizeX> blocks;
+        explicit BlockUpdateChunk(PositionI chunkPosition)
+            : chunkPosition(chunkPosition)
+        {
+            for(auto &i : blocks)
+            {
+                for(auto &j : i)
+                {
+                    for(auto &k : j)
+                    {
+                        for(BaseType &v : k)
+                        {
+                            v = false;
+                        }
+                    }
+                }
+            }
+        }
+        BlockUpdateChunk(const BlockUpdateChunk &rt)
+            : BlockUpdateChunk(rt.chunkPosition)
+        {
+        }
+        BlockUpdateChunk(BlockUpdateChunk &&rt)
+            : BlockUpdateChunk(rt.chunkPosition)
+        {
+        }
+        enum_array<BaseType, BlockUpdateType> &at(VectorI pos)
+        {
+            return blocks.at(pos.x).at(pos.y).at(pos.z);
+        }
+    };
+    mutex blockUpdateMutex;
+    unordered_map<PositionI, BlockUpdateChunk> blockUpdateChunks;
+    BlockUpdateChunk &getOrMakeBlockUpdateChunk(PositionI chunkBasePosition)
+    {
+        lock_guard<mutex> lockIt(blockUpdateMutex);
+        auto iter = blockUpdateChunks.find(chunkBasePosition);
+        if(iter == blockUpdateChunks.end())
+            iter = std::get<0>(blockUpdateChunks.insert(make_pair(chunkBasePosition, BlockUpdateChunk(chunkBasePosition))));
+        return std::get<1>(*iter);
+    }
+    enum_array<mutex, BlockUpdateType> blockUpdateMutexes;
+    enum_array<flag, BlockUpdateType> blockUpdateFlags;
+    enum_array<list<BlockUpdate>, BlockUpdateType> blockUpdates;
+    static thread_local list<BlockUpdate> freeBlockUpdates;
+    bool hasBlockUpdate(BlockUpdateType t, BlockUpdate bu)
+    {
+        BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(bu));
+        return c.at(ChunkType::getChunkRelativePosition(bu)).at(t);
+    }
+    void addBlockUpdate(BlockUpdateType t, BlockUpdate bu)
+    {
+        BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(bu));
+        if(c.at(ChunkType::getChunkRelativePosition(bu)).at(t).exchange(true))
+            return;
+        lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+        if(freeBlockUpdates.empty())
+            blockUpdates[t].push_back(bu);
+        else
+        {
+            blockUpdates[t].splice(blockUpdates[t].end(), freeBlockUpdates, freeBlockUpdates.begin());
+            blockUpdates[t].back() = bu;
+        }
+        blockUpdateFlags[t] = true;
+    }
+    void addAllBlockUpdates(PositionI pos)
+    {
+        BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(pos));
+        for(BlockUpdateType t : enum_traits<BlockUpdateType>())
+        {
+            if(c.at(ChunkType::getChunkRelativePosition(pos)).at(t).exchange(true))
+                continue;
+            lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+            BlockUpdate bu = pos;
+            if(freeBlockUpdates.empty())
+                blockUpdates[t].push_back(bu);
+            else
+            {
+                blockUpdates[t].splice(blockUpdates[t].end(), freeBlockUpdates, freeBlockUpdates.begin());
+                blockUpdates[t].back() = bu;
+            }
+            blockUpdateFlags[t] = true;
+        }
+    }
+    void addAllBlockUpdatesInChunkRange(VectorI rmin, VectorI rmax, PositionI chunkBasePosition)
+    {
+        BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(chunkBasePosition);
+        for(BlockUpdateType t : enum_traits<BlockUpdateType>())
+        {
+            lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+            rmin.x = max(rmin.x, 0);
+            rmin.y = max(rmin.y, 0);
+            rmin.z = max(rmin.z, 0);
+            rmax.x = min(rmax.x, ChunkType::chunkSizeX - 1);
+            rmax.y = min(rmax.y, ChunkType::chunkSizeY - 1);
+            rmax.z = min(rmax.z, ChunkType::chunkSizeZ - 1);
+            for(VectorI rpos = rmin; rpos.x <= rmax.x; rpos.x++)
+            {
+                for(rpos.y = rmin.y; rpos.y <= rmax.y; rpos.y++)
+                {
+                    for(rpos.z = rmin.z; rpos.z <= rmax.z; rpos.z++)
+                    {
+                        if(c.at(rpos).at(t).exchange(true))
+                            continue;
+                        BlockUpdate bu = rpos + chunkBasePosition;
+                        if(freeBlockUpdates.empty())
+                            blockUpdates[t].push_back(bu);
+                        else
+                        {
+                            blockUpdates[t].splice(blockUpdates[t].end(), freeBlockUpdates, freeBlockUpdates.begin());
+                            blockUpdates[t].back() = bu;
+                        }
+                    }
+                }
+            }
+            blockUpdateFlags[t] = true;
+        }
+    }
+    bool anyBlockUpdate(BlockUpdateType t)
+    {
+        return blockUpdateFlags[t];
+    }
+    bool removeBlockUpdate(BlockUpdateType t, BlockUpdate &retval)
+    {
+        lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+        if(blockUpdates[t].empty())
+        {
+            return false;
+        }
+        retval = blockUpdates[t].front();
+        freeBlockUpdates.splice(freeBlockUpdates.begin(), blockUpdates[t], blockUpdates[t].begin());
+        if(freeBlockUpdates.size() >= 1000000)
+            freeBlockUpdates.pop_front();
+        BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(retval));
+        c.at(ChunkType::getChunkRelativePosition(retval)).at(t) = false;
+        if(blockUpdates[t].empty())
+        {
+            blockUpdateFlags[t] = false;
+        }
+        return true;
+    }
 public:
     World(SeedType seed, shared_ptr<const WorldGenerator> worldGenerator)
         : physicsWorld(make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), cachedMeshesInvalid(true)
@@ -259,6 +411,7 @@ public:
     {
         physicsWorld->getOrAddChunk(ChunkType::getChunkBasePosition(pos)).onChange();
         getOrMakeRenderCacheChunk(ChunkType::getChunkBasePosition(pos)).invalidatePosition((VectorI)ChunkType::getChunkRelativePosition(pos));
+        addAllBlockUpdates(pos);
     }
     void invalidateRange(PositionI minPosition, VectorI maxPosition)
     {
@@ -272,6 +425,7 @@ public:
                 {
                     physicsWorld->getOrAddChunk(cpos).onChange();
                     getOrMakeRenderCacheChunk(cpos).invalidateRange(minPosition - cpos, maxPosition - cpos);
+                    addAllBlockUpdatesInChunkRange(minPosition - cpos, maxPosition - cpos, cpos);
                 }
             }
         }
@@ -285,18 +439,35 @@ public:
         assert(minPosition.d == maxPosition.d);
         invalidateRange(minPosition, (VectorI)maxPosition);
     }
+    void setBlock(BlockIterator bi, Block block)
+    {
+        PositionI pos = bi.position();
+        VectorI relativePosition = bi.currentRelativePosition;
+        ChunkType &chunk = *bi.chunk;
+        Lighting oldLighting = chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting;
+        block.createNewLighting(oldLighting);
+        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
+        invalidateRange(pos - VectorI(1), pos + VectorI(1));
+    }
     void setBlock(PositionI pos, Block block)
     {
         PositionI basePosition = ChunkType::getChunkBasePosition(pos);
         VectorI relativePosition = ChunkType::getChunkRelativePosition(pos);
         ChunkType &chunk = physicsWorld->getOrAddChunk(basePosition);
+        Lighting oldLighting = chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting;
+        block.createNewLighting(oldLighting);
         chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
-        for(int dx : {-1, 0, 1})
-            for(int dy : {-1, 0, 1})
-                for(int dz : {-1, 0, 1})
-                    invalidate(pos + VectorI(dx, dy, dz));
+        invalidateRange(pos - VectorI(1), pos + VectorI(1));
     }
 private:
+    void setBlockLighting(BlockIterator bi, Lighting lighting)
+    {
+        PositionI pos = bi.position();
+        VectorI relativePosition = bi.currentRelativePosition;
+        ChunkType &chunk = *bi.chunk;
+        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting = lighting;
+        invalidateRange(pos - VectorI(1), pos + VectorI(1));
+    }
     template <bool ignoreNulls, size_t xSize, size_t ySize, size_t zSize>
     void chunkSetBlockRange(VectorI relativeBasePos, ChunkType &chunk, const array<array<array<Block, zSize>, ySize>, xSize> &blocks)
     {
@@ -415,6 +586,11 @@ private:
         return true;
     }
 public:
+    void updateLighting();
+    const flag &getNeedLightingUpdateFlag() const
+    {
+        return blockUpdateFlags[BlockUpdateType::Lighting];
+    }
     void move(double deltaTime)
     {
         vector<pair<list<Entity> *, list<Entity>::iterator>> entitiesList;

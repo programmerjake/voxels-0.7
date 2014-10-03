@@ -10,8 +10,8 @@ using namespace std;
 class flag final
 {
 private:
-    mutex lock;
-    condition_variable_any cond;
+    mutable mutex lock;
+    mutable condition_variable_any cond;
     atomic_bool value;
 public:
     flag(bool value = false)
@@ -27,6 +27,10 @@ public:
 
         return *this;
     }
+    const flag &operator =(const flag &r)
+    {
+        return *this = (bool)r;
+    }
     bool exchange(bool v)
     {
         bool retval = value.exchange(v);
@@ -38,17 +42,17 @@ public:
 
         return retval;
     }
-    operator bool()
+    operator bool() const
     {
         bool retval = value;
         return retval;
     }
-    bool operator !()
+    bool operator !() const
     {
         bool retval = value;
         return !retval;
     }
-    void wait(bool v = true) /// waits until value == v
+    void wait(bool v = true) const /// waits until value == v
     {
         if(v == value)
         {

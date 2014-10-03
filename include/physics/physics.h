@@ -305,6 +305,12 @@ private:
             object = PhysicsObject::makeEmptyNoAddToWorld(pos, VectorF(0), shared_from_this());
         object->setToBlock(getBlockShape(getBlock(pos)), pos);
     }
+    void setObjectToBlock(shared_ptr<PhysicsObject> &object, BlockIterator bi)
+    {
+        if(object == nullptr)
+            object = PhysicsObject::makeEmptyNoAddToWorld(bi.position(), VectorF(0), shared_from_this());
+        object->setToBlock(getBlockShape(*bi), bi.position());
+    }
 public:
     static constexpr float distanceEPS = 20 * eps;
     static constexpr float timeEPS = eps;
@@ -718,8 +724,8 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 
 inline void PhysicsWorld::runToTime(double stopTime)
 {
-    cout << "objects.size(): " << objects.size() << endl;
-    float stepDuration = 1 / 60.0f;
+    cout << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << endl;
+    float stepDuration = 1 / 30.0f;
     size_t stepCount = (size_t)ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;
     for(size_t step = 1; step <= stepCount; step++)
@@ -772,14 +778,16 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 int minZ = ifloor(fMin.z);
                 int maxZ = iceil(fMax.z);
                 shared_ptr<PhysicsObject> objectB;
-                for(int xPosition = minX; xPosition <= maxX; xPosition++)
+                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d));
+                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX())
                 {
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++)
+                    BlockIterator bixy = bix;
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY())
                     {
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
+                        BlockIterator bi = bixy;
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
-                            PositionI bpos = PositionI(xPosition, yPosition, zPosition, position.d);
-                            setObjectToBlock(objectB, bpos);
+                            setObjectToBlock(objectB, bi);
                             bool supported = objectA->isSupportedBy(*objectB);
                             if(supported)
                             {
@@ -952,14 +960,16 @@ inline void PhysicsWorld::runToTime(double stopTime)
                 minZ = ifloor(fMinZ);
                 maxZ = iceil(fMaxZ);
                 shared_ptr<PhysicsObject> objectB;
-                for(int xPosition = minX; xPosition <= maxX; xPosition++)
+                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d));
+                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX())
                 {
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++)
+                    BlockIterator bixy = bix;
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY())
                     {
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
+                        BlockIterator bi = bixy;
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
-                            PositionI bpos = PositionI(xPosition, yPosition, zPosition, position.d);
-                            setObjectToBlock(objectB, bpos);
+                            setObjectToBlock(objectB, bi);
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;

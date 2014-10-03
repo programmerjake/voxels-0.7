@@ -11,7 +11,7 @@ class StoneBlock : public FullBlock
 {
 protected:
     StoneBlock(wstring name, TextureDescriptor td)
-        : FullBlock(name, true, td)
+        : FullBlock(name, LightProperties(), true, td)
     {
     }
 };

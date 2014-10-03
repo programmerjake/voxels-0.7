@@ -33,6 +33,7 @@
 #include "util/block_face.h"
 #include "render/render_layer.h"
 #include "ray_casting/ray_casting.h"
+#include "lighting/lighting.h"
 
 using namespace std;
 
@@ -44,6 +45,7 @@ struct Block final
 {
     BlockDescriptorPointer descriptor;
     shared_ptr<void> data;
+    Lighting lighting;
     constexpr Block()
         : descriptor(nullptr), data(nullptr)
     {
@@ -69,6 +71,7 @@ struct Block final
     {
         return !operator ==(r);
     }
+    void createNewLighting(Lighting oldLighting);
 };
 
 struct BlockShape final
@@ -102,14 +105,15 @@ class BlockDescriptor
 public:
     const wstring name;
 protected:
-    BlockDescriptor(wstring name, BlockShape blockShape, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
-    BlockDescriptor(wstring name, BlockShape blockShape, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
+    BlockDescriptor(wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
+    BlockDescriptor(wstring name, BlockShape blockShape, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ)
+        : BlockDescriptor(name, blockShape, lightProperties, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
     {
     }
 public:
     virtual ~BlockDescriptor();
     const BlockShape blockShape;
+    const LightProperties lightProperties;
     const bool isStaticMesh;
     enum_array<bool, BlockFace> isFaceBlocked;
 protected:
@@ -170,7 +174,19 @@ public:
     {
         return RayCasting::Collision(world);
     }
+    virtual Matrix getSelectionBoxTransform(const Block &block) const
+    {
+        return Matrix::identity();
+    }
 };
+
+inline void Block::createNewLighting(Lighting oldLighting)
+{
+    if(!good())
+        lighting = Lighting();
+    else
+        lighting = descriptor->lightProperties.createNewLighting(oldLighting);
+}
 
 inline bool Block::operator==(const Block &r) const
 {
@@ -178,6 +194,8 @@ inline bool Block::operator==(const Block &r) const
         return false;
     if(descriptor == nullptr)
         return true;
+    if(lighting != r.lighting)
+        return false;
     if(data == r.data)
         return true;
     return descriptor->isDataEqual(data, r.data);

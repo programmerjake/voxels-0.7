@@ -57,6 +57,7 @@
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
 		<Unit filename="include/entity/entity.h" />
+		<Unit filename="include/lighting/lighting.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
 		<Unit filename="include/platform/event.h" />

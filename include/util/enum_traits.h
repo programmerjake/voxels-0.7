@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
+#include <cassert>
 
 using namespace std;
 
@@ -147,6 +148,16 @@ struct enum_array
     }
     const value_type & operator [](index_type index) const
     {
+        return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
+    }
+    value_type & at(index_type index)
+    {
+        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
+        return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
+    }
+    const value_type & at(index_type index) const
+    {
+        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
     static constexpr size_t size()

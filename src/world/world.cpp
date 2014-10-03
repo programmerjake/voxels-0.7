@@ -34,6 +34,8 @@ bool World::generateChunk()
     return true;
 }
 
+thread_local list<World::BlockUpdate> World::freeBlockUpdates;
+
 namespace
 {
 class MyWorldGenerator final : public WorldGenerator
@@ -263,4 +265,64 @@ World::World()
     : World(makeRandomSeed())
 {
 
+}
+
+namespace
+{
+Lighting getBlockLighting(BlockIterator bi)
+{
+    if(!*bi)
+    {
+        switch(bi.position().d)
+        {
+        case Dimension::Overworld:
+            if(bi.position().y >= 0)
+                return Lighting::makeSkyLighting();
+            return Lighting();
+        }
+        assert(false);
+        return Lighting();
+    }
+    return bi->lighting;
+}
+}
+
+void World::updateLighting()
+{
+    BlockUpdate bu;
+    if(!removeBlockUpdate(BlockUpdateType::Lighting, bu))
+        return;
+    BlockIterator bi = getBlockIterator(bu);
+    size_t processedCount = 0;
+    do
+    {
+        bi.moveTo(bu);
+        if(*bi)
+        {
+            Block b = *bi;
+            BlockIterator binx = bi;
+            binx.moveTowardNX();
+            BlockIterator bipx = bi;
+            bipx.moveTowardPX();
+            BlockIterator biny = bi;
+            biny.moveTowardNY();
+            BlockIterator bipy = bi;
+            bipy.moveTowardPY();
+            BlockIterator binz = bi;
+            binz.moveTowardNZ();
+            BlockIterator bipz = bi;
+            bipz.moveTowardPZ();
+            Lighting newLighting = b.descriptor->lightProperties.eval(getBlockLighting(binx),
+                                                            getBlockLighting(bipx),
+                                                            getBlockLighting(biny),
+                                                            getBlockLighting(bipy),
+                                                            getBlockLighting(binz),
+                                                            getBlockLighting(bipz));
+            if(bi->lighting != newLighting)
+                setBlockLighting(bi, newLighting);
+        }
+        if(++processedCount >= 10000)
+            return;
+    }
+    while(removeBlockUpdate(BlockUpdateType::Lighting, bu));
 }
