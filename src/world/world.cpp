@@ -202,9 +202,14 @@ public:
                 {
                     PositionI pos = chunkBasePosition + VectorI(rx, ry, rz);
                     PositionF fpos = pos + VectorF(0.5f);
-                    Block block = Block(Blocks::builtin::Air::descriptor());
+                    Block block;
                     if(fpos.y < 3 * localData.getFBMValue(fpos * 0.1f))
                         block = Block(Blocks::builtin::Stone::descriptor());
+                    else
+                    {
+                        block = Block(Blocks::builtin::Air::descriptor());
+                        block.lighting = Lighting::makeSkyLighting();
+                    }
                     blocks[rx][ry][rz] = block;
                 }
             }

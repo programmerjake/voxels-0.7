@@ -54,21 +54,25 @@ private:
         {
         }
     };
+    Lighting::LightValueType skyLighting = Lighting::maxLight;
     struct RenderCacheChunk
     {
         const PositionI basePosition;
+        Lighting::LightValueType skyLighting;
         MeshesWithModifiedFlag overallMeshes;
         static constexpr int GroupingSizeLog2 = 3;
         static constexpr int32_t GroupingSize = 1 << GroupingSizeLog2, GroupingFloorMask = -GroupingSize, GroupingModMask = GroupingSize - 1;
         array<array<array<MeshesWithModifiedFlag, ChunkType::chunkSizeZ / GroupingSize>, ChunkType::chunkSizeY / GroupingSize>, ChunkType::chunkSizeX / GroupingSize> groupMeshes;
-        RenderCacheChunk(PositionI basePosition)
-            : basePosition(basePosition)
+        RenderCacheChunk(PositionI basePosition, Lighting::LightValueType skyLighting)
+            : basePosition(basePosition), skyLighting(skyLighting)
         {
         }
+    private:
         VectorI getGroupIndexes(VectorI relativePosition)
         {
             return VectorI(relativePosition.x >> GroupingSizeLog2, relativePosition.y >> GroupingSizeLog2, relativePosition.z >> GroupingSizeLog2);
         }
+    public:
         void invalidatePosition(VectorI relativePosition)
         {
             VectorI groupIndexes = getGroupIndexes(relativePosition);
@@ -97,11 +101,12 @@ private:
                 }
             }
         }
-        const enum_array<Mesh, RenderLayer> &updateGroupMeshes(BlockIterator blockIterator, VectorI relativeGroupBasePosition)
+    private:
+        const enum_array<Mesh, RenderLayer> &updateGroupMeshes(BlockIterator blockIterator, VectorI relativeGroupBasePosition, Lighting::LightValueType currentSkyLighting)
         {
             VectorI groupIndexes = getGroupIndexes(relativeGroupBasePosition);
             MeshesWithModifiedFlag &meshes = groupMeshes.at(groupIndexes.x).at(groupIndexes.y).at(groupIndexes.z);
-            if(!meshes.modified.exchange(false))
+            if(!meshes.modified.exchange(false) && currentSkyLighting == skyLighting)
                 return meshes.meshes;
             for(RenderLayer rl : enum_traits<RenderLayer>())
                 meshes.meshes[rl].clear();
@@ -127,9 +132,10 @@ private:
             }
             return meshes.meshes;
         }
-        bool updateMeshes(BlockIterator blockIterator)
+    public:
+        bool updateMeshes(BlockIterator blockIterator, Lighting::LightValueType currentSkyLighting)
         {
-            if(!overallMeshes.modified.exchange(false))
+            if(!overallMeshes.modified.exchange(false) && currentSkyLighting == skyLighting)
                 return false;
             for(RenderLayer rl : enum_traits<RenderLayer>())
                 overallMeshes.meshes[rl].clear();
@@ -140,7 +146,7 @@ private:
                 {
                     for(int32_t gz = 0; gz < ChunkType::chunkSizeZ; gz += GroupingSize)
                     {
-                        const enum_array<Mesh, RenderLayer> &meshes = updateGroupMeshes(blockIterator, VectorI(gx, gy, gz));
+                        const enum_array<Mesh, RenderLayer> &meshes = updateGroupMeshes(blockIterator, VectorI(gx, gy, gz), currentSkyLighting);
                         for(RenderLayer rl : enum_traits<RenderLayer>())
                         {
                             overallMeshes.meshes[rl].append(meshes[rl]);
@@ -148,6 +154,7 @@ private:
                     }
                 }
             }
+            skyLighting = currentSkyLighting;
             return true;
         }
     };
@@ -162,7 +169,7 @@ private:
     const enum_array<Mesh, RenderLayer> &makeChunkMeshes(PositionI chunkBasePosition)
     {
         RenderCacheChunk &c = getOrMakeRenderCacheChunk(chunkBasePosition);
-        c.updateMeshes(physicsWorld->getBlockIterator(chunkBasePosition));
+        c.updateMeshes(physicsWorld->getBlockIterator(chunkBasePosition), skyLighting);
         return c.overallMeshes.meshes;
     }
     CachedVariable<enum_array<shared_ptr<Mesh>, RenderLayer>> meshes;
@@ -623,6 +630,7 @@ public:
                 continue;
             putEntityInProperChunk(*std::get<0>(i), std::get<1>(i));
         }
+        updateLighting();
     }
     void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity = VectorF(0), shared_ptr<void> data = nullptr)
     {

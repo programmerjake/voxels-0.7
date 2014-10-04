@@ -6,10 +6,28 @@
 #include <cstdint>
 #include <algorithm>
 #include "util/block_face.h"
+#include "util/color.h"
+#include "util/dimension.h"
 #include <array>
 #include <tuple>
 
 using namespace std;
+
+struct WorldLightingProperties final
+{
+    float skyBrightness = 1, minBrightness = 0;
+    constexpr WorldLightingProperties()
+    {
+    }
+    constexpr WorldLightingProperties(float skyBrightness, float minBrightness)
+        : skyBrightness(skyBrightness), minBrightness(minBrightness)
+    {
+    }
+    WorldLightingProperties(float skyBrightness, Dimension d)
+        : skyBrightness(skyBrightness), minBrightness(getZeroBrightnessLevel(d))
+    {
+    }
+};
 
 struct Lighting final
 {
@@ -41,6 +59,10 @@ public:
     constexpr float toFloat(float skyBrightness, float minBrightness) const
     {
         return limit<float>(constexpr_max<float>(toFloat(indirectSkylight) * skyBrightness, toFloat(indirectArtificalLight)), 0, 1) * (1 - minBrightness) + minBrightness;
+    }
+    constexpr float toFloat(WorldLightingProperties wlp) const
+    {
+        return toFloat(wlp.skyBrightness, wlp.minBrightness);
     }
     constexpr Lighting()
         : directSkylight(0), indirectSkylight(0), indirectArtificalLight(0)
@@ -114,6 +136,134 @@ struct LightProperties final
     constexpr Lighting createNewLighting(Lighting oldLighting) const
     {
         return emissiveValue.combine(oldLighting.minimize(Lighting::makeMaxLight().reduce(reduceValue)));
+    }
+    constexpr Lighting calculateTransmittedLighting(Lighting lighting) const
+    {
+        return lighting.reduce(reduceValue);
+    }
+    template <typename ...Args>
+    constexpr Lighting calculateTransmittedLighting(Lighting lighting, Args ...args) const
+    {
+        return calculateTransmittedLighting(lighting).combine(calculateTransmittedLighting(args...));
+    }
+};
+
+struct BlockLighting final
+{
+    array<array<array<float, 2>, 2>, 2> lightValues;
+    ColorF eval(VectorF relativePosition) const
+    {
+        return ColorF(interpolate(relativePosition.x,
+                                  interpolate(relativePosition.y,
+                                              interpolate(relativePosition.z,
+                                                          lightValues[0][0][0],
+                                                          lightValues[0][0][1]),
+                                              interpolate(relativePosition.z,
+                                                          lightValues[0][1][0],
+                                                          lightValues[0][1][1])),
+                                  interpolate(relativePosition.y,
+                                              interpolate(relativePosition.z,
+                                                          lightValues[1][0][0],
+                                                          lightValues[1][0][1]),
+                                              interpolate(relativePosition.z,
+                                                          lightValues[1][1][0],
+                                                          lightValues[1][1][1]))));
+    }
+private:
+    float evalVertex(const array<array<array<float, 3>, 3>, 3> &blockValues, VectorI offset)
+    {
+        float retval = 0;
+        for(int dx = 0; dx < 2; dx++)
+        {
+            for(int dy = 0; dy < 2; dy++)
+            {
+                for(int dz = 0; dz < 2; dz++)
+                {
+                    VectorI pos = offset + VectorI(dx, dy, dz);
+                    retval = max<float>(retval, blockValues[pos.x][pos.y][pos.z]);
+                }
+            }
+        }
+        return retval;
+    }
+public:
+    BlockLighting(array<array<array<pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
+    {
+        for(int dx : {-1, 1})
+        {
+            for(int dy : {-1, 1})
+            {
+                for(int dz : {-1, 1})
+                {
+                    VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
+                    for(VectorI propagateDir : {VectorI(-dx, 0, 0), VectorI(0, -dy, 0), VectorI(0, 0, -dz)})
+                    {
+                        VectorI p = startPos + propagateDir;
+                        std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
+                    }
+                }
+            }
+        }
+        for(int dx : {-1, 1})
+        {
+            for(int dy : {-1, 1})
+            {
+                const int dz = 0;
+                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
+                for(VectorI propagateDir : {VectorI(-dx, 0, 0), VectorI(0, -dy, 0)})
+                {
+                    VectorI p = startPos + propagateDir;
+                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
+                }
+            }
+        }
+        for(int dx : {-1, 1})
+        {
+            for(int dz : {-1, 1})
+            {
+                const int dy = 0;
+                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
+                for(VectorI propagateDir : {VectorI(-dx, 0, 0), VectorI(0, 0, -dz)})
+                {
+                    VectorI p = startPos + propagateDir;
+                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
+                }
+            }
+        }
+        for(int dy : {-1, 1})
+        {
+            for(int dz : {-1, 1})
+            {
+                const int dx = 0;
+                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
+                for(VectorI propagateDir : {VectorI(0, -dy, 0), VectorI(0, 0, -dz)})
+                {
+                    VectorI p = startPos + propagateDir;
+                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
+                }
+            }
+        }
+        array<array<array<float, 3>, 3>, 3> blockValues;
+        for(int x = 0; x < blockValues.size(); x++)
+        {
+            for(int y = 0; y < blockValues[x].size(); y++)
+            {
+                for(int z = 0; z < blockValues[x][y].size(); z++)
+                {
+                    blockValues[x][y][z] = std::get<1>(blocks[x][y][z]).toFloat(wlp);
+                }
+            }
+        }
+        for(int ox = 0; ox <= 1; ox++)
+        {
+            for(int oy = 0; oy <= 1; oy++)
+            {
+                for(int oz = 0; oz <= 1; oz++)
+                {
+                    lightValues[ox][oy][oz] = evalVertex(blockValues, VectorI(ox, oy, oz));
+                }
+            }
+        }
     }
 };
 
