@@ -151,9 +151,9 @@ struct LightProperties final
 struct BlockLighting final
 {
     array<array<array<float, 2>, 2>, 2> lightValues;
-    ColorF eval(VectorF relativePosition) const
+    constexpr ColorF eval(VectorF relativePosition) const
     {
-        return ColorF(interpolate(relativePosition.x,
+        return GrayscaleF(interpolate(relativePosition.x,
                                   interpolate(relativePosition.y,
                                               interpolate(relativePosition.z,
                                                           lightValues[0][0][0],
@@ -187,6 +187,10 @@ private:
         return retval;
     }
 public:
+    constexpr BlockLighting()
+        : lightValues{0, 0, 0, 0, 0, 0, 0, 0}
+    {
+    }
     BlockLighting(array<array<array<pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
     {
         for(int dx : {-1, 1})
@@ -244,11 +248,11 @@ public:
             }
         }
         array<array<array<float, 3>, 3>, 3> blockValues;
-        for(int x = 0; x < blockValues.size(); x++)
+        for(size_t x = 0; x < blockValues.size(); x++)
         {
-            for(int y = 0; y < blockValues[x].size(); y++)
+            for(size_t y = 0; y < blockValues[x].size(); y++)
             {
-                for(int z = 0; z < blockValues[x][y].size(); z++)
+                for(size_t z = 0; z < blockValues[x][y].size(); z++)
                 {
                     blockValues[x][y][z] = std::get<1>(blocks[x][y][z]).toFloat(wlp);
                 }
@@ -264,6 +268,24 @@ public:
                 }
             }
         }
+    }
+private:
+    static constexpr VectorF getLightVector()
+    {
+        return VectorF(0, 1, 0);
+    }
+    static constexpr float getNormalFactorHelper(float v)
+    {
+        return 0.5f + (v < 0 ? v * 0.25f : v * 0.5f);
+    }
+    static constexpr float getNormalFactor(VectorF normal)
+    {
+        return 0.4f + 0.6f * getNormalFactorHelper(dot(normal, getLightVector()));
+    }
+public:
+    constexpr ColorF lightVertex(VectorF relativePosition, ColorF vertexColor, VectorF normal) const
+    {
+        return colorize(scaleF(eval(relativePosition), getNormalFactor(normal)), vertexColor);
     }
 };
 

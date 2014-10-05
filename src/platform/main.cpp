@@ -393,6 +393,7 @@ struct MyEventHandler : public EventHandler
     }
     atomic_bool done;
     thread meshGeneratorThread;
+    thread lightingThread;
     flag checkGenerate;
     vector<thread> chunkGeneratorThreads;
     MyEventHandler()
@@ -438,12 +439,24 @@ struct MyEventHandler : public EventHandler
             while(!done)
                 world.updateMeshes((PositionI)position, viewDistance);
         });
+        lightingThread = thread([&]()
+        {
+            while(!done)
+            {
+                world.updateLighting();
+                if(!world.getNeedLightingUpdateFlag())
+                    this_thread::yield();
+                break;
+                #warning change back
+            }
+        });
     }
     ~MyEventHandler()
     {
         done = true;
         checkGenerate = true;
         meshGeneratorThread.join();
+        lightingThread.join();
         for(thread &t : chunkGeneratorThreads)
             t.join();
     }

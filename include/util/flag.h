@@ -13,6 +13,7 @@ private:
     mutable mutex lock;
     mutable condition_variable_any cond;
     atomic_bool value;
+    mutable atomic_size_t waitingCount;
 public:
     flag(bool value = false)
         : value(value)
@@ -22,7 +23,8 @@ public:
     {
         if(value.exchange(v) != v)
         {
-            cond.notify_all();
+            if(waitingCount > 0)
+                cond.notify_all();
         }
 
         return *this;
@@ -37,7 +39,8 @@ public:
 
         if(retval != v)
         {
-            cond.notify_all();
+            if(waitingCount > 0)
+                cond.notify_all();
         }
 
         return retval;
@@ -59,6 +62,8 @@ public:
             return;
         }
 
+        waitingCount++;
+
         lock.lock();
 
         while(v != value)
@@ -67,14 +72,19 @@ public:
         }
 
         lock.unlock();
+
+        waitingCount--;
     }
     void waitThenReset(bool v = true) /// waits until value == v then set value to !v
     {
         if(v == value.exchange(!v))
         {
-            cond.notify_all();
+            if(waitingCount > 0)
+                cond.notify_all();
             return;
         }
+
+        waitingCount++;
 
         lock.lock();
 
@@ -84,6 +94,7 @@ public:
         }
         cond.notify_all();
         lock.unlock();
+        waitingCount++;
     }
     void set()
     {

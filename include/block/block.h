@@ -38,6 +38,7 @@
 using namespace std;
 
 class BlockDescriptor;
+class BlockIterator;
 
 typedef const BlockDescriptor *BlockDescriptorPointer;
 
@@ -72,6 +73,7 @@ struct Block final
         return !operator ==(r);
     }
     void createNewLighting(Lighting oldLighting);
+    static BlockLighting calcBlockLighting(const BlockIterator &bi_in, WorldLightingProperties wlp);
 };
 
 struct BlockShape final
@@ -120,18 +122,33 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl, const BlockLighting &lighting) const
     {
         assert(false); // shouldn't be called
     }
     Mesh meshCenter;
     enum_array<Mesh, BlockFace> meshFace;
     const RenderLayer staticRenderLayer;
+    static Mesh &getTempRenderMesh()
+    {
+        static thread_local Mesh retval;
+        return retval;
+    }
+    static void lightMesh(Mesh &mesh, const BlockLighting &lighting)
+    {
+        BlockLighting bl = lighting;
+        for(Triangle &tri : mesh.triangles)
+        {
+            tri.c1 = bl.lightVertex(tri.p1, tri.c1, tri.n1);
+            tri.c2 = bl.lightVertex(tri.p2, tri.c2, tri.n2);
+            tri.c3 = bl.lightVertex(tri.p3, tri.c3, tri.n3);
+        }
+    }
 public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl) const
+    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl, const BlockLighting &lighting) const
     {
         if(isStaticMesh)
         {
@@ -139,6 +156,8 @@ public:
                 return;
             bool drewAny = false;
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+            Mesh &blockMesh = getTempRenderMesh();
+            blockMesh.clear();
             for(BlockFace bf : enum_traits<BlockFace>())
             {
                 BlockIterator i = blockIterator;
@@ -147,15 +166,19 @@ public:
                     continue;
                 if(i->descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
                     continue;
-                dest.append(transform(tform, meshFace[bf]));
+                blockMesh.append(meshFace[bf]);
                 drewAny = true;
             }
             if(drewAny)
-                dest.append(transform(tform, meshCenter));
+            {
+                blockMesh.append(meshCenter);
+                lightMesh(blockMesh, lighting);
+                dest.append(transform(tform, blockMesh));
+            }
         }
         else
         {
-            renderDynamic(block, dest, blockIterator, rl);
+            renderDynamic(block, dest, blockIterator, rl, lighting);
         }
     }
     virtual Block moveStep(const Block &block, BlockIterator blockIterator) const
@@ -199,6 +222,31 @@ inline bool Block::operator==(const Block &r) const
     if(data == r.data)
         return true;
     return descriptor->isDataEqual(data, r.data);
+}
+
+inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldLightingProperties wlp)
+{
+    BlockIterator bi = bi_in;
+    array<array<array<pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    for(int x = 0; (size_t)x < blocks.size(); x++)
+    {
+        for(int y = 0; (size_t)y < blocks[x].size(); y++)
+        {
+            for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
+            {
+                BlockIterator curBi = bi;
+                curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
+                auto l = pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                if(*curBi)
+                {
+                    std::get<0>(l) = curBi->descriptor->lightProperties;
+                    std::get<1>(l) = curBi->lighting;
+                }
+                blocks[x][y][z] = l;
+            }
+        }
+    }
+    return BlockLighting(blocks, wlp);
 }
 
 namespace std

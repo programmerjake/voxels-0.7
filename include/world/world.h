@@ -21,6 +21,7 @@
 #include "util/linked_map.h"
 #include "ray_casting/ray_casting.h"
 #include "util/flag.h"
+#include "util/spin_lock.h"
 
 using namespace std;
 
@@ -54,6 +55,19 @@ private:
         {
         }
     };
+    struct BlockLightingWithModifiedFlag
+    {
+        atomic_bool modified;
+        BlockLighting lighting;
+        BlockLightingWithModifiedFlag(bool modified = true, const BlockLighting &lighting = BlockLighting())
+            : modified(true), lighting(lighting)
+        {
+        }
+        BlockLightingWithModifiedFlag(const BlockLightingWithModifiedFlag &rt)
+            : BlockLightingWithModifiedFlag(rt.modified, rt.lighting)
+        {
+        }
+    };
     Lighting::LightValueType skyLighting = Lighting::maxLight;
     struct RenderCacheChunk
     {
@@ -63,6 +77,9 @@ private:
         static constexpr int GroupingSizeLog2 = 3;
         static constexpr int32_t GroupingSize = 1 << GroupingSizeLog2, GroupingFloorMask = -GroupingSize, GroupingModMask = GroupingSize - 1;
         array<array<array<MeshesWithModifiedFlag, ChunkType::chunkSizeZ / GroupingSize>, ChunkType::chunkSizeY / GroupingSize>, ChunkType::chunkSizeX / GroupingSize> groupMeshes;
+#ifdef USE_BLOCKLIGHTING_CACHES
+        array<array<array<BlockLightingWithModifiedFlag, ChunkType::chunkSizeZ>, ChunkType::chunkSizeY>, ChunkType::chunkSizeX> blockLighting;
+#endif
         RenderCacheChunk(PositionI basePosition, Lighting::LightValueType skyLighting)
             : basePosition(basePosition), skyLighting(skyLighting)
         {
@@ -78,6 +95,9 @@ private:
             VectorI groupIndexes = getGroupIndexes(relativePosition);
             overallMeshes.modified = true;
             groupMeshes.at(groupIndexes.x).at(groupIndexes.y).at(groupIndexes.z).modified = true;
+#ifdef USE_BLOCKLIGHTING_CACHES
+            blockLighting.at(relativePosition.x).at(relativePosition.y).at(relativePosition.z).modified = true;
+#endif
         }
         void invalidateRange(VectorI minRelativePosition, VectorI maxRelativePosition)
         {
@@ -100,6 +120,18 @@ private:
                     }
                 }
             }
+#ifdef USE_BLOCKLIGHTING_CACHES
+            for(VectorI rpos = minRelativePosition; rpos.x <= maxRelativePosition.x; rpos.x++)
+            {
+                for(rpos.y = minRelativePosition.y; rpos.y <= maxRelativePosition.y; rpos.y++)
+                {
+                    for(rpos.z = minRelativePosition.z; rpos.z <= maxRelativePosition.z; rpos.z++)
+                    {
+                        blockLighting.at(rpos.x).at(rpos.y).at(rpos.z).modified = true;
+                    }
+                }
+            }
+#endif
         }
     private:
         const enum_array<Mesh, RenderLayer> &updateGroupMeshes(BlockIterator blockIterator, VectorI relativeGroupBasePosition, Lighting::LightValueType currentSkyLighting)
@@ -112,20 +144,32 @@ private:
                 meshes.meshes[rl].clear();
             BlockIterator xBlockIterator = blockIterator;
             xBlockIterator.moveTo(relativeGroupBasePosition + basePosition);
-            for(int32_t rx = 0; rx < GroupingSize; rx++, xBlockIterator.moveTowardPX())
+            for(int32_t grx = 0; grx < GroupingSize; grx++, xBlockIterator.moveTowardPX())
             {
                 BlockIterator xyBlockIterator = xBlockIterator;
-                for(int32_t ry = 0; ry < GroupingSize; ry++, xyBlockIterator.moveTowardPY())
+                for(int32_t gry = 0; gry < GroupingSize; gry++, xyBlockIterator.moveTowardPY())
                 {
                     BlockIterator xyzBlockIterator = xyBlockIterator;
-                    for(int32_t rz = 0; rz < GroupingSize; rz++, xyzBlockIterator.moveTowardPZ())
+                    for(int32_t grz = 0; grz < GroupingSize; grz++, xyzBlockIterator.moveTowardPZ())
                     {
                         const Block &block = *xyzBlockIterator;
                         if(!block)
                             continue;
+                        BlockLighting lighting;
+#ifdef USE_BLOCKLIGHTING_CACHES
+                        VectorI rpos = relativeGroupBasePosition + VectorI(grx, gry, grz);
+                        BlockLightingWithModifiedFlag &bl = blockLighting.at(rpos.x).at(rpos.y).at(rpos.z);
+                        if(bl.modified.exchange(false) || currentSkyLighting != skyLighting)
+                        {
+                            bl.lighting = Block::calcBlockLighting(xyzBlockIterator, WorldLightingProperties(Lighting::toFloat(currentSkyLighting), basePosition.d));
+                        }
+                        lighting = bl.lighting;
+#else
+                        lighting = Block::calcBlockLighting(xyzBlockIterator, WorldLightingProperties(Lighting::toFloat(currentSkyLighting), basePosition.d));
+#endif
                         for(RenderLayer rl : enum_traits<RenderLayer>())
                         {
-                            block.descriptor->render(block, meshes.meshes[rl], xyzBlockIterator, rl);
+                            block.descriptor->render(block, meshes.meshes[rl], xyzBlockIterator, rl, lighting);
                         }
                     }
                 }
@@ -163,7 +207,7 @@ private:
     {
         auto iter = renderCacheChunks.find(chunkBasePosition);
         if(iter == renderCacheChunks.end())
-            iter = std::get<0>(renderCacheChunks.insert(pair<PositionI, RenderCacheChunk>(chunkBasePosition, RenderCacheChunk(chunkBasePosition))));
+            iter = std::get<0>(renderCacheChunks.insert(pair<PositionI, RenderCacheChunk>(chunkBasePosition, RenderCacheChunk(chunkBasePosition, skyLighting))));
         return std::get<1>(*iter);
     }
     const enum_array<Mesh, RenderLayer> &makeChunkMeshes(PositionI chunkBasePosition)
@@ -223,17 +267,17 @@ private:
             return blocks.at(pos.x).at(pos.y).at(pos.z);
         }
     };
-    mutex blockUpdateMutex;
+    spin_lock blockUpdateMutex;
     unordered_map<PositionI, BlockUpdateChunk> blockUpdateChunks;
     BlockUpdateChunk &getOrMakeBlockUpdateChunk(PositionI chunkBasePosition)
     {
-        lock_guard<mutex> lockIt(blockUpdateMutex);
+        lock_guard<spin_lock> lockIt(blockUpdateMutex);
         auto iter = blockUpdateChunks.find(chunkBasePosition);
         if(iter == blockUpdateChunks.end())
             iter = std::get<0>(blockUpdateChunks.insert(make_pair(chunkBasePosition, BlockUpdateChunk(chunkBasePosition))));
         return std::get<1>(*iter);
     }
-    enum_array<mutex, BlockUpdateType> blockUpdateMutexes;
+    enum_array<spin_lock, BlockUpdateType> blockUpdateMutexes;
     enum_array<flag, BlockUpdateType> blockUpdateFlags;
     enum_array<list<BlockUpdate>, BlockUpdateType> blockUpdates;
     static thread_local list<BlockUpdate> freeBlockUpdates;
@@ -247,7 +291,7 @@ private:
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(bu));
         if(c.at(ChunkType::getChunkRelativePosition(bu)).at(t).exchange(true))
             return;
-        lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+        lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
         if(freeBlockUpdates.empty())
             blockUpdates[t].push_back(bu);
         else
@@ -264,7 +308,7 @@ private:
         {
             if(c.at(ChunkType::getChunkRelativePosition(pos)).at(t).exchange(true))
                 continue;
-            lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+            lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
             BlockUpdate bu = pos;
             if(freeBlockUpdates.empty())
                 blockUpdates[t].push_back(bu);
@@ -281,7 +325,7 @@ private:
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(chunkBasePosition);
         for(BlockUpdateType t : enum_traits<BlockUpdateType>())
         {
-            lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+            lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
             rmin.x = max(rmin.x, 0);
             rmin.y = max(rmin.y, 0);
             rmin.z = max(rmin.z, 0);
@@ -316,7 +360,7 @@ private:
     }
     bool removeBlockUpdate(BlockUpdateType t, BlockUpdate &retval)
     {
-        lock_guard<mutex> lockIt(blockUpdateMutexes[t]);
+        lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
         if(blockUpdates[t].empty())
         {
             return false;
@@ -458,13 +502,7 @@ public:
     }
     void setBlock(PositionI pos, Block block)
     {
-        PositionI basePosition = ChunkType::getChunkBasePosition(pos);
-        VectorI relativePosition = ChunkType::getChunkRelativePosition(pos);
-        ChunkType &chunk = physicsWorld->getOrAddChunk(basePosition);
-        Lighting oldLighting = chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting;
-        block.createNewLighting(oldLighting);
-        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
-        invalidateRange(pos - VectorI(1), pos + VectorI(1));
+        setBlock(getBlockIterator(pos), block);
     }
 private:
     void setBlockLighting(BlockIterator bi, Lighting lighting)
@@ -630,7 +668,6 @@ public:
                 continue;
             putEntityInProperChunk(*std::get<0>(i), std::get<1>(i));
         }
-        updateLighting();
     }
     void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity = VectorF(0), shared_ptr<void> data = nullptr)
     {

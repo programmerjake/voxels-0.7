@@ -326,7 +326,7 @@ void World::updateLighting()
             if(bi->lighting != newLighting)
                 setBlockLighting(bi, newLighting);
         }
-        if(++processedCount >= 10000)
+        if(++processedCount >= 1000)
             return;
     }
     while(removeBlockUpdate(BlockUpdateType::Lighting, bu));

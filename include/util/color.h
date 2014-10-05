@@ -94,6 +94,16 @@ constexpr ColorI RGBI(int r, int g, int b)
     return RGBAI(r, g, b, 0xFF);
 }
 
+constexpr ColorI GrayscaleI(int v)
+{
+    return RGBI(v, v, v);
+}
+
+constexpr ColorI GrayscaleAI(int v, int a)
+{
+    return RGBAI(v, v, v, a);
+}
+
 constexpr ColorI scaleI(ColorI l, ColorI r)
 {
     return RGBAI(l.r * r.r / 0xFF, l.g * r.g / 0xFF, l.b * r.b / 0xFF, l.a * r.a / 0xFF);
@@ -153,6 +163,16 @@ constexpr ColorF RGBAF(float r, float g, float b, float a)
 constexpr ColorF RGBF(float r, float g, float b)
 {
     return RGBAF(r, g, b, 1);
+}
+
+constexpr ColorF GrayscaleF(float v)
+{
+    return RGBF(v, v, v);
+}
+
+constexpr ColorF GrayscaleAF(float v, float a)
+{
+    return RGBAF(v, v, v, a);
 }
 
 constexpr ColorF scaleF(ColorF l, ColorF r)

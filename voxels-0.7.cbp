@@ -97,6 +97,7 @@
 		<Unit filename="include/util/matrix.h" />
 		<Unit filename="include/util/position.h" />
 		<Unit filename="include/util/solve.h" />
+		<Unit filename="include/util/spin_lock.h" />
 		<Unit filename="include/util/string_cast.h" />
 		<Unit filename="include/util/unlock_guard.h" />
 		<Unit filename="include/util/util.h" />
