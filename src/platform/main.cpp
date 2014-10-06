@@ -174,6 +174,7 @@ int main(int argc, char ** argv)
 #include <thread>
 #include <atomic>
 #include <random>
+#include <chrono>
 #include "util/flag.h"
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
@@ -206,6 +207,7 @@ struct MyEventHandler : public EventHandler
     enum_array<bool, KeyboardKey> currentKeyState;
     bool paused = false;
     default_random_engine rg;
+    double lastSimulateTime = -1;
     Matrix getForwardMatrix()
     {
         return Matrix::rotateY(-theta);
@@ -250,12 +252,22 @@ struct MyEventHandler : public EventHandler
             audioIndex++;
             startAudio();
         }
+    }
+    void simulateStep()
+    {
 //        PositionI pos = PositionI(rand() % 11 - 5, rand() % 11 - 5, rand() % 11 - 5, Dimension::Overworld);
 //        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
 //        if(pos != (PositionI)position)
 //            world.setBlock(pos, block);
         constexpr float blockThrowPeriod = 0.1f;
-        for(int i = (int)(std::floor((world.getCurrentTime() + Display::frameDeltaTime()) / blockThrowPeriod) - std::floor(world.getCurrentTime() / blockThrowPeriod)); i > 0; i--)
+        double currentTime = Display::realtimeTimer();
+        double deltaTime = Display::frameDeltaTime();
+        if(lastSimulateTime != -1)
+        {
+            deltaTime = min<float>(currentTime - lastSimulateTime, 0.1f);
+        }
+        lastSimulateTime = currentTime;
+        for(int i = (int)(std::floor((world.getCurrentTime() + deltaTime) / blockThrowPeriod) - std::floor(world.getCurrentTime() / blockThrowPeriod)); i > 0; i--)
         {
             VectorF dir;
             do
@@ -288,8 +300,9 @@ struct MyEventHandler : public EventHandler
             moveDirection *= 2.5;
         moveDirection *= 2;
         if(!paused)
-            position += Display::frameDeltaTime() * moveDirection;
-        world.move(Display::frameDeltaTime());
+            position += deltaTime * moveDirection;
+        world.move(deltaTime);
+        #warning change back
     }
     bool handleKeyDown(KeyDownEvent &event) override
     {
@@ -394,6 +407,7 @@ struct MyEventHandler : public EventHandler
     atomic_bool done;
     thread meshGeneratorThread;
     thread lightingThread;
+    thread simulateThread;
     flag checkGenerate;
     vector<thread> chunkGeneratorThreads;
     MyEventHandler()
@@ -445,9 +459,16 @@ struct MyEventHandler : public EventHandler
             {
                 world.updateLighting();
                 if(!world.getNeedLightingUpdateFlag())
-                    this_thread::yield();
+                    this_thread::sleep_for(chrono::milliseconds(50));
+                cout << "did update lighting" << endl;
                 break;
-                #warning change back
+            }
+        });
+        simulateThread = thread([&]()
+        {
+            while(!done)
+            {
+                simulateStep();
             }
         });
     }
@@ -457,6 +478,7 @@ struct MyEventHandler : public EventHandler
         checkGenerate = true;
         meshGeneratorThread.join();
         lightingThread.join();
+        simulateThread.join();
         for(thread &t : chunkGeneratorThreads)
             t.join();
     }

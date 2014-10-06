@@ -37,9 +37,9 @@ struct Lighting final
     {
         return (float)(int)v / (int)maxLight;
     }
-    static constexpr LightValueType limitToValidRange(LightValueType v)
+    static constexpr LightValueType ensureInValidRange(LightValueType v)
     {
-        return limit<LightValueType>(v, 0, maxLight);
+        return ensureInRange<LightValueType>(v, 0, maxLight);
     }
     LightValueType directSkylight;
     LightValueType indirectSkylight;
@@ -58,7 +58,7 @@ private:
 public:
     constexpr float toFloat(float skyBrightness, float minBrightness) const
     {
-        return limit<float>(constexpr_max<float>(toFloat(indirectSkylight) * skyBrightness, toFloat(indirectArtificalLight)), 0, 1) * (1 - minBrightness) + minBrightness;
+        return ensureInRange<float>(constexpr_max<float>(toFloat(indirectSkylight) * skyBrightness, toFloat(indirectArtificalLight)), 0, 1) * (1 - minBrightness) + minBrightness;
     }
     constexpr float toFloat(WorldLightingProperties wlp) const
     {
@@ -69,7 +69,7 @@ public:
     {
     }
     constexpr Lighting(LightValueType directSkylight, LightValueType indirectSkylight, LightValueType indirectArtificalLight)
-        : directSkylight(limitToValidRange(directSkylight)), indirectSkylight(limitToValidRange(constexpr_max(directSkylight, indirectSkylight))), indirectArtificalLight(limitToValidRange(indirectArtificalLight))
+        : directSkylight(ensureInValidRange(directSkylight)), indirectSkylight(ensureInValidRange(constexpr_max(directSkylight, indirectSkylight))), indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
     {
     }
     static constexpr Lighting makeSkyLighting()

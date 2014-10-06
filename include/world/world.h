@@ -74,8 +74,9 @@ private:
         const PositionI basePosition;
         Lighting::LightValueType skyLighting;
         MeshesWithModifiedFlag overallMeshes;
-        static constexpr int GroupingSizeLog2 = 3;
+        static constexpr int GroupingSizeLog2 = 2;
         static constexpr int32_t GroupingSize = 1 << GroupingSizeLog2, GroupingFloorMask = -GroupingSize, GroupingModMask = GroupingSize - 1;
+        static_assert(GroupingSize <= ChunkType::chunkSizeX && GroupingSize <= ChunkType::chunkSizeY && GroupingSize <= ChunkType::chunkSizeZ, "group size is too big");
         array<array<array<MeshesWithModifiedFlag, ChunkType::chunkSizeZ / GroupingSize>, ChunkType::chunkSizeY / GroupingSize>, ChunkType::chunkSizeX / GroupingSize> groupMeshes;
 #ifdef USE_BLOCKLIGHTING_CACHES
         array<array<array<BlockLightingWithModifiedFlag, ChunkType::chunkSizeZ>, ChunkType::chunkSizeY>, ChunkType::chunkSizeX> blockLighting;
@@ -267,17 +268,18 @@ private:
             return blocks.at(pos.x).at(pos.y).at(pos.z);
         }
     };
-    spin_lock blockUpdateMutex;
+    typedef mutex lock_type;
+    lock_type blockUpdateMutex;
     unordered_map<PositionI, BlockUpdateChunk> blockUpdateChunks;
     BlockUpdateChunk &getOrMakeBlockUpdateChunk(PositionI chunkBasePosition)
     {
-        lock_guard<spin_lock> lockIt(blockUpdateMutex);
+        lock_guard<lock_type> lockIt(blockUpdateMutex);
         auto iter = blockUpdateChunks.find(chunkBasePosition);
         if(iter == blockUpdateChunks.end())
             iter = std::get<0>(blockUpdateChunks.insert(make_pair(chunkBasePosition, BlockUpdateChunk(chunkBasePosition))));
         return std::get<1>(*iter);
     }
-    enum_array<spin_lock, BlockUpdateType> blockUpdateMutexes;
+    enum_array<lock_type, BlockUpdateType> blockUpdateMutexes;
     enum_array<flag, BlockUpdateType> blockUpdateFlags;
     enum_array<list<BlockUpdate>, BlockUpdateType> blockUpdates;
     static thread_local list<BlockUpdate> freeBlockUpdates;
@@ -289,9 +291,11 @@ private:
     void addBlockUpdate(BlockUpdateType t, BlockUpdate bu)
     {
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(bu));
+        if(c.at(ChunkType::getChunkRelativePosition(bu)).at(t))
+            return;
         if(c.at(ChunkType::getChunkRelativePosition(bu)).at(t).exchange(true))
             return;
-        lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
+        lock_guard<lock_type> lockIt(blockUpdateMutexes[t]);
         if(freeBlockUpdates.empty())
             blockUpdates[t].push_back(bu);
         else
@@ -306,9 +310,11 @@ private:
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(pos));
         for(BlockUpdateType t : enum_traits<BlockUpdateType>())
         {
+            if(c.at(ChunkType::getChunkRelativePosition(pos)).at(t))
+                continue;
             if(c.at(ChunkType::getChunkRelativePosition(pos)).at(t).exchange(true))
                 continue;
-            lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
+            lock_guard<lock_type> lockIt(blockUpdateMutexes[t]);
             BlockUpdate bu = pos;
             if(freeBlockUpdates.empty())
                 blockUpdates[t].push_back(bu);
@@ -325,7 +331,7 @@ private:
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(chunkBasePosition);
         for(BlockUpdateType t : enum_traits<BlockUpdateType>())
         {
-            lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
+            lock_guard<lock_type> lockIt(blockUpdateMutexes[t]);
             rmin.x = max(rmin.x, 0);
             rmin.y = max(rmin.y, 0);
             rmin.z = max(rmin.z, 0);
@@ -360,14 +366,14 @@ private:
     }
     bool removeBlockUpdate(BlockUpdateType t, BlockUpdate &retval)
     {
-        lock_guard<spin_lock> lockIt(blockUpdateMutexes[t]);
+        lock_guard<lock_type> lockIt(blockUpdateMutexes[t]);
         if(blockUpdates[t].empty())
         {
             return false;
         }
         retval = blockUpdates[t].front();
         freeBlockUpdates.splice(freeBlockUpdates.begin(), blockUpdates[t], blockUpdates[t].begin());
-        if(freeBlockUpdates.size() >= 1000000)
+        if(freeBlockUpdates.size() >= 1)
             freeBlockUpdates.pop_front();
         BlockUpdateChunk &c = getOrMakeBlockUpdateChunk(ChunkType::getChunkBasePosition(retval));
         c.at(ChunkType::getChunkRelativePosition(retval)).at(t) = false;
@@ -675,7 +681,8 @@ public:
         Entity e = Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), data);
         list<Entity> l;
         l.push_back(e);
-        if(putEntityInProperChunk(l, l.begin()))
+        list<Entity>::iterator li = l.begin();
+        if(putEntityInProperChunk(l, li))
         {
             entityCount++;
         }
@@ -683,6 +690,7 @@ public:
         {
             assert(false);
         }
+        descriptor->makeData(*li, *this);
     }
     void generateEntityMeshes(enum_array<Mesh, RenderLayer> &entityMeshes, PositionI viewPosition, int32_t viewDistance)
     {

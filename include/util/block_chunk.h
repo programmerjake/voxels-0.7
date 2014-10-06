@@ -9,7 +9,7 @@
 
 using namespace std;
 
-template <typename T, int32_t ChunkSizeXV = 16, int32_t ChunkSizeYV = 16, int32_t ChunkSizeZV = 16, bool TransmitCompressedV = true>
+template <typename T, int32_t ChunkSizeXV = 8, int32_t ChunkSizeYV = 16, int32_t ChunkSizeZV = 8, bool TransmitCompressedV = true>
 struct BlockChunk
 {
     const PositionI basePosition;

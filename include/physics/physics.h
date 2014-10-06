@@ -725,7 +725,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 inline void PhysicsWorld::runToTime(double stopTime)
 {
     cout << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << endl;
-    float stepDuration = 1 / 30.0f;
+    float stepDuration = 1 / 20.0f;
     size_t stepCount = (size_t)ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;
     for(size_t step = 1; step <= stepCount; step++)
@@ -735,7 +735,7 @@ inline void PhysicsWorld::runToTime(double stopTime)
         else
             currentTime += stepDuration;
         bool anyCollisions = true;
-        for(size_t i = 0; i < 2 && anyCollisions; i++)
+        for(size_t i = 0; i < 1 && anyCollisions; i++)
         {
             anyCollisions = false;
             vector<shared_ptr<PhysicsObject>> objectsVector(objects.begin(), objects.end());

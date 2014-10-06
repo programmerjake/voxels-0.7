@@ -88,6 +88,10 @@ public:
         shared_ptr<ItemData> data = getItemData(entity);
         return preorientSelectionBoxTransform.concat(getTransform(data)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
+    virtual void makeData(Entity &entity, World &world) const override
+    {
+        getOrMakeItemData(entity);
+    }
 };
 }
 }

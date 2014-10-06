@@ -6,3 +6,4 @@ voxels-debug
 voxels
 *~
 *.save
+gmon.out

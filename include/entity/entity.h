@@ -70,6 +70,10 @@ public:
         return RayCasting::Collision(world);
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const = 0;
+    virtual void makeData(Entity &entity, World &world) const
+    {
+        entity.data = nullptr;
+    }
 };
 
 class EntityDescriptors_t final

@@ -216,7 +216,7 @@ public:
         }
         world.setBlockRange<false>(chunkBasePosition, blocks);
         constexpr float newEntityHeight = 3.5f;
-        PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(1, 0, 0);
+        PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
         if(World::ChunkType::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
         {
             world.addEntity(Entities::builtin::items::Stone::descriptor(), epos);
@@ -326,7 +326,7 @@ void World::updateLighting()
             if(bi->lighting != newLighting)
                 setBlockLighting(bi, newLighting);
         }
-        if(++processedCount >= 1000)
+        if(++processedCount >= 100)
             return;
     }
     while(removeBlockUpdate(BlockUpdateType::Lighting, bu));

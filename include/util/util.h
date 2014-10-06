@@ -34,6 +34,23 @@ constexpr T limit(const T v, const T minV, const T maxV)
     return maxV < v ? maxV : (v < minV ? minV : v);
 }
 
+struct constexpr_assert_failure final
+{
+    template <typename FnType>
+    explicit constexpr_assert_failure(FnType fn)
+    {
+        fn();
+    }
+};
+
+#define constexpr_assert(v) (void)((v) ? 0 : throw constexpr_assert_failure([](){assert(! #v);}))
+
+template <typename T>
+constexpr T ensureInRange(const T v, const T minV, const T maxV)
+{
+    return (constexpr_assert(!(v < minV) && !(maxV < v)), v);
+}
+
 constexpr int ifloor(float v)
 {
     return floor(v);
