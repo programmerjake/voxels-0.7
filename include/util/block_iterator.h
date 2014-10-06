@@ -22,6 +22,7 @@
 #include "util/position.h"
 #include "util/block_chunk.h"
 #include "util/block_face.h"
+#include "util/cached_variable.h"
 #include <unordered_map>
 #include <cassert>
 #include <tuple>
@@ -31,8 +32,12 @@ using namespace std;
 class BlockIterator final
 {
     friend class World;
-    BlockChunk<Block> *chunk;
-    unordered_map<PositionI, BlockChunk<Block>> *chunks;
+public:
+    typedef CachedVariable<Block> BlockType;
+    typedef BlockChunk<BlockType> ChunkType;
+private:
+    ChunkType *chunk;
+    unordered_map<PositionI, ChunkType> *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk()
@@ -40,17 +45,17 @@ class BlockIterator final
         auto iter = chunks->find(currentBasePosition);
         if(iter == chunks->end())
         {
-            iter = std::get<0>(chunks->insert(pair<PositionI, BlockChunk<Block>>(currentBasePosition, BlockChunk<Block>(currentBasePosition))));
+            iter = std::get<0>(chunks->insert(pair<PositionI, ChunkType>(currentBasePosition, ChunkType(currentBasePosition))));
         }
         chunk = &std::get<1>(*iter);
     }
-    BlockIterator(BlockChunk<Block> *chunk, unordered_map<PositionI, BlockChunk<Block>> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
+    BlockIterator(ChunkType *chunk, unordered_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
     }
 public:
-    BlockIterator(unordered_map<PositionI, BlockChunk<Block>> *chunks, PositionI position)
-        : chunks(chunks), currentBasePosition(BlockChunk<Block>::getChunkBasePosition(position)), currentRelativePosition(BlockChunk<Block>::getChunkRelativePosition(position))
+    BlockIterator(unordered_map<PositionI, ChunkType> *chunks, PositionI position)
+        : chunks(chunks), currentBasePosition(ChunkType::getChunkBasePosition(position)), currentRelativePosition(ChunkType::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
         getChunk();
@@ -63,8 +68,8 @@ public:
     {
         if(currentRelativePosition.x <= 0)
         {
-            currentRelativePosition.x = BlockChunk<Block>::chunkSizeX - 1;
-            currentBasePosition.x -= BlockChunk<Block>::chunkSizeX;
+            currentRelativePosition.x = ChunkType::chunkSizeX - 1;
+            currentBasePosition.x -= ChunkType::chunkSizeX;
             getChunk();
         }
         else
@@ -74,8 +79,8 @@ public:
     {
         if(currentRelativePosition.y <= 0)
         {
-            currentRelativePosition.y = BlockChunk<Block>::chunkSizeY - 1;
-            currentBasePosition.y -= BlockChunk<Block>::chunkSizeY;
+            currentRelativePosition.y = ChunkType::chunkSizeY - 1;
+            currentBasePosition.y -= ChunkType::chunkSizeY;
             getChunk();
         }
         else
@@ -85,8 +90,8 @@ public:
     {
         if(currentRelativePosition.z <= 0)
         {
-            currentRelativePosition.z = BlockChunk<Block>::chunkSizeZ - 1;
-            currentBasePosition.z -= BlockChunk<Block>::chunkSizeZ;
+            currentRelativePosition.z = ChunkType::chunkSizeZ - 1;
+            currentBasePosition.z -= ChunkType::chunkSizeZ;
             getChunk();
         }
         else
@@ -94,10 +99,10 @@ public:
     }
     void moveTowardPX()
     {
-        if(currentRelativePosition.x >= BlockChunk<Block>::chunkSizeX - 1)
+        if(currentRelativePosition.x >= ChunkType::chunkSizeX - 1)
         {
             currentRelativePosition.x = 0;
-            currentBasePosition.x += BlockChunk<Block>::chunkSizeX;
+            currentBasePosition.x += ChunkType::chunkSizeX;
             getChunk();
         }
         else
@@ -105,10 +110,10 @@ public:
     }
     void moveTowardPY()
     {
-        if(currentRelativePosition.y >= BlockChunk<Block>::chunkSizeY - 1)
+        if(currentRelativePosition.y >= ChunkType::chunkSizeY - 1)
         {
             currentRelativePosition.y = 0;
-            currentBasePosition.y += BlockChunk<Block>::chunkSizeY;
+            currentBasePosition.y += ChunkType::chunkSizeY;
             getChunk();
         }
         else
@@ -116,10 +121,10 @@ public:
     }
     void moveTowardPZ()
     {
-        if(currentRelativePosition.z >= BlockChunk<Block>::chunkSizeZ - 1)
+        if(currentRelativePosition.z >= ChunkType::chunkSizeZ - 1)
         {
             currentRelativePosition.z = 0;
-            currentBasePosition.z += BlockChunk<Block>::chunkSizeZ;
+            currentBasePosition.z += ChunkType::chunkSizeZ;
             getChunk();
         }
         else
@@ -176,7 +181,7 @@ public:
     void moveBy(VectorI delta)
     {
         currentRelativePosition += delta;
-        VectorI deltaBasePosition = BlockChunk<Block>::getChunkBasePosition(currentRelativePosition);
+        VectorI deltaBasePosition = ChunkType::getChunkBasePosition(currentRelativePosition);
         if(deltaBasePosition != VectorI(0))
         {
             currentBasePosition += deltaBasePosition;
@@ -196,16 +201,16 @@ public:
         }
         else
         {
-            currentBasePosition = BlockChunk<Block>::getChunkBasePosition(pos);
-            currentRelativePosition = BlockChunk<Block>::getChunkRelativePosition(pos);
+            currentBasePosition = ChunkType::getChunkBasePosition(pos);
+            currentRelativePosition = ChunkType::getChunkRelativePosition(pos);
             getChunk();
         }
     }
-    const Block &operator *() const
+    const BlockType &operator *() const
     {
         return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
     }
-    const Block *operator ->() const
+    const BlockType *operator ->() const
     {
         return &chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
     }

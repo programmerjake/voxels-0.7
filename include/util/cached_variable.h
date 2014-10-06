@@ -3,61 +3,134 @@
 
 #include <atomic>
 #include <cstdint>
+#include "util/spin_lock.h"
+#include <mutex> // for lock_guard
 
 template <typename T>
 class CachedVariable
 {
-    std::atomic_uint_fast8_t viewIndex;
-    T view1, view2;
+    mutable simple_spin_lock theLock;
+    typedef lock_guard<simple_spin_lock> my_lock_guard;
+    T view;
 public:
     CachedVariable()
-        : viewIndex(0), view1(), view2()
+        : view()
     {
     }
-    CachedVariable(const T &v)
-        : viewIndex(0), view1(v), view2()
+    explicit CachedVariable(const T &v)
+        : view(v)
     {
     }
-    CachedVariable(T &&v)
-        : viewIndex(0), view1(std::move(v)), view2()
+    explicit CachedVariable(T &&v)
+        : view(std::move(v))
     {
     }
     CachedVariable(const CachedVariable &rt)
         : CachedVariable(rt.read())
     {
     }
-    const T &read() const
+    T read() const
     {
-        return viewIndex ? view2 : view1;
+        T retval;
+        {
+            my_lock_guard lockIt(theLock);
+            retval = view;
+        }
+        return std::move(retval);
     }
-    T &writeRef()
+    void write(T value)
     {
-        return viewIndex ? view1 : view2;
+        my_lock_guard lockIt(theLock);
+        view = std::move(value);
     }
-    void finishWrite()
-    {
-        viewIndex ^= 1;
-    }
-    void write(const T &value)
-    {
-        writeRef() = value;
-        finishWrite();
-    }
-    operator const T &() const
+    operator T() const
     {
         return read();
     }
-    const T &operator =(const T &value)
+    const CachedVariable &operator =(const T &value)
     {
-        writeRef() = value;
-        finishWrite();
-        return read();
+        write(value);
+        return *this;
     }
-    const T &operator =(const CachedVariable &rt)
+    const CachedVariable &operator =(const CachedVariable &rt)
     {
-        writeRef() = rt.read();
-        finishWrite();
-        return read();
+        write(rt.read());
+        return *this;
+    }
+    const CachedVariable &operator =(T &&value)
+    {
+        write(std::move(value));
+        return *this;
+    }
+    class LockedView final
+    {
+        friend class CachedVariable;
+        T *v;
+        unique_lock<simple_spin_lock> lockIt;
+        explicit LockedView(CachedVariable *cv)
+            : lockIt(cv->theLock)
+        {
+            v = &cv->view;
+        }
+        LockedView(const LockedView &) = delete;
+    public:
+        ~LockedView()
+        {
+        }
+        LockedView(LockedView &&rt)
+            : v(rt.v), lockIt(std::move(rt.lockIt))
+        {
+            rt.v = nullptr;
+        }
+        const T &operator =(const LockedView &rt)
+        {
+            return *v = *rt.v;
+        }
+        const T &operator =(const T &value)
+        {
+            return *v = value;
+        }
+        const T &operator =(T &&value)
+        {
+            return *v = std::move(value);
+        }
+        void write(const T &value)
+        {
+            *v = value;
+        }
+        void write(T &&value)
+        {
+            *v = std::move(value);
+        }
+        const T &read()
+        {
+            return *v;
+        }
+        T &get()
+        {
+            return *v;
+        }
+        operator T &()
+        {
+            return *v;
+        }
+        T &operator ->()
+        {
+            return *v;
+        }
+        bool valid() const
+        {
+            return v != nullptr;
+        }
+        void release()
+        {
+            v = nullptr;
+            lockIt.unlock();
+        }
+    };
+    LockedView lock()
+    {
+        return LockedView(this);
     }
 };
 

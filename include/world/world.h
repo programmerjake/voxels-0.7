@@ -399,11 +399,11 @@ public:
         if(std::get<1>(needGenerateChunksSet.insert(cpos)))
             needGenerateChunksList.push_back(cpos);
     }
-    const enum_array<shared_ptr<Mesh>, RenderLayer> &getMeshes()
+    enum_array<shared_ptr<Mesh>, RenderLayer> getMeshes()
     {
         return meshes.read();
     }
-    const enum_array<shared_ptr<CachedMesh>, RenderLayer> &getCachedMeshes()
+    enum_array<shared_ptr<CachedMesh>, RenderLayer> getCachedMeshes()
     {
         return cachedMeshes.read();
     }
@@ -413,9 +413,10 @@ public:
         PositionI minPosition = ChunkType::getChunkBasePosition(viewPosition - VectorI(viewDistance));
         PositionI maxPosition = ChunkType::getChunkBasePosition(viewPosition + VectorI(viewDistance));
         PositionI pos = minPosition;
+        enum_array<shared_ptr<Mesh>, RenderLayer> newMeshes;
         for(RenderLayer rl : enum_traits<RenderLayer>())
         {
-            meshes.writeRef()[rl] = make_shared<Mesh>();
+            newMeshes[rl] = make_shared<Mesh>();
         }
         for(pos.x = minPosition.x; pos.x <= maxPosition.x; pos.x += ChunkType::chunkSizeX)
         {
@@ -427,16 +428,12 @@ public:
                     const enum_array<Mesh, RenderLayer> &chunkMeshes = makeChunkMeshes(pos);
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
-                        meshes.writeRef()[rl]->append(chunkMeshes[rl]);
+                        newMeshes[rl]->append(chunkMeshes[rl]);
                     }
                 }
             }
         }
-        meshes.finishWrite();
-        for(RenderLayer rl : enum_traits<RenderLayer>())
-        {
-            meshes.writeRef()[rl] = nullptr;
-        }
+        meshes = newMeshes;
         cachedMeshesInvalid = true;
     }
     void updateCachedMeshes()
@@ -444,17 +441,14 @@ public:
         if(!cachedMeshesInvalid.exchange(false))
             return;
         enum_array<shared_ptr<Mesh>, RenderLayer> meshes = getMeshes();
+        enum_array<shared_ptr<CachedMesh>, RenderLayer> newCachedMeshes;
         for(RenderLayer rl : enum_traits<RenderLayer>())
         {
             if(meshes[rl] == nullptr)
                 meshes[rl] = make_shared<Mesh>();
-            cachedMeshes.writeRef()[rl] = makeCachedMesh(*meshes[rl]);
+            newCachedMeshes[rl] = makeCachedMesh(*meshes[rl]);
         }
-        cachedMeshes.finishWrite();
-        for(RenderLayer rl : enum_traits<RenderLayer>())
-        {
-            cachedMeshes.writeRef()[rl] = nullptr;
-        }
+        cachedMeshes = newCachedMeshes;
     }
     BlockIterator getBlockIterator(PositionI pos)
     {
@@ -501,9 +495,11 @@ public:
         PositionI pos = bi.position();
         VectorI relativePosition = bi.currentRelativePosition;
         ChunkType &chunk = *bi.chunk;
-        Lighting oldLighting = chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting;
+        typename CachedVariable<Block>::LockedView b = chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lock();
+        Lighting oldLighting = b.read().lighting;
         block.createNewLighting(oldLighting);
-        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
+        b = std::move(block);
+        b.release();
         invalidateRange(pos - VectorI(1), pos + VectorI(1));
     }
     void setBlock(PositionI pos, Block block)
@@ -516,7 +512,7 @@ private:
         PositionI pos = bi.position();
         VectorI relativePosition = bi.currentRelativePosition;
         ChunkType &chunk = *bi.chunk;
-        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting = lighting;
+        chunk.blocks[relativePosition.x][relativePosition.y][relativePosition.z].lock().get().lighting = lighting;
         invalidateRange(pos - VectorI(1), pos + VectorI(1));
     }
     template <bool ignoreNulls, size_t xSize, size_t ySize, size_t zSize>
@@ -540,7 +536,45 @@ private:
             }
         }
     }
+    template <bool ignoreNulls, size_t xSize, size_t ySize, size_t zSize>
+    void chunkSetBlockRange(VectorI relativeBasePos, ChunkType &chunk, const array<array<array<CachedVariable<Block>, zSize>, ySize>, xSize> &blocks)
+    {
+        VectorI minRPos = VectorI(max<int32_t>(0, relativeBasePos.x), max<int32_t>(0, relativeBasePos.y), max<int32_t>(0, relativeBasePos.z));
+        VectorI maxRPos = VectorI(min<int32_t>(ChunkType::chunkSizeX - 1, relativeBasePos.x + xSize - 1), min<int32_t>(ChunkType::chunkSizeY - 1, relativeBasePos.y + ySize - 1), min<int32_t>(ChunkType::chunkSizeZ - 1, relativeBasePos.z + zSize - 1));
+        for(VectorI rpos = minRPos; rpos.x <= maxRPos.x; rpos.x++)
+        {
+            for(rpos.y = minRPos.y; rpos.y <= maxRPos.y; rpos.y++)
+            {
+                for(rpos.z = minRPos.z; rpos.z <= maxRPos.z; rpos.z++)
+                {
+                    VectorI apos = rpos - relativeBasePos;
+                    Block block = blocks.at(apos.x).at(apos.y).at(apos.z);
+                    if(ignoreNulls)
+                        if(!block)
+                            continue;
+                    chunk.blocks[rpos.x][rpos.y][rpos.z] = block;
+                }
+            }
+        }
+    }
 public:
+    template <bool ignoreNulls, size_t xSize, size_t ySize, size_t zSize>
+    void setBlockRange(PositionI basePos, const array<array<array<CachedVariable<Block>, zSize>, ySize>, xSize> &blocks)
+    {
+        PositionI minCPos = ChunkType::getChunkBasePosition(basePos);
+        VectorI maxCPos = ChunkType::getChunkBasePosition(basePos + VectorI(xSize - 1, ySize - 1, zSize - 1));
+        for(PositionI cpos = minCPos; cpos.x <= maxCPos.x; cpos.x += ChunkType::chunkSizeX)
+        {
+            for(cpos.y = minCPos.y; cpos.y <= maxCPos.y; cpos.y += ChunkType::chunkSizeY)
+            {
+                for(cpos.z = minCPos.z; cpos.z <= maxCPos.z; cpos.z += ChunkType::chunkSizeZ)
+                {
+                    chunkSetBlockRange<ignoreNulls>(basePos - cpos, physicsWorld->getOrAddChunk(cpos), blocks);
+                }
+            }
+        }
+        invalidateRange(basePos - VectorI(1), basePos + VectorI(xSize, ySize, zSize));
+    }
     template <bool ignoreNulls, size_t xSize, size_t ySize, size_t zSize>
     void setBlockRange(PositionI basePos, const array<array<array<Block, zSize>, ySize>, xSize> &blocks)
     {

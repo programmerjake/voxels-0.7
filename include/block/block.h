@@ -162,9 +162,10 @@ public:
             {
                 BlockIterator i = blockIterator;
                 i.moveToward(bf);
-                if(!*i)
+                Block b = i->read();
+                if(!b)
                     continue;
-                if(i->descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
                     continue;
                 blockMesh.append(meshFace[bf]);
                 drewAny = true;
@@ -237,10 +238,11 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
                 BlockIterator curBi = bi;
                 curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
                 auto l = pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-                if(*curBi)
+                Block b = curBi->read();
+                if(b)
                 {
-                    std::get<0>(l) = curBi->descriptor->lightProperties;
-                    std::get<1>(l) = curBi->lighting;
+                    std::get<0>(l) = b.descriptor->lightProperties;
+                    std::get<1>(l) = b.lighting;
                 }
                 blocks[x][y][z] = l;
             }

@@ -36,6 +36,7 @@
 #include <iostream>
 #include <cmath>
 #include <tuple>
+#include "util/cached_variable.h"
 
 using namespace std;
 
@@ -277,7 +278,7 @@ private:
         return b.descriptor->blockShape;
     }
 public:
-    typedef BlockChunk<Block> ChunkType;
+    typedef BlockChunk<CachedVariable<Block>> ChunkType;
     unordered_map<PositionI, ChunkType> chunks;
     ChunkType &getOrAddChunk(PositionI pos)
     {
@@ -288,7 +289,7 @@ public:
         }
         return std::get<1>(*iter);
     }
-    const Block &getBlock(PositionI pos)
+    const CachedVariable<Block> &getBlock(PositionI pos)
     {
         PositionI cpos = ChunkType::getChunkBasePosition(pos);
         VectorI rpos = ChunkType::getChunkRelativePosition(pos);

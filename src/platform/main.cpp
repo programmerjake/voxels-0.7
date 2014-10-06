@@ -302,7 +302,6 @@ struct MyEventHandler : public EventHandler
         if(!paused)
             position += deltaTime * moveDirection;
         world.move(deltaTime);
-        #warning change back
     }
     bool handleKeyDown(KeyDownEvent &event) override
     {

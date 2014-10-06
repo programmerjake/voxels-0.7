@@ -6,6 +6,38 @@
 #include <mutex>
 #include <condition_variable>
 
+struct simple_spin_lock final
+{
+    std::atomic_bool flag;
+    simple_spin_lock()
+        : flag(false)
+    {
+    }
+    bool try_lock()
+    {
+        if(flag.load(std::memory_order_relaxed))
+            return false;
+        if(flag.exchange(true, std::memory_order_acquire))
+            return false;
+        return true;
+    }
+    void lock()
+    {
+        for(;;)
+        {
+            while(flag.load(std::memory_order_relaxed))
+            {
+            }
+            if(!flag.exchange(true, std::memory_order_acquire))
+                break;
+        }
+    }
+    void unlock()
+    {
+        flag.store(false, std::memory_order_release);
+    }
+};
+
 struct spin_lock final
 {
     std::atomic_flag flag = ATOMIC_FLAG_INIT;

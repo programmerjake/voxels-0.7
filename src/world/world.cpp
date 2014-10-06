@@ -276,7 +276,8 @@ namespace
 {
 Lighting getBlockLighting(BlockIterator bi)
 {
-    if(!*bi)
+    Block b = *bi;
+    if(!b)
     {
         switch(bi.position().d)
         {
@@ -288,7 +289,7 @@ Lighting getBlockLighting(BlockIterator bi)
         assert(false);
         return Lighting();
     }
-    return bi->lighting;
+    return b.lighting;
 }
 }
 
@@ -302,9 +303,9 @@ void World::updateLighting()
     do
     {
         bi.moveTo(bu);
-        if(*bi)
+        Block b = *bi;
+        if(b)
         {
-            Block b = *bi;
             BlockIterator binx = bi;
             binx.moveTowardNX();
             BlockIterator bipx = bi;
@@ -323,8 +324,10 @@ void World::updateLighting()
                                                             getBlockLighting(bipy),
                                                             getBlockLighting(binz),
                                                             getBlockLighting(bipz));
-            if(bi->lighting != newLighting)
+            if(b.lighting != newLighting)
+            {
                 setBlockLighting(bi, newLighting);
+            }
         }
         if(++processedCount >= 100)
             return;
