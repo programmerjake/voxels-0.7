@@ -141,6 +141,8 @@ struct enum_array
     typedef EnumT index_type;
     typedef value_type * iterator;
     typedef const value_type * const_iterator;
+    typedef value_type * pointer;
+    typedef const value_type * const_pointer;
     value_type elements[enum_traits<index_type>::size()];
     value_type & operator [](index_type index)
     {
@@ -187,6 +189,14 @@ struct enum_array
     const_iterator cend() const
     {
         return begin() + size();
+    }
+    const_iterator from_pointer(const_pointer v) const
+    {
+        return v;
+    }
+    iterator from_pointer(pointer v) const
+    {
+        return v;
     }
 };
 

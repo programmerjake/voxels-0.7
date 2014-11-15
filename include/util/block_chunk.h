@@ -9,19 +9,30 @@
 
 using namespace std;
 
-template <typename T, int32_t ChunkSizeXV = 8, int32_t ChunkSizeYV = 16, int32_t ChunkSizeZV = 8, bool TransmitCompressedV = true>
+template <typename BT, typename SCT, typename CVT, size_t ChunkShiftXV = 4, size_t ChunkShiftYV = 8, size_t ChunkShiftZV = 4, size_t SubchunkShiftXYZV = 2, bool TransmitCompressedV = true>
 struct BlockChunk
 {
+    typedef BT BlockType;
+    typedef SCT SubchunkType;
+    typedef CVT ChunkVariablesType;
     const PositionI basePosition;
-    static constexpr int32_t chunkSizeX = ChunkSizeXV;
-    static constexpr int32_t chunkSizeY = ChunkSizeYV;
-    static constexpr int32_t chunkSizeZ = ChunkSizeZV;
+    static constexpr size_t chunkShiftX = ChunkShiftXV;
+    static constexpr size_t chunkShiftY = ChunkShiftYV;
+    static constexpr size_t chunkShiftZ = ChunkShiftZV;
+    static constexpr size_t subchunkShiftXYZ = SubchunkShiftXYZV;
+    static constexpr int32_t chunkSizeX = (int32_t)1 << chunkShiftX;
+    static constexpr int32_t chunkSizeY = (int32_t)1 << chunkShiftY;
+    static constexpr int32_t chunkSizeZ = (int32_t)1 << chunkShiftZ;
+    static constexpr int32_t subchunkSizeXYZ = (int32_t)1 << subchunkShiftXYZ;
     static_assert(chunkSizeX > 0, "chunkSizeX must be positive");
     static_assert(chunkSizeY > 0, "chunkSizeY must be positive");
     static_assert(chunkSizeZ > 0, "chunkSizeZ must be positive");
+    static_assert(subchunkSizeXYZ > 0, "subchunkSizeXYZ must be positive");
     static_assert((chunkSizeX & (chunkSizeX - 1)) == 0, "chunkSizeX must be a power of 2");
     static_assert((chunkSizeY & (chunkSizeY - 1)) == 0, "chunkSizeY must be a power of 2");
     static_assert((chunkSizeZ & (chunkSizeZ - 1)) == 0, "chunkSizeZ must be a power of 2");
+    static_assert((subchunkSizeXYZ & (subchunkSizeXYZ - 1)) == 0, "subchunkSizeXYZ must be a power of 2");
+    static_assert(subchunkSizeXYZ <= chunkSizeX && subchunkSizeXYZ <= chunkSizeY && subchunkSizeXYZ <= chunkSizeZ, "subchunkSizeXYZ must not be bigger than the chunk size")
     static constexpr bool transmitCompressed = TransmitCompressedV;
     mutable ChangeTracker changeTracker;
     constexpr BlockChunk(PositionI basePosition)
@@ -44,9 +55,51 @@ struct BlockChunk
     {
         return VectorI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
     }
-    array<array<array<T, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
+    static constexpr int32_t getSubchunkBaseAbsolutePosition(int32_t v)
+    {
+        return v & ~(subchunkSizeXYZ - 1);
+    }
+    static constexpr VectorI getSubchunkBaseAbsolutePosition(VectorI pos)
+    {
+        return VectorI(getSubchunkBaseAbsolutePosition(pos.x), getSubchunkBaseAbsolutePosition(pos.y), getSubchunkBaseAbsolutePosition(pos.z));
+    }
+    static constexpr PositionI getSubchunkBaseAbsolutePosition(PositionI pos)
+    {
+        return PositionI(getSubchunkBaseAbsolutePosition(pos.x), getSubchunkBaseAbsolutePosition(pos.y), getSubchunkBaseAbsolutePosition(pos.z), pos.d);
+    }
+    static constexpr VectorI getSubchunkBaseRelativePosition(VectorI pos)
+    {
+        return VectorI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)), pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)), pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)));
+    }
+    static constexpr VectorI getSubchunkIndexFromChunkRelativePosition(VectorI pos)
+    {
+        return VectorI(pos.x >> subchunkShiftXYZ, pos.y >> subchunkShiftXYZ, pos.z >> subchunkShiftXYZ);
+    }
+    static constexpr VectorI getSubchunkIndexFromPosition(VectorI pos)
+    {
+        return getSubchunkIndexFromChunkRelativePosition(getChunkRelativePosition(pos));
+    }
+    static constexpr PositionI getSubchunkBaseRelativePosition(PositionI pos)
+    {
+        return PositionI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)), pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)), pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)), pos.d);
+    }
+    static constexpr int32_t getSubchunkRelativePosition(int32_t v)
+    {
+        return v & (subchunkSizeXYZ - 1);
+    }
+    static constexpr VectorI getSubchunkRelativePosition(VectorI pos)
+    {
+        return VectorI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z));
+    }
+    static constexpr PositionI getSubchunkRelativePosition(PositionI pos)
+    {
+        return PositionI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z), pos.d);
+    }
+    array<array<array<BlockType, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
+    array<array<array<SubchunkType, subchunkSizeXYZ>, subchunkSizeXYZ>, subchunkSizeXYZ> subchunks;
+    ChunkVariablesType chunkVariables;
     BlockChunk(const BlockChunk & rt)
-        : basePosition(rt.basePosition), blocks(rt.blocks)
+        : basePosition(rt.basePosition), blocks(rt.blocks), subchunks(rt.subchunks), chunkVariables(chunkVariables)
     {
         changeTracker.onChange();
     }

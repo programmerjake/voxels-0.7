@@ -92,6 +92,7 @@
 		<Unit filename="include/util/block_chunk.h" />
 		<Unit filename="include/util/block_face.h" />
 		<Unit filename="include/util/block_iterator.h" />
+		<Unit filename="include/util/block_update.h" />
 		<Unit filename="include/util/cached_variable.h" />
 		<Unit filename="include/util/circular_deque.h" />
 		<Unit filename="include/util/color.h" />

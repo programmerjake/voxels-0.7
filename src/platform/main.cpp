@@ -259,7 +259,7 @@ struct MyEventHandler : public EventHandler
 //        Block block = (rand() % 2 == 0 ? Block(Blocks::builtin::Air::descriptor()) : Block(Blocks::builtin::Stone::descriptor()));
 //        if(pos != (PositionI)position)
 //            world.setBlock(pos, block);
-        constexpr float blockThrowPeriod = 0.1f;
+        constexpr float blockThrowPeriod = 1.0f;
         double currentTime = Display::realtimeTimer();
         double deltaTime = Display::frameDeltaTime();
         if(lastSimulateTime != -1)
