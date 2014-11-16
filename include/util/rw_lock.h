@@ -103,7 +103,7 @@ public:
         }
         bool try_lock()
         {
-            theLock.reader_try_lock();
+            return theLock.reader_try_lock();
         }
         void unlock()
         {
@@ -126,7 +126,7 @@ public:
         }
         bool try_lock()
         {
-            theLock.writer_try_lock();
+            return theLock.writer_try_lock();
         }
         void unlock()
         {
@@ -142,7 +142,10 @@ public:
         return writer_view(*this);
     }
 };
-
+#if 1
+#warning finish
+#else
+#error fix change cmp-xchg first 2 args to correct order
 template <>
 struct [[deprecated("untested")]] rw_lock<true>
 {
@@ -243,7 +246,7 @@ public:
         }
         bool try_lock()
         {
-            theLock.reader_try_lock();
+            return theLock.reader_try_lock();
         }
         void unlock()
         {
@@ -266,7 +269,7 @@ public:
         }
         bool try_lock()
         {
-            theLock.writer_try_lock();
+            return theLock.writer_try_lock();
         }
         void unlock()
         {
@@ -284,6 +287,7 @@ public:
 };
 
 typedef rw_lock<true> rw_spinlock;
+#endif
 typedef rw_lock<false> rw_blocking_lock;
 
 #endif // RW_LOCK_H_INCLUDED
