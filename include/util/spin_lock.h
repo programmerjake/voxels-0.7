@@ -5,46 +5,37 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include "util/cpu_relax.h"
 
 struct simple_spin_lock final
 {
-    std::atomic_bool flag;
-    simple_spin_lock()
-        : flag(false)
-    {
-    }
+    std::atomic_flag flag = ATOMIC_FLAG_INIT;
     bool try_lock()
     {
-        if(flag.load(std::memory_order_relaxed))
-            return false;
-        if(flag.exchange(true, std::memory_order_acquire))
+        if(flag.test_and_set(std::memory_order_acquire))
             return false;
         return true;
     }
     void lock()
     {
-        for(;;)
+        while(flag.test_and_set(std::memory_order_acquire))
         {
-            while(flag.load(std::memory_order_relaxed))
-            {
-            }
-            if(!flag.exchange(true, std::memory_order_acquire))
-                break;
+            cpu_relax();
         }
     }
     void unlock()
     {
-        flag.store(false, std::memory_order_release);
+        flag.clear(std::memory_order_release);
     }
 };
 
-struct spin_lock final
+struct blocking_spin_lock final
 {
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
     std::atomic_ulong waitingCount;
     std::condition_variable cond;
     std::mutex lockMutex;
-    spin_lock()
+    blocking_spin_lock()
         : waitingCount(0)
     {
     }
@@ -67,6 +58,7 @@ struct spin_lock final
                 cond.wait(lockIt);
                 count = skipCount;
             }
+            cpu_relax();
         }
         waitingCount--;
     }
