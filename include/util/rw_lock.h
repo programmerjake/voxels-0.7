@@ -142,10 +142,7 @@ public:
         return writer_view(*this);
     }
 };
-#if 1
-#warning finish
-#else
-#error fix change cmp-xchg first 2 args to correct order
+
 template <>
 struct [[deprecated("untested")]] rw_lock<true>
 {
@@ -172,9 +169,7 @@ public:
             cpu_relax();
             value = readerCount.load(std::memory_order_relaxed);
         }
-        size_t oldValue = value;
-        value++;
-        while(!readerCount.compare_exchange_weak(value, oldValue, std::memory_order_acquire, std::memory_order_relaxed))
+        while(!readerCount.compare_exchange_weak(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
         {
             cpu_relax();
             while(value == readerCountForWriterLocked)
@@ -182,8 +177,6 @@ public:
                 cpu_relax();
                 value = readerCount.load(std::memory_order_relaxed);
             }
-            oldValue = value;
-            value++;
         }
     }
     bool reader_try_lock()
@@ -193,9 +186,7 @@ public:
         {
             return false;
         }
-        size_t oldValue = value;
-        value++;
-        if(!readerCount.compare_exchange_strong(value, oldValue, std::memory_order_acquire, std::memory_order_relaxed))
+        if(!readerCount.compare_exchange_strong(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
         {
             return false;
         }
@@ -208,17 +199,17 @@ public:
     void writer_lock()
     {
         writerCount.fetch_add(1, std::memory_order_relaxed);
-        size_t value = readerCountForWriterLocked;
-        while(!readerCount.compare_exchange_weak(value, 0, std::memory_order_acquire, std::memory_order_relaxed))
+        size_t value = 0;
+        while(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
         {
             cpu_relax();
-            value = readerCountForWriterLocked;
+            value = 0;
         }
     }
     bool writer_try_lock()
     {
-        size_t value = readerCountForWriterLocked;
-        if(!readerCount.compare_exchange_weak(value, 0, std::memory_order_acquire, std::memory_order_relaxed))
+        size_t value = 0;
+        if(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
         {
             return false;
         }
@@ -287,7 +278,6 @@ public:
 };
 
 typedef rw_lock<true> rw_spinlock;
-#endif
 typedef rw_lock<false> rw_blocking_lock;
 
 #endif // RW_LOCK_H_INCLUDED
