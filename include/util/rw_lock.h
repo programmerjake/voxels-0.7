@@ -5,6 +5,9 @@
 #include <mutex>
 #include <condition_variable>
 #include "util/cpu_relax.h"
+#if __cplusplus > 201103L // c++14 or later
+#include <shared_mutex>
+#endif
 
 template <bool isSpinLockV = false>
 struct rw_lock;
@@ -14,6 +17,34 @@ struct rw_lock<false>
 {
     static constexpr bool is_spinlock = false;
 private:
+#if __cplusplus > 201103L // c++14 or later
+    std::shared_timed_mutex lock;
+public:
+    void reader_lock()
+    {
+        lock.lock_shared();
+    }
+    bool reader_try_lock()
+    {
+        return lock.try_lock_shared();
+    }
+    void reader_unlock()
+    {
+        return lock.unlock_shared();
+    }
+    void writer_lock()
+    {
+        return lock.lock();
+    }
+    bool writer_try_lock()
+    {
+        return lock.try_lock();
+    }
+    void writer_unlock()
+    {
+        return lock.unlock();
+    }
+#else
     std::mutex stateLock;
     std::condition_variable stateCond;
     size_t writerWaitingCount = 0;
@@ -87,6 +118,7 @@ public:
         if(readerWaitingCount > 0 || writerWaitingCount > 0)
             stateCond.notify_all();
     }
+#endif
     class reader_view final
     {
         friend class rw_lock;
@@ -279,5 +311,11 @@ public:
 
 typedef rw_lock<true> rw_spinlock;
 typedef rw_lock<false> rw_blocking_lock;
+typedef rw_blocking_lock rw_lock;
+#if 1 // change when spinlock is checked
+typedef rw_blocking_lock rw_fast_lock;
+#else
+typedef rw_spinlock rw_fast_lock;
+#endif
 
 #endif // RW_LOCK_H_INCLUDED

@@ -38,7 +38,7 @@
 		<Compiler>
 			<Add option="-march=pentium4" />
 			<Add option="-Wall" />
-			<Add option="-std=c++11" />
+			<Add option="-std=c++14" />
 			<Add option="-fexceptions" />
 			<Add option="`sdl2-config --cflags`" />
 			<Add option="-mfpmath=sse" />
