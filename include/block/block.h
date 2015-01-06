@@ -35,8 +35,10 @@
 #include "ray_casting/ray_casting.h"
 #include "lighting/lighting.h"
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class BlockDescriptor;
 class BlockIterator;
 
@@ -45,13 +47,13 @@ typedef const BlockDescriptor *BlockDescriptorPointer;
 struct Block final
 {
     BlockDescriptorPointer descriptor;
-    shared_ptr<void> data;
+    std::shared_ptr<void> data;
     Lighting lighting;
-    constexpr Block()
+    Block() noexcept
         : descriptor(nullptr), data(nullptr)
     {
     }
-    Block(BlockDescriptorPointer descriptor, shared_ptr<void> data = nullptr)
+    Block(BlockDescriptorPointer descriptor, std::shared_ptr<void> data = nullptr)
         : descriptor(descriptor), data(data)
     {
     }
@@ -186,13 +188,13 @@ public:
     {
         return block;
     }
-    virtual bool isDataEqual(const shared_ptr<void> &a, const shared_ptr<void> &b) const
+    virtual bool isDataEqual(const std::shared_ptr<void> &a, const std::shared_ptr<void> &b) const
     {
         return a == b;
     }
-    virtual size_t hashData(const shared_ptr<void> &data) const
+    virtual size_t hashData(const std::shared_ptr<void> &data) const
     {
-        return std::hash<shared_ptr<void>>()(data);
+        return std::hash<std::shared_ptr<void>>()(data);
     }
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, World &world, RayCasting::Ray ray) const
     {
@@ -228,7 +230,7 @@ inline bool Block::operator==(const Block &r) const
 inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldLightingProperties wlp)
 {
     BlockIterator bi = bi_in;
-    array<array<array<pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
     for(int x = 0; (size_t)x < blocks.size(); x++)
     {
         for(int y = 0; (size_t)y < blocks[x].size(); y++)
@@ -237,7 +239,7 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
             {
                 BlockIterator curBi = bi;
                 curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
-                auto l = pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
                 Block b = curBi->read();
                 if(b)
                 {
@@ -250,21 +252,27 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
     }
     return BlockLighting(blocks, wlp);
 }
+}
+}
 
-namespace ::std
+namespace std
 {
 template <>
-struct hash<Block> final
+struct hash<programmerjake::voxels::Block> final
 {
-    size_t operator ()(const Block &b) const
+    size_t operator ()(const programmerjake::voxels::Block &b) const
     {
         if(b.descriptor == nullptr)
             return 0;
-        return std::hash<BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
+        return std::hash<programmerjake::voxels::BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
     }
 };
 }
 
+namespace programmerjake
+{
+namespace voxels
+{
 class BlockDescriptors_t final
 {
     friend class BlockDescriptor;
@@ -274,7 +282,7 @@ private:
     void add(BlockDescriptorPointer bd) const;
     void remove(BlockDescriptorPointer bd) const;
 public:
-    BlockDescriptorPointer operator [](wstring name) const
+    BlockDescriptorPointer operator [](std::wstring name) const
     {
         if(blocksMap == nullptr)
             return nullptr;
@@ -283,11 +291,11 @@ public:
             return nullptr;
         return std::get<1>(*iter);
     }
-    BlockDescriptorPointer at(wstring name) const
+    BlockDescriptorPointer at(std::wstring name) const
     {
         BlockDescriptorPointer retval = operator [](name);
         if(retval == nullptr)
-            throw out_of_range("BlockDescriptor not found");
+            throw std::out_of_range("BlockDescriptor not found");
         return retval;
     }
     class iterator final : public std::iterator<std::forward_iterator_tag, const BlockDescriptorPointer>
@@ -356,7 +364,7 @@ public:
             return iterator();
         return iterator(blocksMap->find(name));
     }
-    size_t size() const
+    std::size_t size() const
     {
         if(blocksMap == nullptr)
             return 0;
@@ -365,5 +373,7 @@ public:
 };
 
 static constexpr BlockDescriptors_t BlockDescriptors;
+}
+}
 
 #endif // BLOCK_H_INCLUDED

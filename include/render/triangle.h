@@ -8,8 +8,10 @@
 #include <algorithm>
 #include <tuple>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 struct TextureCoord
 {
     float u, v;
@@ -121,12 +123,12 @@ struct Triangle
         return normalizeNoThrow(cross(p1 - p2, p1 - p3));
     }
 private:
-    constexpr pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
+    constexpr std::pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
     {
-        return pair<VectorF, float>(normal, -dot(p1, normal));
+        return std::pair<VectorF, float>(normal, -dot(p1, normal));
     }
 public:
-    constexpr pair<VectorF, float> getPlaneEquation() const
+    constexpr std::pair<VectorF, float> getPlaneEquation() const
     {
         return getPlaneEquationHelper(getPlaneNormal());
     }
@@ -149,6 +151,8 @@ constexpr Triangle colorize(ColorF color, const Triangle & t)
 constexpr Triangle reverse(const Triangle & t)
 {
     return Triangle(t.p1, t.t1, t.c1, -t.n1, t.p3, t.t3, t.c3, -t.n3, t.p2, t.t2, t.c2, -t.n2);
+}
+}
 }
 
 #endif // TRIANGLE_H_INCLUDED

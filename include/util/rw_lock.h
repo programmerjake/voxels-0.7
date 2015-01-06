@@ -9,11 +9,15 @@
 #include <shared_mutex>
 #endif
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <bool isSpinLockV = false>
-struct rw_lock;
+struct rw_lock_implementation;
 
 template <>
-struct rw_lock<false>
+struct rw_lock_implementation<false>
 {
     static constexpr bool is_spinlock = false;
 private:
@@ -47,10 +51,10 @@ public:
 #else
     std::mutex stateLock;
     std::condition_variable stateCond;
-    size_t writerWaitingCount = 0;
-    size_t readerWaitingCount = 0;
-    static constexpr size_t readerCountForWriterLocked = ~(size_t)0;
-    size_t readerCount = 0;
+    std::size_t writerWaitingCount = 0;
+    std::size_t readerWaitingCount = 0;
+    static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
+    std::size_t readerCount = 0;
 public:
     void reader_lock()
     {
@@ -121,10 +125,10 @@ public:
 #endif
     class reader_view final
     {
-        friend class rw_lock;
+        friend class rw_lock_implementation;
     private:
-        rw_lock &theLock;
-        reader_view(rw_lock &theLock)
+        rw_lock_implementation &theLock;
+        reader_view(rw_lock_implementation &theLock)
             : theLock(theLock)
         {
         }
@@ -144,10 +148,10 @@ public:
     };
     class writer_view final
     {
-        friend class rw_lock;
+        friend class rw_lock_implementation;
     private:
-        rw_lock &theLock;
-        writer_view(rw_lock &theLock)
+        rw_lock_implementation &theLock;
+        writer_view(rw_lock_implementation &theLock)
             : theLock(theLock)
         {
         }
@@ -176,21 +180,21 @@ public:
 };
 
 template <>
-struct [[deprecated("untested")]] rw_lock<true>
+struct [[deprecated("untested")]] rw_lock_implementation<true>
 {
     static constexpr bool is_spinlock = true;
 private:
-    static constexpr size_t readerCountForWriterLocked = ~(size_t)0;
+    static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
     std::atomic_size_t readerCount; // if a writer has this locked then readerCount == readerCountForWriterLocked
     std::atomic_size_t writerCount; // number of writers waiting + the writer that owns this lock
 public:
-    constexpr rw_lock()
+    constexpr rw_lock_implementation()
         : readerCount(0), writerCount(0)
     {
     }
     void reader_lock()
     {
-        size_t value = readerCount.load(std::memory_order_relaxed);
+        std::size_t value = readerCount.load(std::memory_order_relaxed);
         while(value == readerCountForWriterLocked || writerCount.load(std::memory_order_relaxed) > 0)
         {
             cpu_relax();
@@ -213,7 +217,7 @@ public:
     }
     bool reader_try_lock()
     {
-        size_t value = readerCount.load(std::memory_order_relaxed);
+        std::size_t value = readerCount.load(std::memory_order_relaxed);
         if(value == readerCountForWriterLocked || writerCount.load(std::memory_order_relaxed) > 0)
         {
             return false;
@@ -231,7 +235,7 @@ public:
     void writer_lock()
     {
         writerCount.fetch_add(1, std::memory_order_relaxed);
-        size_t value = 0;
+        std::size_t value = 0;
         while(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
         {
             cpu_relax();
@@ -240,7 +244,7 @@ public:
     }
     bool writer_try_lock()
     {
-        size_t value = 0;
+        std::size_t value = 0;
         if(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
         {
             return false;
@@ -255,10 +259,10 @@ public:
     }
     class reader_view final
     {
-        friend class rw_lock;
+        friend class rw_lock_implementation;
     private:
-        rw_lock &theLock;
-        reader_view(rw_lock &theLock)
+        rw_lock_implementation &theLock;
+        reader_view(rw_lock_implementation &theLock)
             : theLock(theLock)
         {
         }
@@ -278,10 +282,10 @@ public:
     };
     class writer_view final
     {
-        friend class rw_lock;
+        friend class rw_lock_implementation;
     private:
-        rw_lock &theLock;
-        writer_view(rw_lock &theLock)
+        rw_lock_implementation &theLock;
+        writer_view(rw_lock_implementation &theLock)
             : theLock(theLock)
         {
         }
@@ -309,13 +313,14 @@ public:
     }
 };
 
-typedef rw_lock<true> rw_spinlock;
-typedef rw_lock<false> rw_blocking_lock;
-typedef rw_blocking_lock rw_lock;
+typedef rw_lock_implementation<true> rw_spinlock;
+typedef rw_lock_implementation<false> rw_lock;
 #if 1 // change when spinlock is checked
 typedef rw_blocking_lock rw_fast_lock;
 #else
 typedef rw_spinlock rw_fast_lock;
 #endif
+}
+}
 
 #endif // RW_LOCK_H_INCLUDED

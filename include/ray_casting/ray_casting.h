@@ -8,8 +8,10 @@
 #include <algorithm>
 #include <tuple>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class World;
 class Entity;
 
@@ -32,7 +34,7 @@ struct Ray final
     {
         return startPosition + t * direction;
     }
-    float collideWithPlane(pair<VectorF, float> planeEquation) const
+    float collideWithPlane(std::pair<VectorF, float> planeEquation) const
     {
         float divisor = dot(std::get<0>(planeEquation), direction);
         if(divisor == 0)
@@ -43,7 +45,7 @@ struct Ray final
     }
     float collideWithPlane(VectorF normal, float d) const
     {
-        return collideWithPlane(pair<VectorF, float>(normal, d));
+        return collideWithPlane(std::pair<VectorF, float>(normal, d));
     }
 private:
     template <char ignoreAxis>
@@ -60,47 +62,47 @@ public:
     {
         return isPointInAABoxIgnoreAxis<' '>(minCorner, maxCorner, pos);
     }
-    tuple<bool, float, BlockFace> getAABoxEnterFace(VectorF minCorner, VectorF maxCorner) const
+    std::tuple<bool, float, BlockFace> getAABoxEnterFace(VectorF minCorner, VectorF maxCorner) const
     {
         float minCornerX = collideWithPlane(VectorF(-1, 0, 0), minCorner.x);
         float maxCornerX = collideWithPlane(VectorF(-1, 0, 0), maxCorner.x);
-        float xt = min(minCornerX, maxCornerX);
+        float xt = std::min(minCornerX, maxCornerX);
         BlockFace xbf = minCornerX < maxCornerX ? BlockFace::NX : BlockFace::PX;
         float minCornerY = collideWithPlane(VectorF(0, -1, 0), minCorner.y);
         float maxCornerY = collideWithPlane(VectorF(0, -1, 0), maxCorner.y);
-        float yt = min(minCornerY, maxCornerY);
+        float yt = std::min(minCornerY, maxCornerY);
         BlockFace ybf = minCornerY < maxCornerY ? BlockFace::NY : BlockFace::PY;
         float minCornerZ = collideWithPlane(VectorF(0, 0, -1), minCorner.z);
         float maxCornerZ = collideWithPlane(VectorF(0, 0, -1), maxCorner.z);
-        float zt = min(minCornerZ, maxCornerZ);
+        float zt = std::min(minCornerZ, maxCornerZ);
         BlockFace zbf = minCornerZ < maxCornerZ ? BlockFace::NZ : BlockFace::PZ;
         if(xt > yt && xt > zt)
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
         else if(yt > zt)
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
         else
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
     }
-    tuple<bool, float, BlockFace> getAABoxExitFace(VectorF minCorner, VectorF maxCorner) const
+    std::tuple<bool, float, BlockFace> getAABoxExitFace(VectorF minCorner, VectorF maxCorner) const
     {
         float minCornerX = collideWithPlane(VectorF(-1, 0, 0), minCorner.x);
         float maxCornerX = collideWithPlane(VectorF(-1, 0, 0), maxCorner.x);
-        float xt = max(minCornerX, maxCornerX);
+        float xt = std::max(minCornerX, maxCornerX);
         BlockFace xbf = minCornerX > maxCornerX ? BlockFace::NX : BlockFace::PX;
         float minCornerY = collideWithPlane(VectorF(0, -1, 0), minCorner.y);
         float maxCornerY = collideWithPlane(VectorF(0, -1, 0), maxCorner.y);
-        float yt = max(minCornerY, maxCornerY);
+        float yt = std::max(minCornerY, maxCornerY);
         BlockFace ybf = minCornerY > maxCornerY ? BlockFace::NY : BlockFace::PY;
         float minCornerZ = collideWithPlane(VectorF(0, 0, -1), minCorner.z);
         float maxCornerZ = collideWithPlane(VectorF(0, 0, -1), maxCorner.z);
-        float zt = max(minCornerZ, maxCornerZ);
+        float zt = std::max(minCornerZ, maxCornerZ);
         BlockFace zbf = minCornerZ > maxCornerZ ? BlockFace::NZ : BlockFace::PZ;
         if(xt < yt && xt < zt)
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
         else if(yt < zt)
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
         else
-            return tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
+            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
     }
     friend Ray transform(Matrix tform, Ray r);
 };
@@ -169,6 +171,8 @@ struct Collision final
         return !(r < *this);
     }
 };
+}
+}
 }
 
 #endif // RAY_CASTING_H_INCLUDED

@@ -27,8 +27,10 @@
 #include <cassert>
 #include <tuple>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class BlockIterator final
 {
     friend class World;
@@ -37,7 +39,7 @@ public:
     typedef BlockChunk<BlockType> ChunkType;
 private:
     ChunkType *chunk;
-    unordered_map<PositionI, ChunkType> *chunks;
+    std::unordered_map<PositionI, ChunkType> *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk()
@@ -45,16 +47,16 @@ private:
         auto iter = chunks->find(currentBasePosition);
         if(iter == chunks->end())
         {
-            iter = std::get<0>(chunks->insert(pair<PositionI, ChunkType>(currentBasePosition, ChunkType(currentBasePosition))));
+            iter = std::get<0>(chunks->insert(std::pair<PositionI, ChunkType>(currentBasePosition, ChunkType(currentBasePosition))));
         }
         chunk = &std::get<1>(*iter);
     }
-    BlockIterator(ChunkType *chunk, unordered_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
+    BlockIterator(ChunkType *chunk, std::unordered_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
     }
 public:
-    BlockIterator(unordered_map<PositionI, ChunkType> *chunks, PositionI position)
+    BlockIterator(std::unordered_map<PositionI, ChunkType> *chunks, PositionI position)
         : chunks(chunks), currentBasePosition(ChunkType::getChunkBasePosition(position)), currentRelativePosition(ChunkType::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
@@ -215,5 +217,7 @@ public:
         return &chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
     }
 };
+}
+}
 
 #endif // BLOCK_ITERATOR_H_INCLUDED

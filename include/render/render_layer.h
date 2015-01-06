@@ -21,13 +21,17 @@
 #include <cstdint>
 #include "util/enum_traits.h"
 
-using namespace std;
-
-enum class RenderLayer : uint8_t
+namespace programmerjake
+{
+namespace voxels
+{
+enum class RenderLayer : std::uint8_t
 {
     Opaque,
     Translucent,
     DEFINE_ENUM_LIMITS(Opaque, Translucent)
 };
+}
+}
 
 #endif // RENDER_LAYER_H_INCLUDED

@@ -1,6 +1,10 @@
 #ifndef CPU_RELAX_H_INCLUDED
 #define CPU_RELAX_H_INCLUDED
 
+namespace programmerjake
+{
+namespace voxels
+{
 #if defined(__i386__) || defined(__x86_64__)
 #if defined(__GNUC__)
 inline void cpu_relax()
@@ -23,5 +27,7 @@ inline void cpu_relax()
 {
 }
 #endif
+}
+}
 
 #endif // CPU_RELAX_H_INCLUDED

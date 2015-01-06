@@ -29,13 +29,15 @@
 #include "stream/stream.h"
 #include "util/variable_set.h"
 
-using namespace std;
-
-class ImageLoadError final : public runtime_error
+namespace programmerjake
+{
+namespace voxels
+{
+class ImageLoadError final : public std::runtime_error
 {
 public:
-    explicit ImageLoadError(const string &arg)
-        : runtime_error(arg)
+    explicit ImageLoadError(const std::string &arg)
+        : std::runtime_error(arg)
     {
     }
 };
@@ -43,14 +45,14 @@ public:
 class Image final
 {
 public:
-    explicit Image(wstring resourceName);
+    explicit Image(std::wstring resourceName);
     explicit Image(unsigned w, unsigned h);
     explicit Image(ColorI c);
-    constexpr Image()
+    Image() noexcept
         : data(nullptr)
     {
     }
-    constexpr Image(nullptr_t)
+    Image(std::nullptr_t) noexcept
         : Image()
     {
     }
@@ -109,24 +111,24 @@ private:
     };
     struct data_t
     {
-        uint8_t * const data;
+        std::uint8_t * const data;
         const unsigned w, h;
         RowOrder rowOrder;
-        uint32_t texture;
+        std::uint32_t texture;
         bool textureValid;
-        mutex lock;
-        data_t(uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
+        std::mutex lock;
+        data_t(std::uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
             : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false)
         {
         }
-        data_t(uint8_t * data, shared_ptr<data_t> rt)
+        data_t(std::uint8_t * data, std::shared_ptr<data_t> rt)
             : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false)
         {
         }
         ~data_t();
     };
-    shared_ptr<data_t> data;
-    static constexpr size_t BytesPerPixel = 4;
+    std::shared_ptr<data_t> data;
+    static constexpr std::size_t BytesPerPixel = 4;
     void setRowOrder(RowOrder newRowOrder) const;
     void swapRows(unsigned y1, unsigned y2) const;
     void copyOnWrite();
@@ -147,6 +149,8 @@ struct rw_cached_helper<Image>
         value.write(writer, variableSet);
     }
 };
+}
+}
 }
 
 #endif // IMAGE_H

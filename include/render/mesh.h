@@ -29,48 +29,50 @@
 #include <utility>
 #include <memory>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 struct Mesh;
 
 struct TransformedMesh
 {
     Matrix tform;
-    shared_ptr<Mesh> mesh;
-    TransformedMesh(Matrix tform, shared_ptr<Mesh> mesh)
+    std::shared_ptr<Mesh> mesh;
+    TransformedMesh(Matrix tform, std::shared_ptr<Mesh> mesh)
         : tform(tform), mesh(mesh)
     {
         assert(mesh != nullptr);
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
 };
 
 struct ColorizedMesh
 {
     ColorF color;
-    shared_ptr<Mesh> mesh;
-    ColorizedMesh(ColorF color, shared_ptr<Mesh> mesh)
+    std::shared_ptr<Mesh> mesh;
+    ColorizedMesh(ColorF color, std::shared_ptr<Mesh> mesh)
         : color(color), mesh(mesh)
     {
         assert(mesh != nullptr);
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
 };
 
 struct ColorizedTransformedMesh
 {
     ColorF color;
     Matrix tform;
-    shared_ptr<Mesh> mesh;
-    ColorizedTransformedMesh(ColorF color, Matrix tform, shared_ptr<Mesh> mesh)
+    std::shared_ptr<Mesh> mesh;
+    ColorizedTransformedMesh(ColorF color, Matrix tform, std::shared_ptr<Mesh> mesh)
         : color(color), tform(tform), mesh(mesh)
     {
         assert(mesh != nullptr);
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
 };
 
 struct TransformedMeshRef
@@ -82,7 +84,7 @@ struct TransformedMeshRef
     {
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
     operator TransformedMesh() const;
 };
 
@@ -95,7 +97,7 @@ struct ColorizedMeshRef
     {
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
     operator ColorizedMesh() const;
 };
 
@@ -109,23 +111,63 @@ struct ColorizedTransformedMeshRef
     {
     }
     operator Mesh() const;
-    operator shared_ptr<Mesh>() const;
+    operator std::shared_ptr<Mesh>() const;
     operator ColorizedTransformedMesh() const;
+};
+
+struct TransformedMeshRRef
+{
+    Matrix tform;
+    Mesh &mesh;
+    TransformedMeshRRef(Matrix tform, Mesh &&mesh)
+        : tform(tform), mesh(mesh)
+    {
+    }
+    operator Mesh() &&;
+    operator std::shared_ptr<Mesh>() &&;
+    operator TransformedMesh() &&;
+};
+
+struct ColorizedMeshRRef
+{
+    ColorF color;
+    Mesh &mesh;
+    ColorizedMeshRRef(ColorF color, Mesh &&mesh)
+        : color(color), mesh(mesh)
+    {
+    }
+    operator Mesh() &&;
+    operator std::shared_ptr<Mesh>() &&;
+    operator ColorizedMesh() &&;
+};
+
+struct ColorizedTransformedMeshRRef
+{
+    ColorF color;
+    Matrix tform;
+    Mesh &mesh;
+    ColorizedTransformedMeshRRef(ColorF color, Matrix tform, Mesh &&mesh)
+        : color(color), tform(tform), mesh(mesh)
+    {
+    }
+    operator Mesh() &&;
+    operator std::shared_ptr<Mesh>() &&;
+    operator ColorizedTransformedMesh() &&;
 };
 
 struct Mesh
 {
-    vector<Triangle> triangles;
+    std::vector<Triangle> triangles;
     Image image;
-    size_t size() const
+    std::size_t size() const
     {
         return triangles.size();
     }
-    Mesh(vector<Triangle> triangles = vector<Triangle>(), Image image = nullptr)
+    Mesh(std::vector<Triangle> triangles = std::vector<Triangle>(), Image image = nullptr)
         : triangles(std::move(triangles)), image(image)
     {
     }
-    explicit Mesh(shared_ptr<Mesh> rt)
+    explicit Mesh(std::shared_ptr<Mesh> rt)
         : Mesh(*rt)
     {
     }
@@ -156,6 +198,33 @@ struct Mesh
             return colorize(color, transform(tform, t));
         });
     }
+    Mesh(Mesh &&rt, Matrix tform)
+        : image(std::move(rt.image))
+    {
+        triangles = std::move(rt.triangles);
+        for(Triangle &t : triangles)
+        {
+            t = transform(tform, t);
+        }
+    }
+    Mesh(Mesh &&rt, ColorF color)
+        : image(std::move(rt.image))
+    {
+        triangles = std::move(rt.triangles);
+        for(Triangle &t : triangles)
+        {
+            t = colorize(color, t);
+        }
+    }
+    Mesh(Mesh &&rt, ColorF color, Matrix tform)
+        : image(std::move(rt.image))
+    {
+        triangles = std::move(rt.triangles);
+        for(Triangle &t : triangles)
+        {
+            t = colorize(color, transform(tform, t));
+        }
+    }
     Mesh(TransformedMesh mesh)
         : Mesh(*mesh.mesh, mesh.tform)
     {
@@ -178,6 +247,18 @@ struct Mesh
     }
     Mesh(ColorizedTransformedMeshRef mesh)
         : Mesh(mesh.mesh, mesh.color, mesh.tform)
+    {
+    }
+    Mesh(TransformedMeshRRef &&mesh)
+        : Mesh(std::move(mesh.mesh), mesh.tform)
+    {
+    }
+    Mesh(ColorizedMeshRRef &&mesh)
+        : Mesh(std::move(mesh.mesh), mesh.color)
+    {
+    }
+    Mesh(ColorizedTransformedMeshRRef &&mesh)
+        : Mesh(std::move(mesh.mesh), mesh.color, mesh.tform)
     {
     }
     void append(const Mesh & rt)
@@ -220,7 +301,7 @@ struct Mesh
             return colorize(color, transform(tform, t));
         });
     }
-    void append(shared_ptr<Mesh> rt)
+    void append(std::shared_ptr<Mesh> rt)
     {
         append(*rt);
     }
@@ -252,28 +333,40 @@ struct Mesh
     {
         append(mesh.mesh, mesh.color, mesh.tform);
     }
+    void append(TransformedMeshRRef &&mesh)
+    {
+        append(mesh.mesh, mesh.tform);
+    }
+    void append(ColorizedMeshRRef &&mesh)
+    {
+        append(mesh.mesh, mesh.color);
+    }
+    void append(ColorizedTransformedMeshRRef &&mesh)
+    {
+        append(mesh.mesh, mesh.color, mesh.tform);
+    }
     void clear()
     {
         triangles.clear();
         image = nullptr;
     }
-    static shared_ptr<Mesh> read(stream::Reader &reader, VariableSet &variableSet)
+    static std::shared_ptr<Mesh> read(stream::Reader &reader, VariableSet &variableSet)
     {
-        uint32_t triangleCount = stream::read<uint32_t>(reader);
-        vector<Triangle> triangles;
+        std::uint32_t triangleCount = stream::read<std::uint32_t>(reader);
+        std::vector<Triangle> triangles;
         triangles.reserve(triangleCount);
-        for(uint32_t i = 0; i < triangleCount; i++)
+        for(std::uint32_t i = 0; i < triangleCount; i++)
         {
             triangles.push_back((Triangle)stream::read<Triangle>(reader));
         }
         Image image = stream::read<Image>(reader, variableSet);
-        return make_shared<Mesh>(triangles, image);
+        return std::make_shared<Mesh>(triangles, image);
     }
     void write(stream::Writer &writer, VariableSet &variableSet) const
     {
-        uint32_t triangleCount = triangles.size();
+        std::uint32_t triangleCount = triangles.size();
         assert(triangleCount == triangles.size());
-        stream::write<uint32_t>(writer, triangleCount);
+        stream::write<std::uint32_t>(writer, triangleCount);
         for(Triangle tri : triangles)
         {
             stream::write<Triangle>(writer, tri);
@@ -287,9 +380,9 @@ inline TransformedMesh::operator Mesh() const
     return Mesh(*this);
 }
 
-inline TransformedMesh::operator shared_ptr<Mesh>() const
+inline TransformedMesh::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
 
 inline ColorizedMesh::operator Mesh() const
@@ -297,9 +390,9 @@ inline ColorizedMesh::operator Mesh() const
     return Mesh(*this);
 }
 
-inline ColorizedMesh::operator shared_ptr<Mesh>() const
+inline ColorizedMesh::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
 
 inline ColorizedTransformedMesh::operator Mesh() const
@@ -307,24 +400,25 @@ inline ColorizedTransformedMesh::operator Mesh() const
     return Mesh(*this);
 }
 
-inline ColorizedTransformedMesh::operator shared_ptr<Mesh>() const
+inline ColorizedTransformedMesh::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
+
 
 inline TransformedMeshRef::operator Mesh() const
 {
     return Mesh(*this);
 }
 
-inline TransformedMeshRef::operator shared_ptr<Mesh>() const
+inline TransformedMeshRef::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
 
 inline TransformedMeshRef::operator TransformedMesh() const
 {
-    return TransformedMesh(tform, shared_ptr<Mesh>(new Mesh(mesh)));
+    return TransformedMesh(tform, std::shared_ptr<Mesh>(new Mesh(mesh)));
 }
 
 inline ColorizedMeshRef::operator Mesh() const
@@ -332,14 +426,14 @@ inline ColorizedMeshRef::operator Mesh() const
     return Mesh(*this);
 }
 
-inline ColorizedMeshRef::operator shared_ptr<Mesh>() const
+inline ColorizedMeshRef::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
 
 inline ColorizedMeshRef::operator ColorizedMesh() const
 {
-    return ColorizedMesh(color, shared_ptr<Mesh>(new Mesh(mesh)));
+    return ColorizedMesh(color, std::shared_ptr<Mesh>(new Mesh(mesh)));
 }
 
 inline ColorizedTransformedMeshRef::operator Mesh() const
@@ -347,22 +441,74 @@ inline ColorizedTransformedMeshRef::operator Mesh() const
     return Mesh(*this);
 }
 
-inline ColorizedTransformedMeshRef::operator shared_ptr<Mesh>() const
+inline ColorizedTransformedMeshRef::operator std::shared_ptr<Mesh>() const
 {
-    return shared_ptr<Mesh>(new Mesh(*this));
+    return std::shared_ptr<Mesh>(new Mesh(*this));
 }
 
 inline ColorizedTransformedMeshRef::operator ColorizedTransformedMesh() const
 {
-    return ColorizedTransformedMesh(color, tform, shared_ptr<Mesh>(new Mesh(mesh)));
+    return ColorizedTransformedMesh(color, tform, std::shared_ptr<Mesh>(new Mesh(mesh)));
 }
+
+
+inline TransformedMeshRRef::operator Mesh() &&
+{
+    return Mesh(std::move(*this));
+}
+
+inline TransformedMeshRRef::operator std::shared_ptr<Mesh>() &&
+{
+    return std::shared_ptr<Mesh>(new Mesh(std::move(*this)));
+}
+
+inline TransformedMeshRRef::operator TransformedMesh() &&
+{
+    return TransformedMesh(tform, std::shared_ptr<Mesh>(new Mesh(std::move(mesh))));
+}
+
+inline ColorizedMeshRRef::operator Mesh() &&
+{
+    return Mesh(std::move(*this));
+}
+
+inline ColorizedMeshRRef::operator std::shared_ptr<Mesh>() &&
+{
+    return std::shared_ptr<Mesh>(new Mesh(std::move(*this)));
+}
+
+inline ColorizedMeshRRef::operator ColorizedMesh() &&
+{
+    return ColorizedMesh(color, std::shared_ptr<Mesh>(new Mesh(std::move(mesh))));
+}
+
+inline ColorizedTransformedMeshRRef::operator Mesh() &&
+{
+    return Mesh(std::move(*this));
+}
+
+inline ColorizedTransformedMeshRRef::operator std::shared_ptr<Mesh>() &&
+{
+    return std::shared_ptr<Mesh>(new Mesh(std::move(*this)));
+}
+
+inline ColorizedTransformedMeshRRef::operator ColorizedTransformedMesh() &&
+{
+    return ColorizedTransformedMesh(color, tform, std::shared_ptr<Mesh>(new Mesh(std::move(mesh))));
+}
+
 
 inline TransformedMeshRef transform(Matrix tform, const Mesh &mesh)
 {
     return TransformedMeshRef(tform, mesh);
 }
 
-inline TransformedMesh transform(Matrix tform, shared_ptr<Mesh> mesh)
+inline TransformedMeshRRef transform(Matrix tform, Mesh &&mesh)
+{
+    return TransformedMeshRRef(tform, std::move(mesh));
+}
+
+inline TransformedMesh transform(Matrix tform, std::shared_ptr<Mesh> mesh)
 {
     assert(mesh != nullptr);
     return TransformedMesh(tform, mesh);
@@ -378,6 +524,11 @@ inline TransformedMeshRef transform(Matrix tform, const TransformedMeshRef &mesh
     return TransformedMeshRef(transform(tform, mesh.tform), mesh.mesh);
 }
 
+inline TransformedMeshRRef transform(Matrix tform, TransformedMeshRRef &&mesh)
+{
+    return TransformedMeshRRef(transform(tform, mesh.tform), std::move(mesh.mesh));
+}
+
 inline ColorizedTransformedMesh transform(Matrix tform, ColorizedMesh mesh)
 {
     return ColorizedTransformedMesh(mesh.color, tform, mesh.mesh);
@@ -386,6 +537,11 @@ inline ColorizedTransformedMesh transform(Matrix tform, ColorizedMesh mesh)
 inline ColorizedTransformedMeshRef transform(Matrix tform, const ColorizedMeshRef &mesh)
 {
     return ColorizedTransformedMeshRef(mesh.color, tform, mesh.mesh);
+}
+
+inline ColorizedTransformedMeshRRef transform(Matrix tform, ColorizedMeshRRef &&mesh)
+{
+    return ColorizedTransformedMeshRRef(mesh.color, tform, std::move(mesh.mesh));
 }
 
 inline ColorizedTransformedMesh transform(Matrix tform, ColorizedTransformedMesh mesh)
@@ -398,12 +554,22 @@ inline ColorizedTransformedMeshRef transform(Matrix tform, const ColorizedTransf
     return ColorizedTransformedMeshRef(mesh.color, transform(tform, mesh.tform), mesh.mesh);
 }
 
+inline ColorizedTransformedMeshRRef transform(Matrix tform, ColorizedTransformedMeshRRef &&mesh)
+{
+    return ColorizedTransformedMeshRRef(mesh.color, transform(tform, mesh.tform), std::move(mesh.mesh));
+}
+
 inline ColorizedMeshRef colorize(ColorF color, const Mesh &mesh)
 {
     return ColorizedMeshRef(color, mesh);
 }
 
-inline ColorizedMesh colorize(ColorF color, shared_ptr<Mesh> mesh)
+inline ColorizedMeshRRef colorize(ColorF color, Mesh &&mesh)
+{
+    return ColorizedMeshRRef(color, std::move(mesh));
+}
+
+inline ColorizedMesh colorize(ColorF color, std::shared_ptr<Mesh> mesh)
 {
     assert(mesh != nullptr);
     return ColorizedMesh(color, mesh);
@@ -419,6 +585,11 @@ inline ColorizedMeshRef colorize(ColorF color, const ColorizedMeshRef &mesh)
     return ColorizedMeshRef(colorize(color, mesh.color), mesh.mesh);
 }
 
+inline ColorizedMeshRRef colorize(ColorF color, ColorizedMeshRRef &&mesh)
+{
+    return ColorizedMeshRRef(colorize(color, mesh.color), std::move(mesh.mesh));
+}
+
 inline ColorizedTransformedMesh colorize(ColorF color, TransformedMesh mesh)
 {
     return ColorizedTransformedMesh(color, mesh.tform, mesh.mesh);
@@ -429,6 +600,11 @@ inline ColorizedTransformedMeshRef colorize(ColorF color, const TransformedMeshR
     return ColorizedTransformedMeshRef(color, mesh.tform, mesh.mesh);
 }
 
+inline ColorizedTransformedMeshRRef colorize(ColorF color, TransformedMeshRRef &&mesh)
+{
+    return ColorizedTransformedMeshRRef(color, mesh.tform, std::move(mesh.mesh));
+}
+
 inline ColorizedTransformedMesh colorize(ColorF color, ColorizedTransformedMesh mesh)
 {
     return ColorizedTransformedMesh(colorize(color, mesh.color), mesh.tform, mesh.mesh);
@@ -437,6 +613,13 @@ inline ColorizedTransformedMesh colorize(ColorF color, ColorizedTransformedMesh 
 inline ColorizedTransformedMeshRef colorize(ColorF color, const ColorizedTransformedMeshRef &mesh)
 {
     return ColorizedTransformedMeshRef(colorize(color, mesh.color), mesh.tform, mesh.mesh);
+}
+
+inline ColorizedTransformedMeshRRef colorize(ColorF color, ColorizedTransformedMeshRRef &&mesh)
+{
+    return ColorizedTransformedMeshRRef(colorize(color, mesh.color), mesh.tform, std::move(mesh.mesh));
+}
+}
 }
 
 #endif // MESH_H_INCLUDED

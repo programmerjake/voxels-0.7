@@ -11,8 +11,10 @@
 #include <array>
 #include <tuple>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 struct WorldLightingProperties final
 {
     float skyBrightness = 1, minBrightness = 0;
@@ -31,7 +33,7 @@ struct WorldLightingProperties final
 
 struct Lighting final
 {
-    typedef uint_fast8_t LightValueType;
+    typedef std::uint_fast8_t LightValueType;
     static constexpr LightValueType maxLight = 0xF;
     static constexpr float toFloat(LightValueType v)
     {
@@ -150,7 +152,7 @@ struct LightProperties final
 
 struct BlockLighting final
 {
-    array<array<array<float, 2>, 2>, 2> lightValues;
+    std::array<std::array<std::array<float, 2>, 2>, 2> lightValues;
     constexpr ColorF eval(VectorF relativePosition) const
     {
         return GrayscaleF(interpolate(relativePosition.x,
@@ -170,7 +172,7 @@ struct BlockLighting final
                                                           lightValues[1][1][1]))));
     }
 private:
-    float evalVertex(const array<array<array<float, 3>, 3>, 3> &blockValues, VectorI offset)
+    float evalVertex(const std::array<std::array<std::array<float, 3>, 3>, 3> &blockValues, VectorI offset)
     {
         float retval = 0;
         for(int dx = 0; dx < 2; dx++)
@@ -180,7 +182,7 @@ private:
                 for(int dz = 0; dz < 2; dz++)
                 {
                     VectorI pos = offset + VectorI(dx, dy, dz);
-                    retval = max<float>(retval, blockValues[pos.x][pos.y][pos.z]);
+                    retval = std::max<float>(retval, blockValues[pos.x][pos.y][pos.z]);
                 }
             }
         }
@@ -191,7 +193,7 @@ public:
         : lightValues{0, 0, 0, 0, 0, 0, 0, 0}
     {
     }
-    BlockLighting(array<array<array<pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
+    BlockLighting(std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
     {
         for(int dx : {-1, 1})
         {
@@ -247,7 +249,7 @@ public:
                 }
             }
         }
-        array<array<array<float, 3>, 3>, 3> blockValues;
+        std::array<std::array<std::array<float, 3>, 3>, 3> blockValues;
         for(size_t x = 0; x < blockValues.size(); x++)
         {
             for(size_t y = 0; y < blockValues[x].size(); y++)
@@ -288,5 +290,7 @@ public:
         return colorize(scaleF(eval(relativePosition), getNormalFactor(normal)), vertexColor);
     }
 };
+}
+}
 
 #endif // LIGHTING_H_INCLUDED

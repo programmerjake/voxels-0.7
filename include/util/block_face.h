@@ -5,8 +5,10 @@
 #include "util/vector.h"
 #include <cassert>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 enum class BlockFace
 {
     NX,
@@ -77,6 +79,8 @@ inline BlockFace getOppositeBlockFace(BlockFace f)
     }
     assert(false);
     return BlockFace::NX;
+}
+}
 }
 
 #endif // BLOCK_FACE_H_INCLUDED

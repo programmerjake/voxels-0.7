@@ -7,6 +7,10 @@
 #include <stdexcept>
 #include <cstddef>
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename Key, typename T, typename Hash = std::hash<Key>, typename Pred = std::equal_to<Key>>
 class linked_map
 {
@@ -20,8 +24,8 @@ public:
     typedef const value_type &const_reference;
     typedef value_type *pointer;
     typedef const value_type *const_pointer;
-    typedef size_t size_type;
-    typedef ptrdiff_t difference_type;
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
 private:
     struct Node
     {
@@ -29,34 +33,34 @@ private:
         Node *hash_next;
         Node *list_next;
         Node *list_prev;
-        const size_t cachedHash;
-        Node(const key_type &key, const mapped_type &value, size_t cachedHash)
+        const size_type cachedHash;
+        Node(const key_type &key, const mapped_type &value, size_type cachedHash)
             : value(key, value), cachedHash(cachedHash)
         {
         }
-        Node(const key_type &key, size_t cachedHash)
+        Node(const key_type &key, size_type cachedHash)
             : value(key, mapped_type()), cachedHash(cachedHash)
         {
         }
-        Node(const value_type &kv_pair, size_t cachedHash)
+        Node(const value_type &kv_pair, size_type cachedHash)
             : value(kv_pair), cachedHash(cachedHash)
         {
         }
-        Node(const key_type &key, mapped_type &&value, size_t cachedHash)
+        Node(const key_type &key, mapped_type &&value, size_type cachedHash)
             : value(key, std::move(value)), cachedHash(cachedHash)
         {
         }
     };
 
-    size_t bucket_count_;
-    size_t node_count = 0;
+    size_type bucket_count_;
+    size_type node_count = 0;
     mutable Node **buckets = nullptr;
     Node *list_head = nullptr;
     Node *list_tail = nullptr;
     hasher the_hasher;
     key_equal the_comparer;
 
-    static bool is_prime(size_t v)
+    static bool is_prime(size_type v)
     {
         if(v < 2)
             return false;
@@ -66,14 +70,14 @@ private:
             return false;
         if(v < 17 * 17) // if sqrt(v) < 17 then v is a prime cuz we checked all smaller primes
             return true;
-        for(size_t divisor = 17; divisor * divisor <= v; divisor += 2)
+        for(size_type divisor = 17; divisor * divisor <= v; divisor += 2)
         {
             if(v % divisor == 0)
                 return false;
         }
         return true;
     }
-    static size_t prime_ceiling(size_t v)
+    static size_type prime_ceiling(size_type v)
     {
         if(is_prime(v))
             return v;
@@ -95,27 +99,27 @@ private:
         if(buckets != nullptr)
             return;
         buckets = new Node *[bucket_count_];
-        for(size_t i = 0; i < bucket_count_; i++)
+        for(size_type i = 0; i < bucket_count_; i++)
             buckets[i] = nullptr;
         for(Node *node = list_head; node != nullptr; node = node->list_next)
         {
-            size_t current_hash = node->cachedHash % bucket_count_;
+            size_type current_hash = node->cachedHash % bucket_count_;
             node->hash_next = buckets[current_hash];
             buckets[current_hash] = node;
         }
     }
 public:
-    constexpr size_t bucket_count() const
+    constexpr size_type bucket_count() const
     {
         return bucket_count_;
     }
-    constexpr size_t size() const
+    constexpr size_type size() const
     {
         return node_count;
     }
-    void rehash(size_t new_bucket_count = 0)
+    void rehash(size_type new_bucket_count = 0)
     {
-        size_t min_bucket_count = node_count / 4;
+        size_type min_bucket_count = node_count / 4;
         if(min_bucket_count < 32)
             min_bucket_count = 32;
         if(new_bucket_count < min_bucket_count)
@@ -124,13 +128,13 @@ public:
         if(new_bucket_count == bucket_count_)
             return;
         Node **new_hash_table = new Node *[new_bucket_count];
-        for(size_t i = 0; i < new_bucket_count; i++)
+        for(size_type i = 0; i < new_bucket_count; i++)
         {
             new_hash_table[i] = nullptr;
         }
         for(Node *node = list_head; node != nullptr; node = node->list_next)
         {
-            size_t current_hash = node->cachedHash % new_bucket_count;
+            size_type current_hash = node->cachedHash % new_bucket_count;
             node->hash_next = new_hash_table[current_hash];
             new_hash_table[current_hash] = node;
         }
@@ -238,7 +242,7 @@ public:
         {
         }
     };
-    explicit linked_map(size_t n, const hasher &hf = hasher(), const key_equal &eql = key_equal())
+    explicit linked_map(size_type n, const hasher &hf = hasher(), const key_equal &eql = key_equal())
         : bucket_count_(prime_ceiling(n)), the_hasher(hf), the_comparer(eql)
     {
     }
@@ -250,7 +254,7 @@ public:
         : bucket_count_(r.bucket_count_), node_count(r.node_count), buckets(nullptr), list_head(nullptr), list_tail(nullptr), the_hasher(r.the_hasher), the_comparer(r.the_comparer)
     {
         buckets = new Node *[bucket_count_];
-        for(size_t i = 0; i < bucket_count_; i++)
+        for(size_type i = 0; i < bucket_count_; i++)
             buckets[i] = nullptr;
         for(const Node *node = r.list_head; node != nullptr; node = node->list_next)
         {
@@ -262,7 +266,7 @@ public:
             else
                 list_tail->list_next = new_node;
             list_tail = new_node;
-            size_t current_hash = new_node->cachedHash % bucket_count_;
+            size_type current_hash = new_node->cachedHash % bucket_count_;
             new_node->hash_next = buckets[current_hash];
             buckets[current_hash] = new_node;
         }
@@ -305,7 +309,7 @@ public:
         bucket_count_ = r.bucket_count_;
         node_count = r.node_count;
         buckets = new Node *[bucket_count_];
-        for(size_t i = 0; i < bucket_count_; i++)
+        for(size_type i = 0; i < bucket_count_; i++)
             buckets[i] = nullptr;
         for(const Node *node = r.list_head; node != nullptr; node = node->list_next)
         {
@@ -317,7 +321,7 @@ public:
             else
                 list_tail->list_next = new_node;
             list_tail = new_node;
-            size_t current_hash = new_node->cachedHash % bucket_count_;
+            size_type current_hash = new_node->cachedHash % bucket_count_;
             new_node->hash_next = buckets[current_hash];
             buckets[current_hash] = new_node;
         }
@@ -367,7 +371,7 @@ public:
     iterator find(const key_type &key)
     {
         create_buckets();
-        size_t current_hash = (size_t)the_hasher(key) % bucket_count_;
+        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -381,8 +385,8 @@ public:
     {
         const key_type &key = std::get<0>(kv_pair);
         create_buckets();
-        size_t key_hash = (size_t)the_hasher(key);
-        size_t current_hash = key_hash % bucket_count_;
+        size_type key_hash = (size_type)the_hasher(key);
+        size_type current_hash = key_hash % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -406,7 +410,7 @@ public:
     const_iterator find(const key_type &key) const
     {
         create_buckets();
-        size_t current_hash = (size_t)the_hasher(key) % bucket_count_;
+        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -419,8 +423,8 @@ public:
     mapped_type &operator [](const key_type &key)
     {
         create_buckets();
-        size_t key_hash = (size_t)the_hasher(key);
-        size_t current_hash = key_hash % bucket_count_;
+        size_type key_hash = (size_type)the_hasher(key);
+        size_type current_hash = key_hash % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -444,8 +448,8 @@ public:
     mapped_type &at(const key_type &key)
     {
         create_buckets();
-        size_t key_hash = (size_t)the_hasher(key);
-        size_t current_hash = key_hash % bucket_count_;
+        size_type key_hash = (size_type)the_hasher(key);
+        size_type current_hash = key_hash % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -458,8 +462,8 @@ public:
     const mapped_type &at(const key_type &key) const
     {
         create_buckets();
-        size_t key_hash = (size_t)the_hasher(key);
-        size_t current_hash = key_hash % bucket_count_;
+        size_type key_hash = (size_type)the_hasher(key);
+        size_type current_hash = key_hash % bucket_count_;
         for(Node *retval = buckets[current_hash];retval != nullptr;retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -469,10 +473,10 @@ public:
         }
         throw std::out_of_range("key doesn't exist in linked_map<KeyType, ValueType>::at(const KeyType&) const");
     }
-    size_t erase(const key_type &key)
+    size_type erase(const key_type &key)
     {
         create_buckets();
-        size_t current_hash = (size_t)the_hasher(key) % bucket_count_;
+        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
         Node **pnode = &buckets[current_hash];
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
         {
@@ -502,7 +506,7 @@ public:
         iterator retval = iterator(node->list_next, this);
         if(buckets != nullptr)
         {
-            size_t current_hash = node->cachedHash % bucket_count_;
+            size_type current_hash = node->cachedHash % bucket_count_;
             for(Node **pnode = &buckets[current_hash]; *pnode != nullptr; pnode = &(*pnode)->hash_next)
             {
                 if(*pnode == node)
@@ -524,16 +528,18 @@ public:
         node_count--;
         return retval;
     }
-    size_t count(const key_type &key) const
+    size_type count(const key_type &key) const
     {
         return find(key) != end() ? 1 : 0;
     }
-    void reserve(size_t n)
+    void reserve(size_type n)
     {
         if(n <= node_count)
             return;
         rehash(n / 4);
     }
 };
+}
+}
 
 #endif // LINKED_MAP_H_INCLUDED

@@ -43,7 +43,7 @@ struct PositionI : public VectorI
         : VectorI(x, y, z), d(d)
     {
     }
-    constexpr PositionI(VectorF p, Dimension d)
+    PositionI(VectorF p, Dimension d)
         : VectorI(p), d(d)
     {
     }
@@ -157,21 +157,28 @@ struct PositionI : public VectorI
     friend constexpr PositionF operator *(const VectorF &a, const PositionI &b);
     friend constexpr PositionF operator *(const PositionI &a, const VectorF &b);
 };
+}
+}
 
-namespace ::std
+namespace std
 {
 template <>
-struct hash<PositionI>
+struct hash<programmerjake::voxels::PositionI>
 {
-    constexpr size_t operator ()(const PositionI & v) const
+    constexpr std::size_t operator ()(const programmerjake::voxels::PositionI & v) const
     {
-        return (size_t)v.x + (size_t)v.y * 97 + (size_t)v.z * 8191 + (size_t)v.d * 65537;
+        return (std::size_t)v.x + (std::size_t)v.y * 97 + (std::size_t)v.z * 8191 + (std::size_t)v.d * 65537;
     }
 };
 }
 
-struct PositionF : public VectorF
+namespace programmerjake
 {
+namespace voxels
+{
+class PositionF : public VectorF
+{
+public:
     Dimension d;
     constexpr PositionF()
         : d(Dimension::Overworld)
@@ -193,13 +200,9 @@ struct PositionF : public VectorF
         : VectorF(p.x, p.y, p.z), d(d)
     {
     }
-    explicit constexpr operator PositionI() const
+    explicit operator PositionI() const
     {
         return PositionI(VectorF(x, y, z), d);
-    }
-    explicit constexpr operator VectorF() const
-    {
-        return VectorF(x, y, z);
     }
     friend constexpr bool operator ==(const PositionF & a, const PositionI & b)
     {
@@ -429,7 +432,7 @@ struct UpdateList // in here because of include issues : should be in util.h
     std::list<PositionI> updatesList;
     void add(PositionI pos)
     {
-        if(get<1>(updatesSet.insert(pos)))
+        if(std::get<1>(updatesSet.insert(pos)))
         {
             updatesList.push_back(pos);
         }

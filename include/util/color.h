@@ -23,30 +23,32 @@
 #include "util/util.h"
 #include "stream/stream.h"
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 struct ColorI final
 {
-    uint8_t b, g, r, a;
+    std::uint8_t b, g, r, a;
     friend constexpr ColorI RGBAI(int r, int g, int b, int a);
     friend struct ColorF;
 private:
-    constexpr ColorI(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+    constexpr ColorI(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
         : b(b), g(g), r(r), a(a)
     {
     }
     union ConvertWithUInt32
     {
-        uint32_t v;
+        std::uint32_t v;
         struct
         {
-            uint8_t b, g, r, a;
+            std::uint8_t b, g, r, a;
         };
-        constexpr ConvertWithUInt32(uint32_t v)
+        constexpr ConvertWithUInt32(std::uint32_t v)
             : v(v)
         {
         }
-        constexpr ConvertWithUInt32(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+        constexpr ConvertWithUInt32(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
             : b(b), g(g), r(r), a(a)
         {
         }
@@ -56,36 +58,36 @@ public:
         : b(0), g(0), r(0), a(0)
     {
     }
-    explicit constexpr ColorI(uint32_t v)
+    explicit constexpr ColorI(std::uint32_t v)
         : b(ConvertWithUInt32(v).b), g(ConvertWithUInt32(v).g), r(ConvertWithUInt32(v).r), a(ConvertWithUInt32(v).a)
     {
 
     }
-    explicit constexpr operator uint32_t() const
+    explicit constexpr operator std::uint32_t() const
     {
         return ConvertWithUInt32(r, g, b, a).v;
     }
     static ColorI read(stream::Reader &reader);
     void write(stream::Writer &writer) const
     {
-        stream::write<uint8_t>(writer, b);
-        stream::write<uint8_t>(writer, g);
-        stream::write<uint8_t>(writer, r);
-        stream::write<uint8_t>(writer, a);
+        stream::write<std::uint8_t>(writer, b);
+        stream::write<std::uint8_t>(writer, g);
+        stream::write<std::uint8_t>(writer, r);
+        stream::write<std::uint8_t>(writer, a);
     }
 };
 
 constexpr ColorI RGBAI(int r, int g, int b, int a)
 {
-    return ColorI((uint8_t)limit<int>(r, 0, 0xFF), (uint8_t)limit<int>(g, 0, 0xFF), (uint8_t)limit<int>(b, 0, 0xFF), (uint8_t)limit<int>(a, 0, 0xFF));
+    return ColorI((std::uint8_t)limit<int>(r, 0, 0xFF), (std::uint8_t)limit<int>(g, 0, 0xFF), (std::uint8_t)limit<int>(b, 0, 0xFF), (std::uint8_t)limit<int>(a, 0, 0xFF));
 }
 
 inline ColorI ColorI::read(stream::Reader &reader)
 {
-    uint8_t b = stream::read<uint8_t>(reader);
-    uint8_t g = stream::read<uint8_t>(reader);
-    uint8_t r = stream::read<uint8_t>(reader);
-    uint8_t a = stream::read<uint8_t>(reader);
+    std::uint8_t b = stream::read<std::uint8_t>(reader);
+    std::uint8_t g = stream::read<std::uint8_t>(reader);
+    std::uint8_t r = stream::read<std::uint8_t>(reader);
+    std::uint8_t a = stream::read<std::uint8_t>(reader);
     return RGBAI(r, g, b, a);
 }
 
@@ -141,7 +143,7 @@ public:
     {
         return ColorI((int)limit<float>(r * 0xFF, 0, 0xFF), (int)limit<float>(g * 0xFF, 0, 0xFF), (int)limit<float>(b * 0xFF, 0, 0xFF), (int)limit<float>(a * 0xFF, 0, 0xFF));
     }
-    friend ostream & operator <<(ostream & os, const ColorF & c)
+    friend std::ostream & operator <<(std::ostream & os, const ColorF & c)
     {
         return os << "RGBA(" << c.r << ", " << c.g << ", " << c.b << ", " << c.a << ")";
     }
@@ -209,6 +211,8 @@ template <>
 constexpr ColorF interpolate<ColorF>(const float t, const ColorF a, const ColorF b)
 {
     return RGBAF(interpolate(t, a.r, b.r), interpolate(t, a.g, b.g), interpolate(t, a.b, b.b), interpolate(t, a.a, b.a));
+}
+}
 }
 
 #endif // COLOR_H_INCLUDED
