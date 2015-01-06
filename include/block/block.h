@@ -251,7 +251,7 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
     return BlockLighting(blocks, wlp);
 }
 
-namespace std
+namespace ::std
 {
 template <>
 struct hash<Block> final

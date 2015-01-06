@@ -22,6 +22,10 @@
 #include "stream/stream.h"
 #include <cmath>
 
+namespace programmerjake
+{
+namespace voxels
+{
 struct Matrix
 {
     union
@@ -60,12 +64,12 @@ struct Matrix
         this->x[x][y] = value;
     }
 
-    float(& operator [](size_t index))[4]
+    float(& operator [](std::size_t index))[4]
     {
         return x[index];
     }
 
-    constexpr const float(& operator [](size_t index) const)[4]
+    constexpr const float(& operator [](std::size_t index) const)[4]
     {
         return x[index];
     }
@@ -116,8 +120,8 @@ struct Matrix
     {
         VectorF axisv = normalize(axis);
         float c, s, v;
-        c = cos(angle);
-        s = sin(angle);
+        c = std::cos(angle);
+        s = std::sin(angle);
         v = 1 - c; // Versine
         float xx, xy, xz, yy, yz, zz;
         xx = axisv.x * axisv.x;
@@ -264,7 +268,7 @@ struct Matrix
 
         if(det == 0.0f)
         {
-            throw domain_error("can't invert singular matrix");
+            throw std::domain_error("can't invert singular matrix");
         }
 
         float factor = 1.0f / det;
@@ -431,6 +435,8 @@ inline bool operator !=(const Matrix &a, const Matrix &b)
     }
 
     return false;
+}
+}
 }
 
 #endif // MATRIX_H

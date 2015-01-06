@@ -3,13 +3,17 @@
 
 #include <iterator>
 
-template <typename T, size_t arraySize>
+namespace programmerjake
+{
+namespace voxels
+{
+template <typename T, std::size_t arraySize>
 class circularDeque final
 {
 public:
     typedef T value_type;
-    typedef size_t size_type;
-    typedef ptrdiff_t difference_type;
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
     typedef T &reference;
     typedef const T &const_reference;
     typedef T *pointer;
@@ -29,8 +33,8 @@ public:
         friend class const_iterator;
     private:
         circularDeque *container;
-        size_t index;
-        iterator(circularDeque *container, size_t index)
+        std::size_t index;
+        iterator(circularDeque *container, std::size_t index)
             : container(container), index(index)
         {
         }
@@ -201,8 +205,8 @@ public:
         friend class circularDeque;
     private:
         const circularDeque *container;
-        size_t index;
-        const_iterator(const circularDeque *container, size_t index)
+        std::size_t index;
+        const_iterator(const circularDeque *container, std::size_t index)
             : container(container), index(index)
         {
         }
@@ -253,24 +257,24 @@ public:
             assert(container == r.container && container != nullptr);
             difference_type loc = index + arraySize - container->frontIndex;
 
-            if((size_t)loc >= arraySize)
+            if((std::size_t)loc >= arraySize)
             {
                 loc -= arraySize;
             }
 
-            if((size_t)loc >= arraySize)
+            if((std::size_t)loc >= arraySize)
             {
                 loc -= arraySize;
             }
 
             difference_type rloc = r.index + arraySize - container->frontIndex;
 
-            if((size_t)rloc >= arraySize)
+            if((std::size_t)rloc >= arraySize)
             {
                 rloc -= arraySize;
             }
 
-            if((size_t)rloc >= arraySize)
+            if((std::size_t)rloc >= arraySize)
             {
                 rloc -= arraySize;
             }
@@ -469,7 +473,7 @@ public:
     {
         if(pos >= size())
         {
-            throw out_of_range("position out of range in circularDeque::at");
+            throw std::out_of_range("position out of range in circularDeque::at");
         }
 
         return begin()[pos];
@@ -479,7 +483,7 @@ public:
     {
         if(pos >= size())
         {
-            throw out_of_range("position out of range in circularDeque::at");
+            throw std::out_of_range("position out of range in circularDeque::at");
         }
 
         return cbegin()[pos];
@@ -572,5 +576,7 @@ public:
         other = std::move(temp);
     }
 };
+}
+}
 
 #endif // CIRCULAR_DEQUE_H_INCLUDED

@@ -24,8 +24,10 @@
 #include <string>
 #include <cassert>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 const float eps = 1e-4;
 
 template <typename T>
@@ -43,7 +45,7 @@ struct constexpr_assert_failure final
     }
 };
 
-#define constexpr_assert(v) (void)((v) ? 0 : throw constexpr_assert_failure([](){assert(! #v);}))
+#define constexpr_assert(v) (void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(! #v);}))
 
 template <typename T>
 constexpr T ensureInRange(const T v, const T minV, const T maxV)
@@ -51,12 +53,12 @@ constexpr T ensureInRange(const T v, const T minV, const T maxV)
     return (constexpr_assert(!(v < minV) && !(maxV < v)), v);
 }
 
-constexpr int ifloor(float v)
+int ifloor(float v)
 {
     return floor(v);
 }
 
-constexpr int iceil(float v)
+int iceil(float v)
 {
     return ceil(v);
 }
@@ -111,5 +113,7 @@ public:
         finalizeFn();
     }
 };
+}
+}
 
 #endif // UTIL_H

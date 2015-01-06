@@ -26,8 +26,10 @@
 #include <vector>
 #include <list>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class PositionF;
 
 struct PositionI : public VectorI
@@ -37,7 +39,7 @@ struct PositionI : public VectorI
         : d(Dimension::Overworld)
     {
     }
-    constexpr PositionI(int32_t x, int32_t y, int32_t z, Dimension d)
+    constexpr PositionI(std::int32_t x, std::int32_t y, std::int32_t z, Dimension d)
         : VectorI(x, y, z), d(d)
     {
     }
@@ -97,11 +99,11 @@ struct PositionI : public VectorI
     {
         return PositionI(a * (VectorI)b, b.d);
     }
-    friend constexpr PositionI operator *(PositionI a, int32_t b)
+    friend constexpr PositionI operator *(PositionI a, std::int32_t b)
     {
         return PositionI((VectorI)a * b, a.d);
     }
-    friend constexpr PositionI operator *(int32_t a, PositionI b)
+    friend constexpr PositionI operator *(std::int32_t a, PositionI b)
     {
         return PositionI(a * (VectorI)b, b.d);
     }
@@ -124,7 +126,7 @@ struct PositionI : public VectorI
         *(VectorI *)this *= rt;
         return *this;
     }
-    const PositionI & operator *=(int32_t rt)
+    const PositionI & operator *=(std::int32_t rt)
     {
         *(VectorI *)this *= rt;
         return *this;
@@ -156,7 +158,7 @@ struct PositionI : public VectorI
     friend constexpr PositionF operator *(const PositionI &a, const VectorF &b);
 };
 
-namespace std
+namespace ::std
 {
 template <>
 struct hash<PositionI>
@@ -423,8 +425,8 @@ inline PositionF transform(const Matrix &tform, PositionF p)
 
 struct UpdateList // in here because of include issues : should be in util.h
 {
-    unordered_set<PositionI> updatesSet;
-    list<PositionI> updatesList;
+    std::unordered_set<PositionI> updatesSet;
+    std::list<PositionI> updatesList;
     void add(PositionI pos)
     {
         if(get<1>(updatesSet.insert(pos)))
@@ -465,5 +467,7 @@ struct UpdateList // in here because of include issues : should be in util.h
         return updatesList.empty();
     }
 };
+}
+}
 
 #endif // POSITION_H_INCLUDED

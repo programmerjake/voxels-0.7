@@ -26,19 +26,21 @@
 #include <ostream>
 #include <cstdint>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 struct VectorF;
 
 struct VectorI
 {
-    int32_t x, y, z;
-    constexpr VectorI(int32_t x, int32_t y, int32_t z)
+    std::int32_t x, y, z;
+    constexpr VectorI(std::int32_t x, std::int32_t y, std::int32_t z)
         : x(x), y(y), z(z)
     {
     }
 public:
-    constexpr VectorI(int32_t v = 0)
+    constexpr VectorI(std::int32_t v = 0)
         : x(v), y(v), z(v)
     {
     }
@@ -68,12 +70,12 @@ public:
         return VectorI(x * r.x, y * r.y, z * r.z);
     }
 
-    constexpr const VectorI operator *(int32_t r) const
+    constexpr const VectorI operator *(std::int32_t r) const
     {
         return VectorI(x * r, y * r, z * r);
     }
 
-    friend constexpr VectorI operator *(int32_t a, const VectorI & b)
+    friend constexpr VectorI operator *(std::int32_t a, const VectorI & b)
     {
         return VectorI(a * b.x, a * b.y, a * b.z);
     }
@@ -109,7 +111,7 @@ public:
         z *= r.z;
         return *this;
     }
-    const VectorI & operator *=(int32_t r)
+    const VectorI & operator *=(std::int32_t r)
     {
         x *= r;
         y *= r;
@@ -117,19 +119,19 @@ public:
         return *this;
     }
 
-    friend constexpr int dot(const VectorI & a, const VectorI & b)
+    friend constexpr std::int32_t dot(const VectorI & a, const VectorI & b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    friend constexpr int absSquared(const VectorI & v)
+    friend constexpr std::int32_t absSquared(const VectorI & v)
     {
         return dot(v, v);
     }
 
     friend float abs(const VectorI & v)
     {
-        return sqrt(absSquared(v));
+        return std::sqrt(absSquared(v));
     }
 
     friend constexpr VectorI cross(const VectorI & a, const VectorI & b)
@@ -137,24 +139,24 @@ public:
         return VectorI(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
-    friend ostream & operator <<(ostream & os, const VectorI & v)
+    friend std::ostream & operator <<(std::ostream & os, const VectorI & v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
 
     static VectorI read(stream::Reader &reader)
     {
-        int32_t x = stream::read<int32_t>(reader);
-        int32_t y = stream::read<int32_t>(reader);
-        int32_t z = stream::read<int32_t>(reader);
+        std::int32_t x = stream::read<std::int32_t>(reader);
+        std::int32_t y = stream::read<std::int32_t>(reader);
+        std::int32_t z = stream::read<std::int32_t>(reader);
         return VectorI(x, y, z);
     }
 
     void write(stream::Writer &writer) const
     {
-        stream::write<int32_t>(writer, x);
-        stream::write<int32_t>(writer, y);
-        stream::write<int32_t>(writer, z);
+        stream::write<std::int32_t>(writer, x);
+        stream::write<std::int32_t>(writer, y);
+        stream::write<std::int32_t>(writer, z);
     }
 };
 
@@ -177,7 +179,7 @@ struct VectorF
     {
     }
 
-    explicit constexpr operator VectorI() const
+    explicit operator VectorI() const
     {
         return VectorI(ifloor(x), ifloor(y), ifloor(z));
     }
@@ -332,7 +334,7 @@ struct VectorF
 
     friend constexpr float abs(const VectorF & v)
     {
-        return sqrt(absSquared(v));
+        return std::sqrt(absSquared(v));
     }
 
 private:
@@ -352,7 +354,7 @@ public:
         float r = abs(v);
         if(v == 0)
         {
-            throw domain_error("can't normalize <0, 0, 0>");
+            throw std::domain_error("can't normalize <0, 0, 0>");
         }
         return v / r;
     }
@@ -363,7 +365,7 @@ public:
         float r = abs(v);
         if(v == 0)
         {
-            throw domain_error("can't normalize <0, 0, 0>");
+            throw std::domain_error("can't normalize <0, 0, 0>");
         }
         return v / r;
     }
@@ -377,12 +379,12 @@ public:
         }
         float v = y / r;
         v = limit(v, -1.0f, 1.0f);
-        return asin(v);
+        return std::asin(v);
     }
 
     float theta() const
     {
-        return atan2(x, z);
+        return std::atan2(x, z);
     }
 
     float rSpherical() const
@@ -401,15 +403,15 @@ public:
         VectorF retval;
         do
         {
-            retval.x = uniform_real_distribution<float>(-1, 1)(re);
-            retval.y = uniform_real_distribution<float>(-1, 1)(re);
-            retval.z = uniform_real_distribution<float>(-1, 1)(re);
+            retval.x = std::uniform_real_distribution<float>(-1, 1)(re);
+            retval.y = std::uniform_real_distribution<float>(-1, 1)(re);
+            retval.z = std::uniform_real_distribution<float>(-1, 1)(re);
         }
         while(absSquared(retval) > 1 || absSquared(retval) < eps);
         return retval;
     }
 
-    friend ostream & operator <<(ostream & os, const VectorF & v)
+    friend std::ostream & operator <<(std::ostream & os, const VectorF & v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
@@ -461,5 +463,7 @@ constexpr VectorF normalizeNoThrow(const VectorI & v)
 }
 
 constexpr VectorF gravityVector = VectorF(0, -9.8, 0);
+}
+}
 
 #endif // VECTOR_H

@@ -7,7 +7,7 @@ inline void cpu_relax()
 {
     __builtin_ia32_pause();
 }
-#elif
+#elif 1 // add checks for more compilers
 #include <xmmintrin.h>
 inline void cpu_relax()
 {

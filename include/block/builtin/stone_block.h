@@ -3,6 +3,10 @@
 
 #include "block/builtin/full_block.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Blocks
 {
 namespace builtin
@@ -15,6 +19,8 @@ protected:
     {
     }
 };
+}
+}
 }
 }
 

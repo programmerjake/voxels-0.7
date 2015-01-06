@@ -20,13 +20,13 @@
 
 #include <cstdint>
 #include <cassert>
-#include <ostream>
-#include <cwchar>
 #include "util/enum_traits.h"
 
-using namespace std;
-
-enum class Dimension : uint8_t
+namespace programmerjake
+{
+namespace voxels
+{
+enum class Dimension : std::uint8_t
 {
     Overworld,
     DEFINE_ENUM_LIMITS(Overworld, Overworld)
@@ -40,6 +40,8 @@ inline float getZeroBrightnessLevel(Dimension d)
         return 0;
     }
     assert(false);
+}
+}
 }
 
 #endif // DIMENSION_H_INCLUDED

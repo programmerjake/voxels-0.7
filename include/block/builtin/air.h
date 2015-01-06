@@ -4,6 +4,10 @@
 #include "block/block.h"
 #include "util/global_instance_maker.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Blocks
 {
 namespace builtin
@@ -22,6 +26,8 @@ private:
     {
     }
 };
+}
+}
 }
 }
 

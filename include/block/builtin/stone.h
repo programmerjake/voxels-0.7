@@ -5,6 +5,10 @@
 #include "util/global_instance_maker.h"
 #include "texture/texture_atlas.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Blocks
 {
 namespace builtin
@@ -23,6 +27,8 @@ private:
     {
     }
 };
+}
+}
 }
 }
 

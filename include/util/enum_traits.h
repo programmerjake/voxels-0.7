@@ -6,8 +6,10 @@
 #include <type_traits>
 #include <cassert>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 struct enum_traits;
 
@@ -26,56 +28,56 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
     {
         return value;
     }
-    friend constexpr enum_iterator<T> operator +(ptrdiff_t a, T b)
+    friend constexpr enum_iterator<T> operator +(std::ptrdiff_t a, T b)
     {
-        return enum_iterator<T>((T)(a + (ptrdiff_t)b));
+        return enum_iterator<T>((T)(a + (std::ptrdiff_t)b));
     }
-    constexpr enum_iterator<T> operator +(ptrdiff_t b) const
+    constexpr enum_iterator<T> operator +(std::ptrdiff_t b) const
     {
-        return enum_iterator<T>((T)((ptrdiff_t)value + b));
+        return enum_iterator<T>((T)((std::ptrdiff_t)value + b));
     }
-    constexpr enum_iterator<T> operator -(ptrdiff_t b) const
+    constexpr enum_iterator<T> operator -(std::ptrdiff_t b) const
     {
-        return enum_iterator<T>((T)((ptrdiff_t)value - b));
+        return enum_iterator<T>((T)((std::ptrdiff_t)value - b));
     }
-    constexpr ptrdiff_t operator -(enum_iterator b) const
+    constexpr std::ptrdiff_t operator -(enum_iterator b) const
     {
-        return (ptrdiff_t)value - (ptrdiff_t)b.value;
+        return (std::ptrdiff_t)value - (std::ptrdiff_t)b.value;
     }
-    constexpr const T operator [](ptrdiff_t b) const
+    constexpr const T operator [](std::ptrdiff_t b) const
     {
-        return (T)((ptrdiff_t)value + b);
+        return (T)((std::ptrdiff_t)value + b);
     }
-    const enum_iterator & operator +=(ptrdiff_t b)
+    const enum_iterator & operator +=(std::ptrdiff_t b)
     {
-        value = (T)((ptrdiff_t)value + b);
+        value = (T)((std::ptrdiff_t)value + b);
         return *this;
     }
-    const enum_iterator & operator -=(ptrdiff_t b)
+    const enum_iterator & operator -=(std::ptrdiff_t b)
     {
-        value = (T)((ptrdiff_t)value - b);
+        value = (T)((std::ptrdiff_t)value - b);
         return *this;
     }
     const enum_iterator & operator ++()
     {
-        value = (T)((ptrdiff_t)value + 1);
+        value = (T)((std::ptrdiff_t)value + 1);
         return *this;
     }
     const enum_iterator & operator --()
     {
-        value = (T)((ptrdiff_t)value - 1);
+        value = (T)((std::ptrdiff_t)value - 1);
         return *this;
     }
     enum_iterator operator ++(int)
     {
         T retval = value;
-        value = (T)((ptrdiff_t)value + 1);
+        value = (T)((std::ptrdiff_t)value + 1);
         return enum_iterator(retval);
     }
     enum_iterator operator --(int)
     {
         T retval = value;
-        value = (T)((ptrdiff_t)value - 1);
+        value = (T)((std::ptrdiff_t)value - 1);
         return enum_iterator(retval);
     }
     constexpr bool operator ==(enum_iterator b) const
@@ -119,7 +121,7 @@ struct enum_traits_default
     {
         return enum_iterator<T>(maximum) + 1;
     }
-    static constexpr size_t size()
+    static constexpr std::size_t size()
     {
         return end() - begin();
     }
@@ -162,7 +164,7 @@ struct enum_array
         assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
-    static constexpr size_t size()
+    static constexpr std::size_t size()
     {
         return enum_traits<index_type>::size();
     }
@@ -199,5 +201,7 @@ struct enum_array
         return v;
     }
 };
+}
+}
 
 #endif // ENUM_TRAITS_H_INCLUDED

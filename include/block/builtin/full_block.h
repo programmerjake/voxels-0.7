@@ -5,6 +5,10 @@
 #include "render/generate.h"
 #include "texture/texture_descriptor.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Blocks
 {
 namespace builtin
@@ -63,6 +67,8 @@ public:
         return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position());
     }
 };
+}
+}
 }
 }
 

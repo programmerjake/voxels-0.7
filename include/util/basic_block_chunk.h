@@ -1,30 +1,28 @@
-#ifndef BLOCK_CHUNK_H_INCLUDED
-#define BLOCK_CHUNK_H_INCLUDED
+#ifndef BASIC_BLOCK_CHUNK_H_INCLUDED
+#define BASIC_BLOCK_CHUNK_H_INCLUDED
 
 #include "util/position.h"
-#include "stream/stream.h"
-#include "util/variable_set.h"
-#include "stream/compressed_stream.h"
-#include "util/basic_block_chunk.h"
 #include <array>
 
-using namespace std;
-
-template <typename BT, typename SCT, typename CVT, size_t ChunkShiftXV = 4, size_t ChunkShiftYV = 8, size_t ChunkShiftZV = 4, size_t SubchunkShiftXYZV = 2, bool TransmitCompressedV = true>
+namespace programmerjake
+{
+namespace voxels
+{
+template <typename BT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 2>
 struct BasicBlockChunk
 {
     typedef BT BlockType;
     typedef SCT SubchunkType;
     typedef CVT ChunkVariablesType;
     const PositionI basePosition;
-    static constexpr size_t chunkShiftX = ChunkShiftXV;
-    static constexpr size_t chunkShiftY = ChunkShiftYV;
-    static constexpr size_t chunkShiftZ = ChunkShiftZV;
-    static constexpr size_t subchunkShiftXYZ = SubchunkShiftXYZV;
-    static constexpr int32_t chunkSizeX = (int32_t)1 << chunkShiftX;
-    static constexpr int32_t chunkSizeY = (int32_t)1 << chunkShiftY;
-    static constexpr int32_t chunkSizeZ = (int32_t)1 << chunkShiftZ;
-    static constexpr int32_t subchunkSizeXYZ = (int32_t)1 << subchunkShiftXYZ;
+    static constexpr std::size_t chunkShiftX = ChunkShiftXV;
+    static constexpr std::size_t chunkShiftY = ChunkShiftYV;
+    static constexpr std::size_t chunkShiftZ = ChunkShiftZV;
+    static constexpr std::size_t subchunkShiftXYZ = SubchunkShiftXYZV;
+    static constexpr std::int32_t chunkSizeX = (std::int32_t)1 << chunkShiftX;
+    static constexpr std::int32_t chunkSizeY = (std::int32_t)1 << chunkShiftY;
+    static constexpr std::int32_t chunkSizeZ = (std::int32_t)1 << chunkShiftZ;
+    static constexpr std::int32_t subchunkSizeXYZ = (std::int32_t)1 << subchunkShiftXYZ;
     static_assert(chunkSizeX > 0, "chunkSizeX must be positive");
     static_assert(chunkSizeY > 0, "chunkSizeY must be positive");
     static_assert(chunkSizeZ > 0, "chunkSizeZ must be positive");
@@ -54,7 +52,7 @@ struct BasicBlockChunk
     {
         return VectorI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
     }
-    static constexpr int32_t getSubchunkBaseAbsolutePosition(int32_t v)
+    static constexpr std::int32_t getSubchunkBaseAbsolutePosition(std::int32_t v)
     {
         return v & ~(subchunkSizeXYZ - 1);
     }
@@ -82,7 +80,7 @@ struct BasicBlockChunk
     {
         return PositionI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)), pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)), pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)), pos.d);
     }
-    static constexpr int32_t getSubchunkRelativePosition(int32_t v)
+    static constexpr std::int32_t getSubchunkRelativePosition(std::int32_t v)
     {
         return v & (subchunkSizeXYZ - 1);
     }
@@ -94,27 +92,11 @@ struct BasicBlockChunk
     {
         return PositionI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z), pos.d);
     }
-    array<array<array<BlockType, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
-    array<array<array<SubchunkType, subchunkSizeXYZ>, subchunkSizeXYZ>, subchunkSizeXYZ> subchunks;
+    std::array<std::array<std::array<BlockType, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
+    std::array<std::array<std::array<SubchunkType, subchunkSizeXYZ>, subchunkSizeXYZ>, subchunkSizeXYZ> subchunks;
     ChunkVariablesType chunkVariables;
-    BasicBlockChunk(const BasicBlockChunk & rt)
-        : basePosition(rt.basePosition), blocks(rt.blocks), subchunks(rt.subchunks), chunkVariables(chunkVariables)
-    {
-    }
-};
-
-namespace stream
-{
-template <typename T, size_t ChunkSizeXV, size_t ChunkSizeYV, size_t ChunkSizeZV, bool TransmitCompressedV>
-struct is_value_changed<BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, TransmitCompressedV>>
-{
-    bool operator ()(std::shared_ptr<const BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, TransmitCompressedV>> value, VariableSet &variableSet) const
-    {
-        if(value == nullptr)
-            return false;
-        return value->changeTracker.getChanged(variableSet);
-    }
 };
 }
+}
 
-#endif // BLOCK_CHUNK_H_INCLUDED
+#endif // BASIC_BLOCK_CHUNK_H_INCLUDED

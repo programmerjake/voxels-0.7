@@ -8,17 +8,19 @@
 #include <tuple>
 #include "stream/stream.h"
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class VariableSet final
 {
 private:
     class VariableDescriptorBase
     {
     protected:
-        static uint64_t makeIndex()
+        static std::uint64_t makeIndex()
         {
-            static atomic_uint_fast64_t nextIndex(0);
+            static std::atomic_uint_fast64_t nextIndex(0);
             return ++nextIndex;
         }
     };
@@ -31,26 +33,26 @@ private:
     template <typename T>
     struct Variable : public VariableBase
     {
-        shared_ptr<T> ptr;
-        Variable(shared_ptr<T> ptr)
+        std::shared_ptr<T> ptr;
+        Variable(std::shared_ptr<T> ptr)
             : ptr(ptr)
         {
         }
     };
-    unordered_map<size_t, shared_ptr<VariableBase>> variables;
-    unordered_map<const void *, pair<size_t, weak_ptr<void>>> reverseMap;
+    std::unordered_map<std::size_t, std::shared_ptr<VariableBase>> variables;
+    std::unordered_map<const void *, std::pair<size_t, std::weak_ptr<void>>> reverseMap;
 public:
     template <typename T>
     class Descriptor final : public VariableDescriptorBase
     {
         friend class VariableSet;
     private:
-        uint64_t descriptorIndex;
-        shared_ptr<T> & unwrap(shared_ptr<VariableBase> ptr) const
+        std::uint64_t descriptorIndex;
+        std::shared_ptr<T> & unwrap(std::shared_ptr<VariableBase> ptr) const
         {
-            return dynamic_pointer_cast<Variable<T>>(ptr)->ptr;
+            return std::dynamic_pointer_cast<Variable<T>>(ptr)->ptr;
         }
-        Descriptor(uint64_t descriptorIndex)
+        Descriptor(std::uint64_t descriptorIndex)
             : descriptorIndex(descriptorIndex)
         {
         }
@@ -80,11 +82,11 @@ public:
             return Descriptor(0);
         }
     };
-    recursive_mutex theLock;
+    std::recursive_mutex theLock;
     template <typename T>
-    shared_ptr<T> get(const Descriptor<T> & descriptor)
+    std::shared_ptr<T> get(const Descriptor<T> & descriptor)
     {
-        lock_guard<recursive_mutex> lockIt(theLock);
+        std::lock_guard<std::recursive_mutex> lockIt(theLock);
         auto iter = variables.find(descriptor.descriptorIndex);
         if(iter == variables.end())
             return nullptr;
@@ -93,9 +95,9 @@ public:
         return descriptor.unwrap(std::get<1>(*iter));
     }
     template <typename T>
-    bool set(const Descriptor<T> & descriptor, shared_ptr<T> value)
+    bool set(const Descriptor<T> & descriptor, std::shared_ptr<T> value)
     {
-        lock_guard<recursive_mutex> lockIt(theLock);
+        std::lock_guard<std::recursive_mutex> lockIt(theLock);
         reverseMap.erase(static_cast<const void *>(get<T>(descriptor).get()));
         if(value == nullptr)
         {
@@ -103,22 +105,22 @@ public:
         }
         else
         {
-            shared_ptr<VariableBase> & variable = variables[descriptor.descriptorIndex];
+            std::shared_ptr<VariableBase> & variable = variables[descriptor.descriptorIndex];
             bool retval = true;
             if(variable == nullptr)
             {
-                variable = shared_ptr<VariableBase>(new Variable<T>(value));
+                variable = std::shared_ptr<VariableBase>(new Variable<T>(value));
                 retval = false;
             }
             descriptor.unwrap(variable) = value;
-            reverseMap[static_cast<const void *>(value.get())] = make_pair(descriptor.descriptorIndex, weak_ptr<void>(static_pointer_cast<void>(value)));
+            reverseMap[static_cast<const void *>(value.get())] = std::make_pair(descriptor.descriptorIndex, std::weak_ptr<void>(std::static_pointer_cast<void>(value)));
             return retval;
         }
     }
     template <typename T>
-    Descriptor<T> find(shared_ptr<T> value)
+    Descriptor<T> find(std::shared_ptr<T> value)
     {
-        lock_guard<recursive_mutex> lockIt(theLock);
+        std::lock_guard<std::recursive_mutex> lockIt(theLock);
         auto iter = reverseMap.find(static_cast<const void *>(value.get()));
         if(iter == reverseMap.end())
             return Descriptor<T>::null();
@@ -130,25 +132,25 @@ public:
         return Descriptor<T>(std::get<0>(std::get<1>(*iter)));
     }
     template <typename T>
-    pair<Descriptor<T>, bool> findOrMake(shared_ptr<T> value)
+    std::pair<Descriptor<T>, bool> findOrMake(std::shared_ptr<T> value)
     {
-        lock_guard<recursive_mutex> lockIt(theLock);
+        std::lock_guard<std::recursive_mutex> lockIt(theLock);
         auto iter = reverseMap.find(static_cast<const void *>(value.get()));
         if(iter == reverseMap.end())
         {
             Descriptor<T> descriptor;
-            return make_pair(descriptor, set<T>(descriptor, value));
+            return std::make_pair(descriptor, set<T>(descriptor, value));
         }
         std::get<1>(std::get<1>(*iter)) = value;
-        return make_pair(Descriptor<T>(std::get<0>(std::get<1>(*iter))), true);
+        return std::make_pair(Descriptor<T>(std::get<0>(std::get<1>(*iter))), true);
     }
     template <typename T>
-    shared_ptr<T> read_helper(stream::Reader &reader)
+    std::shared_ptr<T> read_helper(stream::Reader &reader)
     {
         Descriptor<T> descriptor = stream::read<Descriptor<T>>(reader);
         if(!descriptor)
             return nullptr;
-        shared_ptr<T> retval = get(descriptor);
+        std::shared_ptr<T> retval = get(descriptor);
         bool changed = stream::read<bool>(reader);
         if(retval != nullptr && !changed)
             return retval;
@@ -157,14 +159,14 @@ public:
         return retval;
     }
     template <typename T>
-    void write_helper(stream::Writer &writer, shared_ptr<T> value, bool changed)
+    void write_helper(stream::Writer &writer, std::shared_ptr<T> value, bool changed)
     {
         if(value == nullptr)
         {
             stream::write<Descriptor<T>>(writer, Descriptor<T>::null());
             return;
         }
-        pair<Descriptor<T>, bool> findOrMakeReturnValue = findOrMake<T>(value);
+        std::pair<Descriptor<T>, bool> findOrMakeReturnValue = findOrMake<T>(value);
         stream::write<Descriptor<T>>(writer, std::get<0>(findOrMakeReturnValue));
         stream::write<bool>(writer, changed || !std::get<1>(findOrMakeReturnValue));
         if(std::get<1>(findOrMakeReturnValue) && !changed)
@@ -177,7 +179,7 @@ public:
 
 class ChangeTracker
 {
-    typedef uint_fast32_t ChangeCountType;
+    typedef std::uint_fast32_t ChangeCountType;
     std::atomic<ChangeCountType> currentChangeCount;
     std::atomic_bool changedFlag;
     struct ChangeCountWrapper
@@ -201,7 +203,7 @@ public:
             currentChangeCount++;
             return true;
         }
-        shared_ptr<ChangeCountWrapper> pChangeCount = variableSet.get(changeCountDescriptor);
+        std::shared_ptr<ChangeCountWrapper> pChangeCount = variableSet.get(changeCountDescriptor);
         if(pChangeCount == nullptr)
             return true;
         if(pChangeCount->changeCount < currentChangeCount)
@@ -210,7 +212,7 @@ public:
     }
     void onWrite(VariableSet &variableSet)
     {
-        shared_ptr<ChangeCountWrapper> pChangeCount = shared_ptr<ChangeCountWrapper>(new ChangeCountWrapper);
+        std::shared_ptr<ChangeCountWrapper> pChangeCount = std::shared_ptr<ChangeCountWrapper>(new ChangeCountWrapper);
         pChangeCount->changeCount = currentChangeCount;
         variableSet.set(changeCountDescriptor, pChangeCount);
     }
@@ -231,6 +233,8 @@ struct rw_cached_helper<T, typename std::enable_if<rw_class_traits_helper_has_re
         return variableSet.write_helper<T>(writer, value, is_value_changed<T>()(value, variableSet));
     }
 };
+}
+}
 }
 
 #endif // VARIABLE_SET_H_INCLUDED
