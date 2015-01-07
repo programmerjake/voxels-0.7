@@ -21,14 +21,13 @@
 #include <cwchar>
 #include <string>
 #include <cstdint>
-using namespace std;
 
 namespace GameVersion
 {
-    extern const wstring VERSION;
-    extern const uint32_t FILE_VERSION;
-    constexpr uint32_t NETWORK_VERSION = 0;
-    constexpr uint16_t port = 12345;
+    extern const std::wstring VERSION;
+    extern const std::uint32_t FILE_VERSION;
+    constexpr std::uint32_t NETWORK_VERSION = 0;
+    constexpr std::uint16_t port = 12345;
 #ifdef DEBUG_VERSION
     const bool DEBUG = true;
 #else

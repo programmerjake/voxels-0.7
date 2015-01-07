@@ -3,6 +3,10 @@
 
 #include <mutex>
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 class unlock_guard
 {
@@ -30,5 +34,7 @@ public:
             plock->lock();
     }
 };
+}
+}
 
 #endif // UNLOCK_GUARD_H_INCLUDED

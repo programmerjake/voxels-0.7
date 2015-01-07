@@ -5,6 +5,10 @@
 #include "util/global_instance_maker.h"
 #include "texture/texture_atlas.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Entities
 {
 namespace builtin
@@ -25,6 +29,8 @@ public:
         return global_instance_maker<Stone>::getInstance();
     }
 };
+}
+}
 }
 }
 }

@@ -3,6 +3,10 @@
 
 #include <iterator>
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 struct default_comparer final
 {
@@ -935,5 +939,7 @@ public:
         return iterator(lastNode);
     }
 };
+}
+}
 
 #endif // BALANCED_TREE_H_INCLUDED

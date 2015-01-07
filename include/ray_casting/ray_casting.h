@@ -13,7 +13,7 @@ namespace programmerjake
 namespace voxels
 {
 class World;
-class Entity;
+struct Entity;
 
 namespace RayCasting
 {

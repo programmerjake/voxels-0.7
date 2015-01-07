@@ -22,14 +22,18 @@
 #include <memory>
 #include "util/enum_traits.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 class KeyDownEvent;
-class MouseUpEvent;
-class MouseDownEvent;
-class MouseMoveEvent;
-class MouseScrollEvent;
+struct MouseUpEvent;
+struct MouseDownEvent;
+struct MouseMoveEvent;
+struct MouseScrollEvent;
 class KeyUpEvent;
-class KeyPressEvent;
-class QuitEvent;
+struct KeyPressEvent;
+struct QuitEvent;
 
 struct EventHandler
 {
@@ -68,7 +72,7 @@ protected:
     {
     }
 public:
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) = 0;
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) = 0;
 };
 
 class MouseEvent : public Event
@@ -101,7 +105,7 @@ public:
     KeyDownEvent(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false) : KeyEvent(Type_KeyDown, key, mods), isRepetition(isRepetition)
     {
     }
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleKeyDown(*this);
     }
@@ -114,7 +118,7 @@ public:
         : KeyEvent(Type_KeyUp, key, mods)
     {
     }
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleKeyUp(*this);
     }
@@ -127,7 +131,7 @@ struct KeyPressEvent : public Event
         : Event(Type_KeyPress), character(character)
     {
     }
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleKeyPress(*this);
     }
@@ -149,7 +153,7 @@ struct MouseUpEvent : public MouseButtonEvent
     {
     }
 
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleMouseUp(*this);
     }
@@ -162,7 +166,7 @@ struct MouseDownEvent : public MouseButtonEvent
     {
     }
 
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleMouseDown(*this);
     }
@@ -175,7 +179,7 @@ struct MouseMoveEvent : public MouseEvent
     {
     }
 
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleMouseMove(*this);
     }
@@ -189,7 +193,7 @@ struct MouseScrollEvent : public MouseEvent
     {
     }
 
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleMouseScroll(*this);
     }
@@ -201,7 +205,7 @@ struct QuitEvent : public Event
         : Event(Type_Quit)
     {
     }
-    virtual bool dispatch(shared_ptr<EventHandler> eventHandler) override
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
         return eventHandler->handleQuit(*this);
     }
@@ -210,9 +214,9 @@ struct QuitEvent : public Event
 class CombinedEventHandler final : public EventHandler
 {
 private:
-    shared_ptr<EventHandler> first, second;
+    std::shared_ptr<EventHandler> first, second;
 public:
-    CombinedEventHandler(shared_ptr<EventHandler> first, shared_ptr<EventHandler> second)
+    CombinedEventHandler(std::shared_ptr<EventHandler> first, std::shared_ptr<EventHandler> second)
         : first(first), second(second)
     {
     }
@@ -289,5 +293,7 @@ public:
         return second->handleQuit(event);
     }
 };
+}
+}
 
 #endif // EVENT_H_INCLUDED

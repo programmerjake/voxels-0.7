@@ -4,12 +4,14 @@
 #include "world/world.h"
 #include <memory>
 
-using namespace std;
-
-class WorldGenerator : public enable_shared_from_this<WorldGenerator>
+namespace programmerjake
+{
+namespace voxels
+{
+class WorldGenerator : public std::enable_shared_from_this<WorldGenerator>
 {
 protected:
-    constexpr WorldGenerator()
+    WorldGenerator()
     {
     }
 public:
@@ -18,5 +20,7 @@ public:
     }
     virtual void generateChunk(PositionI chunkBasePosition, World &world) const = 0;
 };
+}
+}
 
 #endif // WORLD_GENERATOR_H_INCLUDED

@@ -4,6 +4,10 @@
 #include "entity/builtin/item.h"
 #include "render/generate.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Entities
 {
 namespace builtin
@@ -22,15 +26,17 @@ private:
         return std::move(retval);
     }
 protected:
-    BlockItem(wstring name, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
+    BlockItem(std::wstring name, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
         : Item(name, makeMeshes(td, td, td, td, td, td, rl), getPreorientSelectionBoxTransform())
     {
     }
-    BlockItem(wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, RenderLayer rl = RenderLayer::Opaque)
+    BlockItem(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, RenderLayer rl = RenderLayer::Opaque)
         : Item(name, makeMeshes(nx, px, ny, py, nz, pz, rl), getPreorientSelectionBoxTransform())
     {
     }
 };
+}
+}
 }
 }
 

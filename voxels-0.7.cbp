@@ -98,6 +98,7 @@
 		<Unit filename="include/util/global_instance_maker.h" />
 		<Unit filename="include/util/linked_map.h" />
 		<Unit filename="include/util/matrix.h" />
+		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
 		<Unit filename="include/util/rw_lock.h" />
 		<Unit filename="include/util/solve.h" />

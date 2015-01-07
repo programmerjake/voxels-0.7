@@ -50,7 +50,7 @@ protected:
     {
     }
 public:
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, World &world, RayCasting::Ray ray) const
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);

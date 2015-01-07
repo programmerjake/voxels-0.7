@@ -9,8 +9,10 @@
 #include <string>
 #include <cstdint>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class EntityDescriptor;
 
 typedef const EntityDescriptor *EntityDescriptorPointer;
@@ -18,13 +20,13 @@ typedef const EntityDescriptor *EntityDescriptorPointer;
 struct Entity final
 {
     EntityDescriptorPointer descriptor;
-    shared_ptr<PhysicsObject> physicsObject;
-    shared_ptr<void> data;
-    constexpr Entity()
+    std::shared_ptr<PhysicsObject> physicsObject;
+    std::shared_ptr<void> data;
+    Entity()
         : descriptor(nullptr), physicsObject(nullptr), data(nullptr)
     {
     }
-    Entity(EntityDescriptorPointer descriptor, shared_ptr<PhysicsObject> physicsObject, shared_ptr<void> data = nullptr)
+    Entity(EntityDescriptorPointer descriptor, std::shared_ptr<PhysicsObject> physicsObject, std::shared_ptr<void> data = nullptr)
         : descriptor(descriptor), physicsObject(physicsObject), data(data)
     {
     }
@@ -55,11 +57,11 @@ class EntityDescriptor
     EntityDescriptor(const EntityDescriptor &) = delete;
     void operator =(const EntityDescriptor &) = delete;
 protected:
-    EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor);
+    EntityDescriptor(std::wstring name, std::shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor);
 public:
     virtual ~EntityDescriptor();
-    const wstring name;
-    const shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor;
+    const std::wstring name;
+    const std::shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor;
 
     virtual void moveStep(Entity &entity, World &world, double deltaTime) const
     {
@@ -80,12 +82,15 @@ class EntityDescriptors_t final
 {
     friend class EntityDescriptor;
 private:
-    typedef linked_map<wstring, EntityDescriptorPointer> MapType;
+    typedef linked_map<std::wstring, EntityDescriptorPointer> MapType;
     static MapType *entitiesMap;
     void add(EntityDescriptorPointer bd) const;
     void remove(EntityDescriptorPointer bd) const;
 public:
-    EntityDescriptorPointer operator [](wstring name) const
+    constexpr EntityDescriptors_t()
+    {
+    }
+    EntityDescriptorPointer operator [](std::wstring name) const
     {
         if(entitiesMap == nullptr)
             return nullptr;
@@ -94,11 +99,11 @@ public:
             return nullptr;
         return std::get<1>(*iter);
     }
-    EntityDescriptorPointer at(wstring name) const
+    EntityDescriptorPointer at(std::wstring name) const
     {
         EntityDescriptorPointer retval = operator [](name);
         if(retval == nullptr)
-            throw out_of_range("EntityDescriptor not found");
+            throw std::out_of_range("EntityDescriptor not found");
         return retval;
     }
     class iterator final : public std::iterator<std::forward_iterator_tag, const EntityDescriptorPointer>
@@ -161,7 +166,7 @@ public:
     {
         return end();
     }
-    iterator find(wstring name) const
+    iterator find(std::wstring name) const
     {
         if(entitiesMap == nullptr)
             return iterator();
@@ -176,6 +181,8 @@ public:
 };
 
 static constexpr EntityDescriptors_t EntityDescriptors;
+}
+}
 
 #include "world/world.h"
 

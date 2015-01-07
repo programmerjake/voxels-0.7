@@ -28,7 +28,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-const float eps = 1e-4;
+constexpr float eps = 1e-4;
 
 template <typename T>
 constexpr T limit(const T v, const T minV, const T maxV)

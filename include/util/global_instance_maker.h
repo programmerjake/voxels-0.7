@@ -1,6 +1,10 @@
 #ifndef GLOBAL_INSTANCE_MAKER_H_INCLUDED
 #define GLOBAL_INSTANCE_MAKER_H_INCLUDED
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 class global_instance_maker final
 {
@@ -44,5 +48,7 @@ typename global_instance_maker<T>::helper global_instance_maker<T>::theHelper;
 
 template <typename T>
 T *global_instance_maker<T>::instance = nullptr;
+}
+}
 
 #endif // GLOBAL_INSTANCE_MAKER_H_INCLUDED

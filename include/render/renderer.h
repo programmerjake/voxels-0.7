@@ -21,17 +21,21 @@
 #include "render/mesh.h"
 #include "platform/platform.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 struct enable_depth_buffer_t
 {
 };
 
-static constexpr enable_depth_buffer_t enable_depth_buffer;
+static constexpr enable_depth_buffer_t enable_depth_buffer{};
 
 struct disable_depth_buffer_t
 {
 };
 
-static constexpr disable_depth_buffer_t disable_depth_buffer;
+static constexpr disable_depth_buffer_t disable_depth_buffer{};
 
 class Renderer
 {
@@ -62,7 +66,7 @@ public:
     {
         return *this << (Mesh)m;
     }
-    Renderer & operator <<(shared_ptr<Mesh> m)
+    Renderer & operator <<(std::shared_ptr<Mesh> m)
     {
         assert(m != nullptr);
         operator <<(*m);
@@ -92,15 +96,17 @@ public:
         assert(false);
         return *this;
     }
-    Renderer & operator <<(shared_ptr<CachedMesh> m)
+    Renderer & operator <<(std::shared_ptr<CachedMesh> m)
     {
         Display::render(m, depthBufferEnabled);
         return *this;
     }
-    shared_ptr<CachedMesh> cacheMesh(const Mesh & m)
+    std::shared_ptr<CachedMesh> cacheMesh(const Mesh & m)
     {
         return makeCachedMesh(m);
     }
 };
+}
+}
 
 #endif // RENDERER_H_INCLUDED

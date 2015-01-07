@@ -3,6 +3,10 @@
 
 #include <vector>
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T, size_t sizeLimit = 10000>
 class ArenaAllocator final
 {
@@ -40,5 +44,7 @@ public:
             nodes.push_back((Node *)mem);
     }
 };
+}
+}
 
 #endif // ARENA_ALLOCATOR_H_INCLUDED

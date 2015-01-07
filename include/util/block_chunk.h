@@ -1,3 +1,4 @@
+#include "block/block.h"
 #ifndef BLOCK_CHUNK_H_INCLUDED
 #define BLOCK_CHUNK_H_INCLUDED
 
@@ -6,7 +7,6 @@
 #include "util/variable_set.h"
 #include "stream/compressed_stream.h"
 #include "util/basic_block_chunk.h"
-#include "block/block.h"
 #include "render/mesh.h"
 #include "util/rw_lock.h"
 #include "lighting/lighting.h"

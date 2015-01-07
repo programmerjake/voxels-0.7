@@ -181,6 +181,7 @@ int main(int argc, char ** argv)
 #include "entity/builtin/items/stone.h"
 
 using namespace std;
+using namespace programmerjake::voxels;
 
 constexpr int maxBackgroundFileNumber = 17;
 

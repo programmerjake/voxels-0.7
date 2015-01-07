@@ -5,15 +5,17 @@
 #include <atomic>
 #include <condition_variable>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class flag final
 {
 private:
-    mutable mutex lock;
-    mutable condition_variable_any cond;
-    atomic_bool value;
-    mutable atomic_size_t waitingCount;
+    mutable std::mutex lock;
+    mutable std::condition_variable_any cond;
+    std::atomic_bool value;
+    mutable std::atomic_size_t waitingCount;
 public:
     flag(bool value = false)
         : value(value)
@@ -105,5 +107,7 @@ public:
         *this = false;
     }
 };
+}
+}
 
 #endif // FLAG_H_INCLUDED

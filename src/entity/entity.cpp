@@ -17,6 +17,9 @@
  */
 #include "entity/entity.h"
 
+using namespace programmerjake::voxels;
+using namespace std;
+
 EntityDescriptor::EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor)
     : name(name), physicsObjectConstructor(physicsObjectConstructor)
 {

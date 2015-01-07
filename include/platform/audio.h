@@ -11,12 +11,14 @@
 #include "stream/stream.h"
 #include "util/util.h"
 
-using namespace std;
-
-class AudioLoadError final : public runtime_error
+namespace programmerjake
+{
+namespace voxels
+{
+class AudioLoadError final : public std::runtime_error
 {
 public:
-    explicit AudioLoadError(const string &arg)
+    explicit AudioLoadError(const std::string &arg)
         : runtime_error(arg)
     {
     }
@@ -27,7 +29,7 @@ class AudioDecoder
     AudioDecoder(const AudioDecoder &) = delete;
     const AudioDecoder & operator =(const AudioDecoder &) = delete;
 public:
-    static constexpr uint64_t Unknown = ~(uint64_t)0;
+    static constexpr std::uint64_t Unknown = ~(std::uint64_t)0;
     AudioDecoder()
     {
     }
@@ -35,26 +37,26 @@ public:
     {
     }
     virtual unsigned samplesPerSecond() = 0;
-    virtual uint64_t numSamples() = 0;
+    virtual std::uint64_t numSamples() = 0;
     virtual unsigned channelCount() = 0;
     double lengthInSeconds()
     {
-        uint64_t count = numSamples();
+        std::uint64_t count = numSamples();
         if(count == Unknown)
             return -1;
         return (double)count / samplesPerSecond();
     }
-    virtual uint64_t decodeAudioBlock(float * data, uint64_t samplesCount) = 0; // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) = 0; // returns number of samples decoded
 };
 
 class MemoryAudioDecoder final : public AudioDecoder
 {
-    vector<float> samples;
+    std::vector<float> samples;
     unsigned sampleRate;
-    size_t currentLocation;
+    std::size_t currentLocation;
     unsigned channels;
 public:
-    MemoryAudioDecoder(const vector<float> &data, unsigned sampleRate, unsigned channelCount)
+    MemoryAudioDecoder(const std::vector<float> &data, unsigned sampleRate, unsigned channelCount)
         : samples(data), sampleRate(sampleRate), currentLocation(0), channels(channelCount)
     {
         assert(sampleRate > 0);
@@ -65,7 +67,7 @@ public:
     {
         return sampleRate;
     }
-    virtual uint64_t numSamples() override
+    virtual std::uint64_t numSamples() override
     {
         return samples.size() / channels;
     }
@@ -73,10 +75,10 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(float * data, uint64_t samplesCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
     {
-        uint64_t retval = 0;
-        for(uint64_t i = 0; i < samplesCount && currentLocation < samples.size(); i++)
+        std::uint64_t retval = 0;
+        for(std::uint64_t i = 0; i < samplesCount && currentLocation < samples.size(); i++)
         {
             for(unsigned j = 0; j < channels; j++)
                 *data++ = samples[currentLocation++];
@@ -92,16 +94,16 @@ public:
 
 class ResampleAudioDecoder final : public AudioDecoder
 {
-    shared_ptr<AudioDecoder> decoder;
-    uint64_t position = 0; // in samples
-    vector<float> buffer;
-    uint64_t bufferStartPosition = 0; // in values
+    std::shared_ptr<AudioDecoder> decoder;
+    std::uint64_t position = 0; // in samples
+    std::vector<float> buffer;
+    std::uint64_t bufferStartPosition = 0; // in values
     unsigned sampleRate, channels;
 public:
-    ResampleAudioDecoder(shared_ptr<AudioDecoder> decoder, unsigned sampleRate)
+    ResampleAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned sampleRate)
         : decoder(decoder), sampleRate(sampleRate), channels(decoder->channelCount())
     {
-        constexpr size_t size = 1024;
+        constexpr std::size_t size = 1024;
         buffer.resize(channels * size);
         buffer.resize(channels * decoder->decodeAudioBlock(buffer.data(), size));
     }
@@ -109,9 +111,9 @@ public:
     {
         return sampleRate;
     }
-    virtual uint64_t numSamples() override
+    virtual std::uint64_t numSamples() override
     {
-        uint64_t count = decoder->numSamples();
+        std::uint64_t count = decoder->numSamples();
         if(count == Unknown)
             return Unknown;
         return (count * sampleRate) / decoder->samplesPerSecond();
@@ -120,21 +122,21 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(float * data, uint64_t sampleCount) override
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t sampleCount) override
     {
         if(numSamples() != Unknown)
-            sampleCount = min(numSamples() - position, sampleCount);
+            sampleCount = std::min(numSamples() - position, sampleCount);
         if(sampleCount == 0 || buffer.size() == 0)
             return sampleCount;
         double rateConversionFactor = (double)decoder->samplesPerSecond() / sampleRate;
-        uint64_t retval = 0;
-        for(uint64_t i = 0; i < sampleCount; i++, position++, retval++)
+        std::uint64_t retval = 0;
+        for(std::uint64_t i = 0; i < sampleCount; i++, position++, retval++)
         {
             double finalPosition = position * rateConversionFactor;
-            uint64_t startIndex = (uint64_t)floor(finalPosition);
+            std::uint64_t startIndex = (std::uint64_t)floor(finalPosition);
             float t = (float)(finalPosition - startIndex);
             startIndex *= channels;
-            uint64_t endIndex = startIndex + channels;
+            std::uint64_t endIndex = startIndex + channels;
             assert(startIndex >= bufferStartPosition);
             if(endIndex - bufferStartPosition >= buffer.size())
             {
@@ -142,7 +144,7 @@ public:
                     buffer[i] = buffer[buffer.size() - channels + i];
                 bufferStartPosition += buffer.size() - channels;
                 buffer.resize(buffer.capacity());
-                uint64_t decodeCount = 1, lastDecodeCount;
+                std::uint64_t decodeCount = 1, lastDecodeCount;
                 do
                 {
                     lastDecodeCount = decodeCount;
@@ -157,14 +159,14 @@ public:
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = ((1 - t) * buffer[j + (size_t)(startIndex - bufferStartPosition)] + t * buffer[j + (size_t)(endIndex - bufferStartPosition)]);
+                    *data++ = ((1 - t) * buffer[j + (std::size_t)(startIndex - bufferStartPosition)] + t * buffer[j + (std::size_t)(endIndex - bufferStartPosition)]);
                 }
             }
             else
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = buffer[j + (size_t)(startIndex - bufferStartPosition)];
+                    *data++ = buffer[j + (std::size_t)(startIndex - bufferStartPosition)];
                 }
             }
         }
@@ -174,11 +176,11 @@ public:
 
 class RedistributeChannelsAudioDecoder final : public AudioDecoder
 {
-    shared_ptr<AudioDecoder> decoder;
+    std::shared_ptr<AudioDecoder> decoder;
     unsigned channels;
-    vector<float> buffer;
+    std::vector<float> buffer;
 public:
-    RedistributeChannelsAudioDecoder(shared_ptr<AudioDecoder> decoder, unsigned channelCountIn)
+    RedistributeChannelsAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned channelCountIn)
         : decoder(decoder), channels(channelCountIn)
     {
     }
@@ -186,7 +188,7 @@ public:
     {
         return decoder->samplesPerSecond();
     }
-    virtual uint64_t numSamples() override
+    virtual std::uint64_t numSamples() override
     {
         return decoder->numSamples();
     }
@@ -194,19 +196,21 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(float * data, uint64_t sampleCount) override
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t sampleCount) override
     {
         unsigned sourceChannels = decoder->channelCount();
+        if(sourceChannels == channels)
+            return decoder->decodeAudioBlock(data, sampleCount);
         buffer.resize(sampleCount * sourceChannels);
         sampleCount = decoder->decodeAudioBlock(buffer.data(), sampleCount);
         switch(channels)
         {
         case 1:
         {
-            for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+            for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
             {
                 int sum = 0;
-                for(size_t j = 0; j < sourceChannels; j++)
+                for(std::size_t j = 0; j < sourceChannels; j++)
                     sum += buffer[bufferIndex++];
                 *data++ = sum / sourceChannels;
             }
@@ -217,21 +221,14 @@ public:
             switch(sourceChannels)
             {
             case 1:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     *data++ = buffer[bufferIndex];
                     *data++ = buffer[bufferIndex++];
                 }
                 break;
-            case 2:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
-                {
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                }
-                break;
             case 3:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -241,7 +238,7 @@ public:
                 }
                 break;
             case 4:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -252,7 +249,7 @@ public:
                 }
                 break;
             case 5:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -264,7 +261,7 @@ public:
                 }
                 break;
             case 6:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -278,10 +275,10 @@ public:
                 break;
             default:
                 assert(false);
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
-                    for(size_t j = 0; j < sourceChannels; j++)
+                    for(std::size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
                     *data++ = sum / sourceChannels;
@@ -295,7 +292,7 @@ public:
             switch(sourceChannels)
             {
             case 1:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     *data++ = buffer[bufferIndex];
                     *data++ = buffer[bufferIndex];
@@ -303,7 +300,7 @@ public:
                 }
                 break;
             case 2:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -312,16 +309,8 @@ public:
                     *data++ = (5 * channel2 - channel1) / 4;
                 }
                 break;
-            case 3:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
-                {
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                }
-                break;
             case 4:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -333,7 +322,7 @@ public:
                 }
                 break;
             case 5:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -346,7 +335,7 @@ public:
                 }
                 break;
             case 6:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -361,10 +350,10 @@ public:
                 break;
             default:
                 assert(false);
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
-                    for(size_t j = 0; j < sourceChannels; j++)
+                    for(std::size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
                     *data++ = sum / sourceChannels;
@@ -379,7 +368,7 @@ public:
             switch(sourceChannels)
             {
             case 1:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     *data++ = buffer[bufferIndex];
                     *data++ = buffer[bufferIndex];
@@ -388,7 +377,7 @@ public:
                 }
                 break;
             case 2:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -399,7 +388,7 @@ public:
                 }
                 break;
             case 3:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -410,17 +399,8 @@ public:
                     *data++ = (channel2 + 2 * channel3) / 3;
                 }
                 break;
-            case 4:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
-                {
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                }
-                break;
             case 5:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -434,7 +414,7 @@ public:
                 }
                 break;
             case 6:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -450,10 +430,10 @@ public:
                 break;
             default:
                 assert(false);
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
-                    for(size_t j = 0; j < sourceChannels; j++)
+                    for(std::size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
                     *data++ = sum / sourceChannels;
@@ -469,7 +449,7 @@ public:
             switch(sourceChannels)
             {
             case 1:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     *data++ = buffer[bufferIndex];
                     *data++ = buffer[bufferIndex];
@@ -479,7 +459,7 @@ public:
                 }
                 break;
             case 2:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -491,7 +471,7 @@ public:
                 }
                 break;
             case 3:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -504,7 +484,7 @@ public:
                 }
                 break;
             case 4:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -517,23 +497,8 @@ public:
                     *data++ = (5 * channel2 - channel1) / 4;
                 }
                 break;
-            case 5:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
-                {
-                    float channel1 = buffer[bufferIndex++];
-                    float channel2 = buffer[bufferIndex++];
-                    float channel3 = buffer[bufferIndex++];
-                    float channel4 = buffer[bufferIndex++];
-                    float channel5 = buffer[bufferIndex++];
-                    *data++ = channel1;
-                    *data++ = channel2;
-                    *data++ = channel3;
-                    *data++ = channel4;
-                    *data++ = channel5;
-                }
-                break;
             case 6:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -550,10 +515,10 @@ public:
                 break;
             default:
                 assert(false);
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
-                    for(size_t j = 0; j < sourceChannels; j++)
+                    for(std::size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
                     *data++ = sum / sourceChannels;
@@ -570,7 +535,7 @@ public:
             switch(sourceChannels)
             {
             case 1:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     *data++ = buffer[bufferIndex];
                     *data++ = buffer[bufferIndex];
@@ -581,7 +546,7 @@ public:
                 }
                 break;
             case 2:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -594,7 +559,7 @@ public:
                 }
                 break;
             case 3:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -608,7 +573,7 @@ public:
                 }
                 break;
             case 4:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -623,7 +588,7 @@ public:
                 }
                 break;
             case 5:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float channel1 = buffer[bufferIndex++];
                     float channel2 = buffer[bufferIndex++];
@@ -638,23 +603,12 @@ public:
                     *data++ = (channel1 + channel2 + channel3 + channel4 + channel5) / 5;
                 }
                 break;
-            case 6:
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
-                {
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                    *data++ = buffer[bufferIndex++];
-                }
-                break;
             default:
                 assert(false);
-                for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+                for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
-                    for(size_t j = 0; j < sourceChannels; j++)
+                    for(std::size_t j = 0; j < sourceChannels; j++)
                         sum += buffer[bufferIndex++];
                     *data++ = sum / sourceChannels;
                     *data++ = sum / sourceChannels;
@@ -670,12 +624,12 @@ public:
         default:
         {
             assert(false);
-            for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+            for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
             {
                 float sum = 0;
-                for(size_t j = 0; j < sourceChannels; j++)
+                for(std::size_t j = 0; j < sourceChannels; j++)
                     sum += buffer[bufferIndex++];
-                for(size_t j = 0; j < channels; j++)
+                for(std::size_t j = 0; j < channels; j++)
                     *data++ = sum / sourceChannels;
             }
             break;
@@ -690,8 +644,8 @@ struct PlayingAudioData;
 
 class PlayingAudio final
 {
-    shared_ptr<PlayingAudioData> data;
-    PlayingAudio(shared_ptr<PlayingAudioData> data);
+    std::shared_ptr<PlayingAudioData> data;
+    PlayingAudio(std::shared_ptr<PlayingAudioData> data);
     friend class Audio;
 public:
     bool isPlaying();
@@ -700,28 +654,30 @@ public:
     float volume();
     void volume(float v);
     double duration();
-    static void audioCallback(void * userData, uint8_t * buffer, int length);
+    static void audioCallback(void * userData, std::uint8_t * buffer, int length);
 };
 
 class Audio final
 {
-    shared_ptr<AudioData> data;
+    std::shared_ptr<AudioData> data;
 public:
     Audio()
         : data(nullptr)
     {
     }
-    Audio(nullptr_t)
+    Audio(std::nullptr_t)
         : data(nullptr)
     {
     }
-    explicit Audio(wstring resourceName, bool isStreaming = false);
-    explicit Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCount);
-    shared_ptr<PlayingAudio> play(float volume = 1, bool looped = false);
-    inline shared_ptr<PlayingAudio> play(bool looped)
+    explicit Audio(std::wstring resourceName, bool isStreaming = false);
+    explicit Audio(const std::vector<float> &data, unsigned sampleRate, unsigned channelCount);
+    std::shared_ptr<PlayingAudio> play(float volume = 1, bool looped = false);
+    inline std::shared_ptr<PlayingAudio> play(bool looped)
     {
         return play(1, looped);
     }
 };
+}
+}
 
 #endif // AUDIO_H_INCLUDED

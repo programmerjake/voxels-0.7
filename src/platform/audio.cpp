@@ -13,7 +13,12 @@
 #include "decoder/ogg_vorbis_decoder.h"
 
 using namespace std;
+using namespace programmerjake::voxels;
 
+namespace programmerjake
+{
+namespace voxels
+{
 struct AudioData
 {
     function<shared_ptr<AudioDecoder>()> makeAudioDecoder;
@@ -124,6 +129,8 @@ struct PlayingAudioData
         return false;
     }
 };
+}
+}
 
 namespace
 {
@@ -269,7 +276,7 @@ shared_ptr<PlayingAudio> Audio::play(float volume, bool looped)
 {
     ::startAudio();
     auto playingAudioData = make_shared<PlayingAudioData>(data, volume, looped);
-    startAudio(playingAudioData);
+    ::startAudio(playingAudioData);
     return shared_ptr<PlayingAudio>(new PlayingAudio(playingAudioData));
 }
 

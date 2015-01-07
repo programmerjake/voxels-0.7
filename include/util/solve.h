@@ -2,16 +2,19 @@
 #define SOLVE_H_INCLUDED
 
 #include <cmath>
+#include "util/util.h"
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 inline int solveLinear(float a/*constant*/, float b/*linear*/, float retval[1])
 {
     retval[0] = 0;
 
-    if(abs(b) < eps)
+    if(std::abs(b) < eps)
     {
-        return (abs(a) < eps) ? 1 : 0;
+        return (std::abs(a) < eps) ? 1 : 0;
     }
 
     retval[0] = -a / b;
@@ -20,7 +23,7 @@ inline int solveLinear(float a/*constant*/, float b/*linear*/, float retval[1])
 
 inline int solveQuadratic(float a/*constant*/, float b/*linear*/, float c/*quadratic*/, float retval[2])
 {
-    if(abs(c) < eps)
+    if(std::abs(c) < eps)
     {
         return solveLinear(a, b, retval);
     }
@@ -39,7 +42,7 @@ inline int solveQuadratic(float a/*constant*/, float b/*linear*/, float c/*quadr
         c = -c;
     }
 
-    float sqrtV = sqrt(sqrtArg);
+    float sqrtV = std::sqrt(sqrtArg);
     retval[0] = (-b - sqrtV) / (2 * c);
     retval[1] = (-b + sqrtV) / (2 * c);
     return 2;
@@ -48,7 +51,7 @@ inline int solveQuadratic(float a/*constant*/, float b/*linear*/, float c/*quadr
 inline int solveCubic(float a/*constant*/, float b/*linear*/, float c/*quadratic*/, float d/*cubic*/,
                float retval[3])
 {
-    if(abs(d) < eps)
+    if(std::abs(d) < eps)
     {
         return solveQuadratic(a, b, c, retval);
     }
@@ -63,15 +66,15 @@ inline int solveCubic(float a/*constant*/, float b/*linear*/, float c/*quadratic
 
     if(R2 < Q3)
     {
-        float theta = acos(R / sqrt(Q3));
-        float SQ = sqrt(Q);
-        retval[0] = -2 * SQ * cos(theta / 3) - c / 3;
-        retval[1] = -2 * SQ * cos((theta + 2 * M_PI) / 3) - c / 3;
-        retval[2] = -2 * SQ * cos((theta - 2 * M_PI) / 3) - c / 3;
+        float theta = std::acos(R / std::sqrt(Q3));
+        float SQ = std::sqrt(Q);
+        retval[0] = -2 * SQ * std::cos(theta / 3) - c / 3;
+        retval[1] = -2 * SQ * std::cos((theta + 2 * M_PI) / 3) - c / 3;
+        retval[2] = -2 * SQ * std::cos((theta - 2 * M_PI) / 3) - c / 3;
         return 3;
     }
 
-    float A = -cbrt(abs(R) + sqrt(R2 - Q3));
+    float A = -std::cbrt(std::abs(R) + std::sqrt(R2 - Q3));
 
     if(R < 0)
     {
@@ -91,6 +94,8 @@ inline int solveCubic(float a/*constant*/, float b/*linear*/, float c/*quadratic
     float AB = A + B;
     retval[0] = AB - c / 3;
     return 1;
+}
+}
 }
 
 #endif // SOLVE_H_INCLUDED

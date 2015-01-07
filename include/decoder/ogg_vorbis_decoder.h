@@ -8,25 +8,29 @@
 #include <iostream>
 #include <endian.h>
 
+namespace programmerjake
+{
+namespace voxels
+{
 class OggVorbisDecoder final : public AudioDecoder
 {
 private:
     OggVorbis_File ovf;
-    shared_ptr<stream::Reader> reader;
-    uint64_t samples;
+    std::shared_ptr<stream::Reader> reader;
+    std::uint64_t samples;
     unsigned channels;
     unsigned sampleRate;
-    uint64_t curPos = 0;
-    vector<float> buffer;
-    size_t currentBufferPos = 0;
-    static size_t read_fn(void * dataPtr_in, size_t blockSize, size_t numBlocks, void * dataSource)
+    std::uint64_t curPos = 0;
+    std::vector<float> buffer;
+    std::size_t currentBufferPos = 0;
+    static std::size_t read_fn(void * dataPtr_in, std::size_t blockSize, std::size_t numBlocks, void * dataSource)
     {
         OggVorbisDecoder & decoder = *(OggVorbisDecoder *)dataSource;
-        size_t readCount = 0;
+        std::size_t readCount = 0;
         try
         {
-            uint8_t * dataPtr = (uint8_t *)dataPtr_in;
-            for(size_t i = 0; i < numBlocks; i++, readCount++)
+            std::uint8_t * dataPtr = (std::uint8_t *)dataPtr_in;
+            for(std::size_t i = 0; i < numBlocks; i++, readCount++)
             {
                 decoder.reader->readBytes(dataPtr, blockSize);
                 dataPtr += blockSize;
@@ -52,9 +56,9 @@ private:
         long sampleCountLong = ov_read_float(&ovf, &pcmChannels, buffer.size() / channels, &currentSection);
         if(sampleCountLong < 0)
             sampleCountLong = 0;
-        size_t sampleCount = sampleCountLong;
+        std::size_t sampleCount = sampleCountLong;
         buffer.resize(sampleCount * channels);
-        for(size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
+        for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
         {
             for(unsigned channel = 0; channel < channels; channel++)
             {
@@ -63,7 +67,7 @@ private:
         }
     }
 public:
-    OggVorbisDecoder(shared_ptr<stream::Reader> reader)
+    OggVorbisDecoder(std::shared_ptr<stream::Reader> reader)
         : reader(reader)
     {
         ov_callbacks callbacks;
@@ -102,7 +106,7 @@ public:
     {
         return sampleRate;
     }
-    virtual uint64_t numSamples() override
+    virtual std::uint64_t numSamples() override
     {
         return samples;
     }
@@ -110,11 +114,11 @@ public:
     {
         return channels;
     }
-    virtual uint64_t decodeAudioBlock(float * data, uint64_t readCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t readCount) override // returns number of samples decoded
     {
-        uint64_t retval = 0;
-        size_t dataIndex = 0;
-        for(uint64_t i = 0; i < readCount; i++, retval++)
+        std::uint64_t retval = 0;
+        std::size_t dataIndex = 0;
+        for(std::uint64_t i = 0; i < readCount; i++, retval++)
         {
             if(currentBufferPos >= buffer.size())
             {
@@ -131,5 +135,7 @@ public:
         return retval;
     }
 };
+}
+}
 
 #endif // OGG_VORBIS_DECODER_H_INCLUDED

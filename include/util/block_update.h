@@ -4,6 +4,10 @@
 #include "util/position.h"
 #include "util/enum_traits.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 enum class BlockUpdateType
 {
     Lighting,
@@ -35,5 +39,7 @@ struct BlockUpdateDescriptor
     BlockUpdateType type;
     BlockUpdate *update;
 };
+}
+}
 
 #endif // BLOCK_UPDATE_H_INCLUDED

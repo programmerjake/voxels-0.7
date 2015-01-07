@@ -26,13 +26,17 @@
 #include "render/mesh.h"
 #include "util/enum_traits.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 #ifndef EVENT_H_INCLUDED
-class EventHandler;
+struct EventHandler;
 #endif // EVENT_H_INCLUDED
 
 const float defaultFPS = 60;
 
-shared_ptr<stream::Reader> getResourceReader(wstring resource);
+std::shared_ptr<stream::Reader> getResourceReader(std::wstring resource);
 
 enum class KeyboardKey
 {
@@ -218,14 +222,14 @@ enum MouseButton
 
 struct CachedMesh;
 
-shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh);
-shared_ptr<CachedMesh> transform(const Matrix & m, shared_ptr<CachedMesh> mesh);
+std::shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh);
+std::shared_ptr<CachedMesh> transform(const Matrix & m, std::shared_ptr<CachedMesh> mesh);
 
 namespace Display
 {
-    wstring title();
-    void title(wstring newTitle);
-    void handleEvents(shared_ptr<EventHandler> eventHandler);
+    std::wstring title();
+    void title(std::wstring newTitle);
+    void handleEvents(std::shared_ptr<EventHandler> eventHandler);
     void flip(float fps = defaultFPS);
     double instantaneousFPS();
     double frameDeltaTime();
@@ -242,7 +246,7 @@ namespace Display
     void grabMouse(bool g);
     VectorF transformMouseTo3D(float x, float y, float depth = 1.0f);
     void render(const Mesh & m, bool enableDepthBuffer);
-    void render(shared_ptr<CachedMesh> m, bool enableDepthBuffer);
+    void render(std::shared_ptr<CachedMesh> m, bool enableDepthBuffer);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
 }
 
@@ -253,6 +257,8 @@ void endAudio();
 unsigned getGlobalAudioSampleRate();
 unsigned getGlobalAudioChannelCount();
 bool audioRunning();
+}
+}
 
 #endif // PLATFORM_H_INCLUDED
 #include "platform/event.h"

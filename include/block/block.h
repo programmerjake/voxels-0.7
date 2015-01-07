@@ -75,7 +75,7 @@ struct Block final
         return !operator ==(r);
     }
     void createNewLighting(Lighting oldLighting);
-    static BlockLighting calcBlockLighting(const BlockIterator &bi_in, WorldLightingProperties wlp);
+    static BlockLighting calcBlockLighting(BlockIterator &bi_in, WorldLightingProperties wlp);
 };
 
 struct BlockShape final
@@ -133,7 +133,7 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl, const BlockLighting &lighting) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator &blockIterator, RenderLayer rl, const BlockLighting &lighting) const
     {
         assert(false); // shouldn't be called
     }
@@ -160,7 +160,7 @@ public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, RenderLayer rl, const BlockLighting &lighting) const
+    void render(const Block &block, Mesh &dest, BlockIterator &blockIterator, RenderLayer rl, const BlockLighting &lighting) const
     {
         if(isStaticMesh)
         {
@@ -173,25 +173,30 @@ public:
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
             Mesh &blockMesh = getTempRenderMesh();
             blockMesh.clear();
-
-            for(BlockFace bf : enum_traits<BlockFace>())
             {
-                BlockIterator i = blockIterator;
-                i.moveToward(bf);
-                Block b = *i;
+                BlockIteratorRecursiveLockGuard lockIt(blockIterator);
 
-                if(!b)
+                for(BlockFace bf : enum_traits<BlockFace>())
                 {
-                    continue;
-                }
+                    BlockIterator i = blockIterator;
+                    i.moveToward(bf);
+                    i.adopt_lock_or_lock(blockIterator);
+                    Block b = i.get();
+                    blockIterator.adopt_lock_if_locked(i);
 
-                if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
-                {
-                    continue;
-                }
+                    if(!b)
+                    {
+                        continue;
+                    }
 
-                blockMesh.append(meshFace[bf]);
-                drewAny = true;
+                    if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                    {
+                        continue;
+                    }
+
+                    blockMesh.append(meshFace[bf]);
+                    drewAny = true;
+                }
             }
 
             if(drewAny)
@@ -206,7 +211,7 @@ public:
             renderDynamic(block, dest, blockIterator, rl, lighting);
         }
     }
-    virtual Block moveStep(const Block &block, BlockIterator blockIterator) const
+    virtual Block moveStep(const Block &block, BlockIterator &blockIterator) const
     {
         return block;
     }
@@ -218,7 +223,7 @@ public:
     {
         return std::hash<std::shared_ptr<void>>()(data);
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, World &world, RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
@@ -265,29 +270,33 @@ inline bool Block::operator==(const Block &r) const
     return descriptor->isDataEqual(data, r.data);
 }
 
-inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldLightingProperties wlp)
+inline BlockLighting Block::calcBlockLighting(BlockIterator &bi, WorldLightingProperties wlp)
 {
-    BlockIterator bi = bi_in;
     std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
-
-    for(int x = 0; (size_t)x < blocks.size(); x++)
     {
-        for(int y = 0; (size_t)y < blocks[x].size(); y++)
+        BlockIteratorRecursiveLockGuard lockIt(bi);
+
+        for(int x = 0; (size_t)x < blocks.size(); x++)
         {
-            for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
+            for(int y = 0; (size_t)y < blocks[x].size(); y++)
             {
-                BlockIterator curBi = bi;
-                curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
-                auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-                const Block &b = *curBi;
-
-                if(b)
+                for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
                 {
-                    std::get<0>(l) = b.descriptor->lightProperties;
-                    std::get<1>(l) = b.lighting;
-                }
+                    BlockIterator curBi = bi;
+                    curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
+                    auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                    curBi.adopt_lock_or_lock(bi);
+                    const Block &b = curBi.get();
+                    bi.adopt_lock_if_locked(curBi);
 
-                blocks[x][y][z] = l;
+                    if(b)
+                    {
+                        std::get<0>(l) = b.descriptor->lightProperties;
+                        std::get<1>(l) = b.lighting;
+                    }
+
+                    blocks[x][y][z] = l;
+                }
             }
         }
     }
