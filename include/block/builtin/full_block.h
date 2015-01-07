@@ -41,11 +41,11 @@ private:
         return Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td);
     }
 protected:
-    FullBlock(wstring name, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
+    FullBlock(std::wstring name, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
         : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
     {
     }
-    FullBlock(wstring name, LightProperties lightProperties, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
+    FullBlock(std::wstring name, LightProperties lightProperties, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
         : FullBlock(name, lightProperties, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, td, td, td, td, td, td, rl)
     {
     }
@@ -54,7 +54,7 @@ public:
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
-        tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
         if(!std::get<0>(collision))
             return RayCasting::Collision(world);
         if(std::get<1>(collision) < RayCasting::Ray::eps)

@@ -23,6 +23,7 @@
 #include "util/util.h"
 
 using namespace std;
+using namespace programmerjake::voxels;
 
 namespace
 {

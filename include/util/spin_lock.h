@@ -7,6 +7,10 @@
 #include <condition_variable>
 #include "util/cpu_relax.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 struct simple_spin_lock final
 {
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
@@ -69,5 +73,7 @@ struct blocking_spin_lock final
             cond.notify_one();
     }
 };
+}
+}
 
 #endif // SPIN_LOCK_H_INCLUDED

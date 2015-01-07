@@ -17,6 +17,9 @@
  */
 #include "block/block.h"
 
+using namespace std;
+using namespace programmerjake::voxels;
+
 BlockDescriptor::BlockDescriptor(wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer)
     : name(name), blockShape(blockShape), lightProperties(lightProperties), isStaticMesh(isStaticMesh), staticRenderLayer(staticRenderLayer)
 {

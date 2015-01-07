@@ -15,10 +15,10 @@
  * MA 02110-1301, USA.
  *
  */
-#include "util/util.h"
 #ifndef VECTOR_H
 #define VECTOR_H
 
+#include "util/util.h"
 #include "stream/stream.h"
 #include <cmath>
 #include <stdexcept>

@@ -6,11 +6,15 @@
 #include "util/spin_lock.h"
 #include <mutex> // for lock_guard
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 class CachedVariable
 {
     mutable simple_spin_lock theLock;
-    typedef lock_guard<simple_spin_lock> my_lock_guard;
+    typedef std::lock_guard<simple_spin_lock> my_lock_guard;
     T view;
 public:
     CachedVariable()
@@ -66,7 +70,7 @@ public:
     {
         friend class CachedVariable;
         T *v;
-        unique_lock<simple_spin_lock> lockIt;
+        std::unique_lock<simple_spin_lock> lockIt;
         explicit LockedView(CachedVariable *cv)
             : lockIt(cv->theLock)
         {
@@ -133,5 +137,7 @@ public:
         return LockedView(this);
     }
 };
+}
+}
 
 #endif // CACHED_VARIABLE_H_INCLUDED

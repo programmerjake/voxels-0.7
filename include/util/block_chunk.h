@@ -24,10 +24,19 @@ struct BlockChunkBlock final
     bool lightingValid = false;
 };
 
+typedef rw_lock BlockChunkLockType;
+typedef reader_lock<BlockChunkLockType> BlockChunkReaderLock;
+typedef writer_lock<BlockChunkLockType> BlockChunkWriterLock;
+
 struct BlockChunkSubchunk final
 {
     rw_lock lock;
     std::shared_ptr<Mesh> cachedMesh;
+    BlockChunkSubchunk(const BlockChunkSubchunk &rt)
+        : cachedMesh(rt.cachedMesh)
+    {
+    }
+    BlockChunkSubchunk() = default;
 };
 
 struct BlockChunkChunkVariables final
@@ -37,6 +46,7 @@ struct BlockChunkChunkVariables final
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
 
+#if 0
 namespace stream
 {
 template <typename T, size_t ChunkSizeXV, size_t ChunkSizeYV, size_t ChunkSizeZV, bool TransmitCompressedV>
@@ -50,6 +60,7 @@ struct is_value_changed<BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, Tra
     }
 };
 }
+#endif
 }
 }
 

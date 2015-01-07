@@ -20,6 +20,10 @@
 
 #include "texture/texture_descriptor.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 class TextureAtlas final
 {
 	static Image texture_;
@@ -354,5 +358,7 @@ public:
     Wool,
     Selection;
 };
+}
+}
 
 #endif // TEXTURE_ATLAS_H_INCLUDED

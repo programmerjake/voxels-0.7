@@ -21,6 +21,10 @@
 #include "texture/image.h"
 #include "util/util.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 struct TextureDescriptor
 {
     Image image;
@@ -50,5 +54,7 @@ struct TextureDescriptor
                                  interpolate(maxV, this->minV, this->maxV));
     }
 };
+}
+}
 
 #endif // TEXTURE_DESCRIPTOR_H_INCLUDED

@@ -25,6 +25,10 @@
 #error can not detect number of bits in wchar_t
 #endif
 
+namespace programmerjake
+{
+namespace voxels
+{
 template <typename T>
 T string_cast(std::string);
 
@@ -161,6 +165,8 @@ inline std::wstring string_cast<std::wstring>(std::string str)
         }
     }
     return retval;
+}
+}
 }
 
 #endif // STRING_CAST_H_INCLUDED

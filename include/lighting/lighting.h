@@ -190,7 +190,7 @@ private:
     }
 public:
     constexpr BlockLighting()
-        : lightValues{0, 0, 0, 0, 0, 0, 0, 0}
+        : lightValues{{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
     {
     }
     BlockLighting(std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)

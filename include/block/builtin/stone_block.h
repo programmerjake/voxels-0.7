@@ -14,7 +14,7 @@ namespace builtin
 class StoneBlock : public FullBlock
 {
 protected:
-    StoneBlock(wstring name, TextureDescriptor td)
+    StoneBlock(std::wstring name, TextureDescriptor td)
         : FullBlock(name, LightProperties(), true, td)
     {
     }

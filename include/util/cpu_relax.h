@@ -9,7 +9,7 @@ namespace voxels
 #if defined(__GNUC__)
 inline void cpu_relax()
 {
-    __builtin_ia32_pause();
+    __asm("rep; nop");
 }
 #elif 1 // add checks for more compilers
 #include <xmmintrin.h>

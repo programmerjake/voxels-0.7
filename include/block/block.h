@@ -49,7 +49,7 @@ struct Block final
     BlockDescriptorPointer descriptor;
     std::shared_ptr<void> data;
     Lighting lighting;
-    Block() noexcept
+    Block()
         : descriptor(nullptr), data(nullptr)
     {
     }
@@ -99,19 +99,28 @@ struct BlockShape final
         return extents.x <= 0;
     }
 };
+}
+}
 
 #include "util/block_iterator.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
     void operator =(const BlockDescriptor &) = delete;
 public:
-    const wstring name;
+    const std::wstring name;
 protected:
-    BlockDescriptor(wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
-    BlockDescriptor(wstring name, BlockShape blockShape, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, lightProperties, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
+    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY,
+                    bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
+    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ,
+                    bool isFaceBlockedPZ)
+        : BlockDescriptor(name, blockShape, lightProperties, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(),
+                          Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
     {
     }
 public:
@@ -139,6 +148,7 @@ protected:
     static void lightMesh(Mesh &mesh, const BlockLighting &lighting)
     {
         BlockLighting bl = lighting;
+
         for(Triangle &tri : mesh.triangles)
         {
             tri.c1 = bl.lightVertex(tri.p1, tri.c1, tri.n1);
@@ -155,23 +165,35 @@ public:
         if(isStaticMesh)
         {
             if(rl != staticRenderLayer)
+            {
                 return;
+            }
+
             bool drewAny = false;
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
             Mesh &blockMesh = getTempRenderMesh();
             blockMesh.clear();
+
             for(BlockFace bf : enum_traits<BlockFace>())
             {
                 BlockIterator i = blockIterator;
                 i.moveToward(bf);
-                Block b = i->read();
+                Block b = *i;
+
                 if(!b)
+                {
                     continue;
+                }
+
                 if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                {
                     continue;
+                }
+
                 blockMesh.append(meshFace[bf]);
                 drewAny = true;
             }
+
             if(drewAny)
             {
                 blockMesh.append(meshCenter);
@@ -192,7 +214,7 @@ public:
     {
         return a == b;
     }
-    virtual size_t hashData(const std::shared_ptr<void> &data) const
+    virtual std::size_t hashData(const std::shared_ptr<void> &data) const
     {
         return std::hash<std::shared_ptr<void>>()(data);
     }
@@ -209,21 +231,37 @@ public:
 inline void Block::createNewLighting(Lighting oldLighting)
 {
     if(!good())
+    {
         lighting = Lighting();
+    }
     else
+    {
         lighting = descriptor->lightProperties.createNewLighting(oldLighting);
+    }
 }
 
 inline bool Block::operator==(const Block &r) const
 {
     if(descriptor != r.descriptor)
+    {
         return false;
+    }
+
     if(descriptor == nullptr)
+    {
         return true;
+    }
+
     if(lighting != r.lighting)
+    {
         return false;
+    }
+
     if(data == r.data)
+    {
         return true;
+    }
+
     return descriptor->isDataEqual(data, r.data);
 }
 
@@ -231,6 +269,7 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
 {
     BlockIterator bi = bi_in;
     std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+
     for(int x = 0; (size_t)x < blocks.size(); x++)
     {
         for(int y = 0; (size_t)y < blocks[x].size(); y++)
@@ -240,16 +279,19 @@ inline BlockLighting Block::calcBlockLighting(const BlockIterator &bi_in, WorldL
                 BlockIterator curBi = bi;
                 curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
                 auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-                Block b = curBi->read();
+                const Block &b = *curBi;
+
                 if(b)
                 {
                     std::get<0>(l) = b.descriptor->lightProperties;
                     std::get<1>(l) = b.lighting;
                 }
+
                 blocks[x][y][z] = l;
             }
         }
     }
+
     return BlockLighting(blocks, wlp);
 }
 }
@@ -260,10 +302,13 @@ namespace std
 template <>
 struct hash<programmerjake::voxels::Block> final
 {
-    size_t operator ()(const programmerjake::voxels::Block &b) const
+    size_t operator()(const programmerjake::voxels::Block &b) const
     {
         if(b.descriptor == nullptr)
+        {
             return 0;
+        }
+
         return std::hash<programmerjake::voxels::BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
     }
 };
@@ -277,25 +322,39 @@ class BlockDescriptors_t final
 {
     friend class BlockDescriptor;
 private:
-    typedef linked_map<wstring, BlockDescriptorPointer> MapType;
+    typedef linked_map<std::wstring, BlockDescriptorPointer> MapType;
     static MapType *blocksMap;
     void add(BlockDescriptorPointer bd) const;
     void remove(BlockDescriptorPointer bd) const;
 public:
+    constexpr BlockDescriptors_t() noexcept
+    {
+    }
     BlockDescriptorPointer operator [](std::wstring name) const
     {
         if(blocksMap == nullptr)
+        {
             return nullptr;
+        }
+
         auto iter = blocksMap->find(name);
+
         if(iter == blocksMap->end())
+        {
             return nullptr;
+        }
+
         return std::get<1>(*iter);
     }
     BlockDescriptorPointer at(std::wstring name) const
     {
         BlockDescriptorPointer retval = operator [](name);
+
         if(retval == nullptr)
+        {
             throw std::out_of_range("BlockDescriptor not found");
+        }
+
         return retval;
     }
     class iterator final : public std::iterator<std::forward_iterator_tag, const BlockDescriptorPointer>
@@ -315,9 +374,15 @@ public:
         bool operator ==(const iterator &r) const
         {
             if(empty)
+            {
                 return r.empty;
+            }
+
             if(r.empty)
+            {
                 return false;
+            }
+
             return iter == r.iter;
         }
         bool operator !=(const iterator &r) const
@@ -341,13 +406,19 @@ public:
     iterator begin() const
     {
         if(blocksMap == nullptr)
+        {
             return iterator();
+        }
+
         return iterator(blocksMap->cbegin());
     }
     iterator end() const
     {
         if(blocksMap == nullptr)
+        {
             return iterator();
+        }
+
         return iterator(blocksMap->cend());
     }
     iterator cbegin() const
@@ -358,16 +429,22 @@ public:
     {
         return end();
     }
-    iterator find(wstring name) const
+    iterator find(std::wstring name) const
     {
         if(blocksMap == nullptr)
+        {
             return iterator();
+        }
+
         return iterator(blocksMap->find(name));
     }
     std::size_t size() const
     {
         if(blocksMap == nullptr)
+        {
             return 0;
+        }
+
         return blocksMap->size();
     }
 };

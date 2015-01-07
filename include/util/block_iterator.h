@@ -35,13 +35,14 @@ class BlockIterator final
 {
     friend class World;
 public:
-    typedef CachedVariable<Block> BlockType;
-    typedef BlockChunk<BlockType> ChunkType;
+    typedef Block BlockType;
+    typedef BlockChunk ChunkType;
 private:
     ChunkType *chunk;
     std::unordered_map<PositionI, ChunkType> *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
+    BlockChunkReaderLock rlock;
     void getChunk()
     {
         auto iter = chunks->find(currentBasePosition);
@@ -51,9 +52,24 @@ private:
         }
         chunk = &std::get<1>(*iter);
     }
+    void setLock(BlockChunkLockType &new_lock)
+    {
+        if(rlock.mutex() != &new_lock)
+            rlock = BlockChunkReaderLock(new_lock);
+    }
+    void lockSubchunk()
+    {
+        VectorI currentSubchunkIndex = ChunkType::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
+        setLock(chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z].lock);
+    }
+    void unlock()
+    {
+        rlock.unlock();
+    }
     BlockIterator(ChunkType *chunk, std::unordered_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
+        lockSubchunk();
     }
 public:
     BlockIterator(std::unordered_map<PositionI, ChunkType> *chunks, PositionI position)
@@ -61,6 +77,12 @@ public:
     {
         assert(chunks != nullptr);
         getChunk();
+        lockSubchunk();
+    }
+    BlockIterator(const BlockIterator &rt)
+        : chunk(rt.chunk), chunks(rt.chunks), currentBasePosition(rt.currentBasePosition), currentRelativePosition(rt.currentRelativePosition)
+    {
+        lockSubchunk();
     }
     PositionI position() const
     {
@@ -76,6 +98,7 @@ public:
         }
         else
             currentRelativePosition.x--;
+        lockSubchunk();
     }
     void moveTowardNY()
     {
@@ -87,6 +110,7 @@ public:
         }
         else
             currentRelativePosition.y--;
+        lockSubchunk();
     }
     void moveTowardNZ()
     {
@@ -98,6 +122,7 @@ public:
         }
         else
             currentRelativePosition.z--;
+        lockSubchunk();
     }
     void moveTowardPX()
     {
@@ -109,6 +134,7 @@ public:
         }
         else
             currentRelativePosition.x++;
+        lockSubchunk();
     }
     void moveTowardPY()
     {
@@ -120,6 +146,7 @@ public:
         }
         else
             currentRelativePosition.y++;
+        lockSubchunk();
     }
     void moveTowardPZ()
     {
@@ -131,6 +158,7 @@ public:
         }
         else
             currentRelativePosition.z++;
+        lockSubchunk();
     }
     void moveToward(BlockFace bf)
     {
@@ -190,6 +218,7 @@ public:
             currentRelativePosition -= deltaBasePosition;
             getChunk();
         }
+        lockSubchunk();
     }
     void moveTo(VectorI pos)
     {
@@ -206,15 +235,16 @@ public:
             currentBasePosition = ChunkType::getChunkBasePosition(pos);
             currentRelativePosition = ChunkType::getChunkRelativePosition(pos);
             getChunk();
+            lockSubchunk();
         }
     }
     const BlockType &operator *() const
     {
-        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z].block;
     }
     const BlockType *operator ->() const
     {
-        return &chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+        return &chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z].block;
     }
 };
 }

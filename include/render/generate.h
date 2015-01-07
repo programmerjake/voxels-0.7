@@ -23,16 +23,18 @@
 #include <utility>
 #include <functional>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 inline Mesh reverse(const Mesh &mesh)
 {
-    vector<Triangle> triangles = mesh.triangles;
+    std::vector<Triangle> triangles = mesh.triangles;
     for(Triangle &tri : triangles)
     {
-        swap(tri.p1, tri.p2);
-        swap(tri.c1, tri.c2);
-        swap(tri.t1, tri.t2);
+        std::swap(tri.p1, tri.p2);
+        std::swap(tri.c1, tri.c2);
+        std::swap(tri.t1, tri.t2);
         VectorF n1 = -tri.n2;
         VectorF n2 = -tri.n1;
         VectorF n3 = -tri.n3;
@@ -43,11 +45,11 @@ inline Mesh reverse(const Mesh &mesh)
     return Mesh(std::move(triangles), mesh.image);
 }
 
-inline shared_ptr<Mesh> reverse(shared_ptr<Mesh> mesh)
+inline std::shared_ptr<Mesh> reverse(std::shared_ptr<Mesh> mesh)
 {
     if(!mesh)
         return nullptr;
-    return make_shared<Mesh>(reverse(*mesh));
+    return std::make_shared<Mesh>(reverse(*mesh));
 }
 
 inline TransformedMesh reverse(TransformedMesh mesh)
@@ -68,7 +70,7 @@ inline ColorizedMesh reverse(ColorizedMesh mesh)
     return mesh;
 }
 
-inline Mesh lightMesh(Mesh m, function<ColorF(ColorF color, VectorF position, VectorF normal)> lightVertex)
+inline Mesh lightMesh(Mesh m, std::function<ColorF(ColorF color, VectorF position, VectorF normal)> lightVertex)
 {
     for(Triangle & tri : m.triangles)
     {
@@ -87,7 +89,7 @@ namespace Generate
 		const TextureCoord t2 = TextureCoord(texture.maxU, texture.minV);
 		const TextureCoord t3 = TextureCoord(texture.maxU, texture.maxV);
 		const TextureCoord t4 = TextureCoord(texture.minU, texture.maxV);
-		return Mesh(vector<Triangle>{Triangle(p1, c1, t1, p2, c2, t2, p3, c3, t3), Triangle(p3, c3, t3, p4, c4, t4, p1, c1, t1)}, texture.image);
+		return Mesh(std::vector<Triangle>{Triangle(p1, c1, t1, p2, c2, t2, p3, c3, t3), Triangle(p3, c3, t3, p4, c4, t4, p1, c1, t1)}, texture.image);
 	}
 
 	/// make a box from <0, 0, 0> to <1, 1, 1>
@@ -160,6 +162,8 @@ namespace Generate
 		}
 		return retval;
 	}
+}
+}
 }
 
 #endif // GENERATE_H_INCLUDED

@@ -21,15 +21,17 @@
 #include "stream/stream.h"
 #include <vector>
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 namespace stream
 {
 
 class ZLibFormatException final : public IOException
 {
 public:
-    ZLibFormatException(const string &msg)
+    ZLibFormatException(const std::string &msg)
         : IOException("zlib error : " + msg)
     {
     }
@@ -38,17 +40,17 @@ public:
 class ExpandReader final : public Reader
 {
 private:
-    shared_ptr<Reader> preader;
+    std::shared_ptr<Reader> preader;
     Reader &reader;
-    shared_ptr<void> state;
-    static constexpr size_t bufferSize = 1 << 16;
-    vector<uint8_t> buffer, compressedBuffer;
-    size_t bufferPointer = 0;
+    std::shared_ptr<void> state;
+    static constexpr std::size_t bufferSize = 1 << 16;
+    std::vector<std::uint8_t> buffer, compressedBuffer;
+    std::size_t bufferPointer = 0;
     bool moreAvailable = false, gotEOF = false;
     void readBuffer();
     void readCompressedBuffer();
 public:
-    ExpandReader(shared_ptr<Reader> preader)
+    ExpandReader(std::shared_ptr<Reader> preader)
         : ExpandReader(*preader)
     {
         this->preader = preader;
@@ -63,7 +65,7 @@ public:
             return true;
         return false;
     }
-    virtual uint8_t readByte() override
+    virtual std::uint8_t readByte() override
     {
         if(dataAvailable())
             return buffer[bufferPointer++];
@@ -75,15 +77,15 @@ public:
 class CompressWriter final : public Writer
 {
 private:
-    shared_ptr<Writer> pwriter;
+    std::shared_ptr<Writer> pwriter;
     Writer &writer;
-    shared_ptr<void> state;
-    static constexpr size_t bufferSize = 1 << 16;
-    vector<uint8_t> buffer, compressedBuffer;
+    std::shared_ptr<void> state;
+    static constexpr std::size_t bufferSize = 1 << 16;
+    std::vector<std::uint8_t> buffer, compressedBuffer;
     void writeBuffer();
     void writeCompressedBuffer();
 public:
-    CompressWriter(shared_ptr<Writer> pwriter)
+    CompressWriter(std::shared_ptr<Writer> pwriter)
         : CompressWriter(*pwriter)
     {
         this->pwriter = pwriter;
@@ -98,7 +100,7 @@ public:
         finish();
         writer.flush();
     }
-    virtual void writeByte(uint8_t v) override
+    virtual void writeByte(std::uint8_t v) override
     {
         if(writeWaits())
         {
@@ -114,6 +116,8 @@ public:
     }
 };
 
+}
+}
 }
 
 #endif // COMPRESSED_STREAM_H_INCLUDED

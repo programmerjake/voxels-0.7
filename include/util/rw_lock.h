@@ -4,6 +4,8 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <cassert>
+#include <utility>
 #include "util/cpu_relax.h"
 #if __cplusplus > 201103L // c++14 or later
 #include <shared_mutex>
@@ -125,7 +127,7 @@ public:
 #endif
     class reader_view final
     {
-        friend class rw_lock_implementation;
+        friend struct rw_lock_implementation;
     private:
         rw_lock_implementation &theLock;
         reader_view(rw_lock_implementation &theLock)
@@ -148,7 +150,7 @@ public:
     };
     class writer_view final
     {
-        friend class rw_lock_implementation;
+        friend struct rw_lock_implementation;
     private:
         rw_lock_implementation &theLock;
         writer_view(rw_lock_implementation &theLock)
@@ -259,7 +261,7 @@ public:
     }
     class reader_view final
     {
-        friend class rw_lock_implementation;
+        friend struct rw_lock_implementation;
     private:
         rw_lock_implementation &theLock;
         reader_view(rw_lock_implementation &theLock)
@@ -282,7 +284,7 @@ public:
     };
     class writer_view final
     {
-        friend class rw_lock_implementation;
+        friend struct rw_lock_implementation;
     private:
         rw_lock_implementation &theLock;
         writer_view(rw_lock_implementation &theLock)
@@ -313,13 +315,210 @@ public:
     }
 };
 
-typedef rw_lock_implementation<true> rw_spinlock;
+typedef rw_lock_implementation<true> rw_spinlock [[deprecated("untested")]];
 typedef rw_lock_implementation<false> rw_lock;
 #if 1 // change when spinlock is checked
-typedef rw_blocking_lock rw_fast_lock;
+typedef rw_lock rw_fast_lock;
 #else
 typedef rw_spinlock rw_fast_lock;
 #endif
+
+template <typename T>
+class reader_lock final
+{
+    T *theLock;
+    bool locked;
+public:
+    constexpr reader_lock() noexcept
+        : theLock(nullptr), locked(false)
+    {
+    }
+    explicit reader_lock(T &lock)
+        : theLock(&lock), locked(true)
+    {
+        lock.reader_lock();
+    }
+    reader_lock(T &lock, std::defer_lock_t) noexcept
+        : theLock(&lock), locked(false)
+    {
+    }
+    reader_lock(T &lock, std::try_to_lock_t)
+        : theLock(&lock), locked(lock.reader_try_lock())
+    {
+    }
+    reader_lock(T &lock, std::adopt_lock_t) noexcept
+        : theLock(&lock), locked(true)
+    {
+    }
+    ~reader_lock()
+    {
+        if(theLock && locked)
+            theLock->reader_unlock();
+    }
+    reader_lock(reader_lock &&rt) noexcept
+        : theLock(rt.theLock), locked(rt.locked)
+    {
+        rt.theLock = nullptr;
+        rt.locked = false;
+    }
+    reader_lock &operator =(reader_lock &&rt)
+    {
+        if(theLock && locked)
+            theLock->reader_unlock();
+        theLock = rt.theLock;
+        locked = rt.locked;
+        rt.theLock = nullptr;
+        rt.locked = false;
+        return *this;
+    }
+    void lock()
+    {
+        assert(theLock && !locked);
+        theLock->reader_lock();
+        locked = true;
+    }
+    bool try_lock()
+    {
+        assert(theLock && !locked);
+        locked = theLock->reader_try_lock();
+        return locked;
+    }
+    void unlock()
+    {
+        assert(theLock && locked);
+        theLock->reader_unlock();
+        locked = false;
+    }
+    void swap(reader_lock<T> &rt) noexcept
+    {
+        std::swap(theLock, rt.theLock);
+        std::swap(locked, rt.locked);
+    }
+    T *release() noexcept
+    {
+        T *retval = theLock;
+        theLock = nullptr;
+        locked = false;
+    }
+    T *mutex() const noexcept
+    {
+        return theLock;
+    }
+    bool owns_lock() const noexcept
+    {
+        return locked;
+    }
+    explicit operator bool() const noexcept
+    {
+        return locked;
+    }
+};
+
+template <typename T>
+class writer_lock final
+{
+    T *theLock;
+    bool locked;
+public:
+    constexpr writer_lock() noexcept
+        : theLock(nullptr), locked(false)
+    {
+    }
+    explicit writer_lock(T &lock)
+        : theLock(&lock), locked(true)
+    {
+        lock.writer_lock();
+    }
+    writer_lock(T &lock, std::defer_lock_t) noexcept
+        : theLock(&lock), locked(false)
+    {
+    }
+    writer_lock(T &lock, std::try_to_lock_t)
+        : theLock(&lock), locked(lock.writer_try_lock())
+    {
+    }
+    writer_lock(T &lock, std::adopt_lock_t) noexcept
+        : theLock(&lock), locked(true)
+    {
+    }
+    ~writer_lock()
+    {
+        if(theLock && locked)
+            theLock->writer_unlock();
+    }
+    writer_lock(writer_lock &&rt) noexcept
+        : theLock(rt.theLock), locked(rt.locked)
+    {
+        rt.theLock = nullptr;
+        rt.locked = false;
+    }
+    writer_lock &operator =(writer_lock &&rt)
+    {
+        if(theLock && locked)
+            theLock->writer_unlock();
+        theLock = rt.theLock;
+        locked = rt.locked;
+        rt.theLock = nullptr;
+        rt.locked = false;
+        return *this;
+    }
+    void lock()
+    {
+        assert(theLock && !locked);
+        theLock->writer_lock();
+        locked = true;
+    }
+    bool try_lock()
+    {
+        assert(theLock && !locked);
+        locked = theLock->writer_try_lock();
+        return locked;
+    }
+    void unlock()
+    {
+        assert(theLock && locked);
+        theLock->writer_unlock();
+        locked = false;
+    }
+    void swap(writer_lock<T> &rt) noexcept
+    {
+        std::swap(theLock, rt.theLock);
+        std::swap(locked, rt.locked);
+    }
+    T *release() noexcept
+    {
+        T *retval = theLock;
+        theLock = nullptr;
+        locked = false;
+    }
+    T *mutex() const noexcept
+    {
+        return theLock;
+    }
+    bool owns_lock() const noexcept
+    {
+        return locked;
+    }
+    explicit operator bool() const noexcept
+    {
+        return locked;
+    }
+};
+}
+}
+
+namespace std
+{
+template <typename T>
+void swap(programmerjake::voxels::reader_lock<T> &l, programmerjake::voxels::reader_lock<T> &r) noexcept
+{
+    l.swap(r);
+}
+
+template <typename T>
+void swap(programmerjake::voxels::writer_lock<T> &l, programmerjake::voxels::writer_lock<T> &r) noexcept
+{
+    l.swap(r);
 }
 }
 

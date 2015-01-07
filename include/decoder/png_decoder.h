@@ -23,12 +23,14 @@
 #include <stdexcept>
 #include "stream/stream.h"
 
-using namespace std;
-
+namespace programmerjake
+{
+namespace voxels
+{
 class PngLoadError final : public stream::IOException
 {
 public:
-    explicit PngLoadError(const string & arg)
+    explicit PngLoadError(const std::string & arg)
         : IOException(arg)
     {
     }
@@ -41,7 +43,7 @@ class PngDecoder final
 {
 private:
     unsigned w, h;
-    uint8_t * data;
+    std::uint8_t * data;
     PngDecoder(const PngDecoder &) = delete;
     const PngDecoder &operator =(const PngDecoder &) = delete;
 public:
@@ -60,8 +62,8 @@ public:
     uint8_t operator()(int x, int y, int byteNum) const
     {
         if(x < 0 || (unsigned)x >= w || y < 0 || (unsigned)y >= h || byteNum < 0 || byteNum >= 4)
-            throw range_error("index out of range in PngDecoder::operator()(int x, int y, int byteNum) const");
-        size_t index = y;
+            throw std::range_error("index out of range in PngDecoder::operator()(int x, int y, int byteNum) const");
+        std::size_t index = y;
         index *= w;
         index += x;
         index *= 4;
@@ -76,12 +78,14 @@ public:
     {
         return h;
     }
-    uint8_t * removeData()
+    std::uint8_t * removeData()
     {
-        uint8_t * retval = data;
+        std::uint8_t * retval = data;
         data = nullptr;
         return retval;
     }
 };
+}
+}
 
 #endif // PNG_DECODER_H_INCLUDED
