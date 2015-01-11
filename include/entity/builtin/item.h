@@ -34,7 +34,7 @@ protected:
         std::int8_t count = 1;
         ItemData()
         {
-            std::minstd_rand generator((int)this);
+            std::minstd_rand generator((int)(std::intptr_t)this);
             generator.discard(1000);
             std::uniform_real_distribution<float> distribution(0, 2 * M_PI);
             angle = distribution(generator);

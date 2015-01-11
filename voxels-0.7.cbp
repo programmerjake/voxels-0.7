@@ -57,6 +57,7 @@
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
 		<Unit filename="include/entity/entity.h" />
+		<Unit filename="include/input/input.h" />
 		<Unit filename="include/lighting/lighting.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
@@ -93,11 +94,13 @@
 		<Unit filename="include/util/cpu_relax.h" />
 		<Unit filename="include/util/dimension.h" />
 		<Unit filename="include/util/enum_traits.h" />
+		<Unit filename="include/util/event.h" />
 		<Unit filename="include/util/flag.h" />
 		<Unit filename="include/util/game_version.h" />
 		<Unit filename="include/util/global_instance_maker.h" />
 		<Unit filename="include/util/linked_map.h" />
 		<Unit filename="include/util/matrix.h" />
+		<Unit filename="include/util/monitored_variable.h" />
 		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
 		<Unit filename="include/util/rw_lock.h" />
