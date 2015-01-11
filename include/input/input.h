@@ -8,9 +8,17 @@ namespace programmerjake
 {
 namespace voxels
 {
-class GameInput
+struct GameInput
 {
-
+    MonitoredBool isCreativeMode;
+    MonitoredBool jump;
+    MonitoredVector moveDirectionPlayerRelative;
+    MonitoredBool attack; // Left Mouse Button
+    MonitoredBool action; // Right Mouse Button
+    Event HotbarMoveLeft;
+    Event HotbarMoveRight;
+    Event HotbarSelect;
+    #warning finish
 };
 }
 }
