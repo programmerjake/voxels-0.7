@@ -54,13 +54,13 @@ public:
     {
         close(fd);
     }
-    virtual void writeByte(uint8_t v)
+    virtual void writeByte(uint8_t v) override
     {
         buffer.push_back(v);
         if(buffer.size() >= 16384)
             flush();
     }
-    virtual void flush()
+    virtual void flush() override
     {
         const uint8_t * pbuffer = buffer.data();
         ssize_t sizeLeft = buffer.size();

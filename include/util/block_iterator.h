@@ -64,35 +64,34 @@ public:
 class BlockIterator final
 {
     friend class World;
-public:
-    typedef Block BlockType;
-    typedef BlockChunk ChunkType;
-private:
-    ChunkType *chunk;
-    parallel_map<PositionI, ChunkType> *chunks;
+    BlockChunk *chunk;
+    parallel_map<PositionI, BlockChunk> *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk()
     {
-        auto iter = chunks->find(currentBasePosition);
-        if(iter == chunks->end())
+        auto iter = chunks->find_or_construct(currentBasePosition, [&]()->BlockChunk
         {
-            iter = std::get<0>(chunks->insert(std::pair<PositionI, ChunkType>(currentBasePosition, ChunkType(currentBasePosition))));
-        }
+            return BlockChunk(currentBasePosition);
+        });
         chunk = &std::get<1>(*iter);
+    }
+    BlockChunkSubchunk &getSubchunk() const
+    {
+        VectorI currentSubchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
+        return chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z];
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        VectorI currentSubchunkIndex = ChunkType::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
-        lock_manager.set(chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z].lock);
+        lock_manager.set(getSubchunk().lock);
     }
-    BlockIterator(ChunkType *chunk, parallel_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
+    BlockIterator(BlockChunk *chunk, parallel_map<PositionI, BlockChunk> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
     }
 public:
-    BlockIterator(parallel_map<PositionI, ChunkType> *chunks, PositionI position)
-        : chunks(chunks), currentBasePosition(ChunkType::getChunkBasePosition(position)), currentRelativePosition(ChunkType::getChunkRelativePosition(position))
+    BlockIterator(parallel_map<PositionI, BlockChunk> *chunks, PositionI position)
+        : chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
         getChunk();
@@ -105,8 +104,8 @@ public:
     {
         if(currentRelativePosition.x <= 0)
         {
-            currentRelativePosition.x = ChunkType::chunkSizeX - 1;
-            currentBasePosition.x -= ChunkType::chunkSizeX;
+            currentRelativePosition.x = BlockChunk::chunkSizeX - 1;
+            currentBasePosition.x -= BlockChunk::chunkSizeX;
             getChunk();
         }
         else
@@ -116,8 +115,8 @@ public:
     {
         if(currentRelativePosition.y <= 0)
         {
-            currentRelativePosition.y = ChunkType::chunkSizeY - 1;
-            currentBasePosition.y -= ChunkType::chunkSizeY;
+            currentRelativePosition.y = BlockChunk::chunkSizeY - 1;
+            currentBasePosition.y -= BlockChunk::chunkSizeY;
             getChunk();
         }
         else
@@ -127,8 +126,8 @@ public:
     {
         if(currentRelativePosition.z <= 0)
         {
-            currentRelativePosition.z = ChunkType::chunkSizeZ - 1;
-            currentBasePosition.z -= ChunkType::chunkSizeZ;
+            currentRelativePosition.z = BlockChunk::chunkSizeZ - 1;
+            currentBasePosition.z -= BlockChunk::chunkSizeZ;
             getChunk();
         }
         else
@@ -136,10 +135,10 @@ public:
     }
     void moveTowardPX()
     {
-        if(currentRelativePosition.x >= ChunkType::chunkSizeX - 1)
+        if(currentRelativePosition.x >= BlockChunk::chunkSizeX - 1)
         {
             currentRelativePosition.x = 0;
-            currentBasePosition.x += ChunkType::chunkSizeX;
+            currentBasePosition.x += BlockChunk::chunkSizeX;
             getChunk();
         }
         else
@@ -147,10 +146,10 @@ public:
     }
     void moveTowardPY()
     {
-        if(currentRelativePosition.y >= ChunkType::chunkSizeY - 1)
+        if(currentRelativePosition.y >= BlockChunk::chunkSizeY - 1)
         {
             currentRelativePosition.y = 0;
-            currentBasePosition.y += ChunkType::chunkSizeY;
+            currentBasePosition.y += BlockChunk::chunkSizeY;
             getChunk();
         }
         else
@@ -158,10 +157,10 @@ public:
     }
     void moveTowardPZ()
     {
-        if(currentRelativePosition.z >= ChunkType::chunkSizeZ - 1)
+        if(currentRelativePosition.z >= BlockChunk::chunkSizeZ - 1)
         {
             currentRelativePosition.z = 0;
-            currentBasePosition.z += ChunkType::chunkSizeZ;
+            currentBasePosition.z += BlockChunk::chunkSizeZ;
             getChunk();
         }
         else
@@ -218,7 +217,7 @@ public:
     void moveBy(VectorI delta)
     {
         currentRelativePosition += delta;
-        VectorI deltaBasePosition = ChunkType::getChunkBasePosition(currentRelativePosition);
+        VectorI deltaBasePosition = BlockChunk::getChunkBasePosition(currentRelativePosition);
         if(deltaBasePosition != VectorI(0))
         {
             currentBasePosition += deltaBasePosition;
@@ -238,15 +237,25 @@ public:
         }
         else
         {
-            currentBasePosition = ChunkType::getChunkBasePosition(pos);
-            currentRelativePosition = ChunkType::getChunkRelativePosition(pos);
+            currentBasePosition = BlockChunk::getChunkBasePosition(pos);
+            currentRelativePosition = BlockChunk::getChunkRelativePosition(pos);
             getChunk();
         }
     }
-    BlockType get(WorldLockManager &lock_manager) const
+private:
+    BlockChunkBlock &getBlock() const
+    {
+        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+    }
+    BlockChunkBlock &getBlock(WorldLockManager &lock_manager) const
     {
         updateLock(lock_manager);
-        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z].block;
+        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+    }
+public:
+    Block get(WorldLockManager &lock_manager) const
+    {
+        return getBlockChunkBlock(lock_manager).block;
     }
 };
 }

@@ -265,33 +265,27 @@ inline bool Block::operator==(const Block &r) const
     return descriptor->isDataEqual(data, r.data);
 }
 
-inline BlockLighting Block::calcBlockLighting(BlockIterator &bi, WorldLightingProperties wlp)
+inline BlockLighting Block::calcBlockLighting(BlockIterator &bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
 {
     std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    for(int x = 0; (size_t)x < blocks.size(); x++)
     {
-        BlockIteratorRecursiveLockGuard lockIt(bi);
-
-        for(int x = 0; (size_t)x < blocks.size(); x++)
+        for(int y = 0; (size_t)y < blocks[x].size(); y++)
         {
-            for(int y = 0; (size_t)y < blocks[x].size(); y++)
+            for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
             {
-                for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
+                BlockIterator curBi = bi;
+                curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
+                auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                const Block &b = curBi.get(lock_manager);
+
+                if(b)
                 {
-                    BlockIterator curBi = bi;
-                    curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
-                    auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-                    curBi.adopt_lock_or_lock(bi);
-                    const Block &b = curBi.get();
-                    bi.adopt_lock_if_locked(curBi);
-
-                    if(b)
-                    {
-                        std::get<0>(l) = b.descriptor->lightProperties;
-                        std::get<1>(l) = b.lighting;
-                    }
-
-                    blocks[x][y][z] = l;
+                    std::get<0>(l) = b.descriptor->lightProperties;
+                    std::get<1>(l) = b.lighting;
                 }
+
+                blocks[x][y][z] = l;
             }
         }
     }

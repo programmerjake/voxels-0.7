@@ -286,27 +286,26 @@ public:
         return BlockIterator(&chunks, pos);
     }
 private:
-    static BlockShape getBlockShape(BlockIterator &bi)
+    static BlockShape getBlockShape(BlockIterator &bi, WorldLockManager &lock_manager)
     {
-        BlockIteratorRecursiveLockGuard lockIt(bi);
-        return getBlockShape(bi.get());
+        return getBlockShape(bi.get(lock_manager));
     }
-    BlockShape getBlockShape(PositionI pos)
+    BlockShape getBlockShape(PositionI pos, WorldLockManager &lock_manager)
     {
         BlockIterator bi = getBlockIterator(pos);
-        return getBlockShape(bi);
+        return getBlockShape(bi, lock_manager);
     }
-    void setObjectToBlock(std::shared_ptr<PhysicsObject> &object, PositionI pos)
+    void setObjectToBlock(std::shared_ptr<PhysicsObject> &object, PositionI pos, WorldLockManager &lock_manager)
     {
         if(object == nullptr)
             object = PhysicsObject::makeEmptyNoAddToWorld(pos, VectorF(0), shared_from_this());
-        object->setToBlock(getBlockShape(pos), pos);
+        object->setToBlock(getBlockShape(pos, lock_manager), pos);
     }
-    void setObjectToBlock(std::shared_ptr<PhysicsObject> &object, BlockIterator &bi)
+    void setObjectToBlock(std::shared_ptr<PhysicsObject> &object, BlockIterator &bi, WorldLockManager &lock_manager)
     {
         if(object == nullptr)
             object = PhysicsObject::makeEmptyNoAddToWorld(bi.position(), VectorF(0), shared_from_this());
-        object->setToBlock(getBlockShape(bi), bi.position());
+        object->setToBlock(getBlockShape(bi, lock_manager), bi.position());
     }
 public:
     static constexpr float distanceEPS = 20 * eps;
@@ -379,10 +378,10 @@ private:
         variableSetIndex = (variableSetIndex != 0 ? 0 : 1);
     }
 public:
-    void runToTime(double stopTime);
-    void stepTime(double deltaTime)
+    void runToTime(double stopTime, WorldLockManager &lock_manager);
+    void stepTime(double deltaTime, WorldLockManager &lock_manager)
     {
-        runToTime(deltaTime + getCurrentTime());
+        runToTime(deltaTime + getCurrentTime(), lock_manager);
     }
 };
 
@@ -719,7 +718,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
     return false;
 }
 
-inline void PhysicsWorld::runToTime(double stopTime)
+inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
     std::cout << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << std::endl;
     float stepDuration = 1 / 20.0f;
@@ -784,7 +783,7 @@ inline void PhysicsWorld::runToTime(double stopTime)
                         BlockIterator bi = bixy;
                         for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
-                            setObjectToBlock(objectB, bi);
+                            setObjectToBlock(objectB, bi, lock_manager);
                             bool supported = objectA->isSupportedBy(*objectB);
                             if(supported)
                             {
@@ -966,7 +965,7 @@ inline void PhysicsWorld::runToTime(double stopTime)
                         BlockIterator bi = bixy;
                         for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
-                            setObjectToBlock(objectB, bi);
+                            setObjectToBlock(objectB, bi, lock_manager);
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;

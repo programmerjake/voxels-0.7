@@ -70,6 +70,14 @@ public:
     {
         return physicsWorld->getCurrentTime();
     }
+    BlockIterator getBlockIterator(PositionI position) const
+    {
+        return physicsWorld->getBlockIterator(position);
+    }
+    void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
+    {
+        bi.get()
+    }
 };
 }
 }
