@@ -20,6 +20,9 @@
 #include <cstdlib>
 
 using namespace std;
+using namespace programmerjake::voxels;
+
+thread_local char programmerjake::voxels::fast_thread_id_helper_variable;
 
 #if 0 // testing balanced_tree
 #include "util/balanced_tree.h"
@@ -91,7 +94,7 @@ initializer init2([]()
 });
 }
 #endif // testing solveCubic
-
+#if 0
 void * operator new(size_t sz) // for profiling
 {
     return malloc(sz);
@@ -101,3 +104,4 @@ void operator delete(void * ptr) // for profiling
 {
     free(ptr);
 }
+#endif

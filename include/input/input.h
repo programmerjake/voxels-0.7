@@ -11,14 +11,17 @@ namespace voxels
 struct GameInput
 {
     MonitoredBool isCreativeMode;
-    MonitoredBool jump;
-    MonitoredVector moveDirectionPlayerRelative;
+    MonitoredBool jump; // space
+    MonitoredVector moveDirectionPlayerRelative; // w a s d
     MonitoredBool attack; // Left Mouse Button
-    MonitoredBool action; // Right Mouse Button
-    Event HotbarMoveLeft;
-    Event HotbarMoveRight;
-    Event HotbarSelect;
-    #warning finish
+    Event action; // Right Mouse Button
+    Event HotbarMoveLeft; // scroll left
+    Event HotbarMoveRight; // scroll right
+    Event HotbarSelect; // touch hotbar
+    MonitoredBool sneak; // shift
+    Event drop; // q
+    Event openInventory; // e
+    MonitoredBool paused; // p esc
 };
 }
 }

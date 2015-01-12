@@ -31,6 +31,36 @@ namespace programmerjake
 {
 namespace voxels
 {
+class WorldLockManager final
+{
+    BlockChunkLockType *the_lock;
+public:
+    WorldLockManager()
+        : the_lock(nullptr)
+    {
+    }
+    WorldLockManager(const WorldLockManager &) = delete;
+    const WorldLockManager &operator =(const WorldLockManager &) = delete;
+    void clear()
+    {
+        if(the_lock != nullptr)
+            the_lock->unlock();
+        the_lock = nullptr;
+    }
+    ~WorldLockManager()
+    {
+        clear();
+    }
+    void set(BlockChunkLockType &new_lock)
+    {
+        if(the_lock == &new_lock)
+            return;
+        clear();
+        new_lock.lock();
+        the_lock = &new_lock;
+    }
+};
+
 class BlockIterator final
 {
     friend class World;
@@ -42,8 +72,6 @@ private:
     parallel_map<PositionI, ChunkType> *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
-    BlockChunkReaderLock rlock;
-    bool locked;
     void getChunk()
     {
         auto iter = chunks->find(currentBasePosition);
@@ -53,41 +81,21 @@ private:
         }
         chunk = &std::get<1>(*iter);
     }
-    void updateLock(BlockChunkLockType &new_lock)
-    {
-        if(!locked)
-            rlock = BlockChunkReaderLock();
-        else if(rlock.mutex() != &new_lock || !rlock.owns_lock())
-            rlock = BlockChunkReaderLock(new_lock);
-    }
-    void updateLock()
+    void updateLock(WorldLockManager &lock_manager) const
     {
         VectorI currentSubchunkIndex = ChunkType::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
-        updateLock(chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z].lock);
+        lock_manager.set(chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z].lock);
     }
     BlockIterator(ChunkType *chunk, parallel_map<PositionI, ChunkType> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
-        : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition), locked(false)
+        : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
-        updateLock();
     }
 public:
     BlockIterator(parallel_map<PositionI, ChunkType> *chunks, PositionI position)
-        : chunks(chunks), currentBasePosition(ChunkType::getChunkBasePosition(position)), currentRelativePosition(ChunkType::getChunkRelativePosition(position)), locked(false)
+        : chunks(chunks), currentBasePosition(ChunkType::getChunkBasePosition(position)), currentRelativePosition(ChunkType::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
         getChunk();
-        updateLock();
-    }
-    BlockIterator(const BlockIterator &rt)
-        : chunk(rt.chunk), chunks(rt.chunks), currentBasePosition(rt.currentBasePosition), currentRelativePosition(rt.currentRelativePosition), locked(false)
-    {
-        updateLock();
-    }
-    BlockIterator(BlockIterator &rt, std::adopt_lock_t)
-        : chunk(rt.chunk), chunks(rt.chunks), currentBasePosition(rt.currentBasePosition), currentRelativePosition(rt.currentRelativePosition), locked(rt.locked)
-    {
-        rlock = std::move(rt.rlock);
-        rt.locked = false;
     }
     PositionI position() const
     {
@@ -103,7 +111,6 @@ public:
         }
         else
             currentRelativePosition.x--;
-        updateLock();
     }
     void moveTowardNY()
     {
@@ -115,7 +122,6 @@ public:
         }
         else
             currentRelativePosition.y--;
-        updateLock();
     }
     void moveTowardNZ()
     {
@@ -127,7 +133,6 @@ public:
         }
         else
             currentRelativePosition.z--;
-        updateLock();
     }
     void moveTowardPX()
     {
@@ -139,7 +144,6 @@ public:
         }
         else
             currentRelativePosition.x++;
-        updateLock();
     }
     void moveTowardPY()
     {
@@ -151,7 +155,6 @@ public:
         }
         else
             currentRelativePosition.y++;
-        updateLock();
     }
     void moveTowardPZ()
     {
@@ -163,7 +166,6 @@ public:
         }
         else
             currentRelativePosition.z++;
-        updateLock();
     }
     void moveToward(BlockFace bf)
     {
@@ -223,7 +225,6 @@ public:
             currentRelativePosition -= deltaBasePosition;
             getChunk();
         }
-        updateLock();
     }
     void moveTo(VectorI pos)
     {
@@ -240,73 +241,13 @@ public:
             currentBasePosition = ChunkType::getChunkBasePosition(pos);
             currentRelativePosition = ChunkType::getChunkRelativePosition(pos);
             getChunk();
-            updateLock();
         }
     }
-    const BlockType &get() const
+    BlockType get(WorldLockManager &lock_manager) const
     {
-        assert(rlock.owns_lock());
+        updateLock(lock_manager);
         return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z].block;
     }
-    bool isLocked() const
-    {
-        return locked;
-    }
-    void setLocked(bool v)
-    {
-        locked = v;
-        updateLock();
-    }
-    void lock()
-    {
-        locked = true;
-        updateLock();
-    }
-    void unlock()
-    {
-        locked = false;
-        updateLock();
-    }
-    void adopt_lock_or_lock(BlockIterator &r)
-    {
-        if(locked)
-            return;
-        if(rlock.mutex() == r.rlock.mutex() && r.rlock.owns_lock())
-        {
-            std::swap(rlock, r.rlock);
-            std::swap(locked, r.locked);
-        }
-        else
-            lock();
-    }
-    void adopt_lock_if_locked(BlockIterator &r)
-    {
-        if(locked)
-            return;
-        if(rlock.mutex() == r.rlock.mutex() && r.rlock.owns_lock())
-        {
-            std::swap(rlock, r.rlock);
-            std::swap(locked, r.locked);
-        }
-    }
-};
-
-class BlockIteratorRecursiveLockGuard final
-{
-    BlockIterator &bi;
-    bool wasLocked;
-public:
-    BlockIteratorRecursiveLockGuard(BlockIterator &bi)
-        : bi(bi)
-    {
-        wasLocked = bi.isLocked();
-        bi.lock();
-    }
-    ~BlockIteratorRecursiveLockGuard()
-    {
-        bi.setLocked(wasLocked);
-    }
-    BlockIteratorRecursiveLockGuard(const BlockIteratorRecursiveLockGuard &) = delete;
 };
 }
 }

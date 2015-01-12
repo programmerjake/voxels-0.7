@@ -8,7 +8,7 @@
 #include "stream/compressed_stream.h"
 #include "util/basic_block_chunk.h"
 #include "render/mesh.h"
-#include "util/rw_lock.h"
+#include <mutex>
 #include "lighting/lighting.h"
 #include <array>
 #include <memory>
@@ -24,16 +24,14 @@ struct BlockChunkBlock final
     bool lightingValid = false;
 };
 
-typedef rw_lock BlockChunkLockType;
-typedef reader_lock<BlockChunkLockType> BlockChunkReaderLock;
-typedef writer_lock<BlockChunkLockType> BlockChunkWriterLock;
+typedef std::mutex BlockChunkLockType;
 
 struct BlockChunkSubchunk final
 {
-    rw_lock lock;
+    BlockChunkLockType lock;
     std::shared_ptr<Mesh> cachedMesh;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : cachedMesh(rt.cachedMesh)
+        : cachedMesh(nullptr)
     {
     }
     BlockChunkSubchunk() = default;

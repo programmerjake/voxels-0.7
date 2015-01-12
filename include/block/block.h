@@ -41,6 +41,7 @@ namespace voxels
 {
 class BlockDescriptor;
 class BlockIterator;
+class WorldLockManager;
 
 typedef const BlockDescriptor *BlockDescriptorPointer;
 
@@ -75,7 +76,7 @@ struct Block final
         return !operator ==(r);
     }
     void createNewLighting(Lighting oldLighting);
-    static BlockLighting calcBlockLighting(BlockIterator &bi_in, WorldLightingProperties wlp);
+    static BlockLighting calcBlockLighting(BlockIterator &bi_in, WorldLockManager &lock_manager, WorldLightingProperties wlp);
 };
 
 struct BlockShape final
@@ -133,7 +134,7 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator &blockIterator, RenderLayer rl, const BlockLighting &lighting) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator &blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
     {
         assert(false); // shouldn't be called
     }
@@ -160,7 +161,7 @@ public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator &blockIterator, RenderLayer rl, const BlockLighting &lighting) const
+    void render(const Block &block, Mesh &dest, BlockIterator &blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
     {
         if(isStaticMesh)
         {
@@ -173,30 +174,24 @@ public:
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
             Mesh &blockMesh = getTempRenderMesh();
             blockMesh.clear();
+            for(BlockFace bf : enum_traits<BlockFace>())
             {
-                BlockIteratorRecursiveLockGuard lockIt(blockIterator);
+                BlockIterator i = blockIterator;
+                i.moveToward(bf);
+                Block b = i.get(lock_manager);
 
-                for(BlockFace bf : enum_traits<BlockFace>())
+                if(!b)
                 {
-                    BlockIterator i = blockIterator;
-                    i.moveToward(bf);
-                    i.adopt_lock_or_lock(blockIterator);
-                    Block b = i.get();
-                    blockIterator.adopt_lock_if_locked(i);
-
-                    if(!b)
-                    {
-                        continue;
-                    }
-
-                    if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
-                    {
-                        continue;
-                    }
-
-                    blockMesh.append(meshFace[bf]);
-                    drewAny = true;
+                    continue;
                 }
+
+                if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                {
+                    continue;
+                }
+
+                blockMesh.append(meshFace[bf]);
+                drewAny = true;
             }
 
             if(drewAny)
@@ -208,10 +203,10 @@ public:
         }
         else
         {
-            renderDynamic(block, dest, blockIterator, rl, lighting);
+            renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual Block moveStep(const Block &block, BlockIterator &blockIterator) const
+    virtual Block moveStep(const Block &block, BlockIterator &blockIterator, WorldLockManager &lock_manager) const
     {
         return block;
     }
@@ -223,7 +218,7 @@ public:
     {
         return std::hash<std::shared_ptr<void>>()(data);
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
