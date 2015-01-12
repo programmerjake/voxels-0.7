@@ -22,6 +22,7 @@
 #include "ray_casting/ray_casting.h"
 #include "util/flag.h"
 #include "util/spin_lock.h"
+#include "util/parallel_map.h"
 
 namespace programmerjake
 {
@@ -31,6 +32,8 @@ class WorldGenerator;
 
 class World final
 {
+    World(const World &) = delete;
+    const World &operator =(const World &) = delete;
 public:
     typedef std::uint64_t SeedType;
     static SeedType makeSeed(std::wstring seed)
@@ -42,10 +45,6 @@ public:
         }
         return retval;
     }
-private:
-    std::shared_ptr<PhysicsWorld> physicsWorld;
-    std::shared_ptr<const WorldGenerator> worldGenerator;
-    SeedType worldGeneratorSeed;
 public:
     SeedType getWorldGeneratorSeed() const
     {
@@ -66,18 +65,41 @@ public:
     {
     }
     explicit World();
+    ~World();
     inline double getCurrentTime() const
     {
         return physicsWorld->getCurrentTime();
+    }
+    float scheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float timeLeft) // returns the time left for the previous block update or -1
+    {
+        BlockChunkBlock &b = bi.getBlock(lock_manager);
+        BlockUpdate *
+    }
+    float deleteBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind) // returns the time left for the previous block update or -1
+    {
+        return scheduleBlockUpdate(bi, lock_manager, kind, -1);
+    }
+    void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
+    {
+        BlockChunkBlock &b = bi.getBlock(lock_manager);
+        b.block = newBlock;
+        b.lightingValid = false;
+        bi.getSubchunk().cachedMesh = nullptr;
+        bi.chunk->chunkVariables.cachedMesh = nullptr;
+        for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+        {
+            scheduleBlockUpdate(bi, lock_manager, kind, 0);
+            #warning fix
+        }
     }
     BlockIterator getBlockIterator(PositionI position) const
     {
         return physicsWorld->getBlockIterator(position);
     }
-    void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
-    {
-        bi.get()
-    }
+private:
+    std::shared_ptr<PhysicsWorld> physicsWorld;
+    std::shared_ptr<const WorldGenerator> worldGenerator;
+    SeedType worldGeneratorSeed;
 };
 }
 }

@@ -255,7 +255,15 @@ private:
 public:
     Block get(WorldLockManager &lock_manager) const
     {
-        return getBlockChunkBlock(lock_manager).block;
+        return getBlock(lock_manager).block;
+    }
+    BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const
+    {
+        return BlockUpdateIterator(getBlock(lock_manager).updateListHead);
+    }
+    BlockUpdateIterator updatesEnd(WorldLockManager &) const
+    {
+        return BlockUpdateIterator();
     }
 };
 }

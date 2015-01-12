@@ -670,14 +670,16 @@ public:
         {
             if(the_comparer(std::get<0>(retval->value), key))
             {
-                return std::get<1>(retval->value);
+                lock_it.release();
+                return iterator(iterator_imp(retval, current_hash, this, true));
             }
         }
 
         Node *retval = new Node(key, constructFn(), key_hash);
         retval->hash_next = buckets[current_hash];
         buckets[current_hash] = retval;
-        return std::get<1>(retval->value);
+        lock_it.release();
+        return iterator(iterator_imp(retval, current_hash, this, true));
     }
     iterator find_or_construct(const key_type &key)
     {
