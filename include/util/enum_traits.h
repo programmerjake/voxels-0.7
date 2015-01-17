@@ -10,7 +10,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename T>
+template <typename T, typename = void>
 struct enum_traits;
 
 template <typename T>
@@ -128,13 +128,56 @@ struct enum_traits_default
 };
 
 template <typename T>
-struct enum_traits : public enum_traits_default<typename std::enable_if<std::is_enum<T>::value, T>::type, T::enum_first, T::enum_last>
+struct enum_traits<T, typename std::enable_if<std::is_enum<T>::value>::type> : public enum_traits_default<T, T::enum_first, T::enum_last>
 {
 };
 
 #define DEFINE_ENUM_LIMITS(first, last) \
 enum_first = first, \
 enum_last = last,
+
+template <typename T, typename BT>
+struct enum_struct
+{
+    typedef T type;
+    typedef BT base_type;
+    static_assert(std::is_integral<base_type>::value, "base type must be an integral type");
+    base_type value;
+    explicit constexpr enum_struct(base_type value)
+        : value(value)
+    {
+    }
+    enum_struct() = default;
+    explicit constexpr operator base_type() const
+    {
+        return value;
+    }
+};
+
+#define DEFINE_ENUM_STRUCT_LIMITS(first, last) \
+static constexpr type enum_first() {return first();} \
+static constexpr type enum_last() {return last();}
+
+template <typename T>
+struct enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>
+{
+    typedef T type;
+    typedef typename T::base_type rwtype;
+    static constexpr T minimum = T::enum_first();
+    static constexpr T maximum = T::enum_last();
+    static constexpr enum_iterator<T> begin()
+    {
+        return enum_iterator<T>(minimum);
+    }
+    static constexpr enum_iterator<T> end()
+    {
+        return enum_iterator<T>(maximum) + 1;
+    }
+    static constexpr std::size_t size()
+    {
+        return end() - begin();
+    }
+};
 
 template <typename T, typename EnumT>
 struct enum_array

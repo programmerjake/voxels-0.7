@@ -8,36 +8,28 @@ namespace programmerjake
 {
 namespace voxels
 {
-enum class BlockUpdateType
+struct BlockUpdateKind : public enum_struct<BlockUpdateKind, std::uint8_t>
 {
-    Lighting,
-    General,
-    DEFINE_ENUM_LIMITS(Lighting, General)
-};
-
-struct BlockUpdate
-{
-    double updateTime;
-    constexpr BlockUpdate(double updateTime = -1)
-        : updateTime(updateTime)
+    constexpr explicit BlockUpdateKind(base_type value)
+        : enum_struct(value)
     {
     }
-    constexpr bool good() const
+    BlockUpdateKind() = default;
+    static constexpr BlockUpdateKind Lighting() {return BlockUpdateKind(0);}
+    static constexpr BlockUpdateKind General() {return BlockUpdateKind(1);}
+    float defaultPeriod() const
     {
-        return updateTime >= 0;
+        switch((base_type)*this)
+        {
+        case (base_type)Lighting():
+            return 0;
+        case (base_type)General():
+            return 0.05;
+        }
+        assert(false);
+        return 0;
     }
-    constexpr bool empty() const
-    {
-        return !good();
-    }
-};
-
-typedef enum_array<BlockUpdate, BlockUpdateType> BlockUpdates;
-
-struct BlockUpdateDescriptor
-{
-    BlockUpdateType type;
-    BlockUpdate *update;
+    DEFINE_ENUM_STRUCT_LIMITS(Lighting, General)
 };
 }
 }

@@ -70,14 +70,34 @@ public:
     {
         return physicsWorld->getCurrentTime();
     }
-    float scheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float timeLeft) // returns the time left for the previous block update or -1
+    /** \brief reschedule a block update
+     *
+     * \param
+     * \param
+     * \return the time left for the previous block update or -1
+     *
+     */
+    float rescheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float timeLeft) // returns the time left for the previous block update or -1
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
-        BlockUpdate *
+        BlockUpdate **ppnode = &b.updateListHead;
+        BlockUpdate *pnode = b.updateListHead;
+        std::unique_lock<std::mutex> lockIt;
+        while(pnode != nullptr)
+        {
+            if(pnode->kind == kind)
+            {
+                if(timeLeft < 0)
+                {
+                    lockIt = std::unique_lock<std::mutex>(bi.chunk->chunkVariables.blockUpdateListLock);
+                    #error finish
+                }
+            }
+        }
     }
     float deleteBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind) // returns the time left for the previous block update or -1
     {
-        return scheduleBlockUpdate(bi, lock_manager, kind, -1);
+        return rescheduleBlockUpdate(bi, lock_manager, kind, -1);
     }
     void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
     {
@@ -88,8 +108,7 @@ public:
         bi.chunk->chunkVariables.cachedMesh = nullptr;
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
-            scheduleBlockUpdate(bi, lock_manager, kind, 0);
-            #warning fix
+            rescheduleBlockUpdate(bi, lock_manager, kind, kind.defaultPeriod());
         }
     }
     BlockIterator getBlockIterator(PositionI position) const

@@ -23,7 +23,7 @@ class BlockUpdate final
 {
     friend class World;
     friend class BlockUpdateIterator;
-    friend class BlockChunkChunkVariables;
+    friend struct BlockChunkChunkVariables;
 private:
     BlockUpdate *chunk_prev;
     BlockUpdate *chunk_next;
@@ -32,7 +32,7 @@ private:
     float time_left;
     BlockUpdateKind kind;
     BlockUpdate(BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next = nullptr)
-        : world_prev(nullptr), world_next(nullptr), block_next(block_next), position(position), time_left(time_left), kind(kind)
+        : chunk_prev(nullptr), chunk_next(nullptr), block_next(block_next), position(position), time_left(time_left), kind(kind)
     {
     }
     BlockUpdate(const BlockUpdate &) = delete;
@@ -155,16 +155,155 @@ struct BlockChunkChunkVariables final
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
 
+class BlockChunkFullLock final
+{
+    BlockChunk &chunk;
+public:
+    explicit BlockChunkFullLock(BlockChunk &chunk)
+        : chunk(chunk)
+    {
+        BlockChunkLockType *failed_lock = nullptr;
+
+        for(;;)
+        {
+try_again:
+
+            if(failed_lock != nullptr)
+            {
+                failed_lock->lock();
+            }
+
+            for(std::int32_t x = 0; x < BlockChunk::subchunkSizeXYZ; x++)
+            {
+                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
+                {
+                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                    {
+                        BlockChunkLockType &lock = chunk.subchunks[x][y][z].lock;
+
+                        if(&lock == failed_lock)
+                        {
+                            continue;
+                        }
+
+                        bool locked;
+
+                        try
+                        {
+                            locked = lock.try_lock();
+                        }
+                        catch(...)
+                        {
+                            for(z--; z >= 0; z--)
+                            {
+                                if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                {
+                                    chunk.subchunks[x][y][z].lock.unlock();
+                                }
+                            }
+
+                            for(y--; y >= 0; y--)
+                            {
+                                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                                {
+                                    if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                    {
+                                        chunk.subchunks[x][y][z].lock.unlock();
+                                    }
+                                }
+                            }
+
+                            for(x--; x >= 0; x--)
+                            {
+                                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
+                                {
+                                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                                    {
+                                        if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                        {
+                                            chunk.subchunks[x][y][z].lock.unlock();
+                                        }
+                                    }
+                                }
+                            }
+
+                            throw;
+                        }
+
+                        if(!locked)
+                        {
+                            for(z--; z >= 0; z--)
+                            {
+                                if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                {
+                                    chunk.subchunks[x][y][z].lock.unlock();
+                                }
+                            }
+
+                            for(y--; y >= 0; y--)
+                            {
+                                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                                {
+                                    if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                    {
+                                        chunk.subchunks[x][y][z].lock.unlock();
+                                    }
+                                }
+                            }
+
+                            for(x--; x >= 0; x--)
+                            {
+                                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
+                                {
+                                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                                    {
+                                        if(&chunk.subchunks[x][y][z].lock != failed_lock)
+                                        {
+                                            chunk.subchunks[x][y][z].lock.unlock();
+                                        }
+                                    }
+                                }
+                            }
+
+                            failed_lock.unlock();
+                            failed_lock = &chunk.subchunks[x][y][z].lock;
+                            goto try_again;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ~BlockChunkFullLock()
+    {
+        for(std::int32_t x = 0; x < BlockChunk::subchunkSizeXYZ; x++)
+        {
+            for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
+            {
+                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                {
+                    chunk.subchunks[x][y][z].lock.unlock();
+                }
+            }
+        }
+    }
+    BlockChunkFullLock(const BlockChunkFullLock &) = delete;
+
+};
+
 #if 0
 namespace stream
 {
 template <typename T, size_t ChunkSizeXV, size_t ChunkSizeYV, size_t ChunkSizeZV, bool TransmitCompressedV>
 struct is_value_changed<BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, TransmitCompressedV>>
 {
-    bool operator ()(std::shared_ptr<const BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, TransmitCompressedV>> value, VariableSet &variableSet) const
+    bool operator()(std::shared_ptr<const BlockChunk<T, ChunkSizeXV, ChunkSizeYV, ChunkSizeZV, TransmitCompressedV>> value, VariableSet &variableSet) const
     {
         if(value == nullptr)
+        {
             return false;
+        }
+
         return value->changeTracker.getChanged(variableSet);
     }
 };

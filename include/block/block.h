@@ -35,6 +35,7 @@
 #include "ray_casting/ray_casting.h"
 #include "lighting/lighting.h"
 #include "util/enum_traits.h"
+#include "util/block_update.h"
 
 namespace programmerjake
 {
@@ -45,13 +46,6 @@ class BlockIterator;
 class WorldLockManager;
 
 typedef const BlockDescriptor *BlockDescriptorPointer;
-
-enum class BlockUpdateKind : std::uint8_t
-{
-    Lighting,
-    General,
-    DEFINE_ENUM_LIMITS(Lighting, General)
-};
 
 struct Block final
 {
