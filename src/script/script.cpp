@@ -24,6 +24,10 @@
 #include <iostream>
 
 using namespace std;
+namespace programmerjake
+{
+namespace voxels
+{
 using namespace Scripting;
 
 namespace
@@ -2393,4 +2397,5 @@ initializer init([]()
 }
 
 #endif // Test Script
-
+}
+}

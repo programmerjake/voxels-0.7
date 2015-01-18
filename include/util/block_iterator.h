@@ -31,33 +31,45 @@ namespace programmerjake
 {
 namespace voxels
 {
-class WorldLockManager final
+struct WorldLockManager final
 {
-    BlockChunkLockType *the_lock;
-public:
-    WorldLockManager()
-        : the_lock(nullptr)
+    template <typename T>
+    class LockManager final
     {
-    }
-    WorldLockManager(const WorldLockManager &) = delete;
-    const WorldLockManager &operator =(const WorldLockManager &) = delete;
+        T *the_lock;
+    public:
+        LockManager()
+            : the_lock(nullptr)
+        {
+        }
+        LockManager(const LockManager &) = delete;
+        const LockManager &operator =(const LockManager &) = delete;
+        ~LockManager()
+        {
+            clear();
+        }
+        void clear()
+        {
+            if(the_lock != nullptr)
+                the_lock->unlock();
+            the_lock = nullptr;
+        }
+        void set(T &new_lock)
+        {
+            if(the_lock != &new_lock)
+            {
+                clear();
+                new_lock.lock();
+                the_lock = &new_lock;
+            }
+        }
+    };
+    LockManager<BlockChunkLockType> block_lock;
+    LockManager<std::mutex> chunk_lock;
     void clear()
     {
-        if(the_lock != nullptr)
-            the_lock->unlock();
-        the_lock = nullptr;
-    }
-    ~WorldLockManager()
-    {
-        clear();
-    }
-    void set(BlockChunkLockType &new_lock)
-    {
-        if(the_lock == &new_lock)
-            return;
-        clear();
-        new_lock.lock();
-        the_lock = &new_lock;
+        block_lock.clear();
+        chunk_lock.clear();
     }
 };
 
@@ -83,7 +95,7 @@ class BlockIterator final
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        lock_manager.set(getSubchunk().lock);
+        lock_manager.block_lock.set(getSubchunk().lock);
     }
     BlockIterator(BlockChunk *chunk, parallel_map<PositionI, BlockChunk> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)

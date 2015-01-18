@@ -1,3 +1,20 @@
+/*
+ * Voxels is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Voxels is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Voxels; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ *
+ */
 #include "entity/entity.h"
 #ifndef WORLD_H_INCLUDED
 #define WORLD_H_INCLUDED
@@ -70,14 +87,16 @@ public:
     {
         return physicsWorld->getCurrentTime();
     }
-    /** \brief reschedule a block update
+    /** @brief reschedule a block update
      *
-     * \param
-     * \param
-     * \return the time left for the previous block update or -1
+     * @param bi a <code>BlockIterator</code> to the block to reschedule the block update for
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param kind the kind of block update
+     * @param updateTimeFromNow how far in the future to schedule the block update or (for values < 0) a flag to delete the block update
+     * @return the time left for the previous block update or -1 if there is no previous block update
      *
      */
-    float rescheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float timeLeft) // returns the time left for the previous block update or -1
+    float rescheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         BlockUpdate **ppnode = &b.updateListHead;
@@ -87,7 +106,7 @@ public:
         {
             if(pnode->kind == kind)
             {
-                if(timeLeft < 0)
+                if(updateTimeFromNow < 0)
                 {
                     lockIt = std::unique_lock<std::mutex>(bi.chunk->chunkVariables.blockUpdateListLock);
                     #error finish

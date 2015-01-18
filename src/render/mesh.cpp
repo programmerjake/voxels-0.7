@@ -21,6 +21,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace programmerjake::voxels;
 
 Renderer & Renderer::operator <<(const Mesh & m)
 {

@@ -21,6 +21,9 @@
 #include "util/util.h"
 #include <iostream>
 
+using namespace std;
+using namespace programmerjake::voxels;
+
 const Text::TextProperties Text::defaultTextProperties = Text::TextProperties();
 
 namespace

@@ -43,7 +43,7 @@ namespace voxels
 {
 class BlockDescriptor;
 class BlockIterator;
-class WorldLockManager;
+struct WorldLockManager;
 
 typedef const BlockDescriptor *BlockDescriptorPointer;
 
