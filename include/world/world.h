@@ -68,21 +68,52 @@ public:
         return worldGeneratorSeed;
     }
 public:
+    /** @brief construct a world
+     *
+     * @param seed the world seed to use
+     * @param worldGenerator the world generator to use
+     *
+     */
     World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator)
         : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed)
     {
     }
+    /** @brief construct a world
+     *
+     * @param seed the world seed to use
+     * @param worldGenerator the world generator to use
+     *
+     */
     World(std::wstring seed, std::shared_ptr<const WorldGenerator> worldGenerator)
         : World(makeSeed(seed), worldGenerator)
     {
     }
+    /** @brief construct a world
+     *
+     * @param seed the world seed to use
+     *
+     */
     explicit World(SeedType seed);
+
+    /** @brief construct a world
+     *
+     * @param seed the world seed to use
+     *
+     */
     explicit World(std::wstring seed)
         : World(makeSeed(seed))
     {
     }
+    /** @brief construct a world
+     *
+     */
     explicit World();
     ~World();
+    /** @brief get the current world time
+     *
+     * @return the current world time
+     *
+     */
     inline double getCurrentTime() const
     {
         return physicsWorld->getCurrentTime();
@@ -101,23 +132,67 @@ public:
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         BlockUpdate **ppnode = &b.updateListHead;
         BlockUpdate *pnode = b.updateListHead;
-        std::unique_lock<std::mutex> lockIt;
+        float retval = -1;
         while(pnode != nullptr)
         {
             if(pnode->kind == kind)
             {
+                retval = pnode->time_left;
                 if(updateTimeFromNow < 0)
                 {
-                    lockIt = std::unique_lock<std::mutex>(bi.chunk->chunkVariables.blockUpdateListLock);
-                    #error finish
+                    *ppnode = pnode->block_next;
+                    lock_manager.chunk_lock.set(bi.chunk->chunkVariables.blockUpdateListLock);
+                    if(pnode->chunk_prev == nullptr)
+                        bi.chunk->chunkVariables.blockUpdateListHead = pnode->chunk_next;
+                    else
+                        pnode->chunk_prev->chunk_next = pnode->chunk_next;
+                    if(pnode->chunk_next == nullptr)
+                        bi.chunk->chunkVariables.blockUpdateListTail = pnode->chunk_prev;
+                    else
+                        pnode->chunk_next->chunk_prev = pnode->chunk_prev;
+                    delete pnode;
                 }
+                else
+                {
+                    pnode->time_left = updateTimeFromNow;
+                }
+                return retval;
             }
         }
+        if(updateTimeFromNow >= 0)
+        {
+            pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
+            b.updateListHead = pnode;
+            lock_manager.chunk_lock.set(bi.chunk->chunkVariables.blockUpdateListLock);
+            pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
+            pnode->chunk_prev = nullptr;
+            if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)
+                bi.chunk->chunkVariables.blockUpdateListHead->chunk_prev = pnode;
+            else
+                bi.chunk->chunkVariables.blockUpdateListTail = pnode;
+            bi.chunk->chunkVariables.blockUpdateListHead = pnode;
+        }
+        return retval;
     }
-    float deleteBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind) // returns the time left for the previous block update or -1
+    /** @brief delete a block update
+     *
+     * @param bi a <code>BlockIterator</code> to the block to delete the block update for
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param kind the kind of block update to delete
+     * @return the time left for the previous block update or -1 if there is no previous block update
+     *
+     */
+    float deleteBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind)
     {
         return rescheduleBlockUpdate(bi, lock_manager, kind, -1);
     }
+    /** @brief set a block
+     *
+     * @param bi a <code>BlockIterator</code> to the block to set
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param newBlock the new block
+     *
+     */
     void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
@@ -130,6 +205,12 @@ public:
             rescheduleBlockUpdate(bi, lock_manager, kind, kind.defaultPeriod());
         }
     }
+    /** @brief create a <code>BlockIterator</code>
+     *
+     * @param position the position to create a <code>BlockIterator</code> for
+     * @return the new <code>BlockIterator</code>
+     *
+     */
     BlockIterator getBlockIterator(PositionI position) const
     {
         return physicsWorld->getBlockIterator(position);

@@ -23,7 +23,7 @@
 using namespace std;
 using namespace programmerjake::voxels;
 
-Renderer & Renderer::operator <<(const Mesh & m)
+Renderer & programmerjake::voxels::Renderer::operator <<(const Mesh & m)
 {
     Display::render(m, depthBufferEnabled);
     return *this;
