@@ -31,6 +31,7 @@
 #include <memory>
 #include <atomic>
 #include <iterator>
+#include "util/atomic_shared_ptr.h"
 
 namespace programmerjake
 {
@@ -140,7 +141,7 @@ typedef std::mutex BlockChunkLockType;
 struct BlockChunkSubchunk final
 {
     BlockChunkLockType lock;
-    std::atomic<std::shared_ptr<Mesh>> cachedMesh;
+    atomic_shared_ptr<Mesh> cachedMesh;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
         : cachedMesh(nullptr)
     {
@@ -150,7 +151,7 @@ struct BlockChunkSubchunk final
 
 struct BlockChunkChunkVariables final
 {
-    std::atomic<std::shared_ptr<Mesh>> cachedMesh;
+    atomic_shared_ptr<Mesh> cachedMesh;
     BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
         : cachedMesh(nullptr)
     {

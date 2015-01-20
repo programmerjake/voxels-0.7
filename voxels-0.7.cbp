@@ -82,6 +82,7 @@
 		<Unit filename="include/texture/texture_atlas.h" />
 		<Unit filename="include/texture/texture_descriptor.h" />
 		<Unit filename="include/util/arena_allocator.h" />
+		<Unit filename="include/util/atomic_shared_ptr.h" />
 		<Unit filename="include/util/balanced_tree.h" />
 		<Unit filename="include/util/basic_block_chunk.h" />
 		<Unit filename="include/util/block_chunk.h" />

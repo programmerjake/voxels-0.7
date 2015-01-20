@@ -169,6 +169,18 @@ struct enum_struct
     {
         return value;
     }
+    explicit constexpr operator std::ptrdiff_t() const
+    {
+        return (std::ptrdiff_t)value;
+    }
+    constexpr bool operator ==(enum_struct rt) const
+    {
+        return value == rt.value;
+    }
+    constexpr bool operator !=(enum_struct rt) const
+    {
+        return value != rt.value;
+    }
 };
 
 #define DEFINE_ENUM_STRUCT_LIMITS(first, last) \
