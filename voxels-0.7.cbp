@@ -112,6 +112,7 @@
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
+		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="include/world/world_generator.h" />
 		<Unit filename="src/block/block.cpp" />
@@ -132,10 +133,12 @@
 		<Unit filename="src/stream/stream.cpp" />
 		<Unit filename="src/texture/image.cpp" />
 		<Unit filename="src/texture/texture_atlas.cpp" />
+		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
 		<Unit filename="src/util/matrix.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />
+		<Unit filename="src/world/view_point.cpp" />
 		<Unit filename="src/world/world.cpp" />
 		<Extensions>
 			<code_completion />

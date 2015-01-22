@@ -25,6 +25,8 @@
 #include "stream/compressed_stream.h"
 #include "util/basic_block_chunk.h"
 #include "render/mesh.h"
+#include "render/render_layer.h"
+#include "util/enum_traits.h"
 #include <mutex>
 #include "lighting/lighting.h"
 #include <array>
@@ -141,9 +143,9 @@ typedef std::mutex BlockChunkLockType;
 struct BlockChunkSubchunk final
 {
     BlockChunkLockType lock;
-    atomic_shared_ptr<Mesh> cachedMesh;
+    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshs;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : cachedMesh(nullptr)
+        : cachedMeshs(nullptr)
     {
     }
     BlockChunkSubchunk() = default;
@@ -151,9 +153,9 @@ struct BlockChunkSubchunk final
 
 struct BlockChunkChunkVariables final
 {
-    atomic_shared_ptr<Mesh> cachedMesh;
+    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshs;
     BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
-        : cachedMesh(nullptr)
+        : cachedMeshs(nullptr)
     {
     }
     BlockChunkChunkVariables() = default;

@@ -9,10 +9,28 @@ namespace programmerjake
 {
 namespace voxels
 {
+template <typename T = void>
+struct has_atomic_load_shared_ptr final
+{
+private:
+    typedef char yes;
+    struct no
+    {
+        char v[2];
+    };
+    template <std::shared_ptr<T> (*)(const std::shared_ptr<T> *) = &std::atomic_load>
+    static yes fn(const T *);
+    static no fn(...);
+public:
+    static constexpr bool value = sizeof(yes) == sizeof(decltype(fn((const T *)nullptr)));
+};
 /** @brief replacement for <code>std::atomic<std::shared_ptr<T>></code>
  */
+template <typename T, bool = has_atomic_load_shared_ptr<>::value>
+class atomic_shared_ptr;
+
 template <typename T>
-class atomic_shared_ptr final
+class atomic_shared_ptr<T, true> final
 {
     std::shared_ptr<T> value;
 public:
@@ -29,11 +47,11 @@ public:
     }
     void store(std::shared_ptr<T> value)
     {
-        std::atomic_store(&value, std::move(value));
+        std::atomic_store(&this->value, std::move(value));
     }
     void store(std::shared_ptr<T> value, std::memory_order mo)
     {
-        std::atomic_store_explicit(&value, std::move(value), mo);
+        std::atomic_store_explicit(&this->value, std::move(value), mo);
     }
     bool is_lock_free() const
     {
@@ -84,6 +102,130 @@ public:
         else if(mo == std::memory_order::memory_order_release)
             failure = std::memory_order::memory_order_relaxed;
         return std::atomic_compare_exchange_strong_explicit(&value, &expected, std::move(desired), success, failure);
+    }
+};
+
+class atomic_shared_ptr_mutex_holder final
+{
+private:
+    void *theLock;
+public:
+    atomic_shared_ptr_mutex_holder(void *theAtomicSharedPtr) noexcept;
+    void lock();
+    bool try_lock();
+    void unlock();
+};
+
+template <typename T>
+class atomic_shared_ptr<T, false> final
+{
+    std::shared_ptr<T> value;
+public:
+    atomic_shared_ptr() = default;
+    constexpr atomic_shared_ptr(std::shared_ptr<T> value)
+        : value(std::move(value))
+    {
+    }
+    atomic_shared_ptr(const atomic_shared_ptr &) = delete;
+    const atomic_shared_ptr &operator =(const atomic_shared_ptr &) = delete;
+    void operator =(std::shared_ptr<T> value)
+    {
+        store(std::move(value));
+    }
+    void store(std::shared_ptr<T> value)
+    {
+        atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
+        mutex_holder.lock();
+        this->value = std::move(value);
+        mutex_holder.unlock();
+    }
+    void store(std::shared_ptr<T> value, std::memory_order)
+    {
+        store(std::move(value));
+    }
+    bool is_lock_free() const
+    {
+        return false;
+    }
+    std::shared_ptr<T> load() const
+    {
+        atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
+        mutex_holder.lock();
+        std::shared_ptr<T> retval = value;
+        mutex_holder.unlock();
+        return std::move(retval);
+    }
+    std::shared_ptr<T> load(std::memory_order) const
+    {
+        return load();
+    }
+    operator std::shared_ptr<T>() const
+    {
+        return load();
+    }
+    std::shared_ptr<T> exchange(std::shared_ptr<T> desired)
+    {
+        atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
+        mutex_holder.lock();
+        std::shared_ptr<T> retval = value;
+        value = std::move(desired);
+        mutex_holder.unlock();
+        return std::move(retval);
+    }
+    std::shared_ptr<T> exchange(std::shared_ptr<T> desired, std::memory_order)
+    {
+        return exchange(std::move(desired));
+    }
+private:
+    static bool owner_equal(const std::shared_ptr<T> &a, const std::shared_ptr<T> &b)
+    {
+        return !a.owner_before(b) && !b.owner_before(a);
+    }
+    static bool total_equal(const std::shared_ptr<T> &a, const std::shared_ptr<T> &b)
+    {
+        return a == b && owner_equal(a, b);
+    }
+public:
+    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order, std::memory_order)
+    {
+        return compare_exchange_weak(expected, std::move(desired));
+    }
+    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
+    {
+        atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
+        if(!mutex_holder.try_lock())
+            return false;
+        bool retval = total_equal(value, expected);
+        if(retval)
+        {
+            value = std::move(desired);
+        }
+        else
+        {
+            expected = value;
+        }
+        mutex_holder.unlock();
+        return retval;
+    }
+    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
+    {
+        return compare_exchange_strong(expected, std::move(desired));
+    }
+    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
+    {
+        atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
+        mutex_holder.lock();
+        bool retval = total_equal(value, expected);
+        if(retval)
+        {
+            value = std::move(desired);
+        }
+        else
+        {
+            expected = value;
+        }
+        mutex_holder.unlock();
+        return retval;
     }
 };
 }

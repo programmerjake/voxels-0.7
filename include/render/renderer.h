@@ -66,6 +66,18 @@ public:
     {
         return *this << (Mesh)m;
     }
+    Renderer & operator <<(TransformedMeshRRef &&m)
+    {
+        return *this << (Mesh)std::move(m);
+    }
+    Renderer & operator <<(ColorizedMeshRRef &&m)
+    {
+        return *this << (Mesh)std::move(m);
+    }
+    Renderer & operator <<(ColorizedTransformedMeshRRef &&m)
+    {
+        return *this << (Mesh)std::move(m);
+    }
     Renderer & operator <<(std::shared_ptr<Mesh> m)
     {
         assert(m != nullptr);
