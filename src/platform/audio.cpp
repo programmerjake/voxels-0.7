@@ -146,15 +146,13 @@ struct PlayingAudioData
         return false;
     }
 };
-}
-}
 
 namespace
 {
 mutex audioStateMutex;
 unordered_set<shared_ptr<PlayingAudioData>> playingAudioSet;
 
-void startAudio(shared_ptr<PlayingAudioData> audio)
+void startAudioImp(shared_ptr<PlayingAudioData> audio)
 {
     assert(audio);
     {
@@ -165,7 +163,7 @@ void startAudio(shared_ptr<PlayingAudioData> audio)
     ::startAudio();
 }
 
-void stopAudio(shared_ptr<PlayingAudioData> audio)
+void stopAudioImp(shared_ptr<PlayingAudioData> audio)
 {
     assert(audio);
 
@@ -220,7 +218,7 @@ double PlayingAudio::currentTime()
 
 void PlayingAudio::stop()
 {
-    stopAudio(data);
+    stopAudioImp(data);
 }
 
 float PlayingAudio::volume()
@@ -291,9 +289,9 @@ Audio::Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCou
 
 shared_ptr<PlayingAudio> Audio::play(float volume, bool looped)
 {
-    ::startAudio();
+    programmerjake::voxels::startAudio();
     auto playingAudioData = make_shared<PlayingAudioData>(data, volume, looped);
-    ::startAudio(playingAudioData);
+    startAudioImp(playingAudioData);
     return shared_ptr<PlayingAudio>(new PlayingAudio(playingAudioData));
 }
 
@@ -329,3 +327,5 @@ initializer init1([]()
 });
 }
 #endif // 1
+}
+}

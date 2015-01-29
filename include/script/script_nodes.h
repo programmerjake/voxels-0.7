@@ -20,6 +20,10 @@
 
 #include "script/script.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace Scripting
 {
 template<uint32_t size, typename ChildClass>
@@ -3041,6 +3045,8 @@ struct NodeFor final : public NodeConstArgCount<4, NodeFor>
         }
     }
 };
+}
+}
 }
 
 #endif // SCRIPT_NODES_H_INCLUDED

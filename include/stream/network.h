@@ -21,6 +21,10 @@
 #include "stream/stream.h"
 #include <memory>
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace stream
 {
 
@@ -67,6 +71,8 @@ public:
     shared_ptr<StreamRW> accept() override;
 };
 
+}
+}
 }
 
 #endif // NETWORK_H_INCLUDED

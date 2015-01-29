@@ -27,6 +27,9 @@ namespace programmerjake
 namespace voxels
 {
 class KeyDownEvent;
+struct TouchUpEvent;
+struct TouchDownEvent;
+struct TouchMoveEvent;
 struct MouseUpEvent;
 struct MouseDownEvent;
 struct MouseMoveEvent;
@@ -37,6 +40,9 @@ struct QuitEvent;
 
 struct EventHandler
 {
+    virtual bool handleTouchUp(TouchUpEvent &event) = 0;
+    virtual bool handleTouchDown(TouchDownEvent &event) = 0;
+    virtual bool handleTouchMove(TouchMoveEvent &event) = 0;
     virtual bool handleMouseUp(MouseUpEvent &event) = 0;
     virtual bool handleMouseDown(MouseDownEvent &event) = 0;
     virtual bool handleMouseMove(MouseMoveEvent &event) = 0;
@@ -53,17 +59,20 @@ struct EventHandler
 class Event
 {
 public:
-    enum Type
+    enum class Type
     {
-        Type_MouseUp,
-        Type_MouseDown,
-        Type_MouseMove,
-        Type_MouseScroll,
-        Type_KeyUp,
-        Type_KeyDown,
-        Type_KeyPress,
-        Type_Quit,
-        DEFINE_ENUM_LIMITS(Type_MouseUp, Type_Quit)
+        TouchUp,
+        TouchDown,
+        TouchMove,
+        MouseUp,
+        MouseDown,
+        MouseMove,
+        MouseScroll,
+        KeyUp,
+        KeyDown,
+        KeyPress,
+        Quit,
+        DEFINE_ENUM_LIMITS(MouseUp, Quit)
     };
     const Type type;
 protected:
@@ -73,6 +82,56 @@ protected:
     }
 public:
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) = 0;
+};
+
+class TouchEvent : public Event
+{
+public:
+    const float x, y; /// normalized to the range -1 to 1
+    const float deltaX, deltaY;
+    const int touchId;
+    const float pressure;
+protected:
+    TouchEvent(Type type, float x, float y, float deltaX, float deltaY, int touchId, float pressure)
+        : Event(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY), touchId(touchId), pressure(pressure)
+    {
+    }
+};
+
+struct TouchDownEvent : public TouchEvent
+{
+    TouchDownEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
+        : TouchEvent(Type::TouchDown,  x, y, deltaX, deltaY, touchId, pressure)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handleTouchDown(*this);
+    }
+};
+
+struct TouchUpEvent : public TouchEvent
+{
+    TouchUpEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
+        : TouchEvent(Type::TouchUp,  x, y, deltaX, deltaY, touchId, pressure)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handleTouchUp(*this);
+    }
+};
+
+struct TouchMoveEvent : public TouchEvent
+{
+    TouchMoveEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
+        : TouchEvent(Type::TouchMove,  x, y, deltaX, deltaY, touchId, pressure)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handleTouchMove(*this);
+    }
 };
 
 class MouseEvent : public Event
@@ -102,7 +161,7 @@ class KeyDownEvent final : public KeyEvent
 {
 public:
     const bool isRepetition;
-    KeyDownEvent(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false) : KeyEvent(Type_KeyDown, key, mods), isRepetition(isRepetition)
+    KeyDownEvent(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false) : KeyEvent(Type::KeyDown, key, mods), isRepetition(isRepetition)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -115,7 +174,7 @@ class KeyUpEvent : public KeyEvent
 {
 public:
     KeyUpEvent(KeyboardKey key, KeyboardModifiers mods)
-        : KeyEvent(Type_KeyUp, key, mods)
+        : KeyEvent(Type::KeyUp, key, mods)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -128,7 +187,7 @@ struct KeyPressEvent : public Event
 {
     const wchar_t character;
     KeyPressEvent(wchar_t character)
-        : Event(Type_KeyPress), character(character)
+        : Event(Type::KeyPress), character(character)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -149,7 +208,7 @@ protected:
 
 struct MouseUpEvent : public MouseButtonEvent
 {
-    MouseUpEvent(float x, float y, float deltaX, float deltaY, MouseButton button) : MouseButtonEvent(Type_MouseUp, x, y, deltaX, deltaY, button)
+    MouseUpEvent(float x, float y, float deltaX, float deltaY, MouseButton button) : MouseButtonEvent(Type::MouseUp, x, y, deltaX, deltaY, button)
     {
     }
 
@@ -162,7 +221,7 @@ struct MouseUpEvent : public MouseButtonEvent
 struct MouseDownEvent : public MouseButtonEvent
 {
     MouseDownEvent(float x, float y, float deltaX, float deltaY, MouseButton button)
-        : MouseButtonEvent(Type_MouseDown, x, y, deltaX, deltaY, button)
+        : MouseButtonEvent(Type::MouseDown, x, y, deltaX, deltaY, button)
     {
     }
 
@@ -175,7 +234,7 @@ struct MouseDownEvent : public MouseButtonEvent
 struct MouseMoveEvent : public MouseEvent
 {
     MouseMoveEvent(float x, float y, float deltaX, float deltaY)
-        : MouseEvent(Type_MouseMove, x, y, deltaX, deltaY)
+        : MouseEvent(Type::MouseMove, x, y, deltaX, deltaY)
     {
     }
 
@@ -185,11 +244,11 @@ struct MouseMoveEvent : public MouseEvent
     }
 };
 
-struct MouseScrollEvent : public MouseEvent
+struct MouseScrollEvent : public Event
 {
     const int scrollX, scrollY;
-    MouseScrollEvent(float x, float y, float deltaX, float deltaY, int scrollX, int scrollY)
-        : MouseEvent(Type_MouseScroll, x, y, deltaX, deltaY), scrollX(scrollX), scrollY(scrollY)
+    MouseScrollEvent(int scrollX, int scrollY)
+        : Event(Type::MouseScroll), scrollX(scrollX), scrollY(scrollY)
     {
     }
 
@@ -202,7 +261,7 @@ struct MouseScrollEvent : public MouseEvent
 struct QuitEvent : public Event
 {
     QuitEvent()
-        : Event(Type_Quit)
+        : Event(Type::Quit)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -219,6 +278,33 @@ public:
     CombinedEventHandler(std::shared_ptr<EventHandler> first, std::shared_ptr<EventHandler> second)
         : first(first), second(second)
     {
+    }
+    virtual bool handleTouchUp(TouchUpEvent &event) override
+    {
+        if(first->handleTouchUp(event))
+        {
+            return true;
+        }
+
+        return second->handleTouchUp(event);
+    }
+    virtual bool handleTouchDown(TouchDownEvent &event) override
+    {
+        if(first->handleTouchDown(event))
+        {
+            return true;
+        }
+
+        return second->handleTouchDown(event);
+    }
+    virtual bool handleTouchMove(TouchMoveEvent &event) override
+    {
+        if(first->handleTouchMove(event))
+        {
+            return true;
+        }
+
+        return second->handleTouchMove(event);
     }
     virtual bool handleMouseUp(MouseUpEvent &event) override
     {

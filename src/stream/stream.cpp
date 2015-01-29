@@ -25,6 +25,10 @@
 
 using namespace std;
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace stream
 {
 
@@ -225,4 +229,6 @@ initializer init1([]()
 }
 #endif // 1
 
+}
+}
 }

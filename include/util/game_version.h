@@ -35,4 +35,12 @@ namespace GameVersion
 #endif
 };
 
+namespace programmerjake
+{
+namespace voxels
+{
+using GameVersion = ::GameVersion;
+}
+}
+
 #endif // GAME_VERSION_H_INCLUDED

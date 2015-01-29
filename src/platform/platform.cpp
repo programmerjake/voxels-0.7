@@ -30,14 +30,25 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include "platform/audio.h"
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
 #endif // SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 
+#ifndef SDL_HINT_SIMULATE_INPUT_EVENTS
+#define SDL_HINT_SIMULATE_INPUT_EVENTS "SDL_SIMULATE_INPUT_EVENTS"
+#endif // SDL_HINT_SIMULATE_INPUT_EVENTS
+
 using namespace std;
 
+namespace programmerjake
+{
+namespace voxels
+{
 double Display::realtimeTimer()
 {
     return static_cast<double>(chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count()) * 1e-9;
@@ -89,7 +100,62 @@ static void startSDL();
 #ifdef _WIN64
 #error implement getResourceReader for Win64
 #elif _WIN32
-#error implement getResourceReader for Win32
+#include <cstring>
+#include <cwchar>
+#include <windows.h>
+static wchar_t * ResourcePrefix = nullptr;
+static wstring getExecutablePath();
+
+static void initfn();
+
+static wstring getResourceFileName(wstring resource)
+{
+    initfn();
+    return wstring(ResourcePrefix) + resource;
+}
+
+static wstring getExecutablePath()
+{
+    wchar_t buf[PATH_MAX + 1];
+    DWORD rv = GetModuleFileNameW(NULL, &buf[0], PATH_MAX + 1);
+    if(rv >= PATH_MAX + 1)
+    {
+        throw runtime_error(string("can't get executable path"));
+    }
+    buf[rv] = '\0';
+    return wstring(&buf[0]);
+}
+
+static void initfn()
+{
+    static bool ran = false;
+    if(ran)
+        return;
+    ran = true;
+    wstring p = getExecutablePath();
+    size_t pos = p.find_last_of(L"/\\");
+    if(pos == wstring::npos)
+        p = L"";
+    else
+        p = p.substr(0, pos + 1);
+    p = p + wstring(L"res/");
+    ResourcePrefix = new wchar_t[p.size() + 1];
+    for(size_t i = 0; i < p.size(); i++)
+        ResourcePrefix[i] = p[i];
+    ResourcePrefix[p.size()] = L'\0';
+}
+
+initializer initializer1([]()
+{
+    initfn();
+});
+
+shared_ptr<Reader> getResourceReader(wstring resource)
+{
+    startSDL();
+    string fname = wstringToString(getResourceFileName(resource));
+    return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
+}
 #elif __ANDROID
 #error implement getResourceReader for Android
 #elif __APPLE__
@@ -176,7 +242,7 @@ static void startSDL()
 {
     if(runningSDL.exchange(true))
         return;
-    if(0 != SDL_Init(SDL_INIT_TIMER))
+    if(0 != SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO))
     {
         cerr << "error : can't start SDL : " << SDL_GetError() << endl;
         exit(1);
@@ -212,13 +278,6 @@ void startAudio()
     {
         SDLUseCount++;
         startSDL();
-        if(0 != SDL_InitSubSystem(SDL_INIT_AUDIO))
-        {
-            cerr << "error : can't start SDL audio subsystem : " << SDL_GetError() << endl;
-            SDLUseCount--;
-            runningAudio = false;
-            exit(1);
-        }
         validAudio = true;
         SDL_AudioSpec desired;
         desired.callback = PlayingAudio::audioCallback;
@@ -248,7 +307,6 @@ void endAudio()
         validAudio = false;
         SDL_CloseAudioDevice(globalAudioDeviceID);
         globalAudioDeviceID = 0;
-        SDL_QuitSubSystem(SDL_INIT_AUDIO);
         if(--SDLUseCount <= 0)
         {
             if(runningSDL.exchange(false))
@@ -270,7 +328,6 @@ void endGraphics()
         glcontext = nullptr;
         SDL_DestroyWindow(window);
         window = nullptr;
-        SDL_QuitSubSystem(SDL_INIT_VIDEO);
     }
     if(--SDLUseCount <= 0)
     {
@@ -287,13 +344,6 @@ void startGraphics()
         return;
     SDLUseCount++;
     startSDL();
-    if(0 != SDL_InitSubSystem(SDL_INIT_VIDEO))
-    {
-        cerr << "error : can't start SDL video subsystem : " << SDL_GetError() << endl;
-        SDLUseCount--;
-        runningGraphics = false;
-        exit(1);
-    }
 #if 0
     const SDL_VideoInfo * vidInfo = SDL_GetVideoInfo();
     if(vidInfo == nullptr)
@@ -340,6 +390,7 @@ void startGraphics()
         exit(1);
     }
     SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
+    SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
     getExtensions();
 }
 
@@ -749,6 +800,40 @@ static MouseButton buttonState = MouseButton_None;
 
 static bool needQuitEvent = false;
 
+static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
+{
+    typedef pair<SDL_TouchId, SDL_FingerId> Id;
+    static shared_ptr<unordered_map<Id, int>> touchMap;
+    static shared_ptr<unordered_set<int>> allocatedIds;
+    if(touchMap == nullptr)
+        touchMap = make_shared<unordered_map<Id, int>>();
+    if(allocatedIds == nullptr)
+        allocatedIds = make_shared<unordered_set<int>>();
+    Id id(tid, fid);
+    auto iter = touchMap->find(id);
+    if(iter == touchMap->end())
+    {
+        int newId = allocatedIds->size();
+        for(size_t i = 0; i < allocatedIds->size(); i++)
+        {
+            if(0 == allocatedIds->count(i))
+            {
+                newId = i;
+                break;
+            }
+        }
+        allocatedIds->insert(newId);
+        iter = std::get<0>(touchMap->insert(make_pair(id, newId)));
+    }
+    int retval = std::get<1>(iter);
+    if(remove)
+    {
+        touchMap->erase(iter);
+        allocatedIds->erase(retval);
+    }
+    return retval;
+}
+
 static Event *makeEvent()
 {
     static bool needCharEvent = false;
@@ -789,19 +874,39 @@ static Event *makeEvent()
             return retval;
         }
         case SDL_MOUSEMOTION:
+        {
+            if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
+                break;
             return new MouseMoveEvent(SDLEvent.motion.x, SDLEvent.motion.y, SDLEvent.motion.xrel, SDLEvent.motion.yrel);
+        }
+        case SDL_MOUSEWHEEL:
+        {
+            if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
+                break;
+            return new MouseScrollEvent(SDLEvent.wheel.x, SDLEvent.wheel.y);
+        }
         case SDL_MOUSEBUTTONDOWN:
         {
+            if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
+                break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState | button); // set bit
             return new MouseDownEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
         }
         case SDL_MOUSEBUTTONUP:
         {
+            if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
+                break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState & ~button); // clear bit
             return new MouseUpEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
         }
+        case SDL_FINGERMOTION:
+            return new TouchMoveEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+        case SDL_FINGERDOWN:
+            return new TouchDownEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+        case SDL_FINGERUP:
+            return new TouchUpEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true), SDLEvent.tfinger.pressure);
         case SDL_JOYAXISMOTION:
         case SDL_JOYBALLMOTION:
         case SDL_JOYHATMOTION:
@@ -1323,4 +1428,6 @@ void Display::render(shared_ptr<CachedMesh> m, bool enableDepthBuffer)
 static void getExtensions()
 {
     getOpenGLBuffersExtension();
+}
+}
 }

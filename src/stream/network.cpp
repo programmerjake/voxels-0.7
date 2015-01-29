@@ -28,6 +28,10 @@
 
 using namespace std;
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace stream
 {
 
@@ -224,4 +228,6 @@ shared_ptr<StreamRW> NetworkServer::accept()
     return shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
 }
 
+}
+}
 }
