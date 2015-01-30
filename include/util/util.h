@@ -53,12 +53,12 @@ constexpr T ensureInRange(const T v, const T minV, const T maxV)
     return (constexpr_assert(!(v < minV) && !(maxV < v)), v);
 }
 
-int ifloor(float v)
+inline int ifloor(float v)
 {
     return floor(v);
 }
 
-int iceil(float v)
+inline int iceil(float v)
 {
     return ceil(v);
 }

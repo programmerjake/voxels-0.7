@@ -33,7 +33,8 @@ void ViewPoint::generateMeshesFn()
         {
             WorldLockManager lock_manager;
             PositionI chunkPosition;
-            #error finish
+            #warning finish
+            assert(false);
         }
         lockIt.lock();
         blockRenderMeshes = std::move(meshes);
@@ -42,7 +43,7 @@ void ViewPoint::generateMeshesFn()
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
     : position(position), viewDistance(viewDistance), shuttingDown(false), blockRenderMeshes(nullptr), world(world)
 {
-    generateMeshesThread = thread([this](){generateMeshesFn();});
+    generateMeshesThread = std::thread([this](){generateMeshesFn();});
 }
 ViewPoint::~ViewPoint()
 {

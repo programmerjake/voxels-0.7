@@ -30,31 +30,13 @@
 
 using namespace std;
 
-bool World::generateChunk()
+namespace programmerjake
 {
-    lock_guard<mutex> lockIt(generateChunkMutex);
-    if(needGenerateChunksList.empty())
-        return false;
-    PositionI cpos = needGenerateChunksList.front();
-    needGenerateChunksList.pop_front();
-    needGenerateChunksSet.erase(cpos);
-    generatedChunksSet.insert(cpos);
-    shared_ptr<World> pworld = make_shared<World>(worldGeneratorSeed, nullptr);
-    {
-        unlock_guard<mutex> unlockIt(generateChunkMutex);
-        assert(worldGenerator != nullptr);
-        World &world = *pworld;
-        worldGenerator->generateChunk(cpos, world);
-        world.generatedChunksSet.insert(cpos);
-    }
-    generatedChunksList.push_back(pworld);
-    return true;
-}
-
-thread_local list<World::BlockUpdate> World::freeBlockUpdates;
-
+namespace voxels
+{
 namespace
 {
+#if 0
 class MyWorldGenerator final : public WorldGenerator
 {
 public:
@@ -245,6 +227,11 @@ public:
 shared_ptr<const WorldGenerator> makeWorldGenerator()
 {
     return make_shared<MyWorldGenerator>();
+#else
+shared_ptr<const WorldGenerator> makeWorldGenerator()
+{
+    assert(false);
+#endif
 }
 }
 
@@ -268,12 +255,6 @@ World::SeedType makeSeed(wstring seed)
 }
 }
 
-World::World(wstring seed)
-    : World(makeSeed(seed))
-{
-
-}
-
 namespace
 {
 World::SeedType makeRandomSeed()
@@ -289,6 +270,7 @@ World::World()
 
 }
 
+#if 0
 namespace
 {
 Lighting getBlockLighting(BlockIterator bi)
@@ -350,4 +332,7 @@ void World::updateLighting()
             return;
     }
     while(removeBlockUpdate(BlockUpdateType::Lighting, bu));
+}
+#endif
+}
 }

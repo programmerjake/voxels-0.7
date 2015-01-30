@@ -22,6 +22,10 @@
 
 using namespace std;
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace
 {
 Image loadImage()
@@ -428,4 +432,6 @@ const TextureAtlas &TextureAtlas::Fire(int index)
 int TextureAtlas::FireFrameCount()
 {
     return 32;
+}
+}
 }

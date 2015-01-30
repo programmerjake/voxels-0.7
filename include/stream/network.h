@@ -20,6 +20,7 @@
 
 #include "stream/stream.h"
 #include <memory>
+#include <string>
 
 namespace programmerjake
 {
@@ -31,7 +32,7 @@ namespace stream
 class NetworkException : public IOException
 {
 public:
-    explicit NetworkException(string msg)
+    explicit NetworkException(std::string msg)
         : IOException(msg)
     {
     }
@@ -41,19 +42,19 @@ class NetworkConnection final : public StreamRW
 {
     friend class NetworkServer;
 private:
-    shared_ptr<Reader> readerInternal;
-    shared_ptr<Writer> writerInternal;
+    std::shared_ptr<Reader> readerInternal;
+    std::shared_ptr<Writer> writerInternal;
     NetworkConnection(int readFd, int writeFd)
         : readerInternal(new FileReader(fdopen(readFd, "r"))), writerInternal(new FileWriter(fdopen(writeFd, "w")))
     {
     }
 public:
-    explicit NetworkConnection(wstring url, uint16_t port);
-    shared_ptr<Reader> preader() override
+    explicit NetworkConnection(std::wstring url, uint16_t port);
+    std::shared_ptr<Reader> preader() override
     {
         return readerInternal;
     }
-    shared_ptr<Writer> pwriter() override
+    std::shared_ptr<Writer> pwriter() override
     {
         return writerInternal;
     }
@@ -68,7 +69,7 @@ private:
 public:
     explicit NetworkServer(uint16_t port);
     ~NetworkServer();
-    shared_ptr<StreamRW> accept() override;
+    std::shared_ptr<StreamRW> accept() override;
 };
 
 }

@@ -21,6 +21,12 @@
 #include <cstring>
 #include <iostream>
 
+using namespace std;
+
+namespace programmerjake
+{
+namespace voxels
+{
 Image::Image(wstring resourceName)
 {
     try
@@ -271,4 +277,5 @@ Image Image::read(stream::Reader &reader, VariableSet &variableSet)
     variableSet.set(descriptor, retval.data);
     return retval;
 }
-
+}
+}

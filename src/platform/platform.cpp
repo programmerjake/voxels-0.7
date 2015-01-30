@@ -15,12 +15,12 @@
  * MA 02110-1301, USA.
  *
  */
+#include "util/game_version.h"
 #include "platform/platform.h"
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include "util/matrix.h"
 #include "util/vector.h"
-#include "util/game_version.h"
 #include "util/string_cast.h"
 #include <cwchar>
 #include <string>
@@ -802,11 +802,18 @@ static bool needQuitEvent = false;
 
 static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
 {
-    typedef pair<SDL_TouchId, SDL_FingerId> Id;
-    static shared_ptr<unordered_map<Id, int>> touchMap;
+    typedef pair<SDL_TouchID, SDL_FingerID> Id;
+    struct hashId
+    {
+        size_t operator ()(Id id) const
+        {
+            return std::hash<SDL_TouchID>()(std::get<0>(id)) + std::hash<SDL_FingerID>()(std::get<1>(id));
+        }
+    };
+    static shared_ptr<unordered_map<Id, int, hashId>> touchMap;
     static shared_ptr<unordered_set<int>> allocatedIds;
     if(touchMap == nullptr)
-        touchMap = make_shared<unordered_map<Id, int>>();
+        touchMap = make_shared<unordered_map<Id, int, hashId>>();
     if(allocatedIds == nullptr)
         allocatedIds = make_shared<unordered_set<int>>();
     Id id(tid, fid);
@@ -825,7 +832,7 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
         allocatedIds->insert(newId);
         iter = std::get<0>(touchMap->insert(make_pair(id, newId)));
     }
-    int retval = std::get<1>(iter);
+    int retval = std::get<1>(*iter);
     if(remove)
     {
         touchMap->erase(iter);
@@ -929,6 +936,18 @@ namespace
 {
 struct DefaultEventHandler : public EventHandler
 {
+    virtual bool handleTouchUp(TouchUpEvent &) override
+    {
+        return true;
+    }
+    virtual bool handleTouchDown(TouchDownEvent &) override
+    {
+        return true;
+    }
+    virtual bool handleTouchMove(TouchMoveEvent &) override
+    {
+        return true;
+    }
     virtual bool handleMouseUp(MouseUpEvent &) override
     {
         return true;
@@ -1022,7 +1041,7 @@ void Display::title(wstring newTitle)
 
 void Display::handleEvents(shared_ptr<EventHandler> eventHandler)
 {
-    ::handleEvents(eventHandler);
+    programmerjake::voxels::handleEvents(eventHandler);
 }
 
 static double timer_;
@@ -1045,17 +1064,17 @@ void Display::flip(float fps)
 
 double Display::instantaneousFPS()
 {
-    return ::instantaneousFPS();
+    return programmerjake::voxels::instantaneousFPS();
 }
 
 double Display::frameDeltaTime()
 {
-    return ::frameDeltaTime();
+    return programmerjake::voxels::frameDeltaTime();
 }
 
 float Display::averageFPS()
 {
-    return ::averageFPS();
+    return programmerjake::voxels::averageFPS();
 }
 
 double Display::timer()
@@ -1428,6 +1447,40 @@ void Display::render(shared_ptr<CachedMesh> m, bool enableDepthBuffer)
 static void getExtensions()
 {
     getOpenGLBuffersExtension();
+}
+
+namespace
+{
+int callMyMain(int argc, char **argv);
+}
+}
+}
+
+extern "C" int main(int argc, char *argv[])
+{
+    return programmerjake::voxels::callMyMain(argc, argv);
+}
+
+#ifdef main
+#undef main
+#endif // main
+
+namespace programmerjake
+{
+namespace voxels
+{
+namespace
+{
+int callMyMain(int argc, char **argv)
+{
+    std::vector<std::wstring> args;
+    args.reserve(argc);
+    for(int i = 0; i < argc; i++)
+    {
+        args.push_back(programmerjake::voxels::string_cast<std::wstring>(std::string(argv[i])));
+    }
+    return main(std::move(args));
+}
 }
 }
 }

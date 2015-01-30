@@ -194,6 +194,7 @@ public:
     }
 };
 
+#if 0
 class ChangeTracker
 {
     typedef std::uint_fast32_t ChangeCountType;
@@ -234,6 +235,7 @@ public:
         variableSet.set(changeCountDescriptor, pChangeCount);
     }
 };
+#endif
 
 namespace stream
 {

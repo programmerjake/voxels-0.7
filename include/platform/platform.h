@@ -18,8 +18,10 @@
 #ifndef PLATFORM_H_INCLUDED
 #define PLATFORM_H_INCLUDED
 
+#include <cwchar>
 #include <string>
 #include <memory>
+#include <vector>
 #include "util/matrix.h"
 #include "util/vector.h"
 #include "stream/stream.h"
@@ -257,6 +259,7 @@ void endAudio();
 unsigned getGlobalAudioSampleRate();
 unsigned getGlobalAudioChannelCount();
 bool audioRunning();
+int main(std::vector<std::wstring> args); // called by the platform's main function
 }
 }
 

@@ -26,26 +26,26 @@ namespace voxels
 {
 namespace Scripting
 {
-template<uint32_t size, typename ChildClass>
+template<std::uint32_t size, typename ChildClass>
 struct NodeConstArgCount : public Node
 {
-    friend class Node;
-    uint32_t args[size];
+    friend struct Node;
+    std::uint32_t args[size];
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        shared_ptr<ChildClass> retval = make_shared<ChildClass>();
-        for(uint32_t &v : retval->args)
+        std::shared_ptr<ChildClass> retval = std::make_shared<ChildClass>();
+        for(std::uint32_t &v : retval->args)
         {
             v = reader.readLimitedU32(0, nodeCount - 1);
         }
-        return static_pointer_cast<Node>(retval);
+        return std::static_pointer_cast<Node>(retval);
     }
 public:
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
-        for(uint32_t v : args)
+        for(std::uint32_t v : args)
         {
             writer.writeU32(v);
         }
@@ -53,9 +53,9 @@ public:
 };
 struct NodeConst final : public Node
 {
-    friend class Node;
-    shared_ptr<Data> data;
-    NodeConst(shared_ptr<Data> data)
+    friend struct Node;
+    std::shared_ptr<Data> data;
+    NodeConst(std::shared_ptr<Data> data)
         : data(data)
     {
     }
@@ -64,9 +64,9 @@ struct NodeConst final : public Node
         return Type::Const;
     }
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t)
     {
-        return make_shared<NodeConst>(Data::read(reader));
+        return std::make_shared<NodeConst>(Data::read(reader));
     }
 public:
     virtual void write(stream::Writer &writer) const override
@@ -74,7 +74,7 @@ public:
         stream::write<Type>(writer, type());
         data->write(writer);
     }
-    virtual shared_ptr<Data> evaluate(State &, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return data;
@@ -82,22 +82,22 @@ public:
 };
 struct NodeLoadGlobals final : public Node
 {
-    friend class Node;
+    friend struct Node;
     virtual Type type() const override
     {
         return Type::LoadGlobals;
     }
 protected:
-    static shared_ptr<Node> read(stream::Reader &, uint32_t)
+    static std::shared_ptr<Node> read(stream::Reader &, std::uint32_t)
     {
-        return make_shared<NodeLoadGlobals>();
+        return std::make_shared<NodeLoadGlobals>();
     }
 public:
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return state.variables;
@@ -105,22 +105,22 @@ public:
 };
 struct NodeCast : public Node
 {
-    uint32_t args[1];
-    friend class Node;
+    std::uint32_t args[1];
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount, shared_ptr<NodeCast> retval)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount, std::shared_ptr<NodeCast> retval)
     {
-        for(uint32_t &v : retval->args)
+        for(std::uint32_t &v : retval->args)
         {
             v = reader.readLimitedU32(0, nodeCount - 1);
         }
-        return static_pointer_cast<Node>(retval);
+        return std::static_pointer_cast<Node>(retval);
     }
 public:
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
-        for(uint32_t v : args)
+        for(std::uint32_t v : args)
         {
             writer.writeU32(v);
         }
@@ -132,17 +132,17 @@ struct NodeCastToString final : public NodeCast
     {
         return Type::CastToString;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
-        shared_ptr<Data> retval = state.nodes[args[0]]->evaluate(state, stackDepth + 1);
-        return make_shared<DataString>((wstring) * retval);
+        std::shared_ptr<Data> retval = state.nodes[args[0]]->evaluate(state, stackDepth + 1);
+        return std::make_shared<DataString>((std::wstring) * retval);
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToString>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToString>());
     }
 };
 struct NodeCastToInteger final : public NodeCast
@@ -151,7 +151,7 @@ struct NodeCastToInteger final : public NodeCast
     {
         return Type::CastToInteger;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Integer)
         {
@@ -159,20 +159,20 @@ struct NodeCastToInteger final : public NodeCast
         }
         if(retval->type() == Data::Type::Float)
         {
-            return make_shared<DataInteger>(dynamic_pointer_cast<DataFloat>(retval)->value);
+            return std::make_shared<DataInteger>(std::dynamic_pointer_cast<DataFloat>(retval)->value);
         }
         throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to integer");
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToInteger>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToInteger>());
     }
 };
 struct NodeCastToFloat final : public NodeCast
@@ -181,7 +181,7 @@ struct NodeCastToFloat final : public NodeCast
     {
         return Type::CastToFloat;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
@@ -189,20 +189,20 @@ struct NodeCastToFloat final : public NodeCast
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return make_shared<DataFloat>(dynamic_pointer_cast<DataInteger>(retval)->value);
+            return std::make_shared<DataFloat>(std::dynamic_pointer_cast<DataInteger>(retval)->value);
         }
         throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to float");
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToFloat>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToFloat>());
     }
 };
 struct NodeCastToVector final : public NodeCast
@@ -211,7 +211,7 @@ struct NodeCastToVector final : public NodeCast
     {
         return Type::CastToVector;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Vector)
         {
@@ -219,11 +219,11 @@ struct NodeCastToVector final : public NodeCast
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return make_shared<DataVector>(VectorF(dynamic_pointer_cast<DataInteger>(retval)->value));
+            return std::make_shared<DataVector>(VectorF(std::dynamic_pointer_cast<DataInteger>(retval)->value));
         }
         if(retval->type() == Data::Type::Float)
         {
-            return make_shared<DataVector>(VectorF(dynamic_pointer_cast<DataFloat>(retval)->value));
+            return std::make_shared<DataVector>(VectorF(std::dynamic_pointer_cast<DataFloat>(retval)->value));
         }
         if(retval->type() == Data::Type::List)
         {
@@ -233,23 +233,23 @@ struct NodeCastToVector final : public NodeCast
                 throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to vector");
             }
             VectorF v;
-            v.x = dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[0]))->value;
-            v.y = dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[1]))->value;
-            v.z = dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[2]))->value;
-            return shared_ptr<Data>(new DataVector(v));
+            v.x = std::dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[0]))->value;
+            v.y = std::dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[1]))->value;
+            v.z = std::dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[2]))->value;
+            return std::shared_ptr<Data>(new DataVector(v));
         }
         throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to vector");
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToVector>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToVector>());
     }
 };
 struct NodeCastToMatrix final : public NodeCast
@@ -258,7 +258,7 @@ struct NodeCastToMatrix final : public NodeCast
     {
         return Type::CastToMatrix;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Matrix)
         {
@@ -276,23 +276,23 @@ struct NodeCastToMatrix final : public NodeCast
             {
                 for(int x = 0; x < 4; x++, i++)
                 {
-                    v.set(x, y, dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[i]))->value);
+                    v.set(x, y, std::dynamic_pointer_cast<DataFloat>(NodeCastToFloat::evaluate(list->value[i]))->value);
                 }
             }
-            return shared_ptr<Data>(new DataMatrix(v));
+            return std::shared_ptr<Data>(new DataMatrix(v));
         }
-        throw ScriptException(make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to matrix"));
+        throw ScriptException(std::make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to matrix"));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToMatrix>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToMatrix>());
     }
 };
 struct NodeCastToList final : public NodeCast
@@ -301,7 +301,7 @@ struct NodeCastToList final : public NodeCast
     {
         return Type::CastToList;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::List)
         {
@@ -310,48 +310,48 @@ struct NodeCastToList final : public NodeCast
         if(retval->type() == Data::Type::Vector)
         {
             VectorF value = dynamic_cast<DataVector *>(retval.get())->value;
-            shared_ptr<DataList> retval2 = make_shared<DataList>();
-            retval2->value.push_back(make_shared<DataFloat>(value.x));
-            retval2->value.push_back(make_shared<DataFloat>(value.y));
-            retval2->value.push_back(make_shared<DataFloat>(value.z));
-            return static_pointer_cast<Data>(retval2);
+            std::shared_ptr<DataList> retval2 = std::make_shared<DataList>();
+            retval2->value.push_back(std::make_shared<DataFloat>(value.x));
+            retval2->value.push_back(std::make_shared<DataFloat>(value.y));
+            retval2->value.push_back(std::make_shared<DataFloat>(value.z));
+            return std::static_pointer_cast<Data>(retval2);
         }
         if(retval->type() == Data::Type::Matrix)
         {
             Matrix value = dynamic_cast<DataMatrix *>(retval.get())->value;
-            shared_ptr<DataList> retval2 = make_shared<DataList>();
+            std::shared_ptr<DataList> retval2 = std::make_shared<DataList>();
             for(int y = 0; y < 4; y++)
             {
                 for(int x = 0; x < 4; x++)
                 {
-                    retval2->value.push_back(make_shared<DataFloat>(value.get(x, y)));
+                    retval2->value.push_back(std::make_shared<DataFloat>(value.get(x, y)));
                 }
             }
-            return static_pointer_cast<Data>(retval2);
+            return std::static_pointer_cast<Data>(retval2);
         }
         if(retval->type() == Data::Type::String)
         {
-            wstring value = dynamic_pointer_cast<DataString>(retval)->value;
-            shared_ptr<DataList> retval2 = make_shared<DataList>();
+            std::wstring value = std::dynamic_pointer_cast<DataString>(retval)->value;
+            std::shared_ptr<DataList> retval2 = std::make_shared<DataList>();
             retval2->value.reserve(value.size());
-            for(size_t i = 0; i < value.size(); i++)
+            for(std::size_t i = 0; i < value.size(); i++)
             {
-                retval2->value.push_back(make_shared<DataString>(wstring(L"") + value[i]));
+                retval2->value.push_back(std::make_shared<DataString>(std::wstring(L"") + value[i]));
             }
             return retval2;
         }
-        throw ScriptException(make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to list"));
+        throw ScriptException(std::make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to list"));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToList>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToList>());
     }
 };
 struct NodeCastToObject final : public NodeCast
@@ -360,24 +360,24 @@ struct NodeCastToObject final : public NodeCast
     {
         return Type::CastToObject;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Object)
         {
             return retval;
         }
-        throw ScriptException(make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to object"));
+        throw ScriptException(std::make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to object"));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToObject>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToObject>());
     }
 };
 struct NodeCastToBoolean final : public NodeCast
@@ -386,24 +386,24 @@ struct NodeCastToBoolean final : public NodeCast
     {
         return Type::CastToBoolean;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Boolean)
         {
             return retval;
         }
-        throw ScriptException(make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to boolean"));
+        throw ScriptException(std::make_shared<DataString>(L"type cast error : can't cast " + retval->typeString() + L" to boolean"));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
     }
-    friend class Node;
+    friend struct Node;
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        return NodeCast::read(reader, nodeCount, make_shared<NodeCastToBoolean>());
+        return NodeCast::read(reader, nodeCount, std::make_shared<NodeCastToBoolean>());
     }
 };
 struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
@@ -412,11 +412,11 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
     {
         return Type::ReadIndex;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg2->type() == Data::Type::String)
         {
-            wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+            std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
             if(value == L"dup")
             {
                 return arg1->dup();
@@ -429,33 +429,33 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
                 switch(dynamic_cast<DataInteger *>(arg2.get())->value)
                 {
                 case 0:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x));
                 case 1:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y));
                 case 2:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z));
                 default:
                     throw ScriptException(L"index out of range");
                 }
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 if(value == L"x")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x));
                 }
                 if(value == L"y")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y));
                 }
                 if(value == L"z")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z));
                 }
                 if(value == L"length")
                 {
-                    return shared_ptr<Data>(new DataInteger(3));
+                    return std::shared_ptr<Data>(new DataInteger(3));
                 }
                 throw ScriptException(L"variable doesn't exist : " + value);
             }
@@ -465,19 +465,19 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
         {
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
                 if(value < 0 || value >= 16)
                 {
                     throw ScriptException(L"index out of range");
                 }
-                return shared_ptr<Data>(new DataFloat(dynamic_cast<DataMatrix *>(arg1.get())->value.get(value % 4, value / 4)));
+                return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataMatrix *>(arg1.get())->value.get(value % 4, value / 4)));
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 if(value == L"length")
                 {
-                    return shared_ptr<Data>(new DataInteger(16));
+                    return std::shared_ptr<Data>(new DataInteger(16));
                 }
                 throw ScriptException(L"variable doesn't exist : " + value);
             }
@@ -485,11 +485,11 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
         }
         if(arg1->type() == Data::Type::List)
         {
-            const vector<shared_ptr<Data>> &list = dynamic_cast<DataList *>(arg1.get())->value;
+            const std::vector<std::shared_ptr<Data>> &list = dynamic_cast<DataList *>(arg1.get())->value;
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
-                if(value < 0 || (size_t)value >= list.size())
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                if(value < 0 || (std::size_t)value >= list.size())
                 {
                     throw ScriptException(L"index out of range");
                 }
@@ -497,10 +497,10 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 if(value == L"length")
                 {
-                    return shared_ptr<Data>(new DataInteger(list.size()));
+                    return std::shared_ptr<Data>(new DataInteger(list.size()));
                 }
                 throw ScriptException(L"variable doesn't exist : " + value);
             }
@@ -508,37 +508,37 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
         }
         if(arg1->type() == Data::Type::Object)
         {
-            const unordered_map<wstring, shared_ptr<Data>> &map = dynamic_cast<DataObject *>(arg1.get())->value;
+            const std::unordered_map<std::wstring, std::shared_ptr<Data>> &map = dynamic_cast<DataObject *>(arg1.get())->value;
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 auto i = map.find(value);
                 if(i == map.end())
                 {
                     throw ScriptException(L"variable doesn't exist : " + value);
                 }
-                return get<1>(*i);
+                return std::get<1>(*i);
             }
             throw ScriptException(L"illegal type for index");
         }
         if(arg1->type() == Data::Type::String)
         {
-            wstring str = dynamic_cast<DataString *>(arg1.get())->value;
+            std::wstring str = dynamic_cast<DataString *>(arg1.get())->value;
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
-                if(value < 0 || (size_t)value >= str.size())
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                if(value < 0 || (std::size_t)value >= str.size())
                 {
                     throw ScriptException(L"index out of range");
                 }
-                return shared_ptr<Data>(new DataString(str.substr(value, 1)));
+                return std::shared_ptr<Data>(new DataString(str.substr(value, 1)));
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 if(value == L"length")
                 {
-                    return shared_ptr<Data>(new DataInteger(str.size()));
+                    return std::shared_ptr<Data>(new DataInteger(str.size()));
                 }
                 throw ScriptException(L"variable doesn't exist : " + value);
             }
@@ -546,7 +546,7 @@ struct NodeReadIndex final : public NodeConstArgCount<2, NodeReadIndex>
         }
         throw ScriptException(L"invalid type to index");
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1), state.nodes[args[1]]->evaluate(state, stackDepth + 1));
@@ -558,13 +558,13 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
     {
         return Type::AssignIndex;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> arg1, shared_ptr<Data> arg2, shared_ptr<Data> arg3)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2, std::shared_ptr<Data> arg3)
     {
         if(arg1->type() == Data::Type::Vector)
         {
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
                 if(value < 0 || value >= 3)
                 {
                     throw ScriptException(L"index out of range");
@@ -577,18 +577,18 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
                 switch(value)
                 {
                 case 0:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x = newValue));
                 case 1:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y = newValue));
                 case 2:
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z = newValue));
                 default:
                     assert(false);
                 }
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 if(value != L"x" && value != L"y" && value != L"z")
                 {
                     throw ScriptException(L"can't write to " + value);
@@ -600,19 +600,19 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
                 float newValue = dynamic_cast<DataFloat *>(arg3.get())->value;
                 if(value == L"x")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.x = newValue));
                 }
                 if(value == L"y")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.y = newValue));
                 }
                 if(value == L"z")
                 {
-                    return shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z = newValue));
+                    return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z = newValue));
                 }
                 if(value == L"length")
                 {
-                    return shared_ptr<Data>(new DataInteger(3));
+                    return std::shared_ptr<Data>(new DataInteger(3));
                 }
                 throw ScriptException(L"variable doesn't exist : " + value);
             }
@@ -622,7 +622,7 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
         {
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
                 if(arg3->type() != Data::Type::Float)
                 {
                     throw ScriptException(L"can't assign " + arg3->typeString() + L" to a float");
@@ -633,22 +633,22 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
                     throw ScriptException(L"index out of range");
                 }
                 dynamic_cast<DataMatrix *>(arg1.get())->value.set(value % 4, value / 4, newValue);
-                return shared_ptr<Data>(new DataFloat(newValue));
+                return std::shared_ptr<Data>(new DataFloat(newValue));
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 throw ScriptException(L"can't write to " + value);
             }
             throw ScriptException(L"illegal type for index");
         }
         if(arg1->type() == Data::Type::List)
         {
-            vector<shared_ptr<Data>> &list = dynamic_cast<DataList *>(arg1.get())->value;
+            std::vector<std::shared_ptr<Data>> &list = dynamic_cast<DataList *>(arg1.get())->value;
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
-                if(value < 0 || (size_t)value >= list.size())
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                if(value < 0 || (std::size_t)value >= list.size())
                 {
                     throw ScriptException(L"index out of range");
                 }
@@ -656,43 +656,43 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 throw ScriptException(L"can't write to " + value);
             }
             throw ScriptException(L"illegal type for index");
         }
         if(arg1->type() == Data::Type::Object)
         {
-            unordered_map<wstring, shared_ptr<Data>> &map = dynamic_cast<DataObject *>(arg1.get())->value;
+            std::unordered_map<std::wstring, std::shared_ptr<Data>> &map = dynamic_cast<DataObject *>(arg1.get())->value;
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 return map[value] = arg3->dup();
             }
             throw ScriptException(L"illegal type for index");
         }
         if(arg1->type() == Data::Type::String)
         {
-            wstring &str = dynamic_cast<DataString *>(arg1.get())->value;
+            std::wstring &str = dynamic_cast<DataString *>(arg1.get())->value;
             if(arg2->type() == Data::Type::Integer)
             {
-                int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
-                if(value < 0 || (size_t)value >= str.size())
+                std::int32_t value = dynamic_cast<DataInteger *>(arg2.get())->value;
+                if(value < 0 || (std::size_t)value >= str.size())
                 {
                     throw ScriptException(L"index out of range");
                 }
-                str = str.substr(0, value) + (wstring) * arg3 + str.substr(value + 1);
+                str = str.substr(0, value) + (std::wstring) * arg3 + str.substr(value + 1);
             }
             if(arg2->type() == Data::Type::String)
             {
-                wstring value = dynamic_cast<DataString *>(arg2.get())->value;
+                std::wstring value = dynamic_cast<DataString *>(arg2.get())->value;
                 throw ScriptException(L"can't write to " + value);
             }
             throw ScriptException(L"illegal type for index");
         }
         throw ScriptException(L"invalid type to index");
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1), state.nodes[args[1]]->evaluate(state, stackDepth + 1), state.nodes[args[2]]->evaluate(state, stackDepth + 1));
@@ -701,36 +701,36 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
 template <typename ChildClass>
 struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
 {
-    static shared_ptr<Data> toData(float v)
+    static std::shared_ptr<Data> toData(float v)
     {
-        return shared_ptr<Data>(new DataFloat(v));
+        return std::shared_ptr<Data>(new DataFloat(v));
     }
-    static shared_ptr<Data> toData(int32_t v)
+    static std::shared_ptr<Data> toData(std::int32_t v)
     {
-        return shared_ptr<Data>(new DataInteger(v));
+        return std::shared_ptr<Data>(new DataInteger(v));
     }
-    static shared_ptr<Data> toData(VectorF v)
+    static std::shared_ptr<Data> toData(VectorF v)
     {
-        return shared_ptr<Data>(new DataVector(v));
+        return std::shared_ptr<Data>(new DataVector(v));
     }
-    static shared_ptr<Data> toData(Matrix v)
+    static std::shared_ptr<Data> toData(Matrix v)
     {
-        return shared_ptr<Data>(new DataMatrix(v));
+        return std::shared_ptr<Data>(new DataMatrix(v));
     }
-    static shared_ptr<Data> toData(bool v)
+    static std::shared_ptr<Data> toData(bool v)
     {
-        return shared_ptr<Data>(new DataBoolean(v));
+        return std::shared_ptr<Data>(new DataBoolean(v));
     }
-    static int32_t throwError()
+    static std::int32_t throwError()
     {
         throw ScriptException(L"invalid types for " + ChildClass::operatorString());
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data>, shared_ptr<Data>)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data>, std::shared_ptr<Data>)
     {
         throwError();
         return nullptr;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::Float)
         {
@@ -836,7 +836,7 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
         }
         return ChildClass::evaluateBackup(arg1, arg2);
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         Node::checkStackDepth(stackDepth);
         return evaluate(state.nodes[NodeConstArgCount<2, ChildClass>::args[0]]->evaluate(state, stackDepth + 1), state.nodes[NodeConstArgCount<2, ChildClass>::args[1]]->evaluate(state, stackDepth + 1));
@@ -844,7 +844,7 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
 };
 struct NodeAdd : public NodeBinaryArithmatic<NodeAdd>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"+";
     }
@@ -852,7 +852,7 @@ struct NodeAdd : public NodeBinaryArithmatic<NodeAdd>
     {
         return Type::Add;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -860,31 +860,31 @@ struct NodeAdd : public NodeBinaryArithmatic<NodeAdd>
     {
         return a + b;
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -892,22 +892,22 @@ struct NodeAdd : public NodeBinaryArithmatic<NodeAdd>
     {
         return a + b;
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a + b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeSub : public NodeBinaryArithmatic<NodeSub>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"-";
     }
@@ -915,7 +915,7 @@ struct NodeSub : public NodeBinaryArithmatic<NodeSub>
     {
         return Type::Sub;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -923,31 +923,31 @@ struct NodeSub : public NodeBinaryArithmatic<NodeSub>
     {
         return a - b;
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -955,22 +955,22 @@ struct NodeSub : public NodeBinaryArithmatic<NodeSub>
     {
         return a - b;
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a - b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeMul : public NodeBinaryArithmatic<NodeMul>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"*";
     }
@@ -978,7 +978,7 @@ struct NodeMul : public NodeBinaryArithmatic<NodeMul>
     {
         return Type::Mul;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -994,23 +994,23 @@ struct NodeMul : public NodeBinaryArithmatic<NodeMul>
     {
         return a * b;
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1018,22 +1018,22 @@ struct NodeMul : public NodeBinaryArithmatic<NodeMul>
     {
         return a * b;
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a * b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"/";
     }
@@ -1041,7 +1041,7 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
     {
         return Type::Div;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -1053,7 +1053,7 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
         }
         return a / b;
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
@@ -1065,23 +1065,23 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
         }
         return a / b;
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1093,7 +1093,7 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
         }
         return a / b;
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         if(b == 0)
         {
@@ -1101,18 +1101,18 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
         }
         return a / b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeMod : public NodeBinaryArithmatic<NodeMod>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"%";
     }
@@ -1120,39 +1120,39 @@ struct NodeMod : public NodeBinaryArithmatic<NodeMod>
     {
         return Type::Mod;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1164,7 +1164,7 @@ struct NodeMod : public NodeBinaryArithmatic<NodeMod>
         }
         return fmod(a, b);
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         if(b == 0)
         {
@@ -1172,18 +1172,18 @@ struct NodeMod : public NodeBinaryArithmatic<NodeMod>
         }
         return a % b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodePow : public NodeBinaryArithmatic<NodePow>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"**";
     }
@@ -1191,39 +1191,39 @@ struct NodePow : public NodeBinaryArithmatic<NodePow>
     {
         return Type::Pow;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1239,22 +1239,22 @@ struct NodePow : public NodeBinaryArithmatic<NodePow>
         }
         return pow(a, b);
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeAnd : public NodeBinaryArithmatic<NodeAnd>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"and";
     }
@@ -1266,58 +1266,58 @@ struct NodeAnd : public NodeBinaryArithmatic<NodeAnd>
     {
         return a && b;
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a & b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeOr : public NodeBinaryArithmatic<NodeOr>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"or";
     }
@@ -1329,58 +1329,58 @@ struct NodeOr : public NodeBinaryArithmatic<NodeOr>
     {
         return a || b;
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a | b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeXor : public NodeBinaryArithmatic<NodeXor>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"xor";
     }
@@ -1392,58 +1392,58 @@ struct NodeXor : public NodeBinaryArithmatic<NodeXor>
     {
         return a != b;
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t a, int32_t b)
+    static std::int32_t evalFn(std::int32_t a, std::int32_t b)
     {
         return a ^ b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeConcat : public NodeBinaryArithmatic<NodeConcat>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"~";
     }
@@ -1451,19 +1451,19 @@ struct NodeConcat : public NodeBinaryArithmatic<NodeConcat>
     {
         return Type::Concat;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
@@ -1475,60 +1475,60 @@ struct NodeConcat : public NodeBinaryArithmatic<NodeConcat>
     {
         return a.apply(b);
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t, int32_t) // error case
+    static std::int32_t evalFn(std::int32_t, std::int32_t) // error case
     {
         return throwError();
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String || arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataString((wstring)*arg1 + (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataString((std::wstring)*arg1 + (std::wstring)*arg2));
         }
         if(arg1->type() == Data::Type::List || arg2->type() == Data::Type::List)
         {
-            shared_ptr<DataList> list = make_shared<DataList>();
-            for(shared_ptr<Data> v : dynamic_cast<DataList *>(arg1.get())->value)
+            std::shared_ptr<DataList> list = std::make_shared<DataList>();
+            for(std::shared_ptr<Data> v : dynamic_cast<DataList *>(arg1.get())->value)
             {
                 list->value.push_back(v->dup());
             }
-            for(shared_ptr<Data> v : dynamic_cast<DataList *>(arg2.get())->value)
+            for(std::shared_ptr<Data> v : dynamic_cast<DataList *>(arg2.get())->value)
             {
                 list->value.push_back(v->dup());
             }
-            return static_pointer_cast<Data>(list);
+            return std::static_pointer_cast<Data>(list);
         }
         throwError();
         return nullptr;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeDot : public NodeBinaryArithmatic<NodeDot>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"dot";
     }
@@ -1536,7 +1536,7 @@ struct NodeDot : public NodeBinaryArithmatic<NodeDot>
     {
         return Type::Dot;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -1544,54 +1544,54 @@ struct NodeDot : public NodeBinaryArithmatic<NodeDot>
     {
         return dot(a, b);
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t, int32_t) // error case
+    static std::int32_t evalFn(std::int32_t, std::int32_t) // error case
     {
         return throwError();
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeCross : public NodeBinaryArithmatic<NodeCross>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"cross";
     }
@@ -1599,7 +1599,7 @@ struct NodeCross : public NodeBinaryArithmatic<NodeCross>
     {
         return Type::Cross;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
@@ -1607,54 +1607,54 @@ struct NodeCross : public NodeBinaryArithmatic<NodeCross>
     {
         return cross(a, b);
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, float) // error case
+    static std::int32_t evalFn(float, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(int32_t, int32_t) // error case
+    static std::int32_t evalFn(std::int32_t, std::int32_t) // error case
     {
         return throwError();
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
 };
 struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"==";
     }
@@ -1670,11 +1670,11 @@ struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
     {
         return a == b;
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
@@ -1682,19 +1682,19 @@ struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
     {
         return a == b;
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1702,70 +1702,70 @@ struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
     {
         return a == b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a == b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 == (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 == (std::wstring)*arg2));
         }
         if(arg1->type() == Data::Type::List && arg2->type() == Data::Type::List)
         {
-            const vector<shared_ptr<Data>> &a = dynamic_cast<DataList *>(arg1.get())->value, &b = dynamic_cast<DataList *>(arg2.get())->value;
+            const std::vector<std::shared_ptr<Data>> &a = dynamic_cast<DataList *>(arg1.get())->value, &b = dynamic_cast<DataList *>(arg2.get())->value;
             if(a.size() != b.size())
             {
-                return shared_ptr<Data>(new DataBoolean(false));
+                return std::shared_ptr<Data>(new DataBoolean(false));
             }
-            for(size_t i = 0; i < a.size(); i++)
+            for(std::size_t i = 0; i < a.size(); i++)
             {
                 if(a[i]->type() != b[i]->type())
                 {
-                    return shared_ptr<Data>(new DataBoolean(false));
+                    return std::shared_ptr<Data>(new DataBoolean(false));
                 }
-                if(!dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(a[i], b[i]))->value)
+                if(!std::dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(a[i], b[i]))->value)
                 {
-                    return shared_ptr<Data>(new DataBoolean(false));
+                    return std::shared_ptr<Data>(new DataBoolean(false));
                 }
             }
-            return shared_ptr<Data>(new DataBoolean(true));
+            return std::shared_ptr<Data>(new DataBoolean(true));
         }
         if(arg1->type() == Data::Type::Object && arg2->type() == Data::Type::Object)
         {
-            const unordered_map<wstring, shared_ptr<Data>> &a = dynamic_cast<DataObject *>(arg1.get())->value, &b = dynamic_cast<DataObject *>(arg2.get())->value;
+            const std::unordered_map<std::wstring, std::shared_ptr<Data>> &a = dynamic_cast<DataObject *>(arg1.get())->value, &b = dynamic_cast<DataObject *>(arg2.get())->value;
             if(a.size() != b.size())
             {
-                return shared_ptr<Data>(new DataBoolean(false));
+                return std::shared_ptr<Data>(new DataBoolean(false));
             }
-            for(pair<wstring, shared_ptr<Data>> v : a)
+            for(std::pair<std::wstring, std::shared_ptr<Data>> v : a)
             {
-                shared_ptr<Data> va = get<1>(v);
-                auto iter = b.find(get<0>(v));
+                std::shared_ptr<Data> va = std::get<1>(v);
+                auto iter = b.find(std::get<0>(v));
                 if(iter == b.end())
                 {
-                    return shared_ptr<Data>(new DataBoolean(false));
+                    return std::shared_ptr<Data>(new DataBoolean(false));
                 }
-                shared_ptr<Data> vb = get<1>(*iter);
+                std::shared_ptr<Data> vb = std::get<1>(*iter);
                 if(va->type() != vb->type())
                 {
-                    return shared_ptr<Data>(new DataBoolean(false));
+                    return std::shared_ptr<Data>(new DataBoolean(false));
                 }
-                if(!dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(va, vb))->value)
+                if(!std::dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(va, vb))->value)
                 {
-                    return shared_ptr<Data>(new DataBoolean(false));
+                    return std::shared_ptr<Data>(new DataBoolean(false));
                 }
             }
-            return shared_ptr<Data>(new DataBoolean(true));
+            return std::shared_ptr<Data>(new DataBoolean(true));
         }
         throwError();
         return nullptr;
@@ -1773,7 +1773,7 @@ struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
 };
 struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"!=";
     }
@@ -1789,11 +1789,11 @@ struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
     {
         return a != b;
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
@@ -1801,19 +1801,19 @@ struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
     {
         return a != b;
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1821,70 +1821,70 @@ struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
     {
         return a != b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a != b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 != (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 != (std::wstring)*arg2));
         }
         if(arg1->type() == Data::Type::List && arg2->type() == Data::Type::List)
         {
-            const vector<shared_ptr<Data>> &a = dynamic_cast<DataList *>(arg1.get())->value, &b = dynamic_cast<DataList *>(arg2.get())->value;
+            const std::vector<std::shared_ptr<Data>> &a = dynamic_cast<DataList *>(arg1.get())->value, &b = dynamic_cast<DataList *>(arg2.get())->value;
             if(a.size() != b.size())
             {
-                return shared_ptr<Data>(new DataBoolean(true));
+                return std::shared_ptr<Data>(new DataBoolean(true));
             }
-            for(size_t i = 0; i < a.size(); i++)
+            for(std::size_t i = 0; i < a.size(); i++)
             {
                 if(a[i]->type() != b[i]->type())
                 {
-                    return shared_ptr<Data>(new DataBoolean(true));
+                    return std::shared_ptr<Data>(new DataBoolean(true));
                 }
-                if(!dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(a[i], b[i]))->value)
+                if(!std::dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(a[i], b[i]))->value)
                 {
-                    return shared_ptr<Data>(new DataBoolean(true));
+                    return std::shared_ptr<Data>(new DataBoolean(true));
                 }
             }
-            return shared_ptr<Data>(new DataBoolean(false));
+            return std::shared_ptr<Data>(new DataBoolean(false));
         }
         if(arg1->type() == Data::Type::Object && arg2->type() == Data::Type::Object)
         {
-            const unordered_map<wstring, shared_ptr<Data>> &a = dynamic_cast<DataObject *>(arg1.get())->value, &b = dynamic_cast<DataObject *>(arg2.get())->value;
+            const std::unordered_map<std::wstring, std::shared_ptr<Data>> &a = dynamic_cast<DataObject *>(arg1.get())->value, &b = dynamic_cast<DataObject *>(arg2.get())->value;
             if(a.size() != b.size())
             {
-                return shared_ptr<Data>(new DataBoolean(true));
+                return std::shared_ptr<Data>(new DataBoolean(true));
             }
-            for(pair<wstring, shared_ptr<Data>> v : a)
+            for(std::pair<std::wstring, std::shared_ptr<Data>> v : a)
             {
-                shared_ptr<Data> va = get<1>(v);
-                auto iter = b.find(get<0>(v));
+                std::shared_ptr<Data> va = std::get<1>(v);
+                auto iter = b.find(std::get<0>(v));
                 if(iter == b.end())
                 {
-                    return shared_ptr<Data>(new DataBoolean(true));
+                    return std::shared_ptr<Data>(new DataBoolean(true));
                 }
-                shared_ptr<Data> vb = get<1>(*iter);
+                std::shared_ptr<Data> vb = std::get<1>(*iter);
                 if(va->type() != vb->type())
                 {
-                    return shared_ptr<Data>(new DataBoolean(true));
+                    return std::shared_ptr<Data>(new DataBoolean(true));
                 }
-                if(!dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(va, vb))->value)
+                if(!std::dynamic_pointer_cast<DataBoolean>(NodeEqual::evaluate(va, vb))->value)
                 {
-                    return shared_ptr<Data>(new DataBoolean(true));
+                    return std::shared_ptr<Data>(new DataBoolean(true));
                 }
             }
-            return shared_ptr<Data>(new DataBoolean(false));
+            return std::shared_ptr<Data>(new DataBoolean(false));
         }
         throwError();
         return nullptr;
@@ -1892,7 +1892,7 @@ struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
 };
 struct NodeLessThan : public NodeBinaryArithmatic<NodeLessThan>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"<";
     }
@@ -1900,39 +1900,39 @@ struct NodeLessThan : public NodeBinaryArithmatic<NodeLessThan>
     {
         return Type::LessThan;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -1940,23 +1940,23 @@ struct NodeLessThan : public NodeBinaryArithmatic<NodeLessThan>
     {
         return a < b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a < b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 < (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 < (std::wstring)*arg2));
         }
         throwError();
         return nullptr;
@@ -1964,7 +1964,7 @@ struct NodeLessThan : public NodeBinaryArithmatic<NodeLessThan>
 };
 struct NodeGreaterThan : public NodeBinaryArithmatic<NodeGreaterThan>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L">";
     }
@@ -1972,39 +1972,39 @@ struct NodeGreaterThan : public NodeBinaryArithmatic<NodeGreaterThan>
     {
         return Type::GreaterThan;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -2012,23 +2012,23 @@ struct NodeGreaterThan : public NodeBinaryArithmatic<NodeGreaterThan>
     {
         return a > b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a > b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 > (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 > (std::wstring)*arg2));
         }
         throwError();
         return nullptr;
@@ -2036,7 +2036,7 @@ struct NodeGreaterThan : public NodeBinaryArithmatic<NodeGreaterThan>
 };
 struct NodeLessEqual : public NodeBinaryArithmatic<NodeLessEqual>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L"<=";
     }
@@ -2044,39 +2044,39 @@ struct NodeLessEqual : public NodeBinaryArithmatic<NodeLessEqual>
     {
         return Type::LessEqual;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -2084,23 +2084,23 @@ struct NodeLessEqual : public NodeBinaryArithmatic<NodeLessEqual>
     {
         return a <= b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a <= b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 <= (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 <= (std::wstring)*arg2));
         }
         throwError();
         return nullptr;
@@ -2108,7 +2108,7 @@ struct NodeLessEqual : public NodeBinaryArithmatic<NodeLessEqual>
 };
 struct NodeGreaterEqual : public NodeBinaryArithmatic<NodeGreaterEqual>
 {
-    static wstring operatorString()
+    static std::wstring operatorString()
     {
         return L">=";
     }
@@ -2116,39 +2116,39 @@ struct NodeGreaterEqual : public NodeBinaryArithmatic<NodeGreaterEqual>
     {
         return Type::GreaterEqual;
     }
-    static int32_t evalFn(bool, bool) // error case
+    static std::int32_t evalFn(bool, bool) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, VectorF) // error case
+    static std::int32_t evalFn(VectorF, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, VectorF) // error case
+    static std::int32_t evalFn(float, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, float) // error case
+    static std::int32_t evalFn(VectorF, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, Matrix) // error case
+    static std::int32_t evalFn(Matrix, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, VectorF) // error case
+    static std::int32_t evalFn(Matrix, VectorF) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(Matrix, float) // error case
+    static std::int32_t evalFn(Matrix, float) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(float, Matrix) // error case
+    static std::int32_t evalFn(float, Matrix) // error case
     {
         return throwError();
     }
-    static int32_t evalFn(VectorF, Matrix) // error case
+    static std::int32_t evalFn(VectorF, Matrix) // error case
     {
         return throwError();
     }
@@ -2156,23 +2156,23 @@ struct NodeGreaterEqual : public NodeBinaryArithmatic<NodeGreaterEqual>
     {
         return a >= b;
     }
-    static bool evalFn(int32_t a, int32_t b)
+    static bool evalFn(std::int32_t a, std::int32_t b)
     {
         return a >= b;
     }
-    static auto evalFn(float a, int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
     {
         return evalFn((float)a, (float)b);
     }
-    static shared_ptr<Data> evaluateBackup(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluateBackup(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         if(arg1->type() == Data::Type::String && arg2->type() == Data::Type::String)
         {
-            return shared_ptr<Data>(new DataBoolean((wstring)*arg1 >= (wstring)*arg2));
+            return std::shared_ptr<Data>(new DataBoolean((std::wstring)*arg1 >= (std::wstring)*arg2));
         }
         throwError();
         return nullptr;
@@ -2184,23 +2184,23 @@ struct NodeNeg final : public NodeConstArgCount<1, NodeNeg>
     {
         return Type::Neg;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Vector)
         {
-            return shared_ptr<Data>(new DataVector(-dynamic_cast<DataVector *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataVector(-dynamic_cast<DataVector *>(retval.get())->value));
         }
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataFloat(-dynamic_cast<DataFloat *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataFloat(-dynamic_cast<DataFloat *>(retval.get())->value));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataInteger(-dynamic_cast<DataInteger *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataInteger(-dynamic_cast<DataInteger *>(retval.get())->value));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for - : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for - : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2212,19 +2212,19 @@ struct NodeNot final : public NodeConstArgCount<1, NodeNot>
     {
         return Type::Not;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Boolean)
         {
-            return shared_ptr<Data>(new DataBoolean(!dynamic_cast<DataBoolean *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataBoolean(!dynamic_cast<DataBoolean *>(retval.get())->value));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataInteger(~dynamic_cast<DataInteger *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataInteger(~dynamic_cast<DataInteger *>(retval.get())->value));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for not : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for not : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2236,23 +2236,23 @@ struct NodeAbs final : public NodeConstArgCount<1, NodeAbs>
     {
         return Type::Abs;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Vector)
         {
-            return shared_ptr<Data>(new DataFloat(abs(dynamic_cast<DataVector *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(abs(dynamic_cast<DataVector *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataFloat(abs(dynamic_cast<DataFloat *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(std::abs(dynamic_cast<DataFloat *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataInteger(abs(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataInteger(std::abs(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for abs : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for std::abs : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2264,19 +2264,19 @@ struct NodeSin final : public NodeConstArgCount<1, NodeSin>
     {
         return Type::Sin;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataFloat(sin(dynamic_cast<DataFloat *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(sin(dynamic_cast<DataFloat *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataFloat(sin(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(sin(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for sin : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for sin : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2288,19 +2288,19 @@ struct NodeCos final : public NodeConstArgCount<1, NodeCos>
     {
         return Type::Cos;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataFloat(cos(dynamic_cast<DataFloat *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(cos(dynamic_cast<DataFloat *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataFloat(cos(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(cos(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for cos : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for cos : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2312,24 +2312,24 @@ struct NodeTan final : public NodeConstArgCount<1, NodeTan>
     {
         return Type::Tan;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
             float value = dynamic_cast<DataFloat *>(retval.get())->value;
-            if(abs(cos(value)) < 1e-6)
+            if(std::abs(cos(value)) < 1e-6)
             {
                 throw ScriptException(L"tan domain error");
             }
-            return shared_ptr<Data>(new DataFloat(tan(value)));
+            return std::shared_ptr<Data>(new DataFloat(tan(value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataFloat(tan(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(tan(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for tan : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for tan : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2341,20 +2341,20 @@ struct NodeATan final : public NodeConstArgCount<1, NodeATan>
     {
         return Type::ATan;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
             float value = dynamic_cast<DataFloat *>(retval.get())->value;
-            return shared_ptr<Data>(new DataFloat(atan(value)));
+            return std::shared_ptr<Data>(new DataFloat(atan(value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataFloat(atan(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat(atan(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for atan : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for atan : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2366,7 +2366,7 @@ struct NodeASin final : public NodeConstArgCount<1, NodeASin>
     {
         return Type::ASin;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2379,15 +2379,15 @@ struct NodeASin final : public NodeConstArgCount<1, NodeASin>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for asin : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for asin : " + retval->typeString()));
         }
         if(value < -1 || value > 1)
         {
             throw ScriptException(L"asin domain error");
         }
-        return shared_ptr<Data>(new DataFloat(asin(value)));
+        return std::shared_ptr<Data>(new DataFloat(asin(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2399,7 +2399,7 @@ struct NodeACos final : public NodeConstArgCount<1, NodeACos>
     {
         return Type::ACos;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2412,15 +2412,15 @@ struct NodeACos final : public NodeConstArgCount<1, NodeACos>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for acos : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for acos : " + retval->typeString()));
         }
         if(value < -1 || value > 1)
         {
             throw ScriptException(L"acos domain error");
         }
-        return shared_ptr<Data>(new DataFloat(acos(value)));
+        return std::shared_ptr<Data>(new DataFloat(acos(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2432,7 +2432,7 @@ struct NodeExp final : public NodeConstArgCount<1, NodeExp>
     {
         return Type::Exp;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2445,15 +2445,15 @@ struct NodeExp final : public NodeConstArgCount<1, NodeExp>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for exp : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for exp : " + retval->typeString()));
         }
         if(value > 88.7228)
         {
             throw ScriptException(L"exp overflow error");
         }
-        return shared_ptr<Data>(new DataFloat(exp(value)));
+        return std::shared_ptr<Data>(new DataFloat(exp(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2465,7 +2465,7 @@ struct NodeLog final : public NodeConstArgCount<1, NodeLog>
     {
         return Type::Log;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2478,15 +2478,15 @@ struct NodeLog final : public NodeConstArgCount<1, NodeLog>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for log : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for log : " + retval->typeString()));
         }
         if(value <= 0)
         {
             throw ScriptException(L"log domain error");
         }
-        return shared_ptr<Data>(new DataFloat(log(value)));
+        return std::shared_ptr<Data>(new DataFloat(log(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2498,7 +2498,7 @@ struct NodeSqrt final : public NodeConstArgCount<1, NodeSqrt>
     {
         return Type::Sqrt;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2511,15 +2511,15 @@ struct NodeSqrt final : public NodeConstArgCount<1, NodeSqrt>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for sqrt : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for sqrt : " + retval->typeString()));
         }
         if(value < 0)
         {
             throw ScriptException(L"sqrt domain error");
         }
-        return shared_ptr<Data>(new DataFloat(sqrt(value)));
+        return std::shared_ptr<Data>(new DataFloat(sqrt(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2531,7 +2531,7 @@ struct NodeATan2 final : public NodeConstArgCount<2, NodeATan2>
     {
         return Type::ATan2;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         float v1;
         if(arg1->type() == Data::Type::Float)
@@ -2544,7 +2544,7 @@ struct NodeATan2 final : public NodeConstArgCount<2, NodeATan2>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for atan2 : " + arg1->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for atan2 : " + arg1->typeString()));
         }
         float v2;
         if(arg2->type() == Data::Type::Float)
@@ -2557,15 +2557,15 @@ struct NodeATan2 final : public NodeConstArgCount<2, NodeATan2>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for atan2 : " + arg2->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for atan2 : " + arg2->typeString()));
         }
         if(v1 == 0 && v2 == 0)
         {
             throw ScriptException(L"sqrt domain error");
         }
-        return shared_ptr<Data>(new DataFloat(atan2(v1, v2)));
+        return std::shared_ptr<Data>(new DataFloat(atan2(v1, v2)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1), state.nodes[args[1]]->evaluate(state, stackDepth + 1));
@@ -2577,13 +2577,13 @@ struct NodeConditional final : public NodeConstArgCount<3, NodeConditional>
     {
         return Type::Conditional;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
-        shared_ptr<Data> condition = state.nodes[args[0]]->evaluate(state, stackDepth + 1);
+        std::shared_ptr<Data> condition = state.nodes[args[0]]->evaluate(state, stackDepth + 1);
         if(condition->type() != Data::Type::Boolean)
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
         }
         if(dynamic_cast<DataBoolean *>(condition.get())->value)
         {
@@ -2598,7 +2598,7 @@ struct NodeMakeRotate final : public NodeConstArgCount<2, NodeMakeRotate>
     {
         return Type::MakeRotate;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> arg1, shared_ptr<Data> arg2)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> arg1, std::shared_ptr<Data> arg2)
     {
         VectorF v1;
         if(arg1->type() == Data::Type::Vector)
@@ -2607,7 +2607,7 @@ struct NodeMakeRotate final : public NodeConstArgCount<2, NodeMakeRotate>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_rotate : " + arg1->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_rotate : " + arg1->typeString()));
         }
         float v2;
         if(arg2->type() == Data::Type::Float)
@@ -2620,15 +2620,15 @@ struct NodeMakeRotate final : public NodeConstArgCount<2, NodeMakeRotate>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_rotate : " + arg2->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_rotate : " + arg2->typeString()));
         }
         if(v1 == VectorF(0))
         {
             throw ScriptException(L"make_rotate called with <0, 0, 0>");
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::rotate(v1, v2)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::rotate(v1, v2)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1), state.nodes[args[1]]->evaluate(state, stackDepth + 1));
@@ -2640,7 +2640,7 @@ struct NodeMakeRotateX final : public NodeConstArgCount<1, NodeMakeRotateX>
     {
         return Type::MakeRotateX;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2653,11 +2653,11 @@ struct NodeMakeRotateX final : public NodeConstArgCount<1, NodeMakeRotateX>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_rotatex : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_rotatex : " + retval->typeString()));
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::rotateX(value)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::rotateX(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2669,7 +2669,7 @@ struct NodeMakeRotateY final : public NodeConstArgCount<1, NodeMakeRotateY>
     {
         return Type::MakeRotateY;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2682,11 +2682,11 @@ struct NodeMakeRotateY final : public NodeConstArgCount<1, NodeMakeRotateY>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_rotatey : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_rotatey : " + retval->typeString()));
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::rotateY(value)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::rotateY(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2698,7 +2698,7 @@ struct NodeMakeRotateZ final : public NodeConstArgCount<1, NodeMakeRotateZ>
     {
         return Type::MakeRotateZ;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         float value;
         if(retval->type() == Data::Type::Float)
@@ -2711,11 +2711,11 @@ struct NodeMakeRotateZ final : public NodeConstArgCount<1, NodeMakeRotateZ>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_rotatez : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_rotatez : " + retval->typeString()));
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::rotateZ(value)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::rotateZ(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2727,7 +2727,7 @@ struct NodeMakeScale final : public NodeConstArgCount<1, NodeMakeScale>
     {
         return Type::MakeScale;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         VectorF value;
         if(retval->type() == Data::Type::Float)
@@ -2744,11 +2744,11 @@ struct NodeMakeScale final : public NodeConstArgCount<1, NodeMakeScale>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_scale : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_scale : " + retval->typeString()));
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::scale(value)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::scale(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2760,7 +2760,7 @@ struct NodeMakeTranslate final : public NodeConstArgCount<1, NodeMakeTranslate>
     {
         return Type::MakeTranslate;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         VectorF value;
         if(retval->type() == Data::Type::Vector)
@@ -2769,11 +2769,11 @@ struct NodeMakeTranslate final : public NodeConstArgCount<1, NodeMakeTranslate>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for make_translate : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for make_translate : " + retval->typeString()));
         }
-        return shared_ptr<Data>(new DataMatrix(Matrix::translate(value)));
+        return std::shared_ptr<Data>(new DataMatrix(Matrix::translate(value)));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2781,16 +2781,16 @@ struct NodeMakeTranslate final : public NodeConstArgCount<1, NodeMakeTranslate>
 };
 struct NodeBlock final : public Node
 {
-    friend class Node;
-    vector<uint32_t> nodes;
+    friend struct Node;
+    std::vector<std::uint32_t> nodes;
     virtual Type type() const override
     {
         return Type::Block;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
-        shared_ptr<Data> retval = shared_ptr<Data>(new DataInteger(0));
-        for(uint32_t n : nodes)
+        std::shared_ptr<Data> retval = std::shared_ptr<Data>(new DataInteger(0));
+        for(std::uint32_t n : nodes)
         {
             retval = state.nodes[n]->evaluate(state, stackDepth + 1);
         }
@@ -2799,87 +2799,87 @@ struct NodeBlock final : public Node
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
-        assert((uint32_t)nodes.size() == nodes.size() && nodes.size() != (uint32_t) - 1);
-        writer.writeU32((uint32_t)nodes.size());
-        for(uint32_t v : nodes)
+        assert((std::uint32_t)nodes.size() == nodes.size() && nodes.size() != (std::uint32_t) - 1);
+        writer.writeU32((std::uint32_t)nodes.size());
+        for(std::uint32_t v : nodes)
         {
             writer.writeU32(v);
         }
     }
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        shared_ptr<NodeBlock> retval = make_shared<NodeBlock>();
-        size_t length = reader.readLimitedU32(0, (uint32_t) - 2);
+        std::shared_ptr<NodeBlock> retval = std::make_shared<NodeBlock>();
+        std::size_t length = reader.readLimitedU32(0, (std::uint32_t) - 2);
         retval->nodes.reserve(length);
-        for(size_t i = 0; i < length; i++)
+        for(std::size_t i = 0; i < length; i++)
         {
             retval->nodes.push_back(reader.readLimitedU32(0, nodeCount - 1));
         }
-        return static_pointer_cast<Node>(retval);
+        return std::static_pointer_cast<Node>(retval);
     }
 };
 struct NodeListLiteral final : public Node
 {
-    friend class Node;
-    vector<uint32_t> nodes;
+    friend struct Node;
+    std::vector<std::uint32_t> nodes;
     virtual Type type() const override
     {
         return Type::ListLiteral;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
-        shared_ptr<DataList> retval = make_shared<DataList>();
-        for(uint32_t n : nodes)
+        std::shared_ptr<DataList> retval = std::make_shared<DataList>();
+        for(std::uint32_t n : nodes)
         {
             retval->value.push_back(state.nodes[n]->evaluate(state, stackDepth + 1));
         }
-        return static_pointer_cast<Data>(retval);
+        return std::static_pointer_cast<Data>(retval);
     }
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
-        assert((uint32_t)nodes.size() == nodes.size() && nodes.size() != (uint32_t) - 1);
-        writer.writeU32((uint32_t)nodes.size());
-        for(uint32_t v : nodes)
+        assert((std::uint32_t)nodes.size() == nodes.size() && nodes.size() != (std::uint32_t) - 1);
+        writer.writeU32((std::uint32_t)nodes.size());
+        for(std::uint32_t v : nodes)
         {
             writer.writeU32(v);
         }
     }
 protected:
-    static shared_ptr<Node> read(stream::Reader &reader, uint32_t nodeCount)
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
-        shared_ptr<NodeBlock> retval = make_shared<NodeBlock>();
-        size_t length = reader.readLimitedU32(0, (uint32_t) - 2);
+        std::shared_ptr<NodeBlock> retval = std::make_shared<NodeBlock>();
+        std::size_t length = reader.readLimitedU32(0, (std::uint32_t) - 2);
         retval->nodes.reserve(length);
-        for(size_t i = 0; i < length; i++)
+        for(std::size_t i = 0; i < length; i++)
         {
             retval->nodes.push_back(reader.readLimitedU32(0, nodeCount - 1));
         }
-        return static_pointer_cast<Node>(retval);
+        return std::static_pointer_cast<Node>(retval);
     }
 };
 struct NodeNewObject final : public Node
 {
-    friend class Node;
+    friend struct Node;
     virtual Type type() const override
     {
         return Type::NewObject;
     }
 protected:
-    static shared_ptr<Node> read(stream::Reader &, uint32_t)
+    static std::shared_ptr<Node> read(stream::Reader &, std::uint32_t)
     {
-        return make_shared<NodeNewObject>();
+        return std::make_shared<NodeNewObject>();
     }
 public:
     virtual void write(stream::Writer &writer) const override
     {
         stream::write<Type>(writer, type());
     }
-    virtual shared_ptr<Data> evaluate(State &, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
-        return shared_ptr<Data>(new DataObject);
+        return std::shared_ptr<Data>(new DataObject);
     }
 };
 struct NodeDoWhile final : public NodeConstArgCount<2, NodeDoWhile>
@@ -2888,18 +2888,18 @@ struct NodeDoWhile final : public NodeConstArgCount<2, NodeDoWhile>
     {
         return Type::DoWhile;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
-        shared_ptr<Data> retval;
+        std::shared_ptr<Data> retval;
         while(true)
         {
             state.onLoop();
             retval = state.nodes[args[0]]->evaluate(state, stackDepth + 1);
-            shared_ptr<Data> condition = state.nodes[args[1]]->evaluate(state, stackDepth + 1);
+            std::shared_ptr<Data> condition = state.nodes[args[1]]->evaluate(state, stackDepth + 1);
             if(condition->type() != Data::Type::Boolean)
             {
-                throw ScriptException(make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
+                throw ScriptException(std::make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
             }
             if(!dynamic_cast<DataBoolean *>(condition.get())->value)
             {
@@ -2914,7 +2914,7 @@ struct NodeRemoveTranslate final : public NodeConstArgCount<1, NodeRemoveTransla
     {
         return Type::RemoveTranslate;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         Matrix value;
         if(retval->type() == Data::Type::Matrix)
@@ -2923,14 +2923,14 @@ struct NodeRemoveTranslate final : public NodeConstArgCount<1, NodeRemoveTransla
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for remove_translate : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for remove_translate : " + retval->typeString()));
         }
         value.set(3, 0, 0);
         value.set(3, 1, 0);
         value.set(3, 2, 0);
-        return shared_ptr<Data>(new DataMatrix(value));
+        return std::shared_ptr<Data>(new DataMatrix(value));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2942,7 +2942,7 @@ struct NodeInvert final : public NodeConstArgCount<1, NodeInvert>
     {
         return Type::Invert;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         Matrix value;
         if(retval->type() == Data::Type::Matrix)
@@ -2951,19 +2951,19 @@ struct NodeInvert final : public NodeConstArgCount<1, NodeInvert>
         }
         else
         {
-            throw ScriptException(make_shared<DataString>(L"invalid type for invert : " + retval->typeString()));
+            throw ScriptException(std::make_shared<DataString>(L"invalid type for invert : " + retval->typeString()));
         }
         try
         {
             value = inverse(value);
         }
-        catch(domain_error &)
+        catch(std::domain_error &)
         {
             throw ScriptException(L"can't invert singular matrix");
         }
-        return shared_ptr<Data>(new DataMatrix(value));
+        return std::shared_ptr<Data>(new DataMatrix(value));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2975,19 +2975,19 @@ struct NodeCeil final : public NodeConstArgCount<1, NodeCeil>
     {
         return Type::Ceil;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataInteger((int32_t)ceil(dynamic_cast<DataFloat *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataInteger((std::int32_t)ceil(dynamic_cast<DataFloat *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataInteger(dynamic_cast<DataInteger *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataInteger(dynamic_cast<DataInteger *>(retval.get())->value));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for ceil : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for ceil : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -2999,19 +2999,19 @@ struct NodeFloor final : public NodeConstArgCount<1, NodeCeil>
     {
         return Type::Floor;
     }
-    static shared_ptr<Data> evaluate(shared_ptr<Data> retval)
+    static std::shared_ptr<Data> evaluate(std::shared_ptr<Data> retval)
     {
         if(retval->type() == Data::Type::Float)
         {
-            return shared_ptr<Data>(new DataInteger((int32_t)ceil(dynamic_cast<DataFloat *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataInteger((std::int32_t)ceil(dynamic_cast<DataFloat *>(retval.get())->value)));
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return shared_ptr<Data>(new DataInteger(dynamic_cast<DataInteger *>(retval.get())->value));
+            return std::shared_ptr<Data>(new DataInteger(dynamic_cast<DataInteger *>(retval.get())->value));
         }
-        throw ScriptException(make_shared<DataString>(L"invalid type for ceil : " + retval->typeString()));
+        throw ScriptException(std::make_shared<DataString>(L"invalid type for ceil : " + retval->typeString()));
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
         return evaluate(state.nodes[args[0]]->evaluate(state, stackDepth + 1));
@@ -3023,18 +3023,18 @@ struct NodeFor final : public NodeConstArgCount<4, NodeFor>
     {
         return Type::For;
     }
-    virtual shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth) const override
     {
         checkStackDepth(stackDepth);
-        shared_ptr<Data> retval;
+        std::shared_ptr<Data> retval;
         state.nodes[args[0]]->evaluate(state, stackDepth + 1);
         while(true)
         {
             state.onLoop();
-            shared_ptr<Data> condition = state.nodes[args[1]]->evaluate(state, stackDepth + 1);
+            std::shared_ptr<Data> condition = state.nodes[args[1]]->evaluate(state, stackDepth + 1);
             if(condition->type() != Data::Type::Boolean)
             {
-                throw ScriptException(make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
+                throw ScriptException(std::make_shared<DataString>(L"invalid type for conditional : " + condition->typeString()));
             }
             if(!dynamic_cast<DataBoolean *>(condition.get())->value)
             {

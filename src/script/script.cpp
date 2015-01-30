@@ -1525,7 +1525,7 @@ struct Parser
         case TokenType::New:
         {
             getToken();
-            uint32_t retval;
+            uint32_t retval = 0;
             switch(tokenType)
             {
             case TokenType::Boolean:

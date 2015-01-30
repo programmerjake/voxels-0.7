@@ -39,11 +39,14 @@ cat > src/util/game_version.cpp << EOF
  */
 #include "util/game_version.h"
 
-const wstring GameVersion::VERSION = L"`obj/dump-version --next-version-str`";
-const uint32_t GameVersion::FILE_VERSION = `obj/dump-version`;
+const std::wstring programmerjake::voxels::GameVersion::VERSION = L"`obj/dump-version --next-version-str`";
+const std::uint32_t programmerjake::voxels::GameVersion::FILE_VERSION = `obj/dump-version`;
 
 #ifdef COMPILE_DUMP_VERSION
 #include <iostream>
+
+using namespace programmerjake::voxels;
+using namespace std;
 
 int main(int argc, char ** argv)
 {
@@ -51,9 +54,9 @@ int main(int argc, char ** argv)
     if(argc > 1 && string(argv[1]) == "--next-version")
         cout << (curVersion + 1) << endl;
     else if(argc > 1 && string(argv[1]) == "--next-version-str")
-        cout << "0.6.1." << (curVersion + 1) << endl;
+        cout << "0.7.1." << (curVersion + 1) << endl;
     else if(argc > 1)
-        cout << "0.6.1." << curVersion << endl;
+        cout << "0.7.1." << curVersion << endl;
     else
         cout << GameVersion::FILE_VERSION << endl;
     return 0;

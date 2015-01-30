@@ -17,6 +17,7 @@
  */
 #include "player/player.h"
 
+#if 0
 void drawWorld(World &world, Renderer &renderer, Matrix playerToWorld, Dimension d, int32_t viewDistance)
 {
     PositionF viewPosition = PositionF(playerToWorld.apply(VectorF(0)), d);
@@ -30,3 +31,4 @@ void drawWorld(World &world, Renderer &renderer, Matrix playerToWorld, Dimension
         renderer << rl << transform(worldToPlayer, world.getCachedMeshes()[rl]) << transform(worldToPlayer, entityMeshes[rl]);
     }
 }
+#endif

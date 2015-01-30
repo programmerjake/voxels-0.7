@@ -22,6 +22,10 @@
 #include <string>
 #include <cstdint>
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace GameVersion
 {
     extern const std::wstring VERSION;
@@ -34,12 +38,6 @@ namespace GameVersion
     const bool DEBUG = false;
 #endif
 };
-
-namespace programmerjake
-{
-namespace voxels
-{
-using GameVersion = ::GameVersion;
 }
 }
 

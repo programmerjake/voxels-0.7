@@ -18,6 +18,10 @@
 #include "stream/compressed_stream.h"
 #include <zlib.h>
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace
 {
 #if 0
@@ -37,7 +41,7 @@ int copyit(z_streamp s, int)
 }
 #endif
 
-z_streamp getStream(const shared_ptr<void> &ptr)
+z_streamp getStream(const std::shared_ptr<void> &ptr)
 {
     return (z_streamp)ptr.get();
 }
@@ -49,7 +53,7 @@ z_streamp makeDeflateStream()
     retval->opaque = nullptr;
     if(deflateInit(retval, 2) != Z_OK)
     {
-        string msg = retval->msg;
+        std::string msg = retval->msg;
         delete retval;
         throw stream::ZLibFormatException(msg);
     }
@@ -72,7 +76,7 @@ z_streamp makeInflateStream()
     retval->opaque = nullptr;
     if(inflateInit(retval) != Z_OK)
     {
-        string msg = retval->msg;
+        std::string msg = retval->msg;
         delete retval;
         throw stream::ZLibFormatException(msg);
     }
@@ -89,15 +93,11 @@ void inflateDeleter(void * stream)
 }
 }
 
-namespace programmerjake
-{
-namespace voxels
-{
 namespace stream
 {
 
 CompressWriter::CompressWriter(Writer &writer)
-    : writer(writer), state(shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter))
+    : writer(writer), state(std::shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter))
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);
@@ -165,7 +165,7 @@ void CompressWriter::writeBuffer()
 }
 
 ExpandReader::ExpandReader(Reader &reader)
-    : reader(reader), state(shared_ptr<void>(makeInflateStream(), inflateDeleter))
+    : reader(reader), state(std::shared_ptr<void>(makeInflateStream(), inflateDeleter))
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);
