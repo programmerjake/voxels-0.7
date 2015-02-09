@@ -56,9 +56,16 @@ public:
     {
         bind(fn);
     }
-    Event(Event &&) = default;
+    Event(Event &&rt)
+        : functions(std::move(rt.functions))
+    {
+    }
     Event(const Event &) = delete;
-    const Event &operator =(Event &&) = default;
+    const Event &operator =(Event &&rt)
+    {
+        functions = std::move(rt.functions);
+        return *this;
+    }
     const Event &operator =(const Event &) = delete;
     void bind(std::function<ReturnType (EventArguments &args)> fn, Priority p = Priority::Default)
     {

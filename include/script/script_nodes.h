@@ -896,11 +896,11 @@ struct NodeAdd : public NodeBinaryArithmatic<NodeAdd>
     {
         return a + b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -959,11 +959,11 @@ struct NodeSub : public NodeBinaryArithmatic<NodeSub>
     {
         return a - b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1022,11 +1022,11 @@ struct NodeMul : public NodeBinaryArithmatic<NodeMul>
     {
         return a * b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1101,11 +1101,11 @@ struct NodeDiv : public NodeBinaryArithmatic<NodeDiv>
         }
         return a / b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1172,11 +1172,11 @@ struct NodeMod : public NodeBinaryArithmatic<NodeMod>
         }
         return a % b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1239,15 +1239,15 @@ struct NodePow : public NodeBinaryArithmatic<NodePow>
         }
         return pow(a, b);
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static float evalFn(std::int32_t a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1306,11 +1306,11 @@ struct NodeAnd : public NodeBinaryArithmatic<NodeAnd>
     {
         return a & b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1369,11 +1369,11 @@ struct NodeOr : public NodeBinaryArithmatic<NodeOr>
     {
         return a | b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1432,11 +1432,11 @@ struct NodeXor : public NodeBinaryArithmatic<NodeXor>
     {
         return a ^ b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1517,11 +1517,11 @@ struct NodeConcat : public NodeBinaryArithmatic<NodeConcat>
         throwError();
         return nullptr;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static std::int32_t evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1580,11 +1580,11 @@ struct NodeDot : public NodeBinaryArithmatic<NodeDot>
     {
         return throwError();
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1643,11 +1643,11 @@ struct NodeCross : public NodeBinaryArithmatic<NodeCross>
     {
         return throwError();
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1706,11 +1706,11 @@ struct NodeEqual : public NodeBinaryArithmatic<NodeEqual>
     {
         return a == b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1825,11 +1825,11 @@ struct NodeNotEqual : public NodeBinaryArithmatic<NodeNotEqual>
     {
         return a != b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -1944,11 +1944,11 @@ struct NodeLessThan : public NodeBinaryArithmatic<NodeLessThan>
     {
         return a < b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -2016,11 +2016,11 @@ struct NodeGreaterThan : public NodeBinaryArithmatic<NodeGreaterThan>
     {
         return a > b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -2088,11 +2088,11 @@ struct NodeLessEqual : public NodeBinaryArithmatic<NodeLessEqual>
     {
         return a <= b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }
@@ -2160,11 +2160,11 @@ struct NodeGreaterEqual : public NodeBinaryArithmatic<NodeGreaterEqual>
     {
         return a >= b;
     }
-    static auto evalFn(float a, std::int32_t b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(float a, std::int32_t b)
     {
         return evalFn((float)a, (float)b);
     }
-    static auto evalFn(std::int32_t a, float b) -> decltype(evalFn((float)a, (float)b))
+    static decltype(evalFn((float)0, (float)0)) evalFn(std::int32_t a, float b)
     {
         return evalFn((float)a, (float)b);
     }

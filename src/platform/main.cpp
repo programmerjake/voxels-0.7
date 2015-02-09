@@ -17,7 +17,9 @@
  */
 #include "platform/platform.h"
 #include "platform/audio.h"
-#include <iostream>
+#include "ui/ui.h"
+#include "ui/label.h"
+#include "ui/button.h"
 
 using namespace std;
 
@@ -27,10 +29,21 @@ namespace voxels
 {
 int main(std::vector<std::wstring> args)
 {
-    Audio sound(L"background6.ogg", true);
+    startGraphics();
+    Audio sound(L"background7.ogg", true);
     shared_ptr<PlayingAudio> playingSound = sound.play(true);
-    cout << "press enter to exit.\n";
-    cin.ignore();
+
+    auto ui = make_shared<voxels::ui::Ui>();
+    ui->add(make_shared<voxels::ui::Label>(L"label", -0.5, 0.5, -0.8, -0.7));
+    auto button1 = make_shared<voxels::ui::Button>(L"Quit", -0.5, 0.5, -0.1, 0.1);
+    ui->add(button1);
+    button1->click.bind([=](EventArguments &)->Event::ReturnType
+    {
+        ui->quit();
+        return Event::Discard;
+    });
+    ui->run();
+    endGraphics();
     return 0;
 }
 }

@@ -17,9 +17,12 @@
  */
 #include "entity/entity.h"
 
-using namespace programmerjake::voxels;
 using namespace std;
 
+namespace programmerjake
+{
+namespace voxels
+{
 EntityDescriptor::EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor)
     : name(name), physicsObjectConstructor(physicsObjectConstructor)
 {
@@ -53,4 +56,6 @@ void EntityDescriptors_t::remove(EntityDescriptorPointer bd) const
         delete entitiesMap;
         entitiesMap = nullptr;
     }
+}
+}
 }

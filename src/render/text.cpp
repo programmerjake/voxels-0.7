@@ -22,8 +22,11 @@
 #include <iostream>
 
 using namespace std;
-using namespace programmerjake::voxels;
 
+namespace programmerjake
+{
+namespace voxels
+{
 const Text::TextProperties Text::defaultTextProperties = Text::TextProperties();
 
 namespace
@@ -404,10 +407,6 @@ bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Te
 }
 }
 
-namespace programmerjake
-{
-namespace voxels
-{
 float Text::width(wstring str, const TextProperties &properties)
 {
     float x = 0, y = 0, w = 0, h = 0;

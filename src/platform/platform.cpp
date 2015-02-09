@@ -841,7 +841,7 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
     return retval;
 }
 
-static Event *makeEvent()
+static PlatformEvent *makeEvent()
 {
     static bool needCharEvent = false;
     static wstring characters;
@@ -869,14 +869,14 @@ static Event *makeEvent()
         case SDL_KEYDOWN:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            Event *retval = new KeyDownEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
+            PlatformEvent *retval = new KeyDownEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
             keyState[key] = true;
             return retval;
         }
         case SDL_KEYUP:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            Event *retval = new KeyUpEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
+            PlatformEvent *retval = new KeyUpEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
             keyState[key] = false;
             return retval;
         }
@@ -992,7 +992,7 @@ shared_ptr<EventHandler> DefaultEventHandler_handler(new DefaultEventHandler);
 
 static void handleEvents(shared_ptr<EventHandler> eventHandler)
 {
-    for(Event *e = makeEvent(); e != nullptr; e = makeEvent())
+    for(PlatformEvent *e = makeEvent(); e != nullptr; e = makeEvent())
     {
         if(eventHandler == nullptr || !e->dispatch(eventHandler))
         {
@@ -1163,6 +1163,29 @@ void Display::grabMouse(bool g)
 VectorF Display::transformMouseTo3D(float x, float y, float depth)
 {
     return VectorF(depth * scaleX() * (2 * x / width() - 1), depth * scaleY() * (1 - 2 * y / height()), -depth);
+}
+
+VectorF Display::transformTouchTo3D(float x, float y, float depth)
+{
+    return VectorF(depth * scaleX() * x, depth * scaleY() * -y, -depth);
+}
+
+VectorF Display::transform3DToMouse(VectorF pos)
+{
+    float depth = -pos.z;
+    pos.x = pos.x / depth / scaleX();
+    pos.y = -pos.y / depth / scaleY();
+    pos.x = (pos.x * 0.5 + 0.5) * width();
+    pos.y = (pos.y * 0.5 + 0.5) * height();
+    return pos;
+}
+
+VectorF Display::transform3DToTouch(VectorF pos)
+{
+    float depth = -pos.z;
+    pos.x = pos.x / depth / scaleX();
+    pos.y = -pos.y / depth / scaleY();
+    return pos;
 }
 
 namespace

@@ -150,6 +150,14 @@ struct rw_cached_helper<Image>
     }
 };
 }
+
+inline Image whiteTexture()
+{
+    static Image retval;
+    if(retval == nullptr)
+        retval = Image(GrayscaleI(0xFF));
+    return retval;
+}
 }
 }
 

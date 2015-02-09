@@ -21,6 +21,10 @@
 #include "stream/stream.h"
 #include "util/enum_traits.h"
 
+namespace programmerjake
+{
+namespace voxels
+{
 enum class NetworkEventType : uint8_t
 {
     Keepalive,
@@ -84,5 +88,7 @@ public:
         return make_shared<stream::MemoryReader>(std::move(bytes));
     }
 };
+}
+}
 
 #endif // NETWORK_EVENT_H_INCLUDED

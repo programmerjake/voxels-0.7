@@ -21,7 +21,7 @@
 #include "util/event.h"
 #include <utility>
 #include <string>
-#include <stdint>
+#include <cstdint>
 #include <memory>
 #include "util/vector.h"
 #include "util/position.h"
@@ -58,7 +58,8 @@ public:
     void set(R rt)
     {
         variable = std::forward<R>(rt);
-        onChange();
+        EventArguments args;
+        onChange(args);
     }
 };
 
@@ -67,7 +68,7 @@ typedef MonitoredVariable<double> MonitoredDouble;
 typedef MonitoredVariable<bool> MonitoredBool;
 typedef MonitoredVariable<std::wstring> MonitoredString;
 typedef MonitoredVariable<std::int32_t> MonitoredInt32;
-typedef MonitoredVariable<std::int> MonitoredInt;
+typedef MonitoredVariable<int> MonitoredInt;
 typedef MonitoredVariable<VectorF> MonitoredVectorF;
 typedef MonitoredVariable<PositionF> MonitoredPositionF;
 template <typename T>

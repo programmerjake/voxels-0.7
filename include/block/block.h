@@ -300,7 +300,7 @@ inline BlockLighting Block::calcBlockLighting(BlockIterator &bi, WorldLockManage
 namespace std
 {
 template <>
-struct hash<programmerjake::voxels::Block> final
+struct hash<programmerjake::voxels::Block>
 {
     size_t operator()(const programmerjake::voxels::Block &b) const
     {

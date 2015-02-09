@@ -23,8 +23,11 @@
 #include "util/util.h"
 
 using namespace std;
-using namespace programmerjake::voxels;
 
+namespace programmerjake
+{
+namespace voxels
+{
 namespace
 {
 
@@ -143,4 +146,6 @@ PngDecoder::PngDecoder(stream::Reader & reader)
     {
         throw PngLoadError(errorMsg);
     }
+}
+}
 }

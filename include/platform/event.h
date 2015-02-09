@@ -18,7 +18,6 @@
 #ifndef EVENT_H_INCLUDED
 #define EVENT_H_INCLUDED
 
-#include "platform/platform.h"
 #include <memory>
 #include "util/enum_traits.h"
 
@@ -55,8 +54,16 @@ struct EventHandler
     {
     }
 };
+}
+}
 
-class Event
+#include "platform/platform.h"
+
+namespace programmerjake
+{
+namespace voxels
+{
+class PlatformEvent
 {
 public:
     enum class Type
@@ -76,7 +83,7 @@ public:
     };
     const Type type;
 protected:
-    Event(Type type)
+    PlatformEvent(Type type)
         : type(type)
     {
     }
@@ -84,7 +91,7 @@ public:
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) = 0;
 };
 
-class TouchEvent : public Event
+class TouchEvent : public PlatformEvent
 {
 public:
     const float x, y; /// normalized to the range -1 to 1
@@ -93,7 +100,7 @@ public:
     const float pressure;
 protected:
     TouchEvent(Type type, float x, float y, float deltaX, float deltaY, int touchId, float pressure)
-        : Event(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY), touchId(touchId), pressure(pressure)
+        : PlatformEvent(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY), touchId(touchId), pressure(pressure)
     {
     }
 };
@@ -101,7 +108,7 @@ protected:
 struct TouchDownEvent : public TouchEvent
 {
     TouchDownEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
-        : TouchEvent(Type::TouchDown,  x, y, deltaX, deltaY, touchId, pressure)
+        : TouchEvent(Type::TouchDown, x, y, deltaX, deltaY, touchId, pressure)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -113,7 +120,7 @@ struct TouchDownEvent : public TouchEvent
 struct TouchUpEvent : public TouchEvent
 {
     TouchUpEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
-        : TouchEvent(Type::TouchUp,  x, y, deltaX, deltaY, touchId, pressure)
+        : TouchEvent(Type::TouchUp, x, y, deltaX, deltaY, touchId, pressure)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -125,7 +132,7 @@ struct TouchUpEvent : public TouchEvent
 struct TouchMoveEvent : public TouchEvent
 {
     TouchMoveEvent(float x, float y, float deltaX, float deltaY, int touchId, float pressure)
-        : TouchEvent(Type::TouchMove,  x, y, deltaX, deltaY, touchId, pressure)
+        : TouchEvent(Type::TouchMove, x, y, deltaX, deltaY, touchId, pressure)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -134,25 +141,26 @@ struct TouchMoveEvent : public TouchEvent
     }
 };
 
-class MouseEvent : public Event
+class MouseEvent : public PlatformEvent
 {
 public:
     const float x, y;
     const float deltaX, deltaY;
 protected:
     MouseEvent(Type type, float x, float y, float deltaX, float deltaY)
-        : Event(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY)
+        : PlatformEvent(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY)
     {
     }
 };
 
-class KeyEvent : public Event
+class KeyEvent : public PlatformEvent
 {
 public:
     const KeyboardKey key;
     const KeyboardModifiers mods;
 protected:
-    KeyEvent(Type type, KeyboardKey key, KeyboardModifiers mods): Event(type), key(key), mods(mods)
+    KeyEvent(Type type, KeyboardKey key, KeyboardModifiers mods)
+        : PlatformEvent(type), key(key), mods(mods)
     {
     }
 };
@@ -161,7 +169,8 @@ class KeyDownEvent final : public KeyEvent
 {
 public:
     const bool isRepetition;
-    KeyDownEvent(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false) : KeyEvent(Type::KeyDown, key, mods), isRepetition(isRepetition)
+    KeyDownEvent(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false)
+        : KeyEvent(Type::KeyDown, key, mods), isRepetition(isRepetition)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -183,11 +192,11 @@ public:
     }
 };
 
-struct KeyPressEvent : public Event
+struct KeyPressEvent : public PlatformEvent
 {
     const wchar_t character;
     KeyPressEvent(wchar_t character)
-        : Event(Type::KeyPress), character(character)
+        : PlatformEvent(Type::KeyPress), character(character)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -244,11 +253,11 @@ struct MouseMoveEvent : public MouseEvent
     }
 };
 
-struct MouseScrollEvent : public Event
+struct MouseScrollEvent : public PlatformEvent
 {
     const int scrollX, scrollY;
     MouseScrollEvent(int scrollX, int scrollY)
-        : Event(Type::MouseScroll), scrollX(scrollX), scrollY(scrollY)
+        : PlatformEvent(Type::MouseScroll), scrollX(scrollX), scrollY(scrollY)
     {
     }
 
@@ -258,10 +267,10 @@ struct MouseScrollEvent : public Event
     }
 };
 
-struct QuitEvent : public Event
+struct QuitEvent : public PlatformEvent
 {
     QuitEvent()
-        : Event(Type::Quit)
+        : PlatformEvent(Type::Quit)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override

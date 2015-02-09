@@ -83,6 +83,11 @@
 		<Unit filename="include/texture/image.h" />
 		<Unit filename="include/texture/texture_atlas.h" />
 		<Unit filename="include/texture/texture_descriptor.h" />
+		<Unit filename="include/ui/button.h" />
+		<Unit filename="include/ui/container.h" />
+		<Unit filename="include/ui/element.h" />
+		<Unit filename="include/ui/label.h" />
+		<Unit filename="include/ui/ui.h" />
 		<Unit filename="include/util/arena_allocator.h" />
 		<Unit filename="include/util/atomic_shared_ptr.h" />
 		<Unit filename="include/util/balanced_tree.h" />
@@ -135,6 +140,9 @@
 		<Unit filename="src/stream/stream.cpp" />
 		<Unit filename="src/texture/image.cpp" />
 		<Unit filename="src/texture/texture_atlas.cpp" />
+		<Unit filename="src/ui/container.cpp" />
+		<Unit filename="src/ui/element.cpp" />
+		<Unit filename="src/ui/ui.cpp" />
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
 		<Unit filename="src/util/matrix.cpp" />

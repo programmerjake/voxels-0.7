@@ -27,6 +27,7 @@
 #include "stream/stream.h"
 #include "render/mesh.h"
 #include "util/enum_traits.h"
+#include <type_traits>
 
 namespace programmerjake
 {
@@ -221,7 +222,55 @@ enum MouseButton
     MouseButton_X1 = 0x8,
     MouseButton_X2 = 0x10
 };
+}
+}
 
+namespace std
+{
+template <>
+struct hash<programmerjake::voxels::KeyboardKey>
+{
+private:
+    typedef typename std::underlying_type<programmerjake::voxels::KeyboardKey>::type int_type;
+    hash<int_type> hasher;
+public:
+    size_t operator ()(programmerjake::voxels::KeyboardKey v) const
+    {
+        return hasher((int_type)v);
+    }
+};
+
+template <>
+struct hash<programmerjake::voxels::KeyboardModifiers>
+{
+private:
+    typedef typename std::underlying_type<programmerjake::voxels::KeyboardModifiers>::type int_type;
+    hash<int_type> hasher;
+public:
+    size_t operator ()(programmerjake::voxels::KeyboardModifiers v) const
+    {
+        return hasher((int_type)v);
+    }
+};
+
+template <>
+struct hash<programmerjake::voxels::MouseButton>
+{
+private:
+    typedef typename std::underlying_type<programmerjake::voxels::MouseButton>::type int_type;
+    hash<int_type> hasher;
+public:
+    size_t operator ()(programmerjake::voxels::MouseButton v) const
+    {
+        return hasher((int_type)v);
+    }
+};
+}
+
+namespace programmerjake
+{
+namespace voxels
+{
 struct CachedMesh;
 
 std::shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh);
@@ -247,6 +296,9 @@ namespace Display
     bool grabMouse();
     void grabMouse(bool g);
     VectorF transformMouseTo3D(float x, float y, float depth = 1.0f);
+    VectorF transformTouchTo3D(float x, float y, float depth = 1.0f);
+    VectorF transform3DToMouse(VectorF pos);
+    VectorF transform3DToTouch(VectorF pos);
     void render(const Mesh & m, bool enableDepthBuffer);
     void render(std::shared_ptr<CachedMesh> m, bool enableDepthBuffer);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
