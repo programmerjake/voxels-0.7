@@ -22,6 +22,7 @@
 #include <ostream>
 #include "util/util.h"
 #include "stream/stream.h"
+#include <cmath>
 
 namespace programmerjake
 {
@@ -211,6 +212,39 @@ template <>
 constexpr ColorF interpolate<ColorF>(const float t, const ColorF a, const ColorF b)
 {
     return RGBAF(interpolate(t, a.r, b.r), interpolate(t, a.g, b.g), interpolate(t, a.b, b.b), interpolate(t, a.a, b.a));
+}
+
+inline ColorF HueF(float h)
+{
+    h -= std::floor(h);
+    h *= 6;
+    int index = (int)std::floor(h);
+    ColorF colors[6] =
+    {
+        RGBF(1, 0, 0),
+        RGBF(1, 1, 0),
+        RGBF(0, 1, 0),
+        RGBF(0, 1, 1),
+        RGBF(0, 0, 1),
+        RGBF(1, 0, 1)
+    };
+    return interpolate(h - index, colors[index], colors[index + 1 >= 6 ? index + 1 - 6 : index + 1]);
+}
+
+inline ColorF HSLAF(float h, float s, float l, float a) /// hue saturation lightness
+{
+    ColorF hs = interpolate(s, GrayscaleF(0.5), HueF(h));
+    ColorF hsl = (l < 0.5) ? interpolate(2 * l, GrayscaleF(0), hs) : interpolate(2 * l - 1, hs, GrayscaleF(1));
+    hsl.a = a;
+    return hsl;
+}
+
+inline ColorF HSVAF(float h, float s, float v, float a) /// hue saturation value
+{
+    ColorF hs = interpolate(s, GrayscaleF(1), HueF(h));
+    ColorF hsv = interpolate(v, GrayscaleF(0), hs);
+    hsv.a = a;
+    return hsv;
 }
 }
 }

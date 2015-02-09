@@ -84,9 +84,12 @@
 		<Unit filename="include/texture/texture_atlas.h" />
 		<Unit filename="include/texture/texture_descriptor.h" />
 		<Unit filename="include/ui/button.h" />
+		<Unit filename="include/ui/checkbox.h" />
 		<Unit filename="include/ui/container.h" />
 		<Unit filename="include/ui/element.h" />
 		<Unit filename="include/ui/label.h" />
+		<Unit filename="include/ui/labeled_element.h" />
+		<Unit filename="include/ui/shaded_container.h" />
 		<Unit filename="include/ui/ui.h" />
 		<Unit filename="include/util/arena_allocator.h" />
 		<Unit filename="include/util/atomic_shared_ptr.h" />

@@ -166,7 +166,7 @@ const wchar_t topPageTranslations[128] =
     0x207F,
     0x00B2,
     0x25A0,
-    0x00A0
+    0x2610
 };
 
 unordered_map<wchar_t, int> topPageTranslationMap;
@@ -179,7 +179,7 @@ initializer init2([]()
     }
 });
 
-int translateToCodePage437(wchar_t ch)
+int translateToFontIndex(wchar_t ch)
 {
     int character = (int)ch;
 
@@ -195,6 +195,9 @@ int translateToCodePage437(wchar_t ch)
 
     switch(character)
     {
+    case 0x2611:
+        return 0x00;
+
     case 0x263A:
         return 0x01;
 
@@ -288,6 +291,9 @@ int translateToCodePage437(wchar_t ch)
     case 0x25BC:
         return 0x1F;
 
+    case 0xA0:
+        return 0x20;
+
     case 0x2302:
         return 0x7F;
 
@@ -366,7 +372,7 @@ void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch)
 {
     init();
     //cout << "char:" << (char)ch << " pt:" << transform(m, VectorF(0, 0, 0)) << endl;
-    dest.append(colorize(color, transform(m, charMesh[translateToCodePage437(ch)])));
+    dest.append(colorize(color, transform(m, charMesh[translateToFontIndex(ch)])));
 }
 
 bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Text::TextProperties &properties)
