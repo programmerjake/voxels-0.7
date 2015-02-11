@@ -1234,11 +1234,15 @@ void renderInternal(const Mesh & m)
 }
 }
 
-void Display::render(const Mesh & m, bool enableDepthBuffer)
+void Display::render(const Mesh & m, Matrix tform, bool enableDepthBuffer)
 {
     m.image.bind();
     glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadMatrix(tform);
     renderInternal(m);
+    glPopMatrix();
 }
 
 void Display::clear(ColorF color)

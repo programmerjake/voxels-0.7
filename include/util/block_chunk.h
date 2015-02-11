@@ -34,6 +34,7 @@
 #include <atomic>
 #include <iterator>
 #include "util/atomic_shared_ptr.h"
+#include <atomic>
 
 namespace programmerjake
 {
@@ -128,11 +129,12 @@ struct BlockChunkBlock final
 {
     Block block;
     BlockUpdate *updateListHead = nullptr; // BlockChunkChunkVariables is responsible for deleting
-    BlockLighting lighting;
-    bool lightingValid = false;
     BlockChunkBlock() = default;
     BlockChunkBlock(const BlockChunkBlock &rt)
-        : block(rt.block), updateListHead(nullptr), lighting(rt.lighting), lightingValid(rt.lightingValid)
+        : block(rt.block), updateListHead(nullptr)
+    {
+    }
+    void invalidate()
     {
     }
     const BlockChunkBlock &operator =(const BlockChunkBlock &) = delete;
@@ -143,9 +145,9 @@ typedef std::mutex BlockChunkLockType;
 struct BlockChunkSubchunk final
 {
     BlockChunkLockType lock;
-    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshs;
+    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : cachedMeshs(nullptr)
+        : cachedMeshes(nullptr)
     {
     }
     BlockChunkSubchunk() = default;
@@ -153,9 +155,9 @@ struct BlockChunkSubchunk final
 
 struct BlockChunkChunkVariables final
 {
-    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshs;
+    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
-        : cachedMeshs(nullptr)
+        : cachedMeshes(nullptr)
     {
     }
     BlockChunkChunkVariables() = default;

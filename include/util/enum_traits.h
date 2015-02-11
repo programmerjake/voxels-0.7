@@ -208,6 +208,12 @@ struct enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typ
     }
 };
 
+template <typename T>
+constexpr T enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>::minimum;
+
+template <typename T>
+constexpr T enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>::maximum;
+
 template <typename T, typename EnumT>
 struct enum_array
 {

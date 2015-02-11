@@ -230,7 +230,8 @@ shared_ptr<const WorldGenerator> makeWorldGenerator()
 #else
 shared_ptr<const WorldGenerator> makeWorldGenerator()
 {
-    assert(false);
+    #warning finish
+    return nullptr;
 #endif
 }
 }
@@ -268,6 +269,10 @@ World::World()
     : World(makeRandomSeed())
 {
 
+}
+
+World::~World()
+{
 }
 
 #if 0

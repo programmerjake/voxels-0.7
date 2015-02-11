@@ -21,6 +21,7 @@
 #include "world/world.h"
 #include "render/render_layer.h"
 #include "render/mesh.h"
+#include "render/renderer.h"
 #include "util/enum_traits.h"
 #include <mutex>
 #include <thread>
@@ -64,10 +65,23 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         viewDistance = newViewDistance;
     }
+private:
     std::shared_ptr<enum_array<Mesh, RenderLayer>> getBlockRenderMeshes()
     {
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return blockRenderMeshes;
+    }
+public:
+    void render(Renderer &renderer, Matrix worldToCamera)
+    {
+        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = getBlockRenderMeshes();
+        if(!meshes)
+            return;
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            renderer << rl;
+            renderer << transform(worldToCamera, meshes->at(rl));
+        }
     }
 };
 }

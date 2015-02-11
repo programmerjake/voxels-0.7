@@ -67,7 +67,7 @@ protected:
     {
     }
 public:
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);

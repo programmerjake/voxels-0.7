@@ -76,6 +76,7 @@ struct WorldLockManager final
 class BlockIterator final
 {
     friend class World;
+    friend class ViewPoint;
     BlockChunk *chunk;
     parallel_map<PositionI, BlockChunk> *chunks;
     PositionI currentBasePosition;

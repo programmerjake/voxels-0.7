@@ -15,16 +15,33 @@
  * MA 02110-1301, USA.
  *
  */
-#include "render/mesh.h"
-#include "render/renderer.h"
-#include "platform/platform.h"
-#include <iostream>
+#include "ui/element.h"
 
-using namespace std;
-using namespace programmerjake::voxels;
-
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
+namespace programmerjake
 {
-    Display::render(m, tform, depthBufferEnabled);
+namespace voxels
+{
+namespace ui
+{
+Element::Element(float minX, float maxX, float minY, float maxY)
+    : minX(minX), maxX(maxX), minY(minY), maxY(maxY)
+{
+    assert(minX < maxX && minY < maxY);
 }
 
+Element::~Element()
+{
+}
+
+void Element::setFocus()
+{
+    if(!canHaveKeyboardFocus())
+        return;
+    auto p = getParent();
+    if(p == nullptr)
+        return;
+    p->setFocus(shared_from_this());
+}
+}
+}
+}

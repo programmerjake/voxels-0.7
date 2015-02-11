@@ -15,16 +15,15 @@
  * MA 02110-1301, USA.
  *
  */
-#include "render/mesh.h"
-#include "render/renderer.h"
-#include "platform/platform.h"
-#include <iostream>
+#include "ui/container.h"
 
-using namespace std;
-using namespace programmerjake::voxels;
-
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
+namespace programmerjake
 {
-    Display::render(m, tform, depthBufferEnabled);
+namespace voxels
+{
+namespace ui
+{
+constexpr std::size_t Container::npos;
 }
-
+}
+}

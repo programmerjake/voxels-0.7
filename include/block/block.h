@@ -78,7 +78,7 @@ struct Block final
         return !operator ==(r);
     }
     void createNewLighting(Lighting oldLighting);
-    static BlockLighting calcBlockLighting(BlockIterator &bi_in, WorldLockManager &lock_manager, WorldLightingProperties wlp);
+    static BlockLighting calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp);
 };
 
 struct BlockShape final
@@ -136,7 +136,7 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator &blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
     {
         assert(false); // shouldn't be called
     }
@@ -163,7 +163,7 @@ public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator &blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
+    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
     {
         if(isStaticMesh)
         {
@@ -208,7 +208,7 @@ public:
             renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual Block moveStep(const Block &block, BlockIterator &blockIterator, WorldLockManager &lock_manager) const
+    virtual Block moveStep(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {
         return block;
     }
@@ -220,7 +220,7 @@ public:
     {
         return std::hash<std::shared_ptr<void>>()(data);
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator &blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
@@ -267,7 +267,7 @@ inline bool Block::operator==(const Block &r) const
     return descriptor->isDataEqual(data, r.data);
 }
 
-inline BlockLighting Block::calcBlockLighting(BlockIterator &bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
+inline BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
 {
     std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
     for(int x = 0; (size_t)x < blocks.size(); x++)

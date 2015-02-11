@@ -299,7 +299,7 @@ namespace Display
     VectorF transformTouchTo3D(float x, float y, float depth = 1.0f);
     VectorF transform3DToMouse(VectorF pos);
     VectorF transform3DToTouch(VectorF pos);
-    void render(const Mesh & m, bool enableDepthBuffer);
+    void render(const Mesh & m, Matrix tform, bool enableDepthBuffer);
     void render(std::shared_ptr<CachedMesh> m, bool enableDepthBuffer);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
 }

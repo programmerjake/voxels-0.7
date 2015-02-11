@@ -208,11 +208,13 @@ void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
 
 bool PlayingAudio::isPlaying()
 {
+    unique_lock<mutex> lock(audioStateMutex);
     return audioRunning() && !data->hitEOF();
 }
 
 double PlayingAudio::currentTime()
 {
+    unique_lock<mutex> lock(audioStateMutex);
     return (double)data->playedSamples / data->decoder->samplesPerSecond();
 }
 
@@ -223,16 +225,19 @@ void PlayingAudio::stop()
 
 float PlayingAudio::volume()
 {
+    unique_lock<mutex> lock(audioStateMutex);
     return data->volume;
 }
 
 void PlayingAudio::volume(float v)
 {
+    unique_lock<mutex> lock(audioStateMutex);
     data->volume = limit(v, 0.0f, 1.0f);
 }
 
 double PlayingAudio::duration()
 {
+    unique_lock<mutex> lock(audioStateMutex);
     return data->decoder->lengthInSeconds();
 }
 

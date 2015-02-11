@@ -15,16 +15,38 @@
  * MA 02110-1301, USA.
  *
  */
-#include "render/mesh.h"
-#include "render/renderer.h"
+#include "ui/ui.h"
 #include "platform/platform.h"
-#include <iostream>
 
-using namespace std;
-using namespace programmerjake::voxels;
-
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
+namespace programmerjake
 {
-    Display::render(m, tform, depthBufferEnabled);
+namespace voxels
+{
+namespace ui
+{
+void Ui::clear(Renderer &renderer)
+{
+    Display::clear(background);
 }
 
+void Ui::run(Renderer &renderer)
+{
+    Display::initFrame();
+    reset();
+    double doneTime = 0.2;
+    while(doneTime > 0)
+    {
+        Display::handleEvents(shared_from_this());
+        move(Display::frameDeltaTime());
+        if(isDone())
+            doneTime -= Display::frameDeltaTime();
+        Display::initFrame();
+        clear(renderer);
+        layout();
+        render(renderer, 1, 32, true);
+        Display::flip(60);
+    }
+}
+}
+}
+}

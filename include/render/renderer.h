@@ -37,14 +37,27 @@ struct disable_depth_buffer_t
 
 static constexpr disable_depth_buffer_t disable_depth_buffer{};
 
+struct start_overlay_t
+{
+};
+
+static constexpr start_overlay_t start_overlay{};
+
 class Renderer
 {
     bool depthBufferEnabled = true;
+    void render(const Mesh &m, Matrix tform);
 public:
-    Renderer & operator <<(const Mesh &m);
+    Renderer & operator <<(const Mesh &m)
+    {
+        render(m, Matrix::identity());
+        return *this;
+    }
     Renderer & operator <<(TransformedMesh m)
     {
-        return *this << (Mesh)m;
+        assert(m.mesh != nullptr);
+        render(*m.mesh, m.tform);
+        return *this;
     }
     Renderer & operator <<(ColorizedMesh m)
     {
@@ -56,7 +69,8 @@ public:
     }
     Renderer & operator <<(TransformedMeshRef m)
     {
-        return *this << (Mesh)m;
+        render(m.mesh, m.tform);
+        return *this;
     }
     Renderer & operator <<(ColorizedMeshRef m)
     {
@@ -68,7 +82,8 @@ public:
     }
     Renderer & operator <<(TransformedMeshRRef &&m)
     {
-        return *this << (Mesh)std::move(m);
+        render(m.mesh, m.tform);
+        return *this;
     }
     Renderer & operator <<(ColorizedMeshRRef &&m)
     {
@@ -92,6 +107,11 @@ public:
     Renderer & operator <<(disable_depth_buffer_t)
     {
         depthBufferEnabled = false;
+        return *this;
+    }
+    Renderer & operator <<(start_overlay_t)
+    {
+        Display::initOverlay();
         return *this;
     }
     Renderer & operator <<(RenderLayer rl)

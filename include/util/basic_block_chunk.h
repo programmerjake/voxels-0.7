@@ -40,6 +40,9 @@ struct BasicBlockChunk
     static constexpr std::int32_t chunkSizeY = (std::int32_t)1 << chunkShiftY;
     static constexpr std::int32_t chunkSizeZ = (std::int32_t)1 << chunkShiftZ;
     static constexpr std::int32_t subchunkSizeXYZ = (std::int32_t)1 << subchunkShiftXYZ;
+    static constexpr std::int32_t subchunkCountX = chunkSizeX / subchunkSizeXYZ;
+    static constexpr std::int32_t subchunkCountY = chunkSizeY / subchunkSizeXYZ;
+    static constexpr std::int32_t subchunkCountZ = chunkSizeZ / subchunkSizeXYZ;
     static_assert(chunkSizeX > 0, "chunkSizeX must be positive");
     static_assert(chunkSizeY > 0, "chunkSizeY must be positive");
     static_assert(chunkSizeZ > 0, "chunkSizeZ must be positive");
@@ -88,6 +91,10 @@ struct BasicBlockChunk
     static constexpr VectorI getSubchunkIndexFromChunkRelativePosition(VectorI pos)
     {
         return VectorI(pos.x >> subchunkShiftXYZ, pos.y >> subchunkShiftXYZ, pos.z >> subchunkShiftXYZ);
+    }
+    static constexpr VectorI getChunkRelativePositionFromSubchunkIndex(VectorI pos)
+    {
+        return VectorI(pos.x << subchunkShiftXYZ, pos.y << subchunkShiftXYZ, pos.z << subchunkShiftXYZ);
     }
     static constexpr VectorI getSubchunkIndexFromPosition(VectorI pos)
     {

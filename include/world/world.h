@@ -186,6 +186,15 @@ public:
     {
         return rescheduleBlockUpdate(bi, lock_manager, kind, -1);
     }
+private:
+    void invalidateBlock(BlockIterator bi, WorldLockManager &lock_manager)
+    {
+        BlockChunkBlock &b = bi.getBlock(lock_manager);
+        b.invalidate();
+        bi.getSubchunk().cachedMeshes = nullptr;
+        bi.chunk->chunkVariables.cachedMeshes = nullptr;
+    }
+public:
     /** @brief set a block
      *
      * @param bi a <code>BlockIterator</code> to the block to set
@@ -197,9 +206,18 @@ public:
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         b.block = newBlock;
-        b.lightingValid = false;
-        bi.getSubchunk().cachedMeshs = nullptr;
-        bi.chunk->chunkVariables.cachedMeshs = nullptr;
+        for(int dx = -1; dx <= 1; dx++)
+        {
+            for(int dy = -1; dy <= 1; dy++)
+            {
+                for(int dz = -1; dz <= 1; dz++)
+                {
+                    BlockIterator bi2 = bi;
+                    bi2.moveBy(VectorI(dx, dy, dz));
+                    invalidateBlock(std::move(bi2), lock_manager);
+                }
+            }
+        }
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
             rescheduleBlockUpdate(bi, lock_manager, kind, kind.defaultPeriod());
@@ -231,6 +249,12 @@ private:
     std::shared_ptr<PhysicsWorld> physicsWorld;
     std::shared_ptr<const WorldGenerator> worldGenerator;
     SeedType worldGeneratorSeed;
+    WorldLightingProperties lighting;
+public:
+    WorldLightingProperties getLighting() const
+    {
+        return lighting;
+    }
 };
 }
 }

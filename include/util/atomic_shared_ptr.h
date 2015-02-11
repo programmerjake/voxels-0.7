@@ -26,6 +26,7 @@ namespace programmerjake
 {
 namespace voxels
 {
+#ifndef DOXYGEN
 template <typename T = void>
 struct has_atomic_load_shared_ptr final
 {
@@ -41,8 +42,37 @@ private:
 public:
     static constexpr bool value = sizeof(yes) == sizeof(decltype(fn((const T *)nullptr)));
 };
+#endif // DOXYGEN
 /** @brief replacement for <code>std::atomic<std::shared_ptr<T>></code>
  */
+#ifdef DOXYGEN
+template <typename T>
+class atomic_shared_ptr
+{
+public:
+    constexpr atomic_shared_ptr()
+    {
+    }
+    constexpr atomic_shared_ptr(std::shared_ptr<T> value)
+        : value(std::move(value))
+    {
+    }
+    const atomic_shared_ptr &operator =(const atomic_shared_ptr &) = delete;
+    void operator =(std::shared_ptr<T> value);
+    void store(std::shared_ptr<T> value);
+    void store(std::shared_ptr<T> value, std::memory_order mo);
+    bool is_lock_free() const;
+    std::shared_ptr<T> load() const;
+    std::shared_ptr<T> load(std::memory_order mo) const;
+    operator std::shared_ptr<T>() const;
+    std::shared_ptr<T> exchange(std::shared_ptr<T> desired);
+    std::shared_ptr<T> exchange(std::shared_ptr<T> desired, std::memory_order mo);
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure);
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst);
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure);
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst);
+};
+#else // DOXYGEN
 template <typename T, bool = has_atomic_load_shared_ptr<>::value>
 class atomic_shared_ptr;
 
@@ -94,11 +124,11 @@ public:
     {
         return std::atomic_exchange_explicit(&value, std::move(desired), mo);
     }
-    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
     {
         return std::atomic_compare_exchange_weak_explicit(&value, &expected, std::move(desired), success, failure);
     }
-    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst)
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst)
     {
         std::memory_order success = mo, failure = mo;
         if(mo == std::memory_order::memory_order_acq_rel)
@@ -107,11 +137,11 @@ public:
             failure = std::memory_order::memory_order_relaxed;
         return std::atomic_compare_exchange_weak_explicit(&value, &expected, std::move(desired), success, failure);
     }
-    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
     {
         return std::atomic_compare_exchange_strong_explicit(&value, &expected, std::move(desired), success, failure);
     }
-    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst)
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order mo = std::memory_order::memory_order_seq_cst)
     {
         std::memory_order success = mo, failure = mo;
         if(mo == std::memory_order::memory_order_acq_rel)
@@ -203,11 +233,11 @@ private:
         return a == b && owner_equal(a, b);
     }
 public:
-    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order, std::memory_order)
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order, std::memory_order)
     {
         return compare_exchange_weak(expected, std::move(desired));
     }
-    bool atomic_compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
+    bool compare_exchange_weak(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
     {
         atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
         if(!mutex_holder.try_lock())
@@ -224,11 +254,11 @@ public:
         mutex_holder.unlock();
         return retval;
     }
-    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order success, std::memory_order failure)
     {
         return compare_exchange_strong(expected, std::move(desired));
     }
-    bool atomic_compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
+    bool compare_exchange_strong(std::shared_ptr<T> &expected, std::shared_ptr<T> desired, std::memory_order = std::memory_order::memory_order_seq_cst)
     {
         atomic_shared_ptr_mutex_holder mutex_holder((void *)this);
         mutex_holder.lock();
@@ -245,6 +275,7 @@ public:
         return retval;
     }
 };
+#endif // DOXYGEN
 }
 }
 

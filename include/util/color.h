@@ -246,6 +246,16 @@ inline ColorF HSVAF(float h, float s, float v, float a) /// hue saturation value
     hsv.a = a;
     return hsv;
 }
+
+inline ColorF HSLF(float h, float s, float l)
+{
+    return HSLAF(h, s, l, 1);
+}
+
+inline ColorF HSVF(float h, float s, float v)
+{
+    return HSVAF(h, s, v, 1);
+}
 }
 }
 
