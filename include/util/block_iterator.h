@@ -23,9 +23,10 @@
 #include "util/block_chunk.h"
 #include "util/block_face.h"
 #include "util/cached_variable.h"
-#include "util/parallel_map.h"
 #include <cassert>
 #include <tuple>
+#include <iostream>
+#include <thread>
 
 namespace programmerjake
 {
@@ -65,11 +66,9 @@ struct WorldLockManager final
         }
     };
     LockManager<BlockChunkLockType> block_lock;
-    LockManager<std::mutex> chunk_lock;
     void clear()
     {
         block_lock.clear();
-        chunk_lock.clear();
     }
 };
 
@@ -78,16 +77,12 @@ class BlockIterator final
     friend class World;
     friend class ViewPoint;
     BlockChunk *chunk;
-    parallel_map<PositionI, BlockChunk> *chunks;
+    BlockChunkMap *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk()
     {
-        auto iter = chunks->find_or_construct(currentBasePosition, [&]()->BlockChunk
-        {
-            return BlockChunk(currentBasePosition);
-        });
-        chunk = &std::get<1>(*iter);
+        chunk = &(*chunks)[currentBasePosition];
     }
     BlockChunkSubchunk &getSubchunk() const
     {
@@ -96,14 +91,16 @@ class BlockIterator final
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
+        PositionI currentSubchunkBasePosition = BlockChunk::getSubchunkBaseAbsolutePosition(currentBasePosition);
+        //std::cout << std::this_thread::get_id() << ": " << currentSubchunkBasePosition << std::endl;
         lock_manager.block_lock.set(getSubchunk().lock);
     }
-    BlockIterator(BlockChunk *chunk, parallel_map<PositionI, BlockChunk> *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
+    BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
     }
 public:
-    BlockIterator(parallel_map<PositionI, BlockChunk> *chunks, PositionI position)
+    BlockIterator(BlockChunkMap *chunks, PositionI position)
         : chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);

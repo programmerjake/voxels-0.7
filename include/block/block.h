@@ -36,6 +36,7 @@
 #include "lighting/lighting.h"
 #include "util/enum_traits.h"
 #include "util/block_update.h"
+#include "util/checked_array.h"
 
 namespace programmerjake
 {
@@ -269,7 +270,7 @@ inline bool Block::operator==(const Block &r) const
 
 inline BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
 {
-    std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
     for(int x = 0; (size_t)x < blocks.size(); x++)
     {
         for(int y = 0; (size_t)y < blocks[x].size(); y++)

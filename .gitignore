@@ -7,3 +7,4 @@ voxels
 *~
 *.save
 gmon.out
+ValgrindOut.xml

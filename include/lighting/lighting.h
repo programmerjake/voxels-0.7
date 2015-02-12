@@ -169,7 +169,7 @@ struct LightProperties final
 
 struct BlockLighting final
 {
-    std::array<std::array<std::array<float, 2>, 2>, 2> lightValues;
+    checked_array<checked_array<checked_array<float, 2>, 2>, 2> lightValues;
     constexpr ColorF eval(VectorF relativePosition) const
     {
         return GrayscaleF(interpolate(relativePosition.x,
@@ -189,7 +189,7 @@ struct BlockLighting final
                                                           lightValues[1][1][1]))));
     }
 private:
-    float evalVertex(const std::array<std::array<std::array<float, 3>, 3>, 3> &blockValues, VectorI offset)
+    float evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset)
     {
         float retval = 0;
         for(int dx = 0; dx < 2; dx++)
@@ -210,7 +210,7 @@ public:
         : lightValues{{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
     {
     }
-    BlockLighting(std::array<std::array<std::array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
+    BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
     {
         for(int dx : {-1, 1})
         {
@@ -266,7 +266,7 @@ public:
                 }
             }
         }
-        std::array<std::array<std::array<float, 3>, 3>, 3> blockValues;
+        checked_array<checked_array<checked_array<float, 3>, 3>, 3> blockValues;
         for(size_t x = 0; x < blockValues.size(); x++)
         {
             for(size_t y = 0; y < blockValues[x].size(); y++)

@@ -677,30 +677,10 @@ public:
     {
         return find(key) != end() ? 1 : 0;
     }
-    template <typename ConstructFn>
-    iterator find_or_construct(const key_type &key, ConstructFn constructFn)
+    std::unique_lock<std::recursive_mutex> bucket_lock(const key_type &key)
     {
-        size_type key_hash = (size_type)the_hasher(key);
-        size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
-        for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
-        {
-            if(the_comparer(std::get<0>(retval->value), key))
-            {
-                lock_it.release();
-                return iterator(iterator_imp(retval, current_hash, this, true));
-            }
-        }
-
-        Node *retval = new Node(key, constructFn(), key_hash);
-        retval->hash_next = buckets[current_hash];
-        buckets[current_hash] = retval;
-        lock_it.release();
-        return iterator(iterator_imp(retval, current_hash, this, true));
-    }
-    iterator find_or_construct(const key_type &key)
-    {
-        return find_or_construct(key, []()->mapped_type{return mapped_type();});
+        size_type current_hash = (size_type)the_hasher(key) % bucket_count;
+        return std::unique_lock<std::recursive_mutex>(bucket_locks.get()[current_hash]);
     }
 };
 }

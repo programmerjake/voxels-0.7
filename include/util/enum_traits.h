@@ -226,10 +226,12 @@ struct enum_array
     value_type elements[enum_traits<index_type>::size()];
     value_type & operator [](index_type index)
     {
+        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
     const value_type & operator [](index_type index) const
     {
+        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
     value_type & at(index_type index)

@@ -176,6 +176,7 @@ struct BlockChunkChunkVariables final
 };
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
+typedef ChunkMap<BlockChunk> BlockChunkMap;
 
 class BlockChunkFullLock final
 {

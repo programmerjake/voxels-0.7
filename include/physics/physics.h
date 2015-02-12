@@ -151,9 +151,9 @@ class PhysicsObject final : public std::enable_shared_from_this<PhysicsObject>
 {
     friend class PhysicsWorld;
 private:
-    PositionF position[2];
-    VectorF velocity[2];
-    double objectTime[2];
+    checked_array<PositionF, 2> position;
+    checked_array<VectorF, 2> velocity;
+    checked_array<double, 2> objectTime;
     bool affectedByGravity;
     bool isStatic_;
     bool supported = false;
@@ -280,7 +280,7 @@ private:
         return b.descriptor->blockShape;
     }
 public:
-    parallel_map<PositionI, BlockChunk> chunks;
+    BlockChunkMap chunks;
     BlockIterator getBlockIterator(PositionI pos)
     {
         return BlockIterator(&chunks, pos);
@@ -812,7 +812,7 @@ inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_mana
                 int x, z;
                 std::shared_ptr<PhysicsObject> object;
             };
-            std::array<HashNode *, bigHashPrime> overallHashTable;
+            checked_array<HashNode *, bigHashPrime> overallHashTable;
             overallHashTable.fill(nullptr);
             static thread_local HashNode * freeListHead = nullptr;
             std::vector<std::shared_ptr<PhysicsObject>> collideObjectsList;
@@ -883,7 +883,7 @@ inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_mana
                 float fMaxZ = position.z + extents.z + searchEps;
                 int minZ = ifloor(fMinZ * zScaleFactor);
                 int maxZ = iceil(fMaxZ * zScaleFactor);
-                std::array<HashNode *, smallHashPrime> perObjectHashTable;
+                checked_array<HashNode *, smallHashPrime> perObjectHashTable;
                 perObjectHashTable.fill(nullptr);
                 for(int xPosition = minX; xPosition <= maxX; xPosition++)
                 {

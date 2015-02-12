@@ -132,6 +132,7 @@ public:
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         BlockUpdate **ppnode = &b.updateListHead;
         BlockUpdate *pnode = b.updateListHead;
+        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt;
         float retval = -1;
         while(pnode != nullptr)
         {
@@ -141,7 +142,7 @@ public:
                 if(updateTimeFromNow < 0)
                 {
                     *ppnode = pnode->block_next;
-                    lock_manager.chunk_lock.set(bi.chunk->chunkVariables.blockUpdateListLock);
+                    lockIt = decltype(lockIt)(bi.chunk->chunkVariables.blockUpdateListLock);
                     if(pnode->chunk_prev == nullptr)
                         bi.chunk->chunkVariables.blockUpdateListHead = pnode->chunk_next;
                     else
@@ -158,12 +159,14 @@ public:
                 }
                 return retval;
             }
+            ppnode = &pnode->block_next;
+            pnode = *ppnode;
         }
         if(updateTimeFromNow >= 0)
         {
             pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
             b.updateListHead = pnode;
-            lock_manager.chunk_lock.set(bi.chunk->chunkVariables.blockUpdateListLock);
+            lockIt = decltype(lockIt)(bi.chunk->chunkVariables.blockUpdateListLock);
             pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
             pnode->chunk_prev = nullptr;
             if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)

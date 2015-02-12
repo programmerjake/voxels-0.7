@@ -30,7 +30,7 @@ template<std::uint32_t size, typename ChildClass>
 struct NodeConstArgCount : public Node
 {
     friend struct Node;
-    std::uint32_t args[size];
+    checked_array<std::uint32_t, size> args;
 protected:
     static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount)
     {
@@ -105,7 +105,7 @@ public:
 };
 struct NodeCast : public Node
 {
-    std::uint32_t args[1];
+    checked_array<std::uint32_t, 1> args;
     friend struct Node;
 protected:
     static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount, std::shared_ptr<NodeCast> retval)

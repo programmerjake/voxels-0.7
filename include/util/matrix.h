@@ -21,6 +21,7 @@
 #include "util/vector.h"
 #include "stream/stream.h"
 #include <cmath>
+#include "util/checked_array.h"
 
 namespace programmerjake
 {
@@ -49,7 +50,7 @@ struct Matrix
             float x32;
             float x33;
         };
-        float x[4][4];
+        checked_array<checked_array<float, 4>, 4> x;
     };
 
     float get(const int x, const int y) const
@@ -64,12 +65,12 @@ struct Matrix
         this->x[x][y] = value;
     }
 
-    float(& operator [](std::size_t index))[4]
+    checked_array<float, 4> &operator [](std::size_t index)
     {
         return x[index];
     }
 
-    constexpr const float(& operator [](std::size_t index) const)[4]
+    const checked_array<float, 4> &operator [](std::size_t index) const
     {
         return x[index];
     }

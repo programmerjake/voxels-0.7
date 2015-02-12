@@ -68,7 +68,7 @@ struct PlayingAudioData
         if(decoder->channelCount() != getGlobalAudioChannelCount())
             decoder = make_shared<RedistributeChannelsAudioDecoder>(decoder, getGlobalAudioChannelCount());
         unsigned channels = decoder->channelCount();
-        float buffer[bufferValueCount];
+        checked_array<float, bufferValueCount> buffer;
         uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
         uint64_t decodedAmount;
         for(decodedAmount = 0;decodedAmount < bufferSamples;)
@@ -90,7 +90,7 @@ struct PlayingAudioData
         unsigned channels = decoder->channelCount();
         if(!overallEOF && bufferQueue.size() < bufferQueue.capacity() / 2)
         {
-            float buffer[bufferValueCount];
+            checked_array<float, bufferValueCount> buffer;
             uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
             uint64_t decodedAmount;
             bool hitEnd = false;

@@ -50,7 +50,7 @@ private:
     static constexpr RandomClass totalRandomSize = fbmRandomSize + fbmRandomStart;
     struct RandomCacheChunk
     {
-        array<array<array<array<float, World::ChunkType::chunkSizeZ>, World::ChunkType::chunkSizeY>, World::ChunkType::chunkSizeX>, totalRandomSize> blocks;
+        checked_array<checked_array<checked_array<checked_array<float, World::ChunkType::chunkSizeZ>, World::ChunkType::chunkSizeY>, World::ChunkType::chunkSizeX>, totalRandomSize> blocks;
         PositionI basePosition;
         typedef minstd_rand random_generator;
         static random_generator makeRandomGenerator(World::SeedType seed, PositionI basePosition)

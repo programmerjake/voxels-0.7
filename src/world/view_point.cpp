@@ -16,6 +16,7 @@
  *
  */
 #include "world/view_point.h"
+#include <iostream>
 
 namespace programmerjake
 {
@@ -44,6 +45,7 @@ void ViewPoint::generateMeshesFn()
                 {
                     for(chunkPosition.z = minChunkPosition.z; chunkPosition.z <= maxChunkPosition.z; chunkPosition.z += BlockChunk::chunkSizeZ)
                     {
+                        std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
                         BlockIterator cbi = world.getBlockIterator(chunkPosition);
                         std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes.load();
                         if(chunkMeshes != nullptr)
@@ -117,6 +119,7 @@ void ViewPoint::generateMeshesFn()
         if(anyUpdates == false)
             std::this_thread::yield();
         lockIt.lock();
+        std::cout << "generated render meshes.\x1b[K" << std::endl;
         blockRenderMeshes = std::move(meshes);
     }
 }

@@ -341,7 +341,7 @@ int translateToFontIndex(wchar_t ch)
     }
 }
 
-Mesh charMesh[256];
+checked_array<Mesh, 256> charMesh;
 bool didInit = false;
 
 void init()

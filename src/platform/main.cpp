@@ -81,7 +81,6 @@ public:
                     }
                 }
             }
-            cout << "generated.\n" << flush;
         }).detach();
         viewPoint = make_shared<ViewPoint>(world, origin());
     }
