@@ -13,8 +13,18 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-fsanitize=thread" />
+					<Add option="-fPIC" />
+					<Add option="-pie" />
 					<Add option="-DDEBUG_VERSION" />
+					<Add option="-D_GLIBCXX_DEBUG" />
 				</Compiler>
+				<Linker>
+					<Add option="-fsanitize=thread" />
+					<Add option="-fPIC" />
+					<Add option="-pie" />
+					<Add library="tsan" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="voxels" prefix_auto="1" extension_auto="1" />
@@ -86,6 +96,7 @@
 		<Unit filename="include/ui/button.h" />
 		<Unit filename="include/ui/checkbox.h" />
 		<Unit filename="include/ui/container.h" />
+		<Unit filename="include/ui/dynamic_label.h" />
 		<Unit filename="include/ui/element.h" />
 		<Unit filename="include/ui/label.h" />
 		<Unit filename="include/ui/labeled_element.h" />

@@ -1192,6 +1192,8 @@ namespace
 {
 void renderInternal(const Mesh & m)
 {
+    if(m.size() == 0)
+        return;
     static vector<float> vertexArray, textureCoordArray, colorArray;
     vertexArray.resize(m.triangles.size() * 3 * 3);
     textureCoordArray.resize(m.triangles.size() * 3 * 2);

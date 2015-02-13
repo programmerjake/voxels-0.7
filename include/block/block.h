@@ -141,6 +141,10 @@ protected:
     {
         assert(false); // shouldn't be called
     }
+    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    {
+        return true;
+    }
     Mesh meshCenter;
     enum_array<Mesh, BlockFace> meshFace;
     const RenderLayer staticRenderLayer;
@@ -161,6 +165,35 @@ protected:
         }
     }
 public:
+    bool drawsAnything(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    {
+        if(isStaticMesh)
+        {
+            for(BlockFace bf : enum_traits<BlockFace>())
+            {
+                BlockIterator i = blockIterator;
+                i.moveToward(bf);
+                Block b = i.get(lock_manager);
+
+                if(!b)
+                {
+                    continue;
+                }
+
+                if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+                {
+                    continue;
+                }
+
+                if(meshFace[bf].size() == 0)
+                    continue;
+
+                return true;
+            }
+            return false;
+        }
+        return drawsAnythingDynamic(block, blockIterator, lock_manager);
+    }
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */

@@ -45,7 +45,6 @@ void ViewPoint::generateMeshesFn()
                 {
                     for(chunkPosition.z = minChunkPosition.z; chunkPosition.z <= maxChunkPosition.z; chunkPosition.z += BlockChunk::chunkSizeZ)
                     {
-                        std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
                         BlockIterator cbi = world.getBlockIterator(chunkPosition);
                         std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes.load();
                         if(chunkMeshes != nullptr)
@@ -58,6 +57,7 @@ void ViewPoint::generateMeshesFn()
                         }
                         chunkMeshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
                         anyUpdates = true;
+                        std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
                         VectorI subchunkIndex;
                         for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
                         {
@@ -87,13 +87,16 @@ void ViewPoint::generateMeshesFn()
                                             {
                                                 BlockIterator bbi = sbi;
                                                 bbi.moveTo(subchunkPosition + VectorI(bx, by, bz));
-                                                BlockLighting lighting = Block::calcBlockLighting(bbi, lock_manager, wlp);
                                                 BlockDescriptorPointer bd = bbi.get(lock_manager).descriptor;
                                                 if(bd != nullptr)
                                                 {
-                                                    for(RenderLayer rl : enum_traits<RenderLayer>())
+                                                    if(bd->drawsAnything(bbi.get(lock_manager), bbi, lock_manager))
                                                     {
-                                                        bd->render(bbi.get(lock_manager), subchunkMeshes->at(rl), bbi, lock_manager, rl, lighting);
+                                                        BlockLighting lighting = Block::calcBlockLighting(bbi, lock_manager, wlp);
+                                                        for(RenderLayer rl : enum_traits<RenderLayer>())
+                                                        {
+                                                            bd->render(bbi.get(lock_manager), subchunkMeshes->at(rl), bbi, lock_manager, rl, lighting);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -119,7 +122,8 @@ void ViewPoint::generateMeshesFn()
         if(anyUpdates == false)
             std::this_thread::yield();
         lockIt.lock();
-        std::cout << "generated render meshes.\x1b[K" << std::endl;
+        if(anyUpdates)
+            std::cout << "generated render meshes.\x1b[K" << std::endl;
         blockRenderMeshes = std::move(meshes);
     }
 }

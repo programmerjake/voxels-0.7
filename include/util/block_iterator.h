@@ -91,7 +91,7 @@ class BlockIterator final
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        PositionI currentSubchunkBasePosition = BlockChunk::getSubchunkBaseAbsolutePosition(currentBasePosition);
+        //PositionI currentSubchunkBasePosition = BlockChunk::getSubchunkBaseAbsolutePosition(currentBasePosition);
         //std::cout << std::this_thread::get_id() << ": " << currentSubchunkBasePosition << std::endl;
         lock_manager.block_lock.set(getSubchunk().lock);
     }

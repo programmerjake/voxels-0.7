@@ -27,6 +27,7 @@
 #include "block/block.h"
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
+#include "ui/dynamic_label.h"
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -60,7 +61,7 @@ public:
             WorldLockManager lock_manager;
             BlockDescriptorPointer stone = Blocks::builtin::Stone::descriptor();
             BlockDescriptorPointer air = Blocks::builtin::Air::descriptor();
-            const int size = 4;
+            const int size = 20;
             for(int x = -size; x <= size; x++)
             {
                 for(int y = -size; y <= size; y++)
@@ -69,13 +70,14 @@ public:
                     {
                         PositionI pos = VectorI(x, y, z) + origin();
                         Block b;
-                        if(std::abs(x) == size && std::abs(y) == size && std::abs(z) == size)
+                        if(((std::abs(x) == size || std::abs(y) == size || std::abs(z) == size) && (x != 0 || z != 0 || y <= 0)) || (y == -2 && (x == 0 || z == 0)))
                         {
                             b = Block(stone);
                         }
                         else
                         {
                             b = Block(air);
+                            b.lighting = Lighting::makeSkyLighting();
                         }
                         world.setBlock(world.getBlockIterator(pos), lock_manager, b);
                     }
@@ -87,6 +89,7 @@ public:
     virtual void move(double deltaTime) override
     {
         viewAngle = std::fmod(viewAngle + deltaTime * 2 * M_PI / 50, 2 * M_PI);
+        Ui::move(deltaTime);
     }
 protected:
     virtual void clear(Renderer &renderer) override
@@ -96,7 +99,7 @@ protected:
         Matrix tform = Matrix::translate(-((VectorF)origin() + VectorF(0.5, 0.5, 0.5))).concat(Matrix::rotateY(viewAngle)).concat(Matrix::rotateX(0.2 * M_PI));
         viewPoint->setPosition(origin());
         viewPoint->render(renderer, tform);
-        renderer << start_overlay;
+        renderer << start_overlay << enable_depth_buffer;
     }
 };
 }
@@ -113,6 +116,12 @@ int main(std::vector<std::wstring> args)
         ss << L"test label";
         ui->add(make_shared<voxels::ui::Label>(ss.str(), -0.5, 0.5, -0.8, -0.7));
     }
+    ui->add(make_shared<voxels::ui::DynamicLabel>([](double deltaTime)->std::wstring
+    {
+        wostringstream ss;
+        ss << L"deltaTime: " << deltaTime;
+        return ss.str() + L"blah";
+    }, -0.5, 0.5, -0.95, -0.85));
     auto buttonContainer = make_shared<voxels::ui::ShadedContainer>(-0.7, 0.7, -0.6, 0.6);
     ui->add(buttonContainer);
     auto quitButton = make_shared<voxels::ui::Button>(L"Quit", -0.5, 0.5, -0.1, 0.1);

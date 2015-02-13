@@ -18,7 +18,7 @@
 #ifndef LABEL_H_INCLUDED
 #define LABEL_H_INCLUDED
 
-#include "element.h"
+#include "ui/element.h"
 #include <cwchar>
 #include <string>
 #include <algorithm>

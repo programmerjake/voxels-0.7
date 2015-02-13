@@ -671,7 +671,15 @@ public:
     float volume();
     void volume(float v);
     double duration();
+    ~PlayingAudio()
+    {
+        stop();
+    }
+
+#ifndef DOXYGEN
+    //for integration with SDL
     static void audioCallback(void * userData, std::uint8_t * buffer, int length);
+#endif
 };
 
 class Audio final

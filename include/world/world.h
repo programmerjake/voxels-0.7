@@ -223,7 +223,7 @@ public:
         }
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
-            rescheduleBlockUpdate(bi, lock_manager, kind, kind.defaultPeriod());
+            rescheduleBlockUpdate(bi, lock_manager, kind, BlockUpdateKindDefaultPeriod(kind));
         }
     }
     /** @brief create a <code>BlockIterator</code>
