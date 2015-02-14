@@ -32,7 +32,7 @@ class StoneBlock : public FullBlock
 {
 protected:
     StoneBlock(std::wstring name, TextureDescriptor td)
-        : FullBlock(name, LightProperties(), true, td)
+        : FullBlock(name, LightProperties(Lighting(), Lighting::makeMaxLight()), true, td)
     {
     }
 };

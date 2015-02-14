@@ -33,7 +33,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename BT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 2>
+template <typename BT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
 struct BasicBlockChunk
 {
     typedef BT BlockType;
@@ -210,11 +210,11 @@ private:
         std::vector<Node *> *pbuckets;
         std::shared_ptr<std::vector<std::recursive_mutex>> bucket_locks;
         bool locked;
-        iterator_imp(Node *node, std::size_t bucket_index, const ChunkMap *parent_map, bool locked)
+        iterator_imp(Node *node, std::size_t bucket_index, ChunkMap *parent_map, bool locked)
             : node(node), bucket_index(bucket_index), bucket_count(parent_map->bucket_count), pbuckets(&parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(locked)
         {
         }
-        iterator_imp(const ChunkMap *parent_map)
+        iterator_imp(ChunkMap *parent_map)
             : node(nullptr), bucket_index(0), bucket_count(parent_map->bucket_count), pbuckets(&parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(false)
         {
             lock();
@@ -584,7 +584,7 @@ public:
     }
     constexpr const_iterator begin() const
     {
-        return const_iterator(iterator_imp(this));
+        return const_iterator(iterator_imp(const_cast<ChunkMap *>(this)));
     }
     constexpr const_iterator end() const
     {
@@ -592,7 +592,7 @@ public:
     }
     constexpr const_iterator cbegin() const
     {
-        return const_iterator(iterator_imp(this));
+        return const_iterator(iterator_imp(const_cast<ChunkMap *>(this)));
     }
     constexpr const_iterator cend() const
     {
@@ -641,7 +641,7 @@ public:
             if(retval->value.basePosition == key)
             {
                 lock_it.release();
-                return const_iterator(iterator_imp(retval, current_hash, this, true));
+                return const_iterator(iterator_imp(retval, current_hash, const_cast<ChunkMap *>(this), true));
             }
         }
         return cend();

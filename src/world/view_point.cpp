@@ -57,7 +57,7 @@ void ViewPoint::generateMeshesFn()
                         }
                         chunkMeshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
                         anyUpdates = true;
-                        std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
+                        //std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
                         VectorI subchunkIndex;
                         for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
                         {
@@ -122,8 +122,8 @@ void ViewPoint::generateMeshesFn()
         if(anyUpdates == false)
             std::this_thread::yield();
         lockIt.lock();
-        if(anyUpdates)
-            std::cout << "generated render meshes.\x1b[K" << std::endl;
+        //if(anyUpdates)
+            //std::cout << "generated render meshes.\x1b[K" << std::endl;
         blockRenderMeshes = std::move(meshes);
     }
 }

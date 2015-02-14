@@ -281,7 +281,8 @@ namespace Display
     std::wstring title();
     void title(std::wstring newTitle);
     void handleEvents(std::shared_ptr<EventHandler> eventHandler);
-    void flip(float fps = defaultFPS);
+    void flip(float fps);
+    void flip();
     double instantaneousFPS();
     double frameDeltaTime();
     float averageFPS();
@@ -302,6 +303,7 @@ namespace Display
     void render(const Mesh & m, Matrix tform, bool enableDepthBuffer);
     void render(std::shared_ptr<CachedMesh> m, bool enableDepthBuffer);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
+    float screenRefreshRate();
 }
 
 void startGraphics();

@@ -35,6 +35,7 @@
 #include <iterator>
 #include "util/atomic_shared_ptr.h"
 #include <atomic>
+#include "util/lock.h"
 
 namespace programmerjake
 {
@@ -164,6 +165,7 @@ struct BlockChunkChunkVariables final
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
+    std::atomic_bool generated = false, generateStarted = false;
     ~BlockChunkChunkVariables()
     {
         while(blockUpdateListHead != nullptr)
@@ -181,129 +183,68 @@ typedef ChunkMap<BlockChunk> BlockChunkMap;
 class BlockChunkFullLock final
 {
     BlockChunk &chunk;
+    struct SubchunkLockIterator
+    {
+        VectorI pos;
+        BlockChunk *chunk;
+        BlockChunkLockType &operator *() const
+        {
+            return chunk->subchunks[pos.x][pos.y][pos.z].lock;
+        }
+        BlockChunkLockType *operator ->() const
+        {
+            return &operator *();
+        }
+        bool operator ==(const SubchunkLockIterator &rt) const
+        {
+            return rt.pos == pos;
+        }
+        bool operator !=(const SubchunkLockIterator &rt) const
+        {
+            return rt.pos != pos;
+        }
+        const SubchunkLockIterator &operator ++()
+        {
+            pos.x++;
+            if(pos.x >= BlockChunk::subchunkCountX)
+            {
+                pos.x = 0;
+                pos.y++;
+                if(pos.y >= BlockChunk::subchunkCountY)
+                {
+                    pos.y = 0;
+                    pos.z++;
+                }
+            }
+            return *this;
+        }
+        SubchunkLockIterator operator ++(int)
+        {
+            SubchunkLockIterator retval = *this;
+            operator ++();
+            return std::move(retval);
+        }
+        SubchunkLockIterator()
+        {
+        }
+        SubchunkLockIterator(VectorI pos, BlockChunk *chunk)
+        {
+        }
+    };
 public:
     explicit BlockChunkFullLock(BlockChunk &chunk)
         : chunk(chunk)
     {
-        BlockChunkLockType *failed_lock = nullptr;
-
-        for(;;)
-        {
-try_again:
-
-            if(failed_lock != nullptr)
-            {
-                failed_lock->lock();
-            }
-
-            for(std::int32_t x = 0; x < BlockChunk::subchunkSizeXYZ; x++)
-            {
-                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
-                {
-                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
-                    {
-                        BlockChunkLockType &lock = chunk.subchunks[x][y][z].lock;
-
-                        if(&lock == failed_lock)
-                        {
-                            continue;
-                        }
-
-                        bool locked;
-
-                        try
-                        {
-                            locked = lock.try_lock();
-                        }
-                        catch(...)
-                        {
-                            for(z--; z >= 0; z--)
-                            {
-                                if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                {
-                                    chunk.subchunks[x][y][z].lock.unlock();
-                                }
-                            }
-
-                            for(y--; y >= 0; y--)
-                            {
-                                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
-                                {
-                                    if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                    {
-                                        chunk.subchunks[x][y][z].lock.unlock();
-                                    }
-                                }
-                            }
-
-                            for(x--; x >= 0; x--)
-                            {
-                                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
-                                {
-                                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
-                                    {
-                                        if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                        {
-                                            chunk.subchunks[x][y][z].lock.unlock();
-                                        }
-                                    }
-                                }
-                            }
-
-                            throw;
-                        }
-
-                        if(!locked)
-                        {
-                            for(z--; z >= 0; z--)
-                            {
-                                if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                {
-                                    chunk.subchunks[x][y][z].lock.unlock();
-                                }
-                            }
-
-                            for(y--; y >= 0; y--)
-                            {
-                                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
-                                {
-                                    if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                    {
-                                        chunk.subchunks[x][y][z].lock.unlock();
-                                    }
-                                }
-                            }
-
-                            for(x--; x >= 0; x--)
-                            {
-                                for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
-                                {
-                                    for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
-                                    {
-                                        if(&chunk.subchunks[x][y][z].lock != failed_lock)
-                                        {
-                                            chunk.subchunks[x][y][z].lock.unlock();
-                                        }
-                                    }
-                                }
-                            }
-
-                            failed_lock->unlock();
-                            failed_lock = &chunk.subchunks[x][y][z].lock;
-                            goto try_again;
-                        }
-                    }
-                }
-            }
-        }
+        SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk), end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+        lock_all(begin, end);
     }
     ~BlockChunkFullLock()
     {
-        for(std::int32_t x = 0; x < BlockChunk::subchunkSizeXYZ; x++)
+        for(std::int32_t x = 0; x < BlockChunk::subchunkCountX; x++)
         {
-            for(std::int32_t y = 0; y < BlockChunk::subchunkSizeXYZ; y++)
+            for(std::int32_t y = 0; y < BlockChunk::subchunkCountY; y++)
             {
-                for(std::int32_t z = 0; z < BlockChunk::subchunkSizeXYZ; z++)
+                for(std::int32_t z = 0; z < BlockChunk::subchunkCountZ; z++)
                 {
                     chunk.subchunks[x][y][z].lock.unlock();
                 }
@@ -311,7 +252,7 @@ try_again:
         }
     }
     BlockChunkFullLock(const BlockChunkFullLock &) = delete;
-
+    const BlockChunkFullLock operator =(const BlockChunkFullLock &) = delete;
 };
 
 #if 0

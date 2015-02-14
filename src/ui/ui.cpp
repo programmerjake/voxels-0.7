@@ -44,7 +44,7 @@ void Ui::run(Renderer &renderer)
         clear(renderer);
         layout();
         render(renderer, 1, 32, true);
-        Display::flip(60);
+        Display::flip();
     }
 }
 }

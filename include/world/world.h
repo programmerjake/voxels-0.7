@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <cwchar>
 #include <string>
+#include <thread>
 #include "render/renderer.h"
 #include "util/cached_variable.h"
 #include "platform/platform.h"
@@ -51,6 +52,11 @@ class World final
 {
     World(const World &) = delete;
     const World &operator =(const World &) = delete;
+private:
+    struct internal_construct_flag
+    {
+    };
+    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag);
 public:
     typedef std::uint64_t SeedType;
     static SeedType makeSeed(std::wstring seed)
@@ -62,11 +68,11 @@ public:
         }
         return retval;
     }
-public:
     SeedType getWorldGeneratorSeed() const
     {
         return worldGeneratorSeed;
     }
+    static constexpr std::int32_t AverageGroundHeight = 64;
 public:
     /** @brief construct a world
      *
@@ -74,10 +80,7 @@ public:
      * @param worldGenerator the world generator to use
      *
      */
-    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator)
-        : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed)
-    {
-    }
+    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator);
     /** @brief construct a world
      *
      * @param seed the world seed to use
@@ -196,6 +199,12 @@ private:
         b.invalidate();
         bi.getSubchunk().cachedMeshes = nullptr;
         bi.chunk->chunkVariables.cachedMeshes = nullptr;
+        for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+        {
+            float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+            if(defaultPeriod == 0)
+                rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+        }
     }
 public:
     /** @brief set a block
@@ -209,6 +218,7 @@ public:
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         b.block = newBlock;
+        lightingStable = false;
         for(int dx = -1; dx <= 1; dx++)
         {
             for(int dy = -1; dy <= 1; dy++)
@@ -223,7 +233,9 @@ public:
         }
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
-            rescheduleBlockUpdate(bi, lock_manager, kind, BlockUpdateKindDefaultPeriod(kind));
+            float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+            if(defaultPeriod > 0)
+                rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
     /** @brief create a <code>BlockIterator</code>
@@ -253,10 +265,22 @@ private:
     std::shared_ptr<const WorldGenerator> worldGenerator;
     SeedType worldGeneratorSeed;
     WorldLightingProperties lighting;
+    std::thread lightingThread;
+    std::thread chunkGeneratingThread;
+    std::atomic_bool destructing, lightingStable;
+    void lightingThreadFn();
+    void chunkGeneratingThreadFn();
+    static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
+    static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
+    float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority
 public:
     WorldLightingProperties getLighting() const
     {
         return lighting;
+    }
+    bool isLightingStable() const
+    {
+        return lightingStable;
     }
 };
 }

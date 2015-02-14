@@ -461,7 +461,7 @@ static float averageFPS()
     return averageFPSInternal;
 }
 
-static void flipDisplay(float fps = defaultFPS)
+static void flipDisplay(float fps)
 {
     double sleepTime;
     {
@@ -1062,6 +1062,12 @@ void Display::flip(float fps)
     updateTimer();
 }
 
+void Display::flip()
+{
+    flipDisplay(screenRefreshRate());
+    updateTimer();
+}
+
 double Display::instantaneousFPS()
 {
     return programmerjake::voxels::instantaneousFPS();
@@ -1471,6 +1477,19 @@ void Display::render(shared_ptr<CachedMesh> m, bool enableDepthBuffer)
 {
     if(m->data)
         m->data->render(m->tform, enableDepthBuffer);
+}
+
+float Display::screenRefreshRate()
+{
+    int displayIndex = SDL_GetWindowDisplayIndex(window);
+    if(displayIndex == -1)
+        displayIndex = 0;
+    SDL_DisplayMode mode;
+    if(0 != SDL_GetCurrentDisplayMode(displayIndex, &mode))
+        return defaultFPS;
+    if(mode.refresh_rate == 0)
+        return defaultFPS;
+    return mode.refresh_rate;
 }
 
 static void getExtensions()

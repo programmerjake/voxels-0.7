@@ -31,6 +31,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <cstdlib>
 
 using namespace std;
 
@@ -40,28 +41,29 @@ namespace voxels
 {
 namespace
 {
+const int startingBoxSize = 30;
 class MyUi : public ui::Ui
 {
 private:
     float viewAngle = 0;
+    int transparentBlockCount = 1;
     World world;
     WorldLockManager &render_thread_lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
     PositionI origin()
     {
-        return PositionI(0, 64, 0, Dimension::Overworld);
+        return PositionI(0, World::AverageGroundHeight, 0, Dimension::Overworld);
     }
 public:
     MyUi(Renderer &renderer, WorldLockManager &lock_manager)
         : world(), render_thread_lock_manager(lock_manager)
     {
-        #warning fix not showing anything
         thread([this]()
         {
             WorldLockManager lock_manager;
             BlockDescriptorPointer stone = Blocks::builtin::Stone::descriptor();
             BlockDescriptorPointer air = Blocks::builtin::Air::descriptor();
-            const int size = 20;
+            const int size = startingBoxSize;
             for(int x = -size; x <= size; x++)
             {
                 for(int y = -size; y <= size; y++)
@@ -69,16 +71,11 @@ public:
                     for(int z = -size; z <= size; z++)
                     {
                         PositionI pos = VectorI(x, y, z) + origin();
-                        Block b;
-                        if(((std::abs(x) == size || std::abs(y) == size || std::abs(z) == size) && (x != 0 || z != 0 || y <= 0)) || (y == -2 && (x == 0 || z == 0)))
-                        {
+                        Block b = Block(air);
+                        if(std::abs(x) == size || std::abs(y) == size || std::abs(z) == size)
                             b = Block(stone);
-                        }
-                        else
-                        {
+                        if(x == 0 && z == 0 && y == size)
                             b = Block(air);
-                            b.lighting = Lighting::makeSkyLighting();
-                        }
                         world.setBlock(world.getBlockIterator(pos), lock_manager, b);
                     }
                 }
@@ -89,6 +86,30 @@ public:
     virtual void move(double deltaTime) override
     {
         viewAngle = std::fmod(viewAngle + deltaTime * 2 * M_PI / 50, 2 * M_PI);
+        const int size = startingBoxSize;
+        BlockDescriptorPointer stone = Blocks::builtin::Stone::descriptor();
+        BlockDescriptorPointer air = Blocks::builtin::Air::descriptor();
+        PositionI pos = origin() + VectorI(rand() % (2 * size + 1) - size, size, rand() % (2 * size + 1) - size);
+        BlockIterator bi = world.getBlockIterator(pos);
+        Block b = bi.get(render_thread_lock_manager);
+        Block newB = Block(rand() % 1000 == 0 ? air : stone);
+        if(transparentBlockCount <= 1)
+            newB = Block(air);
+        if(transparentBlockCount >= 3)
+            newB = Block(stone);
+        if(b.good())
+        {
+            if(b.descriptor == air && newB.descriptor != air)
+            {
+                transparentBlockCount--;
+            }
+            if(b.descriptor != air && newB.descriptor == air)
+            {
+                transparentBlockCount++;
+            }
+            world.setBlock(bi, render_thread_lock_manager, newB);
+        }
+        render_thread_lock_manager.clear();
         Ui::move(deltaTime);
     }
 protected:
@@ -119,8 +140,15 @@ int main(std::vector<std::wstring> args)
     ui->add(make_shared<voxels::ui::DynamicLabel>([](double deltaTime)->std::wstring
     {
         wostringstream ss;
-        ss << L"deltaTime: " << deltaTime;
-        return ss.str() + L"blah";
+        ss << L"FPS: ";
+        ss.precision(1);
+        ss.setf(ios::fixed, ios::floatfield);
+        ss.width(5);
+        if(deltaTime <= 1e-7)
+            ss << L"     ";
+        else
+            ss << 1.0 / deltaTime;
+        return ss.str();
     }, -0.5, 0.5, -0.95, -0.85));
     auto buttonContainer = make_shared<voxels::ui::ShadedContainer>(-0.7, 0.7, -0.6, 0.6);
     ui->add(buttonContainer);

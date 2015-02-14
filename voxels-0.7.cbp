@@ -13,17 +13,14 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
-					<Add option="-fsanitize=thread" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
 					<Add option="-DDEBUG_VERSION" />
 					<Add option="-D_GLIBCXX_DEBUG" />
 				</Compiler>
 				<Linker>
-					<Add option="-fsanitize=thread" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
-					<Add library="tsan" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -122,6 +119,7 @@
 		<Unit filename="include/util/game_version.h" />
 		<Unit filename="include/util/global_instance_maker.h" />
 		<Unit filename="include/util/linked_map.h" />
+		<Unit filename="include/util/lock.h" />
 		<Unit filename="include/util/matrix.h" />
 		<Unit filename="include/util/monitored_variable.h" />
 		<Unit filename="include/util/parallel_map.h" />

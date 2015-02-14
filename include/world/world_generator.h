@@ -35,7 +35,7 @@ public:
     virtual ~WorldGenerator()
     {
     }
-    virtual void generateChunk(PositionI chunkBasePosition, World &world) const = 0;
+    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager) const = 0;
 };
 }
 }

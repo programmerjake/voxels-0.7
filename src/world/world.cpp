@@ -27,6 +27,7 @@
 #include <thread>
 #include <unordered_map>
 #include <mutex>
+#include <chrono>
 
 using namespace std;
 
@@ -265,28 +266,91 @@ World::SeedType makeRandomSeed()
 }
 }
 
+World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag)
+    : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
+{
+}
+
 World::World()
     : World(makeRandomSeed())
 {
 
 }
 
-World::~World()
+BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager)
 {
+    BlockChunk *chunk = bi.chunk;
+    lock_manager.clear();
+    BlockChunkFullLock lockChunk(*chunk);
+    auto lockIt = std::unique_lock<decltype(chunk->chunkVariables.blockUpdateListLock)>(chunk->chunkVariables.blockUpdateListLock);
+    BlockUpdate *retval = nullptr;
+    for(BlockUpdate *node = chunk->chunkVariables.blockUpdateListHead; node != nullptr;)
+    {
+        if(node->kind == kind)
+        {
+            if(node->chunk_prev != nullptr)
+                node->chunk_prev->chunk_next = node->chunk_next;
+            else
+                chunk->chunkVariables.blockUpdateListHead = node->chunk_next;
+            if(node->chunk_next != nullptr)
+                node->chunk_next->chunk_prev = node->chunk_prev;
+            else
+                chunk->chunkVariables.blockUpdateListTail = node->chunk_prev;
+            BlockUpdate *next_node = node->chunk_next;
+            node->chunk_prev = nullptr;
+            node->chunk_next = retval;
+            if(retval != nullptr)
+                retval->chunk_prev = node;
+            retval = node;
+            node = next_node;
+            VectorI relativePos = BlockChunk::getChunkRelativePosition(retval->position);
+            for(BlockUpdate **pnode = &chunk->blocks[relativePos.x][relativePos.y][relativePos.z].updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
+            {
+                if(*pnode == retval)
+                {
+                    *pnode = retval->block_next;
+                    break;
+                }
+            }
+            retval->block_next = nullptr;
+        }
+        else
+            node = node->chunk_next;
+    }
+    return retval;
 }
 
-#if 0
-namespace
+World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator)
+    : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
-Lighting getBlockLighting(BlockIterator bi)
+    lightingThread = thread([this]()
+    {
+        lightingThreadFn();
+    });
+    chunkGeneratingThread = thread([this]()
+    {
+        chunkGeneratingThreadFn();
+    });
+}
+
+World::~World()
 {
-    Block b = *bi;
+    destructing = true;
+    if(lightingThread.joinable())
+        lightingThread.join();
+    if(chunkGeneratingThread.joinable())
+        chunkGeneratingThread.join();
+}
+
+Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)
+{
+    Block b = bi.get(lock_manager);
     if(!b)
     {
         switch(bi.position().d)
         {
         case Dimension::Overworld:
-            if(bi.position().y >= 0)
+            if(bi.position().y >= 64 && isTopFace)
                 return Lighting::makeSkyLighting();
             return Lighting();
         }
@@ -295,49 +359,125 @@ Lighting getBlockLighting(BlockIterator bi)
     }
     return b.lighting;
 }
-}
 
-void World::updateLighting()
+void World::lightingThreadFn()
 {
-    BlockUpdate bu;
-    if(!removeBlockUpdate(BlockUpdateType::Lighting, bu))
-        return;
-    BlockIterator bi = getBlockIterator(bu);
-    size_t processedCount = 0;
-    do
+    WorldLockManager lock_manager;
+    BlockChunkMap *chunks = &physicsWorld->chunks;
+    while(!destructing)
     {
-        bi.moveTo(bu);
-        Block b = *bi;
-        if(b)
+        bool didAnything = false;
+        for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
         {
-            BlockIterator binx = bi;
-            binx.moveTowardNX();
-            BlockIterator bipx = bi;
-            bipx.moveTowardPX();
-            BlockIterator biny = bi;
-            biny.moveTowardNY();
-            BlockIterator bipy = bi;
-            bipy.moveTowardPY();
-            BlockIterator binz = bi;
-            binz.moveTowardNZ();
-            BlockIterator bipz = bi;
-            bipz.moveTowardPZ();
-            Lighting newLighting = b.descriptor->lightProperties.eval(getBlockLighting(binx),
-                                                            getBlockLighting(bipx),
-                                                            getBlockLighting(biny),
-                                                            getBlockLighting(bipy),
-                                                            getBlockLighting(binz),
-                                                            getBlockLighting(bipz));
-            if(b.lighting != newLighting)
+            if(destructing)
+                break;
+            BlockChunk *chunk = &(*chunkIter);
+            if(chunkIter.is_locked())
+                chunkIter.unlock();
+            BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+            for(BlockUpdate *node = removeAllBlockUpdatesInChunk(BlockUpdateKind::Lighting, cbi, lock_manager); node != nullptr; node = removeAllBlockUpdatesInChunk(BlockUpdateKind::Lighting, cbi, lock_manager))
             {
-                setBlockLighting(bi, newLighting);
+                didAnything = true;
+                while(node != nullptr)
+                {
+                    BlockIterator bi = cbi;
+                    bi.moveTo(node->position);
+                    Block b = bi.get(lock_manager);
+                    if(b.good())
+                    {
+                        BlockIterator binx = bi;
+                        binx.moveTowardNX();
+                        BlockIterator bipx = bi;
+                        bipx.moveTowardPX();
+                        BlockIterator biny = bi;
+                        biny.moveTowardNY();
+                        BlockIterator bipy = bi;
+                        bipy.moveTowardPY();
+                        BlockIterator binz = bi;
+                        binz.moveTowardNZ();
+                        BlockIterator bipz = bi;
+                        bipz.moveTowardPZ();
+                        Lighting newLighting = b.descriptor->lightProperties.eval(getBlockLighting(binx, lock_manager, false),
+                                                                                  getBlockLighting(bipx, lock_manager, false),
+                                                                                  getBlockLighting(biny, lock_manager, false),
+                                                                                  getBlockLighting(bipy, lock_manager, true),
+                                                                                  getBlockLighting(binz, lock_manager, false),
+                                                                                  getBlockLighting(bipz, lock_manager, false));
+                        if(newLighting != b.lighting)
+                        {
+                            b.lighting = newLighting;
+                            setBlock(bi, lock_manager, b);
+                        }
+                    }
+
+                    BlockUpdate *deleteMe = node;
+                    node = node->chunk_next;
+                    if(node != nullptr)
+                        node->chunk_prev = nullptr;
+                    delete deleteMe;
+                }
+                if(destructing)
+                    break;
             }
         }
-        if(++processedCount >= 100)
-            return;
+        if(!didAnything)
+        {
+            lightingStable = true;
+            this_thread::yield();
+        }
     }
-    while(removeBlockUpdate(BlockUpdateType::Lighting, bu));
 }
-#endif
+
+void World::chunkGeneratingThreadFn()
+{
+    WorldLockManager lock_manager;
+    while(!destructing)
+    {
+        bool didAnything = false;
+        BlockChunk *bestChunk;
+        bool haveChunk = false;
+        float chunkPriority = 0;
+        for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
+        {
+            BlockChunk *chunk = &(*chunkIter);
+            if(chunk->chunkVariables.generated)
+                continue;
+            if(chunk->chunkVariables.generateStarted)
+                continue;
+            if(chunkIter.is_locked())
+                chunkIter.unlock();
+            BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+            float currentChunkPriority = getChunkGeneratePriority(cbi, lock_manager);
+            if(!haveChunk || chunkPriority > currentChunkPriority) // low values mean high priority
+            {
+                haveChunk = true;
+                bestChunk = chunk;
+                chunkPriority = currentChunkPriority;
+            }
+        }
+
+        if(haveChunk)
+        {
+            BlockChunk *chunk = bestChunk;
+            if(chunk->chunkVariables.generateStarted.exchange(true)) // someone else got this chunk
+                continue;
+            didAnything = true;
+
+            #warning add actual generate code
+
+            chunk->chunkVariables.generated = true;
+        }
+
+        if(!didAnything)
+        {
+            this_thread::yield();
+        }
+    }
+}
+
+float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager) // low values mean high priority
+{
+    return 0;
+}
 }
 }
