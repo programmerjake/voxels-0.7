@@ -68,6 +68,12 @@ public:
         maxY = Display::scaleY();
         Container::reset();
     }
+    virtual bool handleQuit(QuitEvent &event) override
+    {
+        if(!Container::handleQuit(event))
+            quit();
+        return true;
+    }
 protected:
     virtual void clear(Renderer &renderer);
 };

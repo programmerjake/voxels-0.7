@@ -130,6 +130,10 @@ void ViewPoint::generateMeshesFn()
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
     : position(position), viewDistance(viewDistance), shuttingDown(false), blockRenderMeshes(nullptr), world(world)
 {
+    {
+        std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
+        myPositionInViewPointsList = world.viewPoints.insert(world.viewPoints.end(), this);
+    }
     generateMeshesThread = std::thread([this](){generateMeshesFn();});
 }
 ViewPoint::~ViewPoint()
@@ -138,6 +142,10 @@ ViewPoint::~ViewPoint()
     shuttingDown = true;
     lockIt.unlock();
     generateMeshesThread.join();
+    {
+        std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
+        world.viewPoints.erase(myPositionInViewPointsList);
+    }
 }
 }
 }

@@ -28,6 +28,7 @@
 #include <mutex>
 #include <memory>
 #include <vector>
+#include <cassert>
 
 namespace programmerjake
 {
@@ -129,6 +130,83 @@ struct BasicBlockChunk
     ChunkVariablesType chunkVariables;
 };
 
+template <typename BlockChunk>
+class BasicBlockChunkRelativePositionIterator final : public std::iterator<std::forward_iterator_tag, const VectorI>
+{
+    VectorI pos;
+    VectorI subchunkBasePos;
+    VectorI subchunkRelativePos;
+    constexpr BasicBlockChunkRelativePositionIterator(VectorI pos, VectorI subchunkBasePos, VectorI subchunkRelativePos)
+        : pos(pos), subchunkBasePos(subchunkBasePos), subchunkRelativePos(subchunkRelativePos)
+    {
+    }
+public:
+    constexpr BasicBlockChunkRelativePositionIterator()
+    {
+    }
+    static constexpr BasicBlockChunkRelativePositionIterator begin()
+    {
+        return BasicBlockChunkRelativePositionIterator(VectorI(0), VectorI(0), VectorI(0));
+    }
+    static constexpr BasicBlockChunkRelativePositionIterator end()
+    {
+        return BasicBlockChunkRelativePositionIterator(VectorI(0, 0, BlockChunk::chunkSizeZ), VectorI(0, 0, BlockChunk::chunkSizeZ), VectorI(0));
+    }
+    constexpr bool operator ==(const BasicBlockChunkRelativePositionIterator &rt) const
+    {
+        return pos == rt.pos;
+    }
+    constexpr bool operator !=(const BasicBlockChunkRelativePositionIterator &rt) const
+    {
+        return pos != rt.pos;
+    }
+    constexpr const VectorI &operator *() const
+    {
+        return pos;
+    }
+    constexpr const VectorI *operator ->() const
+    {
+        return &pos;
+    }
+    const BasicBlockChunkRelativePositionIterator &operator ++()
+    {
+        subchunkRelativePos.x++;
+        if(subchunkRelativePos.x >= BlockChunk::subchunkSizeXYZ)
+        {
+            subchunkRelativePos.x = 0;
+            subchunkRelativePos.y++;
+            if(subchunkRelativePos.y >= BlockChunk::subchunkSizeXYZ)
+            {
+                subchunkRelativePos.y = 0;
+                subchunkRelativePos.z++;
+                if(subchunkRelativePos.z >= BlockChunk::subchunkSizeXYZ)
+                {
+                    subchunkRelativePos.z = 0;
+                    subchunkBasePos.x += BlockChunk::subchunkSizeXYZ;
+                    if(subchunkBasePos.x >= BlockChunk::chunkSizeX)
+                    {
+                        subchunkBasePos.x = 0;
+                        subchunkBasePos.y += BlockChunk::subchunkSizeXYZ;
+                        if(subchunkBasePos.y >= BlockChunk::chunkSizeY)
+                        {
+                            subchunkBasePos.y = 0;
+                            subchunkBasePos.z += BlockChunk::subchunkSizeXYZ;
+                        }
+                    }
+                }
+            }
+        }
+        pos = subchunkBasePos + subchunkRelativePos;
+        return *this;
+    }
+    BasicBlockChunkRelativePositionIterator operator ++(int)
+    {
+        BasicBlockChunkRelativePositionIterator retval = *this;
+        operator ++();
+        return retval;
+    }
+};
+
 template <typename ChunkType>
 class ChunkMap
 {
@@ -217,7 +295,7 @@ private:
         iterator_imp(ChunkMap *parent_map)
             : node(nullptr), bucket_index(0), bucket_count(parent_map->bucket_count), pbuckets(&parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(false)
         {
-            lock();
+            lock(false);
             node = (*pbuckets)[bucket_index];
             while(node == nullptr)
             {
@@ -232,7 +310,7 @@ private:
                     bucket_locks = nullptr;
                     return;
                 }
-                lock();
+                lock(false);
                 node = (*pbuckets)[bucket_index];
             }
         }
@@ -275,9 +353,10 @@ private:
         {
             unlock();
         }
-        void lock()
+        void lock(bool checkNode)
         {
-            if(node && !locked)
+            assert(!checkNode || node != nullptr);
+            if(!locked)
             {
                 (*bucket_locks)[bucket_index].lock();
                 locked = true;
@@ -293,7 +372,7 @@ private:
         {
             if(node == nullptr)
                 return;
-            lock();
+            lock(false); // just checked
             node = node->hash_next;
             while(node == nullptr)
             {
@@ -308,7 +387,7 @@ private:
                     bucket_locks = nullptr;
                     return;
                 }
-                lock();
+                lock(false);
                 node = (*pbuckets)[bucket_index];
             }
         }
@@ -326,12 +405,12 @@ private:
         }
         value_type &operator *()
         {
-            lock();
+            lock(true);
             return node->value;
         }
         value_type *operator ->()
         {
-            lock();
+            lock(true);
             return &node->value;
         }
     };
@@ -360,7 +439,7 @@ public:
         }
         void lock()
         {
-            imp.lock();
+            imp.lock(true);
         }
         void unlock()
         {
@@ -429,7 +508,7 @@ public:
         }
         void lock()
         {
-            imp.lock();
+            imp.lock(true);
         }
         void unlock()
         {

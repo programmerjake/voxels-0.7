@@ -32,6 +32,7 @@
 #include <cwchar>
 #include <string>
 #include <thread>
+#include <list>
 #include "render/renderer.h"
 #include "util/cached_variable.h"
 #include "platform/platform.h"
@@ -47,16 +48,13 @@ namespace programmerjake
 namespace voxels
 {
 class WorldGenerator;
+class ViewPoint;
 
 class World final
 {
+    friend class ViewPoint;
     World(const World &) = delete;
     const World &operator =(const World &) = delete;
-private:
-    struct internal_construct_flag
-    {
-    };
-    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag);
 public:
     typedef std::uint64_t SeedType;
     static SeedType makeSeed(std::wstring seed)
@@ -73,6 +71,11 @@ public:
         return worldGeneratorSeed;
     }
     static constexpr std::int32_t AverageGroundHeight = 64;
+private:
+    struct internal_construct_flag
+    {
+    };
+    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag);
 public:
     /** @brief construct a world
      *
@@ -266,8 +269,10 @@ private:
     SeedType worldGeneratorSeed;
     WorldLightingProperties lighting;
     std::thread lightingThread;
-    std::thread chunkGeneratingThread;
+    std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
+    std::mutex viewPointsLock;
+    std::list<ViewPoint *> viewPoints;
     void lightingThreadFn();
     void chunkGeneratingThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);

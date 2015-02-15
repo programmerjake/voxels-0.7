@@ -30,6 +30,40 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
+					<Add option="-DNDEBUG" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+			<Target title="Debug-ThreadSanitizer">
+				<Option output="voxels-debug-tsan" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug-ThreadSanitizer/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-fPIC" />
+					<Add option="-pie" />
+					<Add option="-fsanitize=thread" />
+					<Add option="-DDEBUG_VERSION" />
+					<Add option="-D_GLIBCXX_DEBUG" />
+				</Compiler>
+				<Linker>
+					<Add option="-fPIC" />
+					<Add option="-pie" />
+					<Add option="-fsanitize=thread" />
+					<Add library="tsan" />
+				</Linker>
+			</Target>
+			<Target title="Optimized">
+				<Option output="voxels-optimized" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Optimized/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />

@@ -17,6 +17,7 @@
  */
 #include "world/world.h"
 #include "world/world_generator.h"
+#include "world/view_point.h"
 #include <random>
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
@@ -37,7 +38,6 @@ namespace voxels
 {
 namespace
 {
-#if 0
 class MyWorldGenerator final : public WorldGenerator
 {
 public:
@@ -51,7 +51,7 @@ private:
     static constexpr RandomClass totalRandomSize = fbmRandomSize + fbmRandomStart;
     struct RandomCacheChunk
     {
-        checked_array<checked_array<checked_array<checked_array<float, World::ChunkType::chunkSizeZ>, World::ChunkType::chunkSizeY>, World::ChunkType::chunkSizeX>, totalRandomSize> blocks;
+        checked_array<checked_array<checked_array<checked_array<float, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX>, totalRandomSize> blocks;
         PositionI basePosition;
         typedef minstd_rand random_generator;
         static random_generator makeRandomGenerator(World::SeedType seed, PositionI basePosition)
@@ -82,9 +82,9 @@ private:
         }
         float getValue(int32_t rx, int32_t ry, int32_t rz, RandomClass randomClass) const
         {
-            assert(rx >= 0 && rx < World::ChunkType::chunkSizeX);
-            assert(ry >= 0 && ry < World::ChunkType::chunkSizeY);
-            assert(rz >= 0 && rz < World::ChunkType::chunkSizeZ);
+            assert(rx >= 0 && rx < BlockChunk::chunkSizeX);
+            assert(ry >= 0 && ry < BlockChunk::chunkSizeY);
+            assert(rz >= 0 && rz < BlockChunk::chunkSizeZ);
             assert(randomClass >= 0 && randomClass < totalRandomSize);
             return blocks[randomClass][rx][ry][rz];
         }
@@ -112,7 +112,7 @@ private:
         }
         float getValue(PositionI position, RandomClass randomClass)
         {
-            return getChunk(World::ChunkType::getChunkBasePosition(position)).getValue(World::ChunkType::getChunkRelativePosition((VectorI)position), randomClass);
+            return getChunk(BlockChunk::getChunkBasePosition(position)).getValue(BlockChunk::getChunkRelativePosition((VectorI)position), randomClass);
         }
         float getValue(PositionF position, RandomClass randomClass)
         {
@@ -190,50 +190,41 @@ private:
         return std::get<1>(*iter);
     }
 public:
-    virtual void generateChunk(PositionI chunkBasePosition, World &world) const override
+    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager) const override
     {
         LocalData &localData = getLocalData(world);
-        decltype(World::ChunkType::blocks) blocks;
-        for(int32_t rx = 0; rx < World::ChunkType::chunkSizeX; rx++)
+        BlockIterator cbi = world.getBlockIterator(chunkBasePosition);
+        for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
         {
-            for(int32_t ry = 0; ry < World::ChunkType::chunkSizeY; ry++)
+            BlockIterator bi = cbi;
+            PositionI pos = chunkBasePosition + *i;
+            PositionF fpos = pos + VectorF(0.5f);
+            bi.moveTo(pos);
+            Block block;
+            if(fpos.y - World::AverageGroundHeight < 3 * localData.getFBMValue(fpos * 0.1f))
+                block = Block(Blocks::builtin::Stone::descriptor());
+            else
             {
-                for(int32_t rz = 0; rz < World::ChunkType::chunkSizeZ; rz++)
-                {
-                    PositionI pos = chunkBasePosition + VectorI(rx, ry, rz);
-                    PositionF fpos = pos + VectorF(0.5f);
-                    Block block;
-                    if(fpos.y < 3 * localData.getFBMValue(fpos * 0.1f))
-                        block = Block(Blocks::builtin::Stone::descriptor());
-                    else
-                    {
-                        block = Block(Blocks::builtin::Air::descriptor());
-                        block.lighting = Lighting::makeSkyLighting();
-                    }
-                    blocks[rx][ry][rz] = block;
-                }
+                block = Block(Blocks::builtin::Air::descriptor());
+                block.lighting = Lighting::makeSkyLighting();
             }
+            world.setBlock(bi, lock_manager, block);
         }
-        world.setBlockRange<false>(chunkBasePosition, blocks);
+#if 0
         constexpr float newEntityHeight = 3.5f;
         PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
-        if(World::ChunkType::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
+        if(BlockChunk::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
         {
             world.addEntity(Entities::builtin::items::Stone::descriptor(), epos);
             world.addEntity(Entities::builtin::items::Stone::descriptor(), epos + VectorF(0, 1, 0));
         }
+#endif
     }
 };
 
 shared_ptr<const WorldGenerator> makeWorldGenerator()
 {
     return make_shared<MyWorldGenerator>();
-#else
-shared_ptr<const WorldGenerator> makeWorldGenerator()
-{
-    #warning finish
-    return nullptr;
-#endif
 }
 }
 
@@ -323,23 +314,36 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
 World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator)
     : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
+    const int initSize = 5;
+    for(int dx = -initSize; dx <= initSize; dx++)
+    {
+        for(int dz = -initSize; dz <= initSize; dz++)
+        {
+            getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)); // create chunk
+        }
+    }
     lightingThread = thread([this]()
     {
         lightingThreadFn();
     });
-    chunkGeneratingThread = thread([this]()
+    for(int i = 0; i < 5; i++)
     {
-        chunkGeneratingThreadFn();
-    });
+        chunkGeneratingThreads.emplace_back([this]()
+        {
+            chunkGeneratingThreadFn();
+        });
+    }
 }
 
 World::~World()
 {
+    assert(viewPoints.empty());
     destructing = true;
     if(lightingThread.joinable())
         lightingThread.join();
-    if(chunkGeneratingThread.joinable())
-        chunkGeneratingThread.join();
+    for(auto &t : chunkGeneratingThreads)
+        if(t.joinable())
+            t.join();
 }
 
 Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)
@@ -431,10 +435,11 @@ void World::lightingThreadFn()
 void World::chunkGeneratingThreadFn()
 {
     WorldLockManager lock_manager;
+    BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
     {
         bool didAnything = false;
-        BlockChunk *bestChunk;
+        BlockChunk *bestChunk = nullptr;
         bool haveChunk = false;
         float chunkPriority = 0;
         for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
@@ -461,9 +466,35 @@ void World::chunkGeneratingThreadFn()
             BlockChunk *chunk = bestChunk;
             if(chunk->chunkVariables.generateStarted.exchange(true)) // someone else got this chunk
                 continue;
+            std::cout << "generating " << chunk->basePosition << " " << chunkPriority << std::endl;
             didAnything = true;
 
-            #warning add actual generate code
+            {
+                WorldLockManager new_lock_manager;
+                World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
+                worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
+                new_lock_manager.clear();
+                newWorld.lightingThread = thread([&]()
+                {
+                    newWorld.lightingThreadFn();
+                });
+                for(int i = 0; i < 100 && !newWorld.isLightingStable() && !destructing; i++)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                newWorld.destructing = true;
+
+                BlockIterator cbiDest = getBlockIterator(chunk->basePosition);
+                BlockIterator cbiSrc = newWorld.getBlockIterator(chunk->basePosition);
+                for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
+                {
+                    BlockIterator bbiSrc = cbiSrc;
+                    BlockIterator bbiDest = cbiDest;
+                    bbiSrc.moveBy(*i);
+                    bbiDest.moveBy(*i);
+                    setBlock(bbiDest, lock_manager, bbiSrc.get(new_lock_manager));
+                }
+                new_lock_manager.clear();
+                newWorld.lightingThread.join();
+            }
 
             chunk->chunkVariables.generated = true;
         }
@@ -477,7 +508,25 @@ void World::chunkGeneratingThreadFn()
 
 float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager) // low values mean high priority
 {
-    return 0;
+    std::unique_lock<std::mutex> lockIt(viewPointsLock);
+    float retval;
+    bool retvalSet = false;
+    PositionF chunkCenter = bi.position() + VectorF(0.5) + 0.5 * VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
+    for(ViewPoint *viewPoint : viewPoints)
+    {
+        PositionF pos = viewPoint->getPosition();
+        float dist = absSquared(pos - chunkCenter);
+        if(pos.d != chunkCenter.d)
+            dist *= 1e5;
+        if(!retvalSet || retval > dist)
+        {
+            retval = dist;
+            retvalSet = true;
+        }
+    }
+    if(!retvalSet)
+        retval = absSquared(PositionF(0.5, 0.5 + AverageGroundHeight, 0.5, Dimension::Overworld) - chunkCenter);
+    return retval;
 }
 }
 }

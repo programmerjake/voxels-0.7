@@ -46,7 +46,6 @@ class MyUi : public ui::Ui
 {
 private:
     float viewAngle = 0;
-    int transparentBlockCount = 1;
     World world;
     WorldLockManager &render_thread_lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
@@ -58,58 +57,11 @@ public:
     MyUi(Renderer &renderer, WorldLockManager &lock_manager)
         : world(), render_thread_lock_manager(lock_manager)
     {
-        thread([this]()
-        {
-            WorldLockManager lock_manager;
-            BlockDescriptorPointer stone = Blocks::builtin::Stone::descriptor();
-            BlockDescriptorPointer air = Blocks::builtin::Air::descriptor();
-            const int size = startingBoxSize;
-            for(int x = -size; x <= size; x++)
-            {
-                for(int y = -size; y <= size; y++)
-                {
-                    for(int z = -size; z <= size; z++)
-                    {
-                        PositionI pos = VectorI(x, y, z) + origin();
-                        Block b = Block(air);
-                        if(std::abs(x) == size || std::abs(y) == size || std::abs(z) == size)
-                            b = Block(stone);
-                        if(x == 0 && z == 0 && y == size)
-                            b = Block(air);
-                        world.setBlock(world.getBlockIterator(pos), lock_manager, b);
-                    }
-                }
-            }
-        }).detach();
         viewPoint = make_shared<ViewPoint>(world, origin());
     }
     virtual void move(double deltaTime) override
     {
         viewAngle = std::fmod(viewAngle + deltaTime * 2 * M_PI / 50, 2 * M_PI);
-        const int size = startingBoxSize;
-        BlockDescriptorPointer stone = Blocks::builtin::Stone::descriptor();
-        BlockDescriptorPointer air = Blocks::builtin::Air::descriptor();
-        PositionI pos = origin() + VectorI(rand() % (2 * size + 1) - size, size, rand() % (2 * size + 1) - size);
-        BlockIterator bi = world.getBlockIterator(pos);
-        Block b = bi.get(render_thread_lock_manager);
-        Block newB = Block(rand() % 1000 == 0 ? air : stone);
-        if(transparentBlockCount <= 1)
-            newB = Block(air);
-        if(transparentBlockCount >= 3)
-            newB = Block(stone);
-        if(b.good())
-        {
-            if(b.descriptor == air && newB.descriptor != air)
-            {
-                transparentBlockCount--;
-            }
-            if(b.descriptor != air && newB.descriptor == air)
-            {
-                transparentBlockCount++;
-            }
-            world.setBlock(bi, render_thread_lock_manager, newB);
-        }
-        render_thread_lock_manager.clear();
         Ui::move(deltaTime);
     }
 protected:
@@ -137,6 +89,7 @@ int main(std::vector<std::wstring> args)
         ss << L"test label";
         ui->add(make_shared<voxels::ui::Label>(ss.str(), -0.5, 0.5, -0.8, -0.7));
     }
+    weak_ptr<MyUi> wui = ui;
     ui->add(make_shared<voxels::ui::DynamicLabel>([](double deltaTime)->std::wstring
     {
         wostringstream ss;
@@ -156,26 +109,28 @@ int main(std::vector<std::wstring> args)
     buttonContainer->add(quitButton);
     quitButton->click.bind([=](EventArguments &)->Event::ReturnType
     {
-        ui->quit();
+        wui.lock()->quit();
         return Event::Discard;
     });
     auto button2 = make_shared<voxels::ui::Button>(L"button2", -0.5, 0.5, -0.4, -0.2);
+    weak_ptr<voxels::ui::Button> wbutton2 = button2;
     buttonContainer->add(button2);
-    button2->click.bind([=](EventArguments &)->Event::ReturnType
+    button2->click.bind([](EventArguments &)->Event::ReturnType
     {
         cout << "button2 click" << endl;
         return Event::Discard;
     });
     button2->pressed.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        cout << "button2.pressed changed: " << button2->pressed.get() << endl;
+        cout << "button2.pressed changed: " << wbutton2.lock()->pressed.get() << endl;
         return Event::Propagate;
     });
     auto checkbox = make_shared<voxels::ui::Checkbox>(L"checkbox", -0.5, 0.5, 0.2, 0.4);
+    weak_ptr<voxels::ui::Checkbox> wcheckbox = checkbox;
     buttonContainer->add(checkbox);
     checkbox->checked.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        cout << "checkbox.checked changed: " << checkbox->checked.get() << endl;
+        cout << "checkbox.checked changed: " << wcheckbox.lock()->checked.get() << endl;
         return Event::Propagate;
     });
     shared_ptr<PlayingAudio> playingSound = sound.play(true);

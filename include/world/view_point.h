@@ -32,6 +32,7 @@ namespace voxels
 {
 class ViewPoint final
 {
+    friend class World;
     PositionF position;
     int32_t viewDistance;
     std::thread generateMeshesThread;
@@ -39,6 +40,7 @@ class ViewPoint final
     bool shuttingDown;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> blockRenderMeshes;
     World &world;
+    std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn();
 public:
     ViewPoint(World &world, PositionF position, int32_t viewDistance = 48);

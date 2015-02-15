@@ -4,6 +4,8 @@ obj
 *.depend
 voxels-debug
 voxels
+voxels-debug-tsan
+voxels-optimized
 *~
 *.save
 gmon.out

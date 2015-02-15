@@ -193,7 +193,7 @@ private:
         return getIndexFromPosition(pos.x, pos.y);
     }
 public:
-    virtual bool handleTouchUp(TouchUpEvent &event) override final
+    virtual bool handleTouchUp(TouchUpEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
         auto iter = touchElementMap.find(event.touchId);
@@ -219,7 +219,7 @@ public:
         }
         return Element::handleTouchUp(event);
     }
-    virtual bool handleTouchDown(TouchDownEvent &event) override final
+    virtual bool handleTouchDown(TouchDownEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
         std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
@@ -241,7 +241,7 @@ public:
         }
         return Element::handleTouchDown(event);
     }
-    virtual bool handleTouchMove(TouchMoveEvent &event) override final
+    virtual bool handleTouchMove(TouchMoveEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
         std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
@@ -263,7 +263,7 @@ public:
         }
         return Element::handleTouchMove(event);
     }
-    virtual bool handleTouchMoveOut(TouchEvent &event) override final
+    virtual bool handleTouchMoveOut(TouchEvent &event) override
     {
         auto iter = touchElementMap.find(event.touchId);
         if(iter == touchElementMap.end())
@@ -278,7 +278,7 @@ public:
         }
         return Element::handleTouchMoveOut(event);
     }
-    virtual bool handleTouchMoveIn(TouchEvent &event) override final
+    virtual bool handleTouchMoveIn(TouchEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
         std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
@@ -289,7 +289,7 @@ public:
         }
         return Element::handleTouchMoveIn(event);
     }
-    virtual bool handleMouseUp(MouseUpEvent &event) override final
+    virtual bool handleMouseUp(MouseUpEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformMouseTo3D(event.x, event.y));
         if(index != lastMouseElement)
@@ -310,7 +310,7 @@ public:
         }
         return Element::handleMouseUp(event);
     }
-    virtual bool handleMouseDown(MouseDownEvent &event) override final
+    virtual bool handleMouseDown(MouseDownEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformMouseTo3D(event.x, event.y));
         if(index != lastMouseElement)
@@ -331,7 +331,7 @@ public:
         }
         return Element::handleMouseDown(event);
     }
-    virtual bool handleMouseMove(MouseMoveEvent &event) override final
+    virtual bool handleMouseMove(MouseMoveEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformMouseTo3D(event.x, event.y));
         if(index != lastMouseElement)
@@ -352,7 +352,7 @@ public:
         }
         return Element::handleMouseMove(event);
     }
-    virtual bool handleMouseMoveOut(MouseEvent &event) override final
+    virtual bool handleMouseMoveOut(MouseEvent &event) override
     {
         if(lastMouseElement != npos)
         {
@@ -362,7 +362,7 @@ public:
         }
         return Element::handleMouseMoveOut(event);
     }
-    virtual bool handleMouseMoveIn(MouseEvent &event) override final
+    virtual bool handleMouseMoveIn(MouseEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformMouseTo3D(event.x, event.y));
         lastMouseElement = index;
@@ -372,7 +372,7 @@ public:
         }
         return Element::handleMouseMoveIn(event);
     }
-    virtual bool handleMouseScroll(MouseScrollEvent &event) override final
+    virtual bool handleMouseScroll(MouseScrollEvent &event) override
     {
         if(lastMouseElement != npos)
         {
@@ -380,14 +380,14 @@ public:
         }
         return Element::handleMouseScroll(event);
     }
-    virtual bool handleKeyUp(KeyUpEvent &event) override final
+    virtual bool handleKeyUp(KeyUpEvent &event) override
     {
         auto e = getFocusElement();
         if(e.get() == this)
             return Element::handleKeyUp(event);
         return e->handleKeyUp(event);
     }
-    virtual bool handleKeyDown(KeyDownEvent &event) override final
+    virtual bool handleKeyDown(KeyDownEvent &event) override
     {
         auto e = getFocusElement();
         bool retval;
@@ -431,14 +431,14 @@ public:
         }
         return false;
     }
-    virtual bool handleKeyPress(KeyPressEvent &event) override final
+    virtual bool handleKeyPress(KeyPressEvent &event) override
     {
         auto e = getFocusElement();
         if(e.get() == this)
             return Element::handleKeyPress(event);
         return e->handleKeyPress(event);
     }
-    virtual bool handleQuit(QuitEvent &event) override final
+    virtual bool handleQuit(QuitEvent &event) override
     {
         auto e = getFocusElement();
         if(e.get() == this)

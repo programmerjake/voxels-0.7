@@ -158,14 +158,17 @@ struct BlockChunkChunkVariables final
 {
     atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
-        : cachedMeshes(nullptr)
+        : cachedMeshes(nullptr), generated(false), generateStarted(false)
     {
     }
-    BlockChunkChunkVariables() = default;
+    BlockChunkChunkVariables()
+        : generated(false), generateStarted(false)
+    {
+    }
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
-    std::atomic_bool generated = false, generateStarted = false;
+    std::atomic_bool generated, generateStarted;
     ~BlockChunkChunkVariables()
     {
         while(blockUpdateListHead != nullptr)
@@ -179,6 +182,7 @@ struct BlockChunkChunkVariables final
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
 typedef ChunkMap<BlockChunk> BlockChunkMap;
+typedef BasicBlockChunkRelativePositionIterator<BlockChunk> BlockChunkRelativePositionIterator;
 
 class BlockChunkFullLock final
 {
@@ -240,16 +244,9 @@ public:
     }
     ~BlockChunkFullLock()
     {
-        for(std::int32_t x = 0; x < BlockChunk::subchunkCountX; x++)
-        {
-            for(std::int32_t y = 0; y < BlockChunk::subchunkCountY; y++)
-            {
-                for(std::int32_t z = 0; z < BlockChunk::subchunkCountZ; z++)
-                {
-                    chunk.subchunks[x][y][z].lock.unlock();
-                }
-            }
-        }
+        SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk), end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+        for(auto i = begin; i != end; i++)
+            i->unlock();
     }
     BlockChunkFullLock(const BlockChunkFullLock &) = delete;
     const BlockChunkFullLock operator =(const BlockChunkFullLock &) = delete;
