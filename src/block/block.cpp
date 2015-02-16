@@ -22,6 +22,10 @@ namespace programmerjake
 {
 namespace voxels
 {
+const BlockDescriptor **BlockDescriptorIndex::blockDescriptorTable = nullptr;
+std::size_t BlockDescriptorIndex::blockDescriptorTableSize = 0, BlockDescriptorIndex::blockDescriptorTableAllocated = 0;
+
+
 BlockDescriptor::BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer)
     : name(name), blockShape(blockShape), lightProperties(lightProperties), isStaticMesh(isStaticMesh), staticRenderLayer(staticRenderLayer)
 {
@@ -38,6 +42,7 @@ BlockDescriptor::BlockDescriptor(std::wstring name, BlockShape blockShape, Light
     meshFace[BlockFace::PY] = meshFacePY;
     meshFace[BlockFace::NZ] = meshFaceNZ;
     meshFace[BlockFace::PZ] = meshFacePZ;
+    bdIndex = BlockDescriptorIndex::addNewDescriptor(this);
     BlockDescriptors.add(this);
 }
 

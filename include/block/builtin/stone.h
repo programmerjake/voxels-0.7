@@ -34,9 +34,13 @@ class Stone final : public StoneBlock
 {
     friend class global_instance_maker<Stone>;
 public:
-    static const Stone *descriptor()
+    static const Stone *pointer()
     {
         return global_instance_maker<Stone>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
     }
 private:
     Stone()

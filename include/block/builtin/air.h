@@ -33,9 +33,13 @@ class Air final : public BlockDescriptor
 {
     friend class global_instance_maker<Air>;
 public:
-    static const Air *descriptor()
+    static const Air *pointer()
     {
         return global_instance_maker<Air>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
     }
 private:
     Air()

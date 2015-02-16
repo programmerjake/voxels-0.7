@@ -45,7 +45,11 @@ struct constexpr_assert_failure final
     }
 };
 
-#define constexpr_assert(v) (void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(! #v);}))
+#ifdef NDEBUG
+#define constexpr_assert(v) ((void)0)
+#else
+#define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
+#endif
 
 template <typename T>
 constexpr T ensureInRange(const T v, const T minV, const T maxV)

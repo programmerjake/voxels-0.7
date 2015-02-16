@@ -192,14 +192,17 @@ private:
 public:
     virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager) const override
     {
+#if 0
         LocalData &localData = getLocalData(world);
-        BlockIterator cbi = world.getBlockIterator(chunkBasePosition);
+#else
+        LocalData localData(world.getWorldGeneratorSeed());
+#endif
+        typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
+        std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
         for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
         {
-            BlockIterator bi = cbi;
             PositionI pos = chunkBasePosition + *i;
             PositionF fpos = pos + VectorF(0.5f);
-            bi.moveTo(pos);
             Block block;
             if(fpos.y - World::AverageGroundHeight < 3 * localData.getFBMValue(fpos * 0.1f))
                 block = Block(Blocks::builtin::Stone::descriptor());
@@ -208,8 +211,9 @@ public:
                 block = Block(Blocks::builtin::Air::descriptor());
                 block.lighting = Lighting::makeSkyLighting();
             }
-            world.setBlock(bi, lock_manager, block);
+            blocks->at(i->x)[i->y][i->z] = block;
         }
+        world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
 #if 0
         constexpr float newEntityHeight = 3.5f;
         PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
@@ -473,6 +477,7 @@ void World::chunkGeneratingThreadFn()
                 WorldLockManager new_lock_manager;
                 World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
                 worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
+#if 0
                 new_lock_manager.clear();
                 newWorld.lightingThread = thread([&]()
                 {
@@ -481,19 +486,19 @@ void World::chunkGeneratingThreadFn()
                 for(int i = 0; i < 100 && !newWorld.isLightingStable() && !destructing; i++)
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 newWorld.destructing = true;
+#endif
 
-                BlockIterator cbiDest = getBlockIterator(chunk->basePosition);
-                BlockIterator cbiSrc = newWorld.getBlockIterator(chunk->basePosition);
+                typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
+                std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
+                BlockIterator cbi = newWorld.getBlockIterator(chunk->basePosition);
                 for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
                 {
-                    BlockIterator bbiSrc = cbiSrc;
-                    BlockIterator bbiDest = cbiDest;
-                    bbiSrc.moveBy(*i);
-                    bbiDest.moveBy(*i);
-                    setBlock(bbiDest, lock_manager, bbiSrc.get(new_lock_manager));
+                    BlockIterator bi = cbi;
+                    bi.moveBy(*i);
+                    blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
                 }
                 new_lock_manager.clear();
-                newWorld.lightingThread.join();
+                setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
             }
 
             chunk->chunkVariables.generated = true;
@@ -511,7 +516,7 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     std::unique_lock<std::mutex> lockIt(viewPointsLock);
     float retval;
     bool retvalSet = false;
-    PositionF chunkCenter = bi.position() + VectorF(0.5) + 0.5 * VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
+    PositionF chunkCenter = bi.position() + 0.5 * VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
     for(ViewPoint *viewPoint : viewPoints)
     {
         PositionF pos = viewPoint->getPosition();

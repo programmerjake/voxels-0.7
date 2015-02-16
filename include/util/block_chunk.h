@@ -128,7 +128,7 @@ public:
 
 struct BlockChunkBlock final
 {
-    Block block;
+    PackedBlock block;
     BlockUpdate *updateListHead = nullptr; // BlockChunkChunkVariables is responsible for deleting
     BlockChunkBlock() = default;
     BlockChunkBlock(const BlockChunkBlock &rt)

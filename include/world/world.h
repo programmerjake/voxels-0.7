@@ -42,6 +42,7 @@
 #include "util/flag.h"
 #include "util/spin_lock.h"
 #include "util/parallel_map.h"
+#include <algorithm>
 
 namespace programmerjake
 {
@@ -215,12 +216,12 @@ public:
      * @param bi a <code>BlockIterator</code> to the block to set
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param newBlock the new block
-     *
+     * @see setBlockRange
      */
     void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
-        b.block = newBlock;
+        b.block = (PackedBlock)newBlock;
         lightingStable = false;
         for(int dx = -1; dx <= 1; dx++)
         {
@@ -239,6 +240,128 @@ public:
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod > 0)
                 rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+        }
+    }
+    /** @brief set a block range
+     *
+     * except for the order of setting blocks, this is equivalent to:
+     * @code
+     * template <typename T>
+     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+     * {
+     *     for(PositionI pos = minCorner; pos.x <= maxCorner.x; pos.x++)
+     *     {
+     *         for(pos.y = minCorner.y; pos.y <= maxCorner.y; pos.y++)
+     *         {
+     *             for(pos.z = minCorner.z; pos.z <= maxCorner.z; pos.z++)
+     *             {
+     *                 BlockIterator bi = getBlockIterator(pos);
+     *                 VectorI newBlocksPosition = pos - minCorner + newBlocksOrigin;
+     *                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+     *                 setBlock(bi, lock_manager, newBlock);
+     *             }
+     *         }
+     *     }
+     * }
+     * @endcode
+     *
+     * @param minCorner the minimum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
+     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param newBlocks the array of new blocks
+     * @param newBlocksOrigin the minimum corner in the array of new blocks
+     *
+     *
+     */
+    template <typename T>
+    void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+    {
+        PositionI adjustedMinCorner = minCorner - VectorI(1);
+        VectorI adjustedMaxCorner = maxCorner + VectorI(1);
+        PositionI minCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(minCorner);
+        VectorI maxCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(maxCorner);
+        for(PositionI subchunkPos = minCornerSubchunk; subchunkPos.x <= maxCornerSubchunk.x; subchunkPos.x += BlockChunk::subchunkSizeXYZ)
+        {
+            for(subchunkPos.y = minCornerSubchunk.y; subchunkPos.y <= maxCornerSubchunk.y; subchunkPos.y += BlockChunk::subchunkSizeXYZ)
+            {
+                for(subchunkPos.z = minCornerSubchunk.z; subchunkPos.z <= maxCornerSubchunk.z; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
+                {
+                    VectorI minSubchunkRelativePos = VectorI(0);
+                    VectorI maxSubchunkRelativePos = VectorI(BlockChunk::subchunkSizeXYZ - 1);
+                    minSubchunkRelativePos.x = std::max(minSubchunkRelativePos.x, minCorner.x - subchunkPos.x);
+                    minSubchunkRelativePos.y = std::max(minSubchunkRelativePos.y, minCorner.y - subchunkPos.y);
+                    minSubchunkRelativePos.z = std::max(minSubchunkRelativePos.z, minCorner.z - subchunkPos.z);
+                    maxSubchunkRelativePos.x = std::min(maxSubchunkRelativePos.x, maxCorner.x - subchunkPos.x);
+                    maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, maxCorner.y - subchunkPos.y);
+                    maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, maxCorner.z - subchunkPos.z);
+                    BlockIterator sbi = getBlockIterator(subchunkPos);
+                    for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
+                    {
+                        for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
+                        {
+                            for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
+                            {
+                                BlockIterator bi = sbi;
+                                bi.moveBy(subchunkRelativePos);
+                                VectorI newBlocksPosition = subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
+                                Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+                                BlockChunkBlock &b = bi.getBlock(lock_manager);
+                                b.block = (PackedBlock)newBlock;
+                                invalidateBlock(bi, lock_manager);
+                                for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+                                {
+                                    float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+                                    if(defaultPeriod > 0)
+                                        rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+                                }
+                            }
+                        }
+                    }
+                    lightingStable = false;
+                }
+            }
+        }
+        minCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(adjustedMinCorner);
+        maxCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(adjustedMaxCorner);
+        for(PositionI subchunkPos = minCornerSubchunk; subchunkPos.x <= maxCornerSubchunk.x; subchunkPos.x += BlockChunk::subchunkSizeXYZ)
+        {
+            for(subchunkPos.y = minCornerSubchunk.y; subchunkPos.y <= maxCornerSubchunk.y; subchunkPos.y += BlockChunk::subchunkSizeXYZ)
+            {
+                for(subchunkPos.z = minCornerSubchunk.z; subchunkPos.z <= maxCornerSubchunk.z; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
+                {
+                    VectorI minSubchunkRelativePos = VectorI(0);
+                    VectorI maxSubchunkRelativePos = VectorI(BlockChunk::subchunkSizeXYZ - 1);
+                    minSubchunkRelativePos.x = std::max(minSubchunkRelativePos.x, adjustedMinCorner.x - subchunkPos.x);
+                    minSubchunkRelativePos.y = std::max(minSubchunkRelativePos.y, adjustedMinCorner.y - subchunkPos.y);
+                    minSubchunkRelativePos.z = std::max(minSubchunkRelativePos.z, adjustedMinCorner.z - subchunkPos.z);
+                    maxSubchunkRelativePos.x = std::min(maxSubchunkRelativePos.x, adjustedMaxCorner.x - subchunkPos.x);
+                    maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, adjustedMaxCorner.y - subchunkPos.y);
+                    maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, adjustedMaxCorner.z - subchunkPos.z);
+                    if(minSubchunkRelativePos.x > adjustedMinCorner.x - subchunkPos.x && maxSubchunkRelativePos.x < adjustedMaxCorner.x - subchunkPos.x &&
+                       minSubchunkRelativePos.y > adjustedMinCorner.y - subchunkPos.y && maxSubchunkRelativePos.y < adjustedMaxCorner.y - subchunkPos.y &&
+                       minSubchunkRelativePos.z > adjustedMinCorner.z - subchunkPos.z && maxSubchunkRelativePos.z < adjustedMaxCorner.z - subchunkPos.z)
+                        continue;
+                    BlockIterator sbi = getBlockIterator(subchunkPos);
+                    for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
+                    {
+                        for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
+                        {
+                            for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
+                            {
+                                PositionI pos = subchunkRelativePos + subchunkPos;
+                                if(pos.x > adjustedMinCorner.x && pos.x < adjustedMaxCorner.x &&
+                                   pos.x > adjustedMinCorner.y && pos.y < adjustedMaxCorner.y &&
+                                   pos.x > adjustedMinCorner.z && pos.z < adjustedMaxCorner.z)
+                                    continue;
+                                BlockIterator bi = sbi;
+                                bi.moveBy(subchunkRelativePos);
+                                invalidateBlock(bi, lock_manager);
+                            }
+                        }
+                    }
+                    lightingStable = false;
+                }
+            }
         }
     }
     /** @brief create a <code>BlockIterator</code>

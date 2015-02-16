@@ -265,7 +265,7 @@ private:
 public:
     Block get(WorldLockManager &lock_manager) const
     {
-        return getBlock(lock_manager).block;
+        return (Block)getBlock(lock_manager).block;
     }
     BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const
     {
