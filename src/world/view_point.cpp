@@ -17,6 +17,8 @@
  */
 #include "world/view_point.h"
 #include <iostream>
+#include <chrono>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -45,6 +47,10 @@ void ViewPoint::generateMeshesFn()
                 {
                     for(chunkPosition.z = minChunkPosition.z; chunkPosition.z <= maxChunkPosition.z; chunkPosition.z += BlockChunk::chunkSizeZ)
                     {
+                        lockIt.lock();
+                        if(shuttingDown)
+                            return;
+                        lockIt.unlock();
                         BlockIterator cbi = world.getBlockIterator(chunkPosition);
                         std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes.load();
                         if(chunkMeshes != nullptr)
@@ -57,7 +63,7 @@ void ViewPoint::generateMeshesFn()
                         }
                         chunkMeshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
                         anyUpdates = true;
-                        //std::cout << "generating ... (" << chunkPosition.x << ", " << chunkPosition.y << ", " << chunkPosition.z << ")\x1b[K\r" << std::flush;
+                        //debugLog << L"generating ... (" << chunkPosition.x << L", " << chunkPosition.y << L", " << chunkPosition.z << L")\x1b[K\r" << std::flush;
                         VectorI subchunkIndex;
                         for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
                         {
@@ -120,10 +126,10 @@ void ViewPoint::generateMeshesFn()
             }
         }
         if(anyUpdates == false)
-            std::this_thread::yield();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         lockIt.lock();
         //if(anyUpdates)
-            //std::cout << "generated render meshes.\x1b[K" << std::endl;
+            //debugLog << L"generated render meshes.\x1b[K" << std::endl;
         blockRenderMeshes = std::move(meshes);
     }
 }

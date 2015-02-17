@@ -32,6 +32,7 @@
 #include <sstream>
 #include <thread>
 #include <cstdlib>
+#include "util/logging.h"
 
 using namespace std;
 
@@ -51,13 +52,13 @@ private:
     std::shared_ptr<ViewPoint> viewPoint;
     PositionI origin()
     {
-        return PositionI(0, World::AverageGroundHeight, 0, Dimension::Overworld);
+        return PositionI(0, World::AverageGroundHeight + 4, 0, Dimension::Overworld);
     }
 public:
     MyUi(Renderer &renderer, WorldLockManager &lock_manager)
         : world(), render_thread_lock_manager(lock_manager)
     {
-        viewPoint = make_shared<ViewPoint>(world, origin());
+        viewPoint = make_shared<ViewPoint>(world, origin(), 64);
     }
     virtual void move(double deltaTime) override
     {
@@ -117,12 +118,12 @@ int main(std::vector<std::wstring> args)
     buttonContainer->add(button2);
     button2->click.bind([](EventArguments &)->Event::ReturnType
     {
-        cout << "button2 click" << endl;
+        debugLog << L"button2 click\n";
         return Event::Discard;
     });
     button2->pressed.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        cout << "button2.pressed changed: " << wbutton2.lock()->pressed.get() << endl;
+        debugLog << L"button2.pressed changed: " << wbutton2.lock()->pressed.get() << L"\n";
         return Event::Propagate;
     });
     auto checkbox = make_shared<voxels::ui::Checkbox>(L"checkbox", -0.5, 0.5, 0.2, 0.4);
@@ -130,7 +131,7 @@ int main(std::vector<std::wstring> args)
     buttonContainer->add(checkbox);
     checkbox->checked.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        cout << "checkbox.checked changed: " << wcheckbox.lock()->checked.get() << endl;
+        debugLog << L"checkbox.checked changed: " << wcheckbox.lock()->checked.get() << L"\n";
         return Event::Propagate;
     });
     shared_ptr<PlayingAudio> playingSound = sound.play(true);

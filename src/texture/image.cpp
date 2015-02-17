@@ -20,6 +20,7 @@
 #include "platform/platformgl.h"
 #include <cstring>
 #include <iostream>
+#include "util/logging.h"
 
 using namespace std;
 
@@ -221,7 +222,7 @@ void Image::write(stream::Writer &writer, VariableSet &variableSet) const
     {
         return;
     }
-    cout << "Server : writing image\n";
+    debugLog << L"Server : writing image\n";
     writer.writeU32(width());
     writer.writeU32(height());
     vector<uint8_t> row;
@@ -263,7 +264,7 @@ Image Image::read(stream::Reader &reader, VariableSet &variableSet)
         DUMP_V(Image::read, "read old image");
         return retval;
     }
-    cout << "Client : reading image\n";
+    debugLog << L"Client : reading image\n";
     DUMP_V(Image::read, "reading new image");
     uint32_t w, h;
     w = reader.readU32();

@@ -37,6 +37,7 @@
 #include <cmath>
 #include <tuple>
 #include "util/cached_variable.h"
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -636,7 +637,6 @@ inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocit
     newStateCount++;
     newPosition /= newStateCount;
     newVelocity /= newStateCount;
-    //cout << "new position : " << (VectorF)newPosition << " : new velocity : " << newVelocity << endl;
     position[variableSetIndex] = newPosition;
     velocity[variableSetIndex] = newVelocity;
     world->changedObjects[(std::intptr_t)this] = shared_from_this();
@@ -720,7 +720,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 
 inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
-    std::cout << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << std::endl;
+    debugLog << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << std::endl;
     float stepDuration = 1 / 20.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;
@@ -944,7 +944,7 @@ inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_mana
                     {
                         anyCollisions = true;
                         objectA->adjustPosition(*objectB);
-                        //cout << "collision" << endl;
+                        //debugLog << "collision" << std::endl;
                     }
                 }
                 minX = ifloor(fMinX);

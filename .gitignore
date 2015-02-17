@@ -10,3 +10,5 @@ voxels-optimized
 *.save
 gmon.out
 ValgrindOut.xml
+core
+

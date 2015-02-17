@@ -22,8 +22,8 @@
 #include <unordered_map>
 #include <cmath>
 #include <cstdint>
-#include <iostream>
 #include <random>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -99,7 +99,7 @@ public:
             entity.destroy();
         else
         {
-            //cout << "Entity " << (void *)&entity << ": pos:" << (VectorF)entity.physicsObject->getPosition() << endl;
+            //debugLog << "Entity " << (void *)&entity << ": pos:" << (VectorF)entity.physicsObject->getPosition() << std::endl;
         }
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override

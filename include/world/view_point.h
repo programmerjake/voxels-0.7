@@ -34,7 +34,7 @@ class ViewPoint final
 {
     friend class World;
     PositionF position;
-    int32_t viewDistance;
+    std::int32_t viewDistance;
     std::thread generateMeshesThread;
     std::recursive_mutex theLock;
     bool shuttingDown;
@@ -43,7 +43,7 @@ class ViewPoint final
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn();
 public:
-    ViewPoint(World &world, PositionF position, int32_t viewDistance = 48);
+    ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
     ViewPoint(const ViewPoint &rt) = delete;
     const ViewPoint &operator =(const ViewPoint &) = delete;
     ~ViewPoint();
@@ -52,7 +52,7 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return position;
     }
-    int32_t getViewDistance()
+    std::int32_t getViewDistance()
     {
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return viewDistance;
@@ -62,10 +62,22 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         position = newPosition;
     }
-    void setViewDistance(int32_t newViewDistance)
+    void setViewDistance(std::int32_t newViewDistance)
     {
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
         viewDistance = newViewDistance;
+    }
+    void getPositionAndViewDistance(PositionF &position, std::int32_t &viewDistance)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        position = this->position;
+        viewDistance = this->viewDistance;
+    }
+    void setPositionAndViewDistance(PositionF position, std::int32_t viewDistance)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        this->position = position;
+        this->viewDistance = viewDistance;
     }
 private:
     std::shared_ptr<enum_array<Mesh, RenderLayer>> getBlockRenderMeshes()

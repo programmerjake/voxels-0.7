@@ -144,6 +144,11 @@ public:
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
 
+    friend std::wostream & operator <<(std::wostream & os, const VectorI & v)
+    {
+        return os << L"<" << v.x << L", " << v.y << L", " << v.z << L">";
+    }
+
     static VectorI read(stream::Reader &reader)
     {
         std::int32_t x = stream::read<std::int32_t>(reader);
@@ -412,6 +417,11 @@ public:
     }
 
     friend std::ostream & operator <<(std::ostream & os, const VectorF & v)
+    {
+        return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
+    }
+
+    friend std::wostream & operator <<(std::wostream & os, const VectorF & v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }

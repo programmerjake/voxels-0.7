@@ -371,7 +371,6 @@ void init()
 void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch)
 {
     init();
-    //cout << "char:" << (char)ch << " pt:" << transform(m, VectorF(0, 0, 0)) << endl;
     dest.append(colorize(color, transform(m, charMesh[translateToFontIndex(ch)])));
 }
 

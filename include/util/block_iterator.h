@@ -27,6 +27,7 @@
 #include <tuple>
 #include <iostream>
 #include <thread>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -92,7 +93,7 @@ class BlockIterator final
     void updateLock(WorldLockManager &lock_manager) const
     {
         //PositionI currentSubchunkBasePosition = BlockChunk::getSubchunkBaseAbsolutePosition(currentBasePosition);
-        //std::cout << std::this_thread::get_id() << ": " << currentSubchunkBasePosition << std::endl;
+        //debugLog << std::this_thread::get_id() << L": " << currentSubchunkBasePosition << std::endl;
         lock_manager.block_lock.set(getSubchunk().lock);
     }
     BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)

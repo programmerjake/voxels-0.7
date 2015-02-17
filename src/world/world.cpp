@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <chrono>
+#include "util/logging.h"
 
 using namespace std;
 
@@ -330,7 +331,12 @@ World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator
     {
         lightingThreadFn();
     });
-    for(int i = 0; i < 5; i++)
+#if 1 || defined(NDEBUG)
+    const int threadCount = 5;
+#else
+    const int threadCount = 1;
+#endif
+    for(int i = 0; i < threadCount; i++)
     {
         chunkGeneratingThreads.emplace_back([this]()
         {
@@ -431,7 +437,7 @@ void World::lightingThreadFn()
         if(!didAnything)
         {
             lightingStable = true;
-            this_thread::yield();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
@@ -457,6 +463,8 @@ void World::chunkGeneratingThreadFn()
                 chunkIter.unlock();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
             float currentChunkPriority = getChunkGeneratePriority(cbi, lock_manager);
+            if(std::isnan(currentChunkPriority))
+                continue;
             if(!haveChunk || chunkPriority > currentChunkPriority) // low values mean high priority
             {
                 haveChunk = true;
@@ -470,7 +478,7 @@ void World::chunkGeneratingThreadFn()
             BlockChunk *chunk = bestChunk;
             if(chunk->chunkVariables.generateStarted.exchange(true)) // someone else got this chunk
                 continue;
-            std::cout << "generating " << chunk->basePosition << " " << chunkPriority << std::endl;
+            debugLog << L"generating " << chunk->basePosition << L" " << chunkPriority << std::endl;
             didAnything = true;
 
             {
@@ -506,31 +514,53 @@ void World::chunkGeneratingThreadFn()
 
         if(!didAnything)
         {
-            this_thread::yield();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
 
-float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager) // low values mean high priority
+namespace
 {
+float boxDistanceSquared(VectorF minCorner, VectorF maxCorner, VectorF pos)
+{
+    VectorF closestPoint(limit(pos.x, minCorner.x, maxCorner.x),
+                         limit(pos.y, minCorner.y, maxCorner.y),
+                         limit(pos.z, minCorner.z, maxCorner.z));
+    return absSquared(closestPoint - pos);
+}
+}
+
+float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager) // low values mean high priority, NAN means don't generate
+{
+    if(bi.position().y != 0)
+        return NAN;
     std::unique_lock<std::mutex> lockIt(viewPointsLock);
     float retval;
     bool retvalSet = false;
-    PositionF chunkCenter = bi.position() + 0.5 * VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
+    PositionF chunkMinCorner = bi.position();
+    PositionF chunkMaxCorner = chunkMinCorner + VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
+    PositionF chunkMinCornerXZ = chunkMinCorner;
+    PositionF chunkMaxCornerXZ = chunkMaxCorner;
+    chunkMinCornerXZ.y = 0;
+    chunkMaxCornerXZ.y = 0;
     for(ViewPoint *viewPoint : viewPoints)
     {
-        PositionF pos = viewPoint->getPosition();
-        float dist = absSquared(pos - chunkCenter);
-        if(pos.d != chunkCenter.d)
-            dist *= 1e5;
-        if(!retvalSet || retval > dist)
+        PositionF pos;
+        std::int32_t viewDistance;
+        viewPoint->getPositionAndViewDistance(pos, viewDistance);
+        PositionF posXZ = pos;
+        posXZ.y = 0;
+        float distSquared = boxDistanceSquared(chunkMinCornerXZ, chunkMaxCornerXZ, posXZ);
+        if(pos.d != bi.position().d || distSquared > 1.2f * (float)viewDistance * viewDistance)
+            continue;
+        if(!retvalSet || retval > distSquared)
         {
-            retval = dist;
+            retval = distSquared;
             retvalSet = true;
         }
     }
     if(!retvalSet)
-        retval = absSquared(PositionF(0.5, 0.5 + AverageGroundHeight, 0.5, Dimension::Overworld) - chunkCenter);
+        return NAN;
     return retval;
 }
 }

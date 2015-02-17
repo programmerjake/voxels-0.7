@@ -28,8 +28,8 @@ namespace voxels
 enum class BlockUpdateKind
 {
     Lighting,
-    General,
-    DEFINE_ENUM_LIMITS(Lighting, General)
+    //General,
+    DEFINE_ENUM_LIMITS(Lighting, Lighting)
 };
 
 inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
@@ -38,8 +38,8 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
     {
     case BlockUpdateKind::Lighting:
         return 0;
-    case BlockUpdateKind::General:
-        return 0.05;
+    //case BlockUpdateKind::General:
+        //return 0.05;
     }
     assert(false);
     return 0;

@@ -154,6 +154,7 @@
 		<Unit filename="include/util/global_instance_maker.h" />
 		<Unit filename="include/util/linked_map.h" />
 		<Unit filename="include/util/lock.h" />
+		<Unit filename="include/util/logging.h" />
 		<Unit filename="include/util/matrix.h" />
 		<Unit filename="include/util/monitored_variable.h" />
 		<Unit filename="include/util/parallel_map.h" />
@@ -192,6 +193,7 @@
 		<Unit filename="src/ui/ui.cpp" />
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
+		<Unit filename="src/util/logging.cpp" />
 		<Unit filename="src/util/matrix.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />

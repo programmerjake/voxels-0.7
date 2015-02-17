@@ -28,6 +28,7 @@
 #include <sstream>
 #include <cmath>
 #include <iostream>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -727,7 +728,7 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
     }
     catch(Scripting::ScriptException & e)
     {
-        std::cout << "scripting error : " << e.what() << std::endl;
+        debugLog << L"scripting error : " << string_cast<std::wstring>(e.what()) << std::endl;
     }
 }
 }

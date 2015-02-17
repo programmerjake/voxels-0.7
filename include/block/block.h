@@ -40,7 +40,7 @@
 #include "util/block_update.h"
 #include "util/checked_array.h"
 
-//#define PACK_BLOCK
+#define PACK_BLOCK
 
 namespace programmerjake
 {
