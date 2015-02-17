@@ -82,9 +82,12 @@ struct PhysicsProperties final
 
 struct PhysicsConstraintData
 {
-    virtual ~PhysicsConstraintData()
-    {
-    }
+    PhysicsConstraintData() = default;
+    virtual ~PhysicsConstraintData() = default;
+    PhysicsConstraintData(const PhysicsConstraintData &) = default;
+    PhysicsConstraintData(PhysicsConstraintData &&) = default;
+    PhysicsConstraintData &operator =(const PhysicsConstraintData &) = default;
+    PhysicsConstraintData &operator =(PhysicsConstraintData &&) = default;
 };
 
 struct PhysicsConstraintDescriptor

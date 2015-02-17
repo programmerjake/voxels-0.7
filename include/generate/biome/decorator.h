@@ -15,20 +15,15 @@
  * MA 02110-1301, USA.
  *
  */
-#include "render/mesh.h"
-#include "render/renderer.h"
-#include "platform/platform.h"
-#include <iostream>
-
-using namespace std;
+#ifndef DECORATOR_H_INCLUDED
+#define DECORATOR_H_INCLUDED
 
 namespace programmerjake
 {
 namespace voxels
 {
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
-{
-    Display::render(m, tform, depthBufferEnabled);
+class Decorator
 }
 }
-}
+
+#endif // DECORATOR_H_INCLUDED

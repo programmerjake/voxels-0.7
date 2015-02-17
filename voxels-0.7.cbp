@@ -100,6 +100,9 @@
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
 		<Unit filename="include/entity/entity.h" />
+		<Unit filename="include/generate/biome/biome.h" />
+		<Unit filename="include/generate/biome/decorator.h" />
+		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
 		<Unit filename="include/lighting/lighting.h" />
 		<Unit filename="include/physics/physics.h" />

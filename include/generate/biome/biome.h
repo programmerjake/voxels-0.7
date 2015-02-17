@@ -15,20 +15,15 @@
  * MA 02110-1301, USA.
  *
  */
-#include "render/mesh.h"
-#include "render/renderer.h"
-#include "platform/platform.h"
-#include <iostream>
-
-using namespace std;
+#ifndef BIOME_H_INCLUDED
+#define BIOME_H_INCLUDED
 
 namespace programmerjake
 {
 namespace voxels
 {
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
-{
-    Display::render(m, tform, depthBufferEnabled);
+class Biome
 }
 }
-}
+
+#endif // BIOME_H_INCLUDED

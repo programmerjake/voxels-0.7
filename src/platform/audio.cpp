@@ -30,7 +30,6 @@
 #include "decoder/ogg_vorbis_decoder.h"
 
 using namespace std;
-using namespace programmerjake::voxels;
 
 namespace programmerjake
 {
@@ -160,7 +159,7 @@ void startAudioImp(shared_ptr<PlayingAudioData> audio)
         playingAudioSet.insert(audio);
     }
 
-    ::startAudio();
+    programmerjake::voxels::startAudio();
 }
 
 void stopAudioImp(shared_ptr<PlayingAudioData> audio)
