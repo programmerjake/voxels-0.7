@@ -18,11 +18,25 @@
 #ifndef DECORATOR_H_INCLUDED
 #define DECORATOR_H_INCLUDED
 
+#include <memory>
+
 namespace programmerjake
 {
 namespace voxels
 {
 class Decorator
+{
+    Decorator(const Decorator &) = delete;
+    const Decorator &operator =(const Decorator &) = delete;
+public:
+    Decorator()
+    {
+
+    }
+    virtual ~Decorator()
+    {
+    }
+};
 }
 }
 

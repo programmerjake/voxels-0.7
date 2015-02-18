@@ -1,3 +1,20 @@
+/*
+ * Voxels is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Voxels is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Voxels; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ *
+ */
 #ifndef LOGGING_H_INCLUDED
 #define LOGGING_H_INCLUDED
 
@@ -7,79 +24,70 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <cassert>
+#include <functional>
 
 namespace programmerjake
 {
 namespace voxels
 {
-class Logger
+struct post_t
 {
-    std::mutex theLock;
-    std::shared_ptr<std::wostream> logStream;
-    void postMessage(std::wstring msg)
-    {
-        std::unique_lock<std::mutex> lockIt(theLock);
-        if(logStream == nullptr)
-            std::wcout << std::move(msg) << std::flush;
-        else
-            *logStream << std::move(msg) << std::flush;
-    }
+    friend void operator <<(std::wostream &os, post_t);
+};
+
+class LogStream : public std::wostringstream
+{
+private:
+    std::function<void(std::wstring)> *const postFunction;
 public:
-    constexpr Logger()
+    std::mutex *const theLock;
+    LogStream(std::mutex *theLock, std::function<void(std::wstring)> *postFunction)
+        : postFunction(postFunction), theLock(theLock)
     {
     }
-    Logger(const Logger &) = delete;
-    const Logger &operator =(const Logger &) = delete;
-
-    class LogMessageHelper
+    void setPostFunction(std::function<void(std::wstring)> newPostFunction)
     {
-    private:
-        std::wostringstream stream;
-        Logger &logger;
-        LogMessageHelper(Logger &logger)
-            : logger(logger)
-        {
-        }
-    public:
-        ~LogMessageHelper()
-        {
-            logger.postMessage(stream.str());
-        }
-        LogMessageHelper(const LogMessageHelper &) = delete;
-        LogMessageHelper(LogMessageHelper &&rt)
-            : stream(rt.stream.str()), logger(rt.logger)
-        {
-        }
-        const LogMessageHelper &operator =(const LogMessageHelper &) = delete;
-        template <typename T>
-        friend std::wostream &operator <<(LogMessageHelper &&lmh, T v)
-        {
-            return lmh.stream << std::forward<T>(v);
-        }
-        template <typename T>
-        friend LogMessageHelper operator <<(Logger &logger, T v);
+        assert(newPostFunction != nullptr);
+        std::unique_lock<std::mutex> lockIt(*theLock);
+        *postFunction = newPostFunction;
+    }
+    friend void operator <<(std::wostream &os, post_t);
+};
+
+inline void operator <<(std::wostream &os, post_t)
+{
+    LogStream *logStream = dynamic_cast<LogStream *>(&os);
+    assert(logStream != nullptr);
+    std::unique_lock<std::mutex> lockIt(*logStream->theLock);
+    (*logStream->postFunction)(logStream->str());
+    logStream->str(L"");
+}
+
+inline LogStream &getDebugLog()
+{
+    static std::mutex theLock;
+    static std::function<void(std::wstring)> postFunction = [](std::wstring str)
+    {
+        std::wcout << str << std::flush;
     };
+    static thread_local std::unique_ptr<LogStream> theLogStream;
+    if(theLogStream == nullptr)
+        theLogStream.reset(new LogStream(&theLock, &postFunction));
+    return *theLogStream;
+}
 
-    template <typename T>
-    friend LogMessageHelper operator <<(Logger &logger, T v);
+constexpr post_t post = post_t{};
 
-    void setLogStream(std::shared_ptr<std::wostream> logStream)
+struct postnl_t
+{
+    friend void operator <<(std::wostream &os, postnl_t)
     {
-        std::unique_lock<std::mutex> lockIt(theLock);
-        this->logStream = std::move(logStream);
+        os << L"\n" << post;
     }
 };
 
-template <typename T>
-inline Logger::LogMessageHelper operator <<(Logger &logger, T v)
-{
-    Logger::LogMessageHelper retval(logger);
-    retval.stream << std::forward<T>(v);
-    return std::move(retval);
-}
-
-
-extern Logger debugLog;
+constexpr postnl_t postnl = postnl_t{};
 }
 }
 

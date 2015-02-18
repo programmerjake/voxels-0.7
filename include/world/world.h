@@ -76,7 +76,7 @@ private:
     struct internal_construct_flag
     {
     };
-    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag);
+    World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag);
 public:
     /** @brief construct a world
      *
@@ -84,14 +84,14 @@ public:
      * @param worldGenerator the world generator to use
      *
      */
-    World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator);
+    World(SeedType seed, const WorldGenerator *worldGenerator);
     /** @brief construct a world
      *
      * @param seed the world seed to use
      * @param worldGenerator the world generator to use
      *
      */
-    World(std::wstring seed, std::shared_ptr<const WorldGenerator> worldGenerator)
+    World(std::wstring seed, const WorldGenerator *worldGenerator)
         : World(makeSeed(seed), worldGenerator)
     {
     }
@@ -388,7 +388,7 @@ public:
     void move(float deltaTime);
 private:
     std::shared_ptr<PhysicsWorld> physicsWorld;
-    std::shared_ptr<const WorldGenerator> worldGenerator;
+    const WorldGenerator *worldGenerator;
     SeedType worldGeneratorSeed;
     WorldLightingProperties lighting;
     std::thread lightingThread;

@@ -15,11 +15,22 @@
  * MA 02110-1301, USA.
  *
  */
-#include "util/logging.h"
+#ifndef THREAD_PRIORITY_H_INCLUDED
+#define THREAD_PRIORITY_H_INCLUDED
 
 namespace programmerjake
 {
 namespace voxels
 {
+enum class ThreadPriority
+{
+    High,
+    Normal,
+    Low
+};
+
+void setThreadPriority(ThreadPriority priority); // in platform.cpp
 }
 }
+
+#endif // THREAD_PRIORITY_H_INCLUDED

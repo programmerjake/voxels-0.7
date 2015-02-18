@@ -34,6 +34,7 @@
 #include <unordered_set>
 #include <vector>
 #include "platform/audio.h"
+#include "platform/thread_priority.h"
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -99,6 +100,7 @@ static void startSDL();
 
 #ifdef _WIN64
 #error implement getResourceReader for Win64
+#error implement setThreadPriority for Win64
 #elif _WIN32
 #include <cstring>
 #include <cwchar>
@@ -1495,6 +1497,24 @@ float Display::screenRefreshRate()
 static void getExtensions()
 {
     getOpenGLBuffersExtension();
+}
+
+void setThreadPriority(ThreadPriority priority)
+{
+    SDL_ThreadPriority sdlPriority = SDL_THREAD_PRIORITY_NORMAL;
+    switch(priority)
+    {
+    case ThreadPriority::High:
+        sdlPriority = SDL_THREAD_PRIORITY_HIGH;
+        break;
+    case ThreadPriority::Normal:
+        sdlPriority = SDL_THREAD_PRIORITY_NORMAL;
+        break;
+    case ThreadPriority::Low:
+        sdlPriority = SDL_THREAD_PRIORITY_LOW;
+        break;
+    }
+    SDL_SetThreadPriority(sdlPriority);
 }
 
 namespace

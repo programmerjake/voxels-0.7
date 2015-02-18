@@ -28,6 +28,7 @@
 #include <sstream>
 #include "util/circular_deque.h"
 #include "decoder/ogg_vorbis_decoder.h"
+#include "platform/thread_priority.h"
 
 using namespace std;
 
@@ -185,6 +186,7 @@ PlayingAudio::PlayingAudio(shared_ptr<PlayingAudioData> data)
 
 void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
 {
+    setThreadPriority(ThreadPriority::High);
     static vector<float> buffer;
     unique_lock<mutex> lock(audioStateMutex);
     int16_t * buffer16 = (int16_t *)buffer_in;

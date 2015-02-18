@@ -36,6 +36,7 @@
 #include <iostream>
 #include <cmath>
 #include <tuple>
+#include <mutex>
 #include "util/cached_variable.h"
 #include "util/logging.h"
 
@@ -274,6 +275,7 @@ class PhysicsWorld final : public std::enable_shared_from_this<PhysicsWorld>
 {
     friend class PhysicsObject;
 private:
+    mutable std::recursive_mutex theLock; // lock for all state except for this->chunks
     double currentTime = 0;
     int variableSetIndex = 0;
 private:
@@ -284,7 +286,7 @@ private:
         return b.descriptor->blockShape;
     }
 public:
-    BlockChunkMap chunks;
+    BlockChunkMap chunks; // not locked by theLock
     BlockIterator getBlockIterator(PositionI pos)
     {
         return BlockIterator(&chunks, pos);
@@ -316,24 +318,29 @@ public:
     static constexpr float timeEPS = eps;
     inline double getCurrentTime() const
     {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return currentTime;
     }
     inline int getOldVariableSetIndex() const
     {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return variableSetIndex;
     }
     inline int getNewVariableSetIndex() const
     {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
         return 1 - variableSetIndex;
     }
 private:
     std::unordered_set<std::shared_ptr<PhysicsObject>> objects;
     void addObject(std::shared_ptr<PhysicsObject> o)
     {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
         objects.insert(o);
     }
     void removeObject(std::shared_ptr<PhysicsObject> o)
     {
+        std::unique_lock<std::recursive_mutex> lockIt(theLock);
         objects.erase(o);
     }
     struct CollisionEvent final
@@ -613,6 +620,7 @@ inline PhysicsObject::~PhysicsObject()
 inline PositionF PhysicsObject::getPosition() const
 {
     auto world = getWorld();
+    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];
     if(affectedByGravity && !isSupported())
@@ -623,6 +631,7 @@ inline PositionF PhysicsObject::getPosition() const
 inline VectorF PhysicsObject::getVelocity() const
 {
     auto world = getWorld();
+    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     if(!affectedByGravity || isSupported())
         return velocity[variableSetIndex];
@@ -633,6 +642,7 @@ inline VectorF PhysicsObject::getVelocity() const
 inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocity)
 {
     auto world = getWorld();
+    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int variableSetIndex = world->getNewVariableSetIndex();
     objectTime[variableSetIndex] = world->getCurrentTime();
     newPosition += position[variableSetIndex] * newStateCount;
@@ -649,6 +659,7 @@ inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocit
 inline void PhysicsObject::setupNewState()
 {
     auto world = getWorld();
+    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int oldVariableSetIndex = world->getOldVariableSetIndex();
     int newVariableSetIndex = world->getNewVariableSetIndex();
     objectTime[newVariableSetIndex] = objectTime[oldVariableSetIndex];
@@ -723,7 +734,8 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
 
 inline void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
-    debugLog << "objects.size(): " << objects.size() << " Run Duration: " << (stopTime - currentTime) << std::endl;
+    getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
+    std::unique_lock<std::recursive_mutex> lockIt(theLock);
     float stepDuration = 1 / 20.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;

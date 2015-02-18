@@ -41,6 +41,8 @@ namespace programmerjake
 {
 namespace voxels
 {
+struct WrappedEntity;
+
 class BlockUpdate final
 {
     friend class World;
@@ -141,12 +143,12 @@ struct BlockChunkBlock final
     const BlockChunkBlock &operator =(const BlockChunkBlock &) = delete;
 };
 
-typedef std::mutex BlockChunkLockType;
-
 struct BlockChunkSubchunk final
 {
-    BlockChunkLockType lock;
+    std::mutex lock;
     atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    WrappedEntity *entityListHead = nullptr;
+    WrappedEntity *entityListTail = nullptr; // entities deleted by chunk
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
         : cachedMeshes(nullptr)
     {
@@ -168,16 +170,11 @@ struct BlockChunkChunkVariables final
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
+    std::mutex entityListLock;
+    WrappedEntity *entityListHead = nullptr;
+    WrappedEntity *entityListTail = nullptr;
     std::atomic_bool generated, generateStarted;
-    ~BlockChunkChunkVariables()
-    {
-        while(blockUpdateListHead != nullptr)
-        {
-            BlockUpdate *deleteMe = blockUpdateListHead;
-            blockUpdateListHead = blockUpdateListHead->chunk_next;
-            delete deleteMe;
-        }
-    }
+    ~BlockChunkChunkVariables();
 };
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
@@ -191,11 +188,11 @@ class BlockChunkFullLock final
     {
         VectorI pos;
         BlockChunk *chunk;
-        BlockChunkLockType &operator *() const
+        std::mutex &operator *() const
         {
             return chunk->subchunks[pos.x][pos.y][pos.z].lock;
         }
-        BlockChunkLockType *operator ->() const
+        std::mutex *operator ->() const
         {
             return &operator *();
         }

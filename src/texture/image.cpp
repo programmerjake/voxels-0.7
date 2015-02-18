@@ -222,7 +222,7 @@ void Image::write(stream::Writer &writer, VariableSet &variableSet) const
     {
         return;
     }
-    debugLog << L"Server : writing image\n";
+    getDebugLog() << L"Server : writing image" << postnl;
     writer.writeU32(width());
     writer.writeU32(height());
     vector<uint8_t> row;
@@ -264,7 +264,7 @@ Image Image::read(stream::Reader &reader, VariableSet &variableSet)
         DUMP_V(Image::read, "read old image");
         return retval;
     }
-    debugLog << L"Client : reading image\n";
+    getDebugLog() << L"Client : reading image" << postnl;
     DUMP_V(Image::read, "reading new image");
     uint32_t w, h;
     w = reader.readU32();

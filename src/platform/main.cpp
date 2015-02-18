@@ -118,12 +118,12 @@ int main(std::vector<std::wstring> args)
     buttonContainer->add(button2);
     button2->click.bind([](EventArguments &)->Event::ReturnType
     {
-        debugLog << L"button2 click\n";
+        getDebugLog() << L"button2 click" << postnl;
         return Event::Discard;
     });
     button2->pressed.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        debugLog << L"button2.pressed changed: " << wbutton2.lock()->pressed.get() << L"\n";
+        getDebugLog() << L"button2.pressed changed: " << wbutton2.lock()->pressed.get() << postnl;
         return Event::Propagate;
     });
     auto checkbox = make_shared<voxels::ui::Checkbox>(L"checkbox", -0.5, 0.5, 0.2, 0.4);
@@ -131,10 +131,10 @@ int main(std::vector<std::wstring> args)
     buttonContainer->add(checkbox);
     checkbox->checked.onChange.bind([=](EventArguments &)->Event::ReturnType
     {
-        debugLog << L"checkbox.checked changed: " << wcheckbox.lock()->checked.get() << L"\n";
+        getDebugLog() << L"checkbox.checked changed: " << wcheckbox.lock()->checked.get() << postnl;
         return Event::Propagate;
     });
-    shared_ptr<PlayingAudio> playingSound = sound.play(true);
+    shared_ptr<PlayingAudio> playingSound = sound.play(0.5f, true);
     ui->run(renderer);
     endGraphics();
     return 0;

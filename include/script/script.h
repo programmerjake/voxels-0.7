@@ -728,7 +728,7 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
     }
     catch(Scripting::ScriptException & e)
     {
-        debugLog << L"scripting error : " << string_cast<std::wstring>(e.what()) << std::endl;
+        getDebugLog() << L"scripting error : " << string_cast<std::wstring>(e.what()) << postnl;
     }
 }
 }

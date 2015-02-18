@@ -110,6 +110,7 @@
 		<Unit filename="include/platform/event.h" />
 		<Unit filename="include/platform/platform.h" />
 		<Unit filename="include/platform/platformgl.h" />
+		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/player/player.h" />
 		<Unit filename="include/ray_casting/ray_casting.h" />
 		<Unit filename="include/render/generate.h" />
@@ -170,6 +171,8 @@
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
+		<Unit filename="include/util/world_lock_manager.h" />
+		<Unit filename="include/util/wrapped_entity.h" />
 		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="include/world/world_generator.h" />
@@ -195,6 +198,7 @@
 		<Unit filename="src/ui/element.cpp" />
 		<Unit filename="src/ui/ui.cpp" />
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
+		<Unit filename="src/util/block_chunk.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
 		<Unit filename="src/util/logging.cpp" />
 		<Unit filename="src/util/matrix.cpp" />

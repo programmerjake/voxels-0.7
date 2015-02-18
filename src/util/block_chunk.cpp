@@ -15,11 +15,27 @@
  * MA 02110-1301, USA.
  *
  */
-#include "util/logging.h"
+#include "util/block_chunk.h"
+#include "util/wrapped_entity.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
+BlockChunkChunkVariables::~BlockChunkChunkVariables()
+{
+    while(blockUpdateListHead != nullptr)
+    {
+        BlockUpdate *deleteMe = blockUpdateListHead;
+        blockUpdateListHead = blockUpdateListHead->chunk_next;
+        delete deleteMe;
+    }
+    while(entityListHead != nullptr)
+    {
+        WrappedEntity *deleteMe = entityListHead;
+        entityListHead = entityListHead->chunk_next;
+        delete deleteMe;
+    }
+}
 }
 }

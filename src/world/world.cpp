@@ -30,6 +30,8 @@
 #include <mutex>
 #include <chrono>
 #include "util/logging.h"
+#include "util/global_instance_maker.h"
+#include "platform/thread_priority.h"
 
 using namespace std;
 
@@ -41,11 +43,17 @@ namespace
 {
 class MyWorldGenerator final : public RandomWorldGenerator
 {
-public:
+    friend class global_instance_maker<MyWorldGenerator>;
+private:
     MyWorldGenerator()
     {
     }
 public:
+    static const WorldGenerator *getInstance()
+    {
+        return global_instance_maker<MyWorldGenerator>::getInstance();
+    }
+protected:
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
     {
         for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
@@ -73,15 +81,10 @@ public:
 #endif
     }
 };
-
-shared_ptr<const WorldGenerator> makeWorldGenerator()
-{
-    return make_shared<MyWorldGenerator>();
-}
 }
 
 World::World(SeedType seed)
-    : World(seed, makeWorldGenerator())
+    : World(seed, MyWorldGenerator::getInstance())
 {
 
 }
@@ -109,7 +112,7 @@ World::SeedType makeRandomSeed()
 }
 }
 
-World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator, internal_construct_flag)
+World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag)
     : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
 }
@@ -163,7 +166,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
     return retval;
 }
 
-World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator)
+World::World(SeedType seed, const WorldGenerator *worldGenerator)
     : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
     const int initSize = 5;
@@ -187,6 +190,7 @@ World::World(SeedType seed, std::shared_ptr<const WorldGenerator> worldGenerator
     {
         chunkGeneratingThreads.emplace_back([this]()
         {
+            setThreadPriority(ThreadPriority::Low);
             chunkGeneratingThreadFn();
         });
     }
@@ -223,6 +227,7 @@ Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manage
 
 void World::lightingThreadFn()
 {
+    setThreadPriority(ThreadPriority::Low);
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
@@ -325,7 +330,7 @@ void World::chunkGeneratingThreadFn()
             BlockChunk *chunk = bestChunk;
             if(chunk->chunkVariables.generateStarted.exchange(true)) // someone else got this chunk
                 continue;
-            debugLog << L"generating " << chunk->basePosition << L" " << chunkPriority << std::endl;
+            getDebugLog() << L"generating " << chunk->basePosition << L" " << chunkPriority << postnl;
             didAnything = true;
 
             {

@@ -28,51 +28,12 @@
 #include <iostream>
 #include <thread>
 #include "util/logging.h"
+#include "util/world_lock_manager.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-struct WorldLockManager final
-{
-    template <typename T>
-    class LockManager final
-    {
-        T *the_lock;
-    public:
-        LockManager()
-            : the_lock(nullptr)
-        {
-        }
-        LockManager(const LockManager &) = delete;
-        const LockManager &operator =(const LockManager &) = delete;
-        ~LockManager()
-        {
-            clear();
-        }
-        void clear()
-        {
-            if(the_lock != nullptr)
-                the_lock->unlock();
-            the_lock = nullptr;
-        }
-        void set(T &new_lock)
-        {
-            if(the_lock != &new_lock)
-            {
-                clear();
-                new_lock.lock();
-                the_lock = &new_lock;
-            }
-        }
-    };
-    LockManager<BlockChunkLockType> block_lock;
-    void clear()
-    {
-        block_lock.clear();
-    }
-};
-
 class BlockIterator final
 {
     friend class World;

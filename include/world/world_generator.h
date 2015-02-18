@@ -25,7 +25,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-class WorldGenerator : public std::enable_shared_from_this<WorldGenerator>
+class WorldGenerator
 {
 protected:
     WorldGenerator()
