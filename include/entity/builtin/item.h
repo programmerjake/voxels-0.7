@@ -82,12 +82,12 @@ protected:
         return Matrix::rotateY(data->angle).concat(Matrix::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
     }
 public:
-    virtual void render(const Entity &entity, Mesh &dest, RenderLayer rl) const override
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override
     {
-        std::shared_ptr<ItemData> data = getItemData(entity);
+        std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
         dest.append(transform(getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition())), meshes[rl]));
     }
-    virtual void moveStep(Entity &entity, World &world, double deltaTime) const override
+    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
     {
         std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
         constexpr float angleSpeed = 2 * M_PI / 7.5f;
@@ -107,7 +107,7 @@ public:
         std::shared_ptr<ItemData> data = getItemData(entity);
         return preorientSelectionBoxTransform.concat(getTransform(data)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
-    virtual void makeData(Entity &entity, World &world) const override
+    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {
         getOrMakeItemData(entity);
     }

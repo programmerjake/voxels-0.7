@@ -237,6 +237,11 @@ public:
     {
         return BlockUpdateIterator();
     }
+    BlockChunkInvalidateCountType getInvalidateCount(WorldLockManager &lock_manager) const
+    {
+        updateLock(lock_manager);
+        return getSubchunk().invalidateCount;
+    }
 };
 }
 }

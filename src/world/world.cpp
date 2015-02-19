@@ -32,6 +32,7 @@
 #include "util/logging.h"
 #include "util/global_instance_maker.h"
 #include "platform/thread_priority.h"
+#include "util/wrapped_entity.h"
 
 using namespace std;
 
@@ -68,15 +69,27 @@ protected:
                 block = Block(Blocks::builtin::Air::descriptor());
                 block.lighting = Lighting::makeSkyLighting();
             }
+            if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0))
+            {
+                if(i->y < 10 + World::AverageGroundHeight)
+                    block = Block(Blocks::builtin::Stone::descriptor());
+            }
+            if(std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
+            {
+                if(pos.y == 10 + World::AverageGroundHeight)
+                    block = Block(Blocks::builtin::Stone::descriptor());
+                else if(pos.y < 10 + World::AverageGroundHeight)
+                    block.lighting = Lighting();
+            }
             blocks[i->x][i->y][i->z] = block;
         }
-#if 0
-        constexpr float newEntityHeight = 3.5f;
+#if 1
+        constexpr float newEntityHeight = 5.5f + World::AverageGroundHeight;
         PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
         if(BlockChunk::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
         {
-            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos);
-            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos + VectorF(0, 1, 0));
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos, VectorF(0), lock_manager);
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos + VectorF(0, 1, 0), VectorF(0), lock_manager);
         }
 #endif
     }
@@ -350,19 +363,37 @@ void World::chunkGeneratingThreadFn()
 
                 typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
                 std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
-                BlockIterator cbi = newWorld.getBlockIterator(chunk->basePosition);
+                BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition);
                 for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
                 {
-                    BlockIterator bi = cbi;
+                    BlockIterator bi = gcbi;
                     bi.moveBy(*i);
                     blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
                 }
                 new_lock_manager.clear();
+                BlockIterator cbi = getBlockIterator(chunk->basePosition);
+                {
+                    std::unique_lock<std::recursive_mutex> lockChunk(gcbi.chunk->chunkVariables.entityListLock);
+                    for(WrappedEntity *entity = gcbi.chunk->chunkVariables.entityListHead; entity != nullptr; entity = entity->chunk_next)
+                    {
+                        if(!entity->entity.good())
+                            continue;
+                        entity->entity.physicsObject->transferToNewWorld(physicsWorld);
+                        BlockIterator bi = cbi;
+                        bi.moveTo((PositionI)entity->entity.physicsObject->getPosition());
+                        WrappedEntity *newEntity = new WrappedEntity;
+                        newEntity->entity = std::move(entity->entity);
+                        entity->entity = Entity();
+                        newEntity->insertInLists(bi.chunk, bi.getSubchunk(), lock_manager);
+                    }
+                }
                 setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
             }
 
             chunk->chunkVariables.generated = true;
         }
+
+        lock_manager.clear();
 
         if(!didAnything)
         {
@@ -403,7 +434,7 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
         PositionF posXZ = pos;
         posXZ.y = 0;
         float distSquared = boxDistanceSquared(chunkMinCornerXZ, chunkMaxCornerXZ, posXZ);
-        if(pos.d != bi.position().d || distSquared > 1.2f * (float)viewDistance * viewDistance)
+        if(pos.d != bi.position().d || distSquared > 2.0f * (float)viewDistance * viewDistance)
             continue;
         if(!retvalSet || retval > distSquared)
         {
@@ -414,6 +445,48 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     if(!retvalSet)
         return NAN;
     return retval;
+}
+
+void World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
+{
+    assert(descriptor != nullptr);
+    Entity e(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData);
+    BlockIterator bi = getBlockIterator((PositionI)position);
+    WrappedEntity *entity = new WrappedEntity;
+    entity->entity = std::move(e);
+    descriptor->makeData(entity->entity, *this, lock_manager);
+    entity->insertInLists(bi.chunk, bi.getSubchunk(), lock_manager);
+}
+
+void World::move(double deltaTime, WorldLockManager &lock_manager)
+{
+    physicsWorld->stepTime(deltaTime, lock_manager);
+    BlockChunkMap *chunks = &physicsWorld->chunks;
+    for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
+    {
+        BlockChunk *chunk = &(*chunkIter);
+        if(chunkIter.is_locked())
+            chunkIter.unlock();
+        BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+        std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
+        WrappedEntity *entity = chunk->chunkVariables.entityListHead;
+        while(entity != nullptr)
+        {
+            WrappedEntity *nextEntity = entity->chunk_next;
+            if(!entity->entity.good())
+            {
+                entity->removeFromLists(lock_manager);
+                delete entity;
+                entity = nextEntity;
+                continue;
+            }
+            entity->entity.descriptor->moveStep(entity->entity, *this, lock_manager, deltaTime);
+            BlockIterator bi = cbi;
+            bi.moveTo((PositionI)entity->entity.physicsObject->getPosition());
+            entity->moveToNewLists(bi.chunk, bi.getSubchunk(), lock_manager);
+            entity = nextEntity;
+        }
+    }
 }
 }
 }

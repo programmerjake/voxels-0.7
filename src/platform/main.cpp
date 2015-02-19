@@ -52,27 +52,28 @@ private:
     std::shared_ptr<ViewPoint> viewPoint;
     PositionI origin()
     {
-        return PositionI(0, World::AverageGroundHeight + 4, 0, Dimension::Overworld);
+        return PositionI(0, World::AverageGroundHeight + 8, 0, Dimension::Overworld);
     }
 public:
     MyUi(Renderer &renderer, WorldLockManager &lock_manager)
         : world(), render_thread_lock_manager(lock_manager)
     {
-        viewPoint = make_shared<ViewPoint>(world, origin(), 64);
+        viewPoint = make_shared<ViewPoint>(world, origin(), 16);
     }
     virtual void move(double deltaTime) override
     {
         viewAngle = std::fmod(viewAngle + deltaTime * 2 * M_PI / 50, 2 * M_PI);
         Ui::move(deltaTime);
+        world.move(deltaTime, render_thread_lock_manager);
     }
 protected:
     virtual void clear(Renderer &renderer) override
     {
         background = HSVF(0.6, 0.5, 1);
         Ui::clear(renderer);
-        Matrix tform = Matrix::translate(-((VectorF)origin() + VectorF(0.5, 0.5, 0.5))).concat(Matrix::rotateY(viewAngle)).concat(Matrix::rotateX(0.2 * M_PI));
+        Matrix tform = Matrix::translate(-((VectorF)origin() + VectorF(0.5, 0.5, 0.5))).concat(Matrix::rotateY(viewAngle)).concat(Matrix::rotateX(0.25 * M_PI));
         viewPoint->setPosition(origin());
-        viewPoint->render(renderer, tform);
+        viewPoint->render(renderer, tform, render_thread_lock_manager);
         renderer << start_overlay << enable_depth_buffer;
     }
 };
@@ -136,6 +137,7 @@ int main(std::vector<std::wstring> args)
     });
     shared_ptr<PlayingAudio> playingSound = sound.play(0.5f, true);
     ui->run(renderer);
+    lock_manager.clear();
     endGraphics();
     return 0;
 }

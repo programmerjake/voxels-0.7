@@ -80,16 +80,16 @@ public:
     const std::wstring name;
     const std::shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor;
 
-    virtual void moveStep(Entity &entity, World &world, double deltaTime) const
+    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
     {
     }
-    virtual void render(const Entity &entity, Mesh &dest, RenderLayer rl) const = 0;
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const = 0;
     virtual RayCasting::Collision getRayCollision(Entity &entity, World &world, RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const = 0;
-    virtual void makeData(Entity &entity, World &world) const
+    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
     {
         entity.data = nullptr;
     }

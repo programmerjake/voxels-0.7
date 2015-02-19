@@ -201,8 +201,8 @@ private:
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         b.invalidate();
-        bi.getSubchunk().cachedMeshes = nullptr;
-        bi.chunk->chunkVariables.cachedMeshes = nullptr;
+        bi.getSubchunk().invalidate();
+        bi.chunk->chunkVariables.invalidate();
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
@@ -381,11 +381,8 @@ public:
      * @param position the velocity for the new entity
      *
      */
-    void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity)
-    {
-        #warning implement World::addEntity
-    }
-    void move(float deltaTime);
+    void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
+    void move(double deltaTime, WorldLockManager &lock_manager);
 private:
     std::shared_ptr<PhysicsWorld> physicsWorld;
     const WorldGenerator *worldGenerator;

@@ -34,10 +34,14 @@ struct WrappedEntity final
     WrappedEntity *subchunk_prev;
     WrappedEntity *chunk_next;
     WrappedEntity *chunk_prev;
+    BlockChunkSubchunk *currentSubchunk = nullptr;
+    BlockChunk *currentChunk = nullptr;
     void insertInLists(BlockChunk *chunk, BlockChunkSubchunk &subchunk, WorldLockManager &lock_manager)
     {
         subchunk_prev = nullptr;
         chunk_prev = nullptr;
+        currentSubchunk = &subchunk;
+        currentChunk = chunk;
         lock_manager.block_lock.set(subchunk.lock);
         subchunk_next = subchunk.entityListHead;
         if(subchunk.entityListHead != nullptr)
@@ -45,7 +49,7 @@ struct WrappedEntity final
         else
             subchunk.entityListTail = this;
         subchunk.entityListHead = this;
-        std::unique_lock<std::mutex> lockIt(chunk->chunkVariables.entityListLock);
+        std::unique_lock<std::recursive_mutex> lockIt(chunk->chunkVariables.entityListLock);
         chunk_next = chunk->chunkVariables.entityListHead;
         if(chunk->chunkVariables.entityListHead != nullptr)
             chunk->chunkVariables.entityListHead->chunk_prev = this;
@@ -53,30 +57,39 @@ struct WrappedEntity final
             chunk->chunkVariables.entityListTail = this;
         chunk->chunkVariables.entityListHead = this;
     }
-    void removeFromLists(BlockChunk *chunk, BlockChunkSubchunk &subchunk, WorldLockManager &lock_manager)
+    void removeFromLists(WorldLockManager &lock_manager)
     {
-        lock_manager.block_lock.set(subchunk.lock);
+        lock_manager.block_lock.set(currentSubchunk->lock);
         if(subchunk_next == nullptr)
-            subchunk.entityListTail = subchunk_prev;
+            currentSubchunk->entityListTail = subchunk_prev;
         else
             subchunk_next->subchunk_prev = subchunk_prev;
         if(subchunk_prev == nullptr)
-            subchunk.entityListHead = subchunk_next;
+            currentSubchunk->entityListHead = subchunk_next;
         else
             subchunk_prev->subchunk_next = subchunk_next;
         subchunk_prev = nullptr;
         subchunk_next = nullptr;
-        std::unique_lock<std::mutex> lockIt(chunk->chunkVariables.entityListLock);
+        currentSubchunk = nullptr;
+        std::unique_lock<std::recursive_mutex> lockIt(currentChunk->chunkVariables.entityListLock);
         if(chunk_next == nullptr)
-            chunk->chunkVariables.entityListTail = chunk_prev;
+            currentChunk->chunkVariables.entityListTail = chunk_prev;
         else
             chunk_next->chunk_prev = chunk_prev;
         if(chunk_prev == nullptr)
-            chunk->chunkVariables.entityListHead = chunk_next;
+            currentChunk->chunkVariables.entityListHead = chunk_next;
         else
             chunk_prev->subchunk_next = chunk_next;
         chunk_prev = nullptr;
         chunk_next = nullptr;
+        currentChunk = nullptr;
+    }
+    void moveToNewLists(BlockChunk *chunk, BlockChunkSubchunk &subchunk, WorldLockManager &lock_manager)
+    {
+        if(currentChunk == chunk && currentSubchunk == &subchunk)
+            return;
+        removeFromLists(lock_manager);
+        insertInLists(chunk, subchunk, lock_manager);
     }
 };
 }

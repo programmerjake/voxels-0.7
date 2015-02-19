@@ -42,6 +42,7 @@ class ViewPoint final
     World &world;
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn();
+    std::shared_ptr<void> pLightingCache;
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
     ViewPoint(const ViewPoint &rt) = delete;
@@ -79,24 +80,8 @@ public:
         this->position = position;
         this->viewDistance = viewDistance;
     }
-private:
-    std::shared_ptr<enum_array<Mesh, RenderLayer>> getBlockRenderMeshes()
-    {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
-        return blockRenderMeshes;
-    }
 public:
-    void render(Renderer &renderer, Matrix worldToCamera)
-    {
-        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = getBlockRenderMeshes();
-        if(!meshes)
-            return;
-        for(RenderLayer rl : enum_traits<RenderLayer>())
-        {
-            renderer << rl;
-            renderer << transform(worldToCamera, meshes->at(rl));
-        }
-    }
+    void render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager);
 };
 }
 }

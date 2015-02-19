@@ -46,8 +46,35 @@ struct WorldLightingProperties final
         : skyBrightness(skyBrightness), minBrightness(getZeroBrightnessLevel(d))
     {
     }
+    bool operator ==(const WorldLightingProperties &rt) const
+    {
+        return skyBrightness == rt.skyBrightness && minBrightness == rt.minBrightness;
+    }
+    bool operator !=(const WorldLightingProperties &rt) const
+    {
+        return !operator ==(rt);
+    }
 };
+}
+}
 
+namespace std
+{
+template <>
+struct hash<programmerjake::voxels::WorldLightingProperties>
+{
+    hash<float> hasher;
+    size_t operator ()(programmerjake::voxels::WorldLightingProperties wlp) const
+    {
+        return hasher(wlp.skyBrightness) + 3 * hasher(wlp.minBrightness);
+    }
+};
+}
+
+namespace programmerjake
+{
+namespace voxels
+{
 struct Lighting final
 {
     typedef std::uint_fast8_t LightValueType;

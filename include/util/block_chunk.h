@@ -34,8 +34,8 @@
 #include <atomic>
 #include <iterator>
 #include "util/atomic_shared_ptr.h"
-#include <atomic>
 #include "util/lock.h"
+#include <cstdint>
 
 namespace programmerjake
 {
@@ -143,17 +143,25 @@ struct BlockChunkBlock final
     const BlockChunkBlock &operator =(const BlockChunkBlock &) = delete;
 };
 
+typedef std::uint64_t BlockChunkInvalidateCountType;
+
 struct BlockChunkSubchunk final
 {
     std::mutex lock;
     atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     WrappedEntity *entityListHead = nullptr;
     WrappedEntity *entityListTail = nullptr; // entities deleted by chunk
+    BlockChunkInvalidateCountType invalidateCount = 0;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
         : cachedMeshes(nullptr)
     {
     }
     BlockChunkSubchunk() = default;
+    void invalidate()
+    {
+        cachedMeshes = nullptr;
+        invalidateCount++;
+    }
 };
 
 struct BlockChunkChunkVariables final
@@ -170,11 +178,15 @@ struct BlockChunkChunkVariables final
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
-    std::mutex entityListLock;
+    std::recursive_mutex entityListLock;
     WrappedEntity *entityListHead = nullptr;
     WrappedEntity *entityListTail = nullptr;
     std::atomic_bool generated, generateStarted;
     ~BlockChunkChunkVariables();
+    void invalidate()
+    {
+        cachedMeshes = nullptr;
+    }
 };
 
 typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
