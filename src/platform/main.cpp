@@ -33,6 +33,7 @@
 #include <thread>
 #include <cstdlib>
 #include "util/logging.h"
+#include "entity/builtin/items/stone.h"
 
 using namespace std;
 
@@ -47,6 +48,7 @@ class MyUi : public ui::Ui
 {
 private:
     float viewAngle = 0;
+    float lastThrowBlockTime = 10;
     World world;
     WorldLockManager &render_thread_lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
@@ -64,6 +66,12 @@ public:
     {
         viewAngle = std::fmod(viewAngle + deltaTime * 2 * M_PI / 50, 2 * M_PI);
         Ui::move(deltaTime);
+        lastThrowBlockTime -= deltaTime;
+        while(lastThrowBlockTime < 0)
+        {
+            lastThrowBlockTime += 1;
+            world.addEntity(Entities::builtin::items::Stone::descriptor(), origin() + VectorF(0.5, 0.5 - 1, 0.5), VectorF(0), render_thread_lock_manager);
+        }
         world.move(deltaTime, render_thread_lock_manager);
     }
 protected:

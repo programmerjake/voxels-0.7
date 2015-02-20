@@ -84,7 +84,7 @@ protected:
             blocks[i->x][i->y][i->z] = block;
         }
 #if 1
-        constexpr float newEntityHeight = 5.5f + World::AverageGroundHeight;
+        constexpr float newEntityHeight = 8.5f + World::AverageGroundHeight;
         PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
         if(BlockChunk::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
         {
