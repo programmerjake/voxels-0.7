@@ -401,6 +401,12 @@ inline void PhysicsObject::transferToNewWorld(std::shared_ptr<PhysicsWorld> newW
     std::shared_ptr<PhysicsWorld> world = getWorld();
     if(world == newWorld)
         return;
+    std::unique_lock<std::recursive_mutex> worldLock(world->theLock, std::defer_lock);
+    std::unique_lock<std::recursive_mutex> newWorldLock(newWorld->theLock, std::defer_lock);
+    std::lock(worldLock, newWorldLock);
+    double deltaTime = newWorld->getCurrentTime() - world->getCurrentTime();
+    for(double &v : objectTime)
+        v += deltaTime;
     world->removeObject(shared_from_this());
     newWorld->addObject(shared_from_this());
     this->world = newWorld;

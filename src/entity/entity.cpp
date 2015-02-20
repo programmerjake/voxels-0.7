@@ -16,6 +16,7 @@
  *
  */
 #include "entity/entity.h"
+#include "physics/physics.h"
 
 using namespace std;
 
@@ -23,6 +24,13 @@ namespace programmerjake
 {
 namespace voxels
 {
+void Entity::destroy()
+{
+    if(physicsObject)
+        physicsObject->destroy();
+    data = nullptr;
+}
+
 EntityDescriptor::EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor)
     : name(name), physicsObjectConstructor(physicsObjectConstructor)
 {

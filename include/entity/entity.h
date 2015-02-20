@@ -18,54 +18,22 @@
 #ifndef ENTITY_H_INCLUDED
 #define ENTITY_H_INCLUDED
 
-#include "physics/physics.h"
 #include "util/linked_map.h"
 #include "ray_casting/ray_casting.h"
 #include <cwchar>
 #include <memory>
 #include <string>
 #include <cstdint>
+#include "entity/entity_struct.h"
+#include "util/world_lock_manager.h"
+#include "render/mesh.h"
+#include "render/render_layer.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-class EntityDescriptor;
-
-typedef const EntityDescriptor *EntityDescriptorPointer;
-
-struct Entity final
-{
-    EntityDescriptorPointer descriptor;
-    std::shared_ptr<PhysicsObject> physicsObject;
-    std::shared_ptr<void> data;
-    Entity()
-        : descriptor(nullptr), physicsObject(nullptr), data(nullptr)
-    {
-    }
-    Entity(EntityDescriptorPointer descriptor, std::shared_ptr<PhysicsObject> physicsObject, std::shared_ptr<void> data = nullptr)
-        : descriptor(descriptor), physicsObject(physicsObject), data(data)
-    {
-    }
-    bool good() const
-    {
-        return descriptor != nullptr;
-    }
-    explicit operator bool() const
-    {
-        return good();
-    }
-    bool operator !() const
-    {
-        return !good();
-    }
-    void destroy()
-    {
-        if(physicsObject)
-            physicsObject->destroy();
-        data = nullptr;
-    }
-};
+class PhysicsObjectConstructor;
 
 class World;
 

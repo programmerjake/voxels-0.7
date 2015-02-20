@@ -41,8 +41,17 @@ namespace programmerjake
 {
 namespace voxels
 {
-struct WrappedEntity;
+struct BlockChunkSubchunk;
+struct BlockChunk;
+}
+}
 
+#include "util/wrapped_entity.h"
+
+namespace programmerjake
+{
+namespace voxels
+{
 class BlockUpdate final
 {
     friend class World;
@@ -149,14 +158,18 @@ struct BlockChunkSubchunk final
 {
     std::mutex lock;
     atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
-    WrappedEntity *entityListHead = nullptr;
-    WrappedEntity *entityListTail = nullptr; // entities deleted by chunk
+    WrappedEntity::SubchunkListType entityList;
     BlockChunkInvalidateCountType invalidateCount = 0;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : cachedMeshes(nullptr)
+        : BlockChunkSubchunk()
     {
     }
-    BlockChunkSubchunk() = default;
+    BlockChunkSubchunk()
+        : cachedMeshes(nullptr), entityList([](WrappedEntity *)
+        {
+        })
+    {
+    }
     void invalidate()
     {
         cachedMeshes = nullptr;
@@ -167,20 +180,22 @@ struct BlockChunkSubchunk final
 struct BlockChunkChunkVariables final
 {
     atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
-    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
-        : cachedMeshes(nullptr), generated(false), generateStarted(false)
+    BlockChunkChunkVariables()
+        : cachedMeshes(nullptr), entityList([](WrappedEntity *v)
+        {
+            delete v;
+        }), generated(false), generateStarted(false)
     {
     }
-    BlockChunkChunkVariables()
-        : generated(false), generateStarted(false)
+    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
+        : BlockChunkChunkVariables()
     {
     }
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
     std::recursive_mutex entityListLock;
-    WrappedEntity *entityListHead = nullptr;
-    WrappedEntity *entityListTail = nullptr;
+    WrappedEntity::ChunkListType entityList;
     std::atomic_bool generated, generateStarted;
     ~BlockChunkChunkVariables();
     void invalidate()
@@ -189,7 +204,15 @@ struct BlockChunkChunkVariables final
     }
 };
 
-typedef BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables> BlockChunk;
+struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables>
+{
+    explicit BlockChunk(PositionI basePosition)
+        : BasicBlockChunk(basePosition)
+    {
+    }
+    ~BlockChunk();
+};
+
 typedef ChunkMap<BlockChunk> BlockChunkMap;
 typedef BasicBlockChunkRelativePositionIterator<BlockChunk> BlockChunkRelativePositionIterator;
 

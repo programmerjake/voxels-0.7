@@ -370,23 +370,45 @@ void World::chunkGeneratingThreadFn()
                     bi.moveBy(*i);
                     blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
                 }
-                new_lock_manager.clear();
                 BlockIterator cbi = getBlockIterator(chunk->basePosition);
                 {
-                    std::unique_lock<std::recursive_mutex> lockChunk(gcbi.chunk->chunkVariables.entityListLock);
-                    for(WrappedEntity *entity = gcbi.chunk->chunkVariables.entityListHead; entity != nullptr; entity = entity->chunk_next)
+                    std::unique_lock<std::recursive_mutex> lockSrcChunk(gcbi.chunk->chunkVariables.entityListLock, std::defer_lock);
+                    std::unique_lock<std::recursive_mutex> lockDestChunk(cbi.chunk->chunkVariables.entityListLock, std::defer_lock);
+                    std::lock(lockSrcChunk, lockDestChunk);
+                    WrappedEntity::ChunkListType &srcChunkList = gcbi.chunk->chunkVariables.entityList;
+                    WrappedEntity::ChunkListType &destChunkList = cbi.chunk->chunkVariables.entityList;
+                    for(WrappedEntity::ChunkListType::iterator srcChunkIter = srcChunkList.begin(); srcChunkIter != srcChunkList.end(); )
                     {
-                        if(!entity->entity.good())
+                        BlockChunkSubchunk *srcSubchunk = srcChunkIter->currentSubchunk;
+                        assert(srcSubchunk);
+                        new_lock_manager.block_lock.set(srcSubchunk->lock);
+                        WrappedEntity::SubchunkListType &srcSubchunkList = srcSubchunk->entityList;
+                        WrappedEntity::SubchunkListType::iterator srcSubchunkIter = srcSubchunkList.to_iterator(&*srcChunkIter);
+                        if(!srcChunkIter->entity.good())
+                        {
+                            srcSubchunkList.erase(srcSubchunkIter);
+                            srcChunkIter = gcbi.chunk->chunkVariables.entityList.erase(srcChunkIter);
                             continue;
-                        entity->entity.physicsObject->transferToNewWorld(physicsWorld);
-                        BlockIterator bi = cbi;
-                        bi.moveTo((PositionI)entity->entity.physicsObject->getPosition());
-                        WrappedEntity *newEntity = new WrappedEntity;
-                        newEntity->entity = std::move(entity->entity);
-                        entity->entity = Entity();
-                        newEntity->insertInLists(bi.chunk, bi.getSubchunk(), lock_manager);
+                        }
+                        srcChunkIter->lastEntityRunCount = 0;
+                        PositionF position = srcChunkIter->entity.physicsObject->getPosition();
+                        VectorF velocity = srcChunkIter->entity.physicsObject->getVelocity();
+                        srcChunkIter->entity.physicsObject->destroy();
+                        srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld);
+                        WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
+                        ++nextSrcIter;
+                        BlockIterator destBi = cbi;
+                        destBi.moveTo((PositionI)position);
+                        destBi.updateLock(lock_manager);
+                        WrappedEntity::SubchunkListType &destSubchunkList = destBi.getSubchunk().entityList;
+                        srcChunkIter->currentChunk = destBi.chunk;
+                        srcChunkIter->currentSubchunk = &destBi.getSubchunk();
+                        destChunkList.splice(destChunkList.end(), srcChunkList, srcChunkIter);
+                        destSubchunkList.splice(destSubchunkList.end(), srcSubchunkList, srcSubchunkIter);
+                        srcChunkIter = nextSrcIter;
                     }
                 }
+                new_lock_manager.clear();
                 setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
             }
 
@@ -455,11 +477,19 @@ void World::addEntity(EntityDescriptorPointer descriptor, PositionF position, Ve
     WrappedEntity *entity = new WrappedEntity;
     entity->entity = std::move(e);
     descriptor->makeData(entity->entity, *this, lock_manager);
-    entity->insertInLists(bi.chunk, bi.getSubchunk(), lock_manager);
+    std::unique_lock<std::recursive_mutex> lockChunk(bi.chunk->chunkVariables.entityListLock);
+    WrappedEntity::ChunkListType &chunkList = bi.chunk->chunkVariables.entityList;
+    bi.updateLock(lock_manager);
+    WrappedEntity::SubchunkListType &subchunkList = bi.getSubchunk().entityList;
+    entity->currentChunk = bi.chunk;
+    entity->currentSubchunk = &bi.getSubchunk();
+    chunkList.push_back(entity);
+    subchunkList.push_back(entity);
 }
 
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
+    entityRunCount++;
     physicsWorld->stepTime(deltaTime, lock_manager);
     BlockChunkMap *chunks = &physicsWorld->chunks;
     for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
@@ -469,22 +499,52 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
             chunkIter.unlock();
         BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
         std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
-        WrappedEntity *entity = chunk->chunkVariables.entityListHead;
-        while(entity != nullptr)
+        WrappedEntity::ChunkListType &chunkEntityList = chunk->chunkVariables.entityList;
+        auto i = chunkEntityList.begin();
+        while(i != chunkEntityList.end())
         {
-            WrappedEntity *nextEntity = entity->chunk_next;
-            if(!entity->entity.good())
+            WrappedEntity &entity = *i;
+            if(!entity.entity.good())
             {
-                entity->removeFromLists(lock_manager);
-                delete entity;
-                entity = nextEntity;
+                lock_manager.block_lock.set(entity.currentSubchunk->lock);
+                WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
+                subchunkEntityList.erase(subchunkEntityList.to_iterator(&entity));
+                i = chunkEntityList.erase(i);
                 continue;
             }
-            entity->entity.descriptor->moveStep(entity->entity, *this, lock_manager, deltaTime);
-            BlockIterator bi = cbi;
-            bi.moveTo((PositionI)entity->entity.physicsObject->getPosition());
-            entity->moveToNewLists(bi.chunk, bi.getSubchunk(), lock_manager);
-            entity = nextEntity;
+            if(entity.lastEntityRunCount >= entityRunCount)
+            {
+                ++i;
+                continue;
+            }
+            entity.lastEntityRunCount = entityRunCount;
+            BlockIterator destBi = cbi;
+            destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
+            entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
+            if(entity.currentChunk == destBi.chunk && entity.currentSubchunk == &destBi.getSubchunk())
+            {
+                ++i;
+                continue;
+            }
+            lock_manager.block_lock.set(entity.currentSubchunk->lock);
+            WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
+            subchunkEntityList.detach(subchunkEntityList.to_iterator(&entity));
+            destBi.updateLock(lock_manager);
+            entity.currentSubchunk = &destBi.getSubchunk();
+            WrappedEntity::SubchunkListType &subchunkDestEntityList = entity.currentSubchunk->entityList;
+            subchunkDestEntityList.push_back(&entity);
+            if(entity.currentChunk == destBi.chunk)
+            {
+                ++i;
+                continue;
+            }
+            auto nextI = i;
+            ++nextI;
+            std::unique_lock<std::recursive_mutex> lockChunk(destBi.chunk->chunkVariables.entityListLock);
+            WrappedEntity::ChunkListType &chunkDestEntityList = chunk->chunkVariables.entityList;
+            chunkDestEntityList.splice(chunkDestEntityList.end(), chunkEntityList, i);
+            entity.currentChunk = destBi.chunk;
+            i = nextI;
         }
     }
 }

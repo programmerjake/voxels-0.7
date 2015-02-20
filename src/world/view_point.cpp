@@ -271,13 +271,13 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             {
                 BlockIterator cbi = world.getBlockIterator(chunkPosition);
                 std::unique_lock<std::recursive_mutex> lockChunk(cbi.chunk->chunkVariables.entityListLock);
-                for(WrappedEntity *entity = cbi.chunk->chunkVariables.entityListHead; entity != nullptr; entity = entity->chunk_next)
+                for(WrappedEntity &entity : cbi.chunk->chunkVariables.entityList)
                 {
-                    if(!entity->entity.good())
+                    if(!entity.entity.good())
                         continue;
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
-                        entity->entity.descriptor->render(entity->entity, entityMeshes.at(rl), rl);
+                        entity.entity.descriptor->render(entity.entity, entityMeshes.at(rl), rl);
                     }
                 }
             }
@@ -292,7 +292,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             {
                 PositionF vertexPosition(triangle.p1, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
-                VectorF relativeVertexPosition = vertexPosition - relativeVertexPosition;
+                VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
                 bi.moveTo(vertexPositionI);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c1 = lighting.lightVertex(relativeVertexPosition, triangle.c1, triangle.n1);
@@ -300,7 +300,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             {
                 PositionF vertexPosition(triangle.p2, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
-                VectorF relativeVertexPosition = vertexPosition - relativeVertexPosition;
+                VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
                 bi.moveTo(vertexPositionI);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c2 = lighting.lightVertex(relativeVertexPosition, triangle.c2, triangle.n2);
@@ -308,7 +308,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             {
                 PositionF vertexPosition(triangle.p3, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
-                VectorF relativeVertexPosition = vertexPosition - relativeVertexPosition;
+                VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
                 bi.moveTo(vertexPositionI);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c3 = lighting.lightVertex(relativeVertexPosition, triangle.c3, triangle.n3);

@@ -30,12 +30,21 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
         blockUpdateListHead = blockUpdateListHead->chunk_next;
         delete deleteMe;
     }
-    while(entityListHead != nullptr)
+}
+
+BlockChunk::~BlockChunk()
+{
+    for(auto &i : subchunks)
     {
-        WrappedEntity *deleteMe = entityListHead;
-        entityListHead = entityListHead->chunk_next;
-        delete deleteMe;
+        for(auto &j : i)
+        {
+            for(BlockChunkSubchunk &subchunk : j)
+            {
+                subchunk.entityList.clear();
+            }
+        }
     }
+    chunkVariables.entityList.clear();
 }
 }
 }

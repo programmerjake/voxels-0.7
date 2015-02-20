@@ -384,6 +384,7 @@ public:
     void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
     void move(double deltaTime, WorldLockManager &lock_manager);
 private:
+    std::uint64_t entityRunCount = 0; // number of times all entities have moved
     std::shared_ptr<PhysicsWorld> physicsWorld;
     const WorldGenerator *worldGenerator;
     SeedType worldGeneratorSeed;
