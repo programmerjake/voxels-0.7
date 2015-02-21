@@ -356,7 +356,13 @@ public:
     WoodPressurePlateSide,
     WoodShovel,
     Wool,
-    Selection;
+    Selection,
+    Player1HeadFront,
+    Player1HeadBack,
+    Player1HeadLeft,
+    Player1HeadRight,
+    Player1HeadTop,
+    Player1HeadBottom;
 };
 }
 }

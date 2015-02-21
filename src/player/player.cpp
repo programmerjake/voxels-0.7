@@ -16,19 +16,31 @@
  *
  */
 #include "player/player.h"
+#include "render/generate.h"
+#include "texture/texture_atlas.h"
 
-#if 0
-void drawWorld(World &world, Renderer &renderer, Matrix playerToWorld, Dimension d, int32_t viewDistance)
+namespace programmerjake
 {
-    PositionF viewPosition = PositionF(playerToWorld.apply(VectorF(0)), d);
-    Matrix worldToPlayer = inverse(playerToWorld);
-    world.updateCachedMeshes();
-    static thread_local enum_array<Mesh, RenderLayer> entityMeshes;
-    world.generateEntityMeshes(entityMeshes, (PositionI)viewPosition, viewDistance);
-    for(RenderLayer rl : enum_traits<RenderLayer>())
-    {
-        //cout << (int)rl << " " << world.getMeshes()[rl].size() << endl;
-        renderer << rl << transform(worldToPlayer, world.getCachedMeshes()[rl]) << transform(worldToPlayer, entityMeshes[rl]);
-    }
+namespace voxels
+{
+namespace Entities
+{
+namespace builtin
+{
+void PlayerEntity::generateMeshes()
+{
+    head = transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
+    #warning add rest of player
 }
-#endif
+void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl) const
+{
+    #warning implement
+}
+void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
+{
+    #warning implement
+}
+}
+}
+}
+}

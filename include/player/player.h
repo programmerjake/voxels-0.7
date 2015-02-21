@@ -20,18 +20,87 @@
 
 #include "stream/stream.h"
 #include "world/world.h"
-#include "render/renderer.h"
+#include "entity/entity.h"
+#include "physics/physics.h"
+#include "util/global_instance_maker.h"
+#include "input/input.h"
+#include <string>
+#include <cassert>
+#include <memory>
 
 namespace programmerjake
 {
 namespace voxels
 {
-struct PlayerData
-{
-    std::wstring name;
-};
+class Player;
 
-void drawWorld(World &world, Renderer &renderer, Matrix playerToWorld, Dimension d, std::int32_t viewDistance);
+namespace Entities
+{
+namespace builtin
+{
+class PlayerEntity final : public EntityDescriptor
+{
+    friend class global_instance_maker<PlayerEntity>;
+private:
+    Mesh head;
+    Mesh body;
+    Mesh leftArm;
+    Mesh rightArm;
+    Mesh leftLeg;
+    Mesh rightLeg;
+    void generateMeshes();
+    PlayerEntity()
+        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.6, 1.8, true, false, PhysicsProperties()))
+    {
+        generateMeshes();
+    }
+    Player *getPlayer(Entity &entity) const
+    {
+        return static_cast<Player *>(entity.data.get());
+    }
+public:
+    static const PlayerEntity *descriptor()
+    {
+        return global_instance_maker<PlayerEntity>::getInstance();
+    }
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override;
+    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
+    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    {
+        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.55, 1.8, 0.55)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+    }
+    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
+    {
+    }
+};
+}
+}
+
+class Player final
+{
+    friend class Entities::builtin::PlayerEntity;
+private:
+    float viewTheta = 0, viewPhi = 0;
+    std::shared_ptr<GameInput> gameInput;
+    struct GameInputMonitoring
+    {
+        bool gotJump = false;
+    };
+    std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
+public:
+    const std::wstring name;
+    Player(std::wstring name, std::shared_ptr<GameImput> gameInput)
+        : name(name), gameInput(gameInput)
+    {
+        assert(gameInput != nullptr);
+        gameInputMonitoring = std::make_shared<GameInputMonitoring>();
+        gameInput->jump.onChange.bind([gameInputMonitoring, gameInput](EventArguments&)
+        {
+            if(gameInput->jump.get())
+                gameInputMonitoring->gotJump = true;
+        });
+    }
+};
 }
 }
 
