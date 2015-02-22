@@ -99,7 +99,7 @@ public:
             entity.destroy();
         else
         {
-            getDebugLog() << L"Entity " << (void *)&entity << L": pos:" << (VectorF)entity.physicsObject->getPosition() << postnl;
+            //getDebugLog() << L"Entity " << (void *)&entity << L": pos:" << (VectorF)entity.physicsObject->getPosition() << postnl;
         }
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override

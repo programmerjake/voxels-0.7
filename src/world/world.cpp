@@ -54,6 +54,25 @@ public:
     {
         return global_instance_maker<MyWorldGenerator>::getInstance();
     }
+private:
+    int getGroundHeightHelper(PositionI pos, RandomSource &randomSource) const
+    {
+        pos.y = 0;
+        PositionF fpos = pos + VectorF(0.5f);
+        return ifloor(3 * randomSource.getFBMValue(fpos * 0.1f) + World::AverageGroundHeight);
+    }
+    int getGroundHeight(PositionI pos, RandomSource &randomSource) const
+    {
+#if 0
+        int retval = 0;
+        for(int dx = -1; dx <= 1; dx++)
+            for(int dz = -1; dz <= 1; dz++)
+                retval += getGroundHeightHelper(pos + VectorI(dx, 0, dz), randomSource);
+        return retval / 9;
+#else
+        return getGroundHeightHelper(pos, randomSource);
+#endif
+    }
 protected:
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
     {
@@ -62,14 +81,14 @@ protected:
             PositionI pos = chunkBasePosition + *i;
             PositionF fpos = pos + VectorF(0.5f);
             Block block;
-            if(fpos.y - World::AverageGroundHeight < 3 * randomSource.getFBMValue(fpos * 0.1f))
+            if(fpos.y <= getGroundHeight(pos, randomSource))
                 block = Block(Blocks::builtin::Stone::descriptor());
             else
             {
                 block = Block(Blocks::builtin::Air::descriptor());
                 block.lighting = Lighting::makeSkyLighting();
             }
-            if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0))
+            if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0) && std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
             {
                 if(i->y < 10 + World::AverageGroundHeight)
                     block = Block(Blocks::builtin::Stone::descriptor());
@@ -182,18 +201,29 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
 World::World(SeedType seed, const WorldGenerator *worldGenerator)
     : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
-    const int initSize = 5;
-    for(int dx = -initSize; dx <= initSize; dx++)
-    {
-        for(int dz = -initSize; dz <= initSize; dz++)
-        {
-            getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)); // create chunk
-        }
-    }
+    getDebugLog() << L"generating initial world..." << postnl;
     lightingThread = thread([this]()
     {
         lightingThreadFn();
     });
+    const int initSize = 1;
+    WorldLockManager lock_manager;
+    for(int dx = -initSize; dx <= initSize; dx++)
+    {
+        for(int dz = -initSize; dz <= initSize; dz++)
+        {
+            BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
+            initialChunk->chunkVariables.generateStarted = true;
+            getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
+            generateChunk(initialChunk, lock_manager);
+            initialChunk->chunkVariables.generated = true;
+        }
+    }
+    lock_manager.clear();
+    getDebugLog() << L"lighting initial world..." << postnl;
+    for(int i = 0; i < 500 && !isLightingStable(); i++)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    getDebugLog() << L"generated initial world." << postnl;
 #if 1 || defined(NDEBUG)
     const int threadCount = 5;
 #else
@@ -307,6 +337,73 @@ void World::lightingThreadFn()
     }
 }
 
+void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
+{
+    WorldLockManager new_lock_manager;
+    World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
+    worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
+#if 0
+    new_lock_manager.clear();
+    newWorld.lightingThread = thread([&]()
+    {
+        newWorld.lightingThreadFn();
+    });
+    for(int i = 0; i < 100 && !newWorld.isLightingStable() && !destructing; i++)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    newWorld.destructing = true;
+#endif
+
+    typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
+    std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
+    BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition);
+    for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
+    {
+        BlockIterator bi = gcbi;
+        bi.moveBy(*i);
+        blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
+    }
+    BlockIterator cbi = getBlockIterator(chunk->basePosition);
+    {
+        std::unique_lock<std::recursive_mutex> lockSrcChunk(gcbi.chunk->chunkVariables.entityListLock, std::defer_lock);
+        std::unique_lock<std::recursive_mutex> lockDestChunk(cbi.chunk->chunkVariables.entityListLock, std::defer_lock);
+        std::lock(lockSrcChunk, lockDestChunk);
+        WrappedEntity::ChunkListType &srcChunkList = gcbi.chunk->chunkVariables.entityList;
+        WrappedEntity::ChunkListType &destChunkList = cbi.chunk->chunkVariables.entityList;
+        for(WrappedEntity::ChunkListType::iterator srcChunkIter = srcChunkList.begin(); srcChunkIter != srcChunkList.end(); )
+        {
+            BlockChunkSubchunk *srcSubchunk = srcChunkIter->currentSubchunk;
+            assert(srcSubchunk);
+            new_lock_manager.block_lock.set(srcSubchunk->lock);
+            WrappedEntity::SubchunkListType &srcSubchunkList = srcSubchunk->entityList;
+            WrappedEntity::SubchunkListType::iterator srcSubchunkIter = srcSubchunkList.to_iterator(&*srcChunkIter);
+            if(!srcChunkIter->entity.good())
+            {
+                srcSubchunkList.erase(srcSubchunkIter);
+                srcChunkIter = gcbi.chunk->chunkVariables.entityList.erase(srcChunkIter);
+                continue;
+            }
+            srcChunkIter->lastEntityRunCount = 0;
+            PositionF position = srcChunkIter->entity.physicsObject->getPosition();
+            VectorF velocity = srcChunkIter->entity.physicsObject->getVelocity();
+            srcChunkIter->entity.physicsObject->destroy();
+            srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld);
+            WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
+            ++nextSrcIter;
+            BlockIterator destBi = cbi;
+            destBi.moveTo((PositionI)position);
+            destBi.updateLock(lock_manager);
+            WrappedEntity::SubchunkListType &destSubchunkList = destBi.getSubchunk().entityList;
+            srcChunkIter->currentChunk = destBi.chunk;
+            srcChunkIter->currentSubchunk = &destBi.getSubchunk();
+            destChunkList.splice(destChunkList.end(), srcChunkList, srcChunkIter);
+            destSubchunkList.splice(destSubchunkList.end(), srcSubchunkList, srcSubchunkIter);
+            srcChunkIter = nextSrcIter;
+        }
+    }
+    new_lock_manager.clear();
+    setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
+}
+
 void World::chunkGeneratingThreadFn()
 {
     WorldLockManager lock_manager;
@@ -346,71 +443,7 @@ void World::chunkGeneratingThreadFn()
             getDebugLog() << L"generating " << chunk->basePosition << L" " << chunkPriority << postnl;
             didAnything = true;
 
-            {
-                WorldLockManager new_lock_manager;
-                World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
-                worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
-#if 0
-                new_lock_manager.clear();
-                newWorld.lightingThread = thread([&]()
-                {
-                    newWorld.lightingThreadFn();
-                });
-                for(int i = 0; i < 100 && !newWorld.isLightingStable() && !destructing; i++)
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                newWorld.destructing = true;
-#endif
-
-                typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
-                std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
-                BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition);
-                for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
-                {
-                    BlockIterator bi = gcbi;
-                    bi.moveBy(*i);
-                    blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
-                }
-                BlockIterator cbi = getBlockIterator(chunk->basePosition);
-                {
-                    std::unique_lock<std::recursive_mutex> lockSrcChunk(gcbi.chunk->chunkVariables.entityListLock, std::defer_lock);
-                    std::unique_lock<std::recursive_mutex> lockDestChunk(cbi.chunk->chunkVariables.entityListLock, std::defer_lock);
-                    std::lock(lockSrcChunk, lockDestChunk);
-                    WrappedEntity::ChunkListType &srcChunkList = gcbi.chunk->chunkVariables.entityList;
-                    WrappedEntity::ChunkListType &destChunkList = cbi.chunk->chunkVariables.entityList;
-                    for(WrappedEntity::ChunkListType::iterator srcChunkIter = srcChunkList.begin(); srcChunkIter != srcChunkList.end(); )
-                    {
-                        BlockChunkSubchunk *srcSubchunk = srcChunkIter->currentSubchunk;
-                        assert(srcSubchunk);
-                        new_lock_manager.block_lock.set(srcSubchunk->lock);
-                        WrappedEntity::SubchunkListType &srcSubchunkList = srcSubchunk->entityList;
-                        WrappedEntity::SubchunkListType::iterator srcSubchunkIter = srcSubchunkList.to_iterator(&*srcChunkIter);
-                        if(!srcChunkIter->entity.good())
-                        {
-                            srcSubchunkList.erase(srcSubchunkIter);
-                            srcChunkIter = gcbi.chunk->chunkVariables.entityList.erase(srcChunkIter);
-                            continue;
-                        }
-                        srcChunkIter->lastEntityRunCount = 0;
-                        PositionF position = srcChunkIter->entity.physicsObject->getPosition();
-                        VectorF velocity = srcChunkIter->entity.physicsObject->getVelocity();
-                        srcChunkIter->entity.physicsObject->destroy();
-                        srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld);
-                        WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
-                        ++nextSrcIter;
-                        BlockIterator destBi = cbi;
-                        destBi.moveTo((PositionI)position);
-                        destBi.updateLock(lock_manager);
-                        WrappedEntity::SubchunkListType &destSubchunkList = destBi.getSubchunk().entityList;
-                        srcChunkIter->currentChunk = destBi.chunk;
-                        srcChunkIter->currentSubchunk = &destBi.getSubchunk();
-                        destChunkList.splice(destChunkList.end(), srcChunkList, srcChunkIter);
-                        destSubchunkList.splice(destSubchunkList.end(), srcSubchunkList, srcSubchunkIter);
-                        srcChunkIter = nextSrcIter;
-                    }
-                }
-                new_lock_manager.clear();
-                setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
-            }
+            generateChunk(chunk, lock_manager);
 
             chunk->chunkVariables.generated = true;
         }

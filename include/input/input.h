@@ -29,7 +29,8 @@ struct GameInput
 {
     MonitoredBool isCreativeMode;
     MonitoredBool jump; // space
-    MonitoredVector moveDirectionPlayerRelative; // w a s d
+    MonitoredBool fly; // space double tap
+    MonitoredVectorF moveDirectionPlayerRelative; // w a s d
     MonitoredBool attack; // Left Mouse Button
     Event action; // Right Mouse Button
     Event HotbarMoveLeft; // scroll left
@@ -39,6 +40,8 @@ struct GameInput
     Event drop; // q
     Event openInventory; // e
     MonitoredBool paused; // p esc
+    MonitoredFloat viewTheta;
+    MonitoredFloat viewPhi;
 };
 }
 }

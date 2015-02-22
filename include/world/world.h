@@ -395,6 +395,7 @@ private:
     std::mutex viewPointsLock;
     std::list<ViewPoint *> viewPoints;
     void lightingThreadFn();
+    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
     void chunkGeneratingThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);

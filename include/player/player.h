@@ -27,6 +27,7 @@
 #include <string>
 #include <cassert>
 #include <memory>
+#include <atomic>
 
 namespace programmerjake
 {
@@ -50,7 +51,7 @@ private:
     Mesh rightLeg;
     void generateMeshes();
     PlayerEntity()
-        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.6, 1.8, true, false, PhysicsProperties()))
+        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.3, 0.9, true, false, PhysicsProperties(PhysicsProperties::defaultCollisionMask, PhysicsProperties::defaultCollisionMask, 0, 1)))
     {
         generateMeshes();
     }
@@ -67,11 +68,9 @@ public:
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.55, 1.8, 0.55)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25, 1.8, 0.25)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
-    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
-    {
-    }
+    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override;
 };
 }
 }
@@ -80,25 +79,51 @@ class Player final
 {
     friend class Entities::builtin::PlayerEntity;
 private:
-    float viewTheta = 0, viewPhi = 0;
+    PositionF lastPosition;
     std::shared_ptr<GameInput> gameInput;
     struct GameInputMonitoring
     {
-        bool gotJump = false;
+        std::atomic_bool gotJump;
+        GameInputMonitoring()
+            : gotJump(false)
+        {
+        }
+        bool retrieveGotJump()
+        {
+            return gotJump.exchange(false);
+        }
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
 public:
     const std::wstring name;
-    Player(std::wstring name, std::shared_ptr<GameImput> gameInput)
-        : name(name), gameInput(gameInput)
+    Player(std::wstring name, std::shared_ptr<GameInput> gameInput)
+        : gameInput(gameInput), name(name)
     {
         assert(gameInput != nullptr);
         gameInputMonitoring = std::make_shared<GameInputMonitoring>();
-        gameInput->jump.onChange.bind([gameInputMonitoring, gameInput](EventArguments&)
+        gameInput->jump.onChange.bind([this](EventArguments&)
         {
-            if(gameInput->jump.get())
+            if(this->gameInput->jump.get())
                 gameInputMonitoring->gotJump = true;
+            return Event::ReturnType::Propagate;
         });
+    }
+    Matrix getWorldOrientationXZTransform() const
+    {
+        return Matrix::rotateY(gameInput->viewTheta.get());
+    }
+    Matrix getWorldOrientationTransform() const
+    {
+        return Matrix::rotateX(gameInput->viewPhi.get()).concat(Matrix::rotateY(gameInput->viewTheta.get()));
+    }
+    Matrix getViewTransform() const
+    {
+        VectorF pos = lastPosition + VectorF(0, 0.6, 0);
+        return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get()));
+    }
+    PositionF getPosition() const
+    {
+        return lastPosition;
     }
 };
 }

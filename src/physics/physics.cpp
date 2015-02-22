@@ -23,7 +23,7 @@ namespace voxels
 {
 void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
-    getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
+    //getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
     float stepDuration = 1 / 240.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
