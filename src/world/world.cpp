@@ -76,31 +76,38 @@ private:
 protected:
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
     {
-        for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
+        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
-            PositionI pos = chunkBasePosition + *i;
-            PositionF fpos = pos + VectorF(0.5f);
-            Block block;
-            if(fpos.y <= getGroundHeight(pos, randomSource))
-                block = Block(Blocks::builtin::Stone::descriptor());
-            else
+            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
-                block = Block(Blocks::builtin::Air::descriptor());
-                block.lighting = Lighting::makeSkyLighting();
+                int groundHeight = getGroundHeight(chunkBasePosition + VectorI(x, 0, z), randomSource);
+                for(int y = 0; y < BlockChunk::chunkSizeY; y++)
+                {
+                    PositionI pos = chunkBasePosition + VectorI(x, y, z);
+                    PositionF fpos = pos + VectorF(0.5f);
+                    Block block;
+                    if(fpos.y <= groundHeight)
+                        block = Block(Blocks::builtin::Stone::descriptor());
+                    else
+                    {
+                        block = Block(Blocks::builtin::Air::descriptor());
+                        block.lighting = Lighting::makeSkyLighting();
+                    }
+                    if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0) && std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
+                    {
+                        if(pos.y < 10 + World::AverageGroundHeight)
+                            block = Block(Blocks::builtin::Stone::descriptor());
+                    }
+                    if(std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
+                    {
+                        if(pos.y == 10 + World::AverageGroundHeight)
+                            block = Block(Blocks::builtin::Stone::descriptor());
+                        else if(pos.y < 10 + World::AverageGroundHeight)
+                            block.lighting = Lighting();
+                    }
+                    blocks[x][y][z] = block;
+                }
             }
-            if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0) && std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
-            {
-                if(i->y < 10 + World::AverageGroundHeight)
-                    block = Block(Blocks::builtin::Stone::descriptor());
-            }
-            if(std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
-            {
-                if(pos.y == 10 + World::AverageGroundHeight)
-                    block = Block(Blocks::builtin::Stone::descriptor());
-                else if(pos.y < 10 + World::AverageGroundHeight)
-                    block.lighting = Lighting();
-            }
-            blocks[i->x][i->y][i->z] = block;
         }
 #if 1
         constexpr float newEntityHeight = 8.5f + World::AverageGroundHeight;
@@ -502,7 +509,7 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     return retval;
 }
 
-void World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
+Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
 {
     assert(descriptor != nullptr);
     Entity e(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData);
@@ -518,6 +525,7 @@ void World::addEntity(EntityDescriptorPointer descriptor, PositionF position, Ve
     entity->currentSubchunk = &bi.getSubchunk();
     chunkList.push_back(entity);
     subchunkList.push_back(entity);
+    return &entity->entity;
 }
 
 void World::move(double deltaTime, WorldLockManager &lock_manager)
@@ -580,6 +588,71 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
             i = nextI;
         }
     }
+}
+
+RayCasting::Collision World::castRayCheckForEntitiesInSubchunk(BlockIterator bi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity)
+{
+    PositionI subchunkPos = BlockChunk::getSubchunkBaseAbsolutePosition(bi.position());
+    RayCasting::Collision retval(*this);
+    for(int dx = -1; dx <= 1; dx++)
+    {
+        for(int dy = -1; dy <= 1; dy++)
+        {
+            for(int dz = -1; dz <= 1; dz++)
+            {
+                PositionI currentSubchunkPos = subchunkPos + VectorI(dx * BlockChunk::subchunkSizeXYZ, dy * BlockChunk::subchunkSizeXYZ, dz * BlockChunk::subchunkSizeXYZ);
+                bi.moveTo(currentSubchunkPos);
+                bi.updateLock(lock_manager);
+                for(WrappedEntity &entity : bi.getSubchunk().entityList)
+                {
+                    if(&entity.entity == ignoreEntity || !entity.entity.good())
+                        continue;
+                    RayCasting::Collision currentCollision = entity.entity.descriptor->getRayCollision(entity.entity, *this, ray);
+                    if(currentCollision < retval)
+                        retval = currentCollision;
+                }
+            }
+        }
+    }
+    if(retval.valid() && retval.t > maxSearchDistance)
+        return RayCasting::Collision(*this);
+    return retval;
+}
+
+RayCasting::Collision World::castRay(RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, RayCasting::BlockCollisionMask blockRayCollisionMask, const Entity *ignoreEntity)
+{
+    PositionI startPosition = (PositionI)ray.startPosition;
+    BlockIterator bi = getBlockIterator(startPosition);
+    BlockChunkSubchunk *lastSubchunk = nullptr;
+    RayCasting::Collision retval(*this);
+    for(auto i = RayCasting::makeRayBlockIterator(ray); std::get<0>(*i) <= maxSearchDistance || std::get<1>(*i) == startPosition; i++)
+    {
+        bi.moveTo(std::get<1>(*i));
+        if(&bi.getSubchunk() != lastSubchunk)
+        {
+            lastSubchunk = &bi.getSubchunk();
+            RayCasting::Collision currentCollision = castRayCheckForEntitiesInSubchunk(bi, ray, lock_manager, maxSearchDistance, ignoreEntity);
+            if(currentCollision < retval)
+                retval = currentCollision;
+        }
+        Block b = bi.get(lock_manager);
+        if(!b.good())
+        {
+            if(retval.valid() && retval.t < std::get<0>(*i) && retval.t <= maxSearchDistance)
+                return retval;
+            return RayCasting::Collision(*this);
+        }
+        if((b.descriptor->blockRayCollisionMask & blockRayCollisionMask) == 0)
+            continue;
+        RayCasting::Collision currentCollision = b.descriptor->getRayCollision(b, bi, lock_manager, *this, ray);
+        if(currentCollision < retval)
+            retval = currentCollision;
+        if(retval.valid() && retval.t < maxSearchDistance)
+            maxSearchDistance = retval.t;
+    }
+    if(retval.valid() && retval.t <= maxSearchDistance)
+        return retval;
+    return RayCasting::Collision(*this);
 }
 }
 }

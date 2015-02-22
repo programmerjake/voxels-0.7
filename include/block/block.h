@@ -446,11 +446,11 @@ public:
     }
     const std::wstring name;
 protected:
-    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY,
+    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY,
                     bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
-    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ,
+    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ,
                     bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, lightProperties, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(),
+        : BlockDescriptor(name, blockShape, lightProperties, blockRayCollisionMask, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(),
                           Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
     {
     }
@@ -458,6 +458,7 @@ public:
     virtual ~BlockDescriptor();
     const BlockShape blockShape;
     const LightProperties lightProperties;
+    const RayCasting::BlockCollisionMask blockRayCollisionMask;
     const bool isStaticMesh;
     enum_array<bool, BlockFace> isFaceBlocked;
 protected:
@@ -610,7 +611,7 @@ inline void Block::createNewLighting(Lighting oldLighting)
     }
 }
 
-inline bool Block::operator==(const Block &r) const
+inline bool Block::operator ==(const Block &r) const
 {
     if(descriptor != r.descriptor)
     {

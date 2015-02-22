@@ -157,7 +157,8 @@ typedef std::uint64_t BlockChunkInvalidateCountType;
 struct BlockChunkSubchunk final
 {
     std::mutex lock;
-    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    std::atomic_bool cachedMeshesUpToDate;
     WrappedEntity::SubchunkListType entityList;
     BlockChunkInvalidateCountType invalidateCount = 0;
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
@@ -165,23 +166,25 @@ struct BlockChunkSubchunk final
     {
     }
     BlockChunkSubchunk()
-        : cachedMeshes(nullptr), entityList([](WrappedEntity *)
+        : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *)
         {
         })
     {
     }
     void invalidate()
     {
-        cachedMeshes = nullptr;
+        cachedMeshesUpToDate = false;
         invalidateCount++;
     }
 };
 
 struct BlockChunkChunkVariables final
 {
-    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    std::mutex cachedMeshesLock;
+    std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    std::atomic_bool cachedMeshesUpToDate;
     BlockChunkChunkVariables()
-        : cachedMeshes(nullptr), entityList([](WrappedEntity *v)
+        : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *v)
         {
             delete v;
         }), generated(false), generateStarted(false)
@@ -200,7 +203,7 @@ struct BlockChunkChunkVariables final
     ~BlockChunkChunkVariables();
     void invalidate()
     {
-        cachedMeshes = nullptr;
+        cachedMeshesUpToDate = false;
     }
 };
 

@@ -58,12 +58,12 @@ private:
         return Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td);
     }
 protected:
-    FullBlock(std::wstring name, LightProperties lightProperties, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
-        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
+    FullBlock(std::wstring name, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
+        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, blockRayCollisionMask, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
     {
     }
-    FullBlock(std::wstring name, LightProperties lightProperties, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
-        : FullBlock(name, lightProperties, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, td, td, td, td, td, td, rl)
+    FullBlock(std::wstring name, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
+        : FullBlock(name, lightProperties, blockRayCollisionMask, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, areFacesBlocked, td, td, td, td, td, td, rl)
     {
     }
 public:
@@ -80,8 +80,9 @@ public:
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
                 return RayCasting::Collision(world);
             std::get<1>(collision) = RayCasting::Ray::eps;
+            return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
         }
-        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position());
+        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
     }
 };
 }

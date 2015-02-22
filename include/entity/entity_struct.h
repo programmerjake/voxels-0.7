@@ -49,7 +49,7 @@ struct Entity final
     }
     bool good() const
     {
-        return descriptor != nullptr;
+        return descriptor != nullptr && physicsObject != nullptr;
     }
     explicit operator bool() const
     {

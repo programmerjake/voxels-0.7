@@ -381,7 +381,8 @@ public:
      * @param position the velocity for the new entity
      *
      */
-    void addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
+    Entity *addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
+    RayCasting::Collision castRay(RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskDefault, const Entity *ignoreEntity = nullptr);
     void move(double deltaTime, WorldLockManager &lock_manager);
 private:
     std::uint64_t entityRunCount = 0; // number of times all entities have moved
@@ -400,6 +401,7 @@ private:
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
+    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator bi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
 public:
     WorldLightingProperties getLighting() const
     {

@@ -20,6 +20,7 @@
 
 #include "util/enum_traits.h"
 #include "util/vector.h"
+#include "util/util.h"
 #include <cassert>
 
 namespace programmerjake
@@ -36,6 +37,63 @@ enum class BlockFace
     PZ,
     DEFINE_ENUM_LIMITS(NX, PZ)
 };
+
+enum class BlockFaceOrNone
+{
+    None,
+    NX,
+    PX,
+    NY,
+    PY,
+    NZ,
+    PZ,
+    DEFINE_ENUM_LIMITS(None, PZ)
+};
+
+inline BlockFaceOrNone toBlockFaceOrNone(BlockFace f)
+{
+    switch(f)
+    {
+    case BlockFace::NX:
+        return BlockFaceOrNone::NX;
+    case BlockFace::PX:
+        return BlockFaceOrNone::PX;
+    case BlockFace::NY:
+        return BlockFaceOrNone::NY;
+    case BlockFace::PY:
+        return BlockFaceOrNone::PY;
+    case BlockFace::NZ:
+        return BlockFaceOrNone::NZ;
+    case BlockFace::PZ:
+        return BlockFaceOrNone::PZ;
+    }
+    assert(false);
+    return BlockFaceOrNone::None;
+}
+
+inline BlockFace toBlockFace(BlockFaceOrNone f)
+{
+    switch(f)
+    {
+    case BlockFaceOrNone::None:
+        assert(false);
+        return BlockFace::NX;
+    case BlockFaceOrNone::NX:
+        return BlockFace::NX;
+    case BlockFaceOrNone::PX:
+        return BlockFace::PX;
+    case BlockFaceOrNone::NY:
+        return BlockFace::NY;
+    case BlockFaceOrNone::PY:
+        return BlockFace::PY;
+    case BlockFaceOrNone::NZ:
+        return BlockFace::NZ;
+    case BlockFaceOrNone::PZ:
+        return BlockFace::PZ;
+    }
+    assert(false);
+    return BlockFace::NX;
+}
 
 constexpr int getBlockFaceOutDirectionX(BlockFace f)
 {

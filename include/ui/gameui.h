@@ -37,6 +37,7 @@ private:
     std::shared_ptr<ViewPoint> viewPoint;
     std::shared_ptr<GameInput> gameInput;
     std::shared_ptr<Player> player;
+    const Entity *playerEntity;
     bool isDialogUp = false;
     bool isWDown = false;
     bool isADown = false;
@@ -55,6 +56,8 @@ private:
             v += left;
         if(isDDown)
             v -= left;
+        if(gameInput->paused.get())
+            v = VectorF(0);
         gameInput->moveDirectionPlayerRelative.set(v * 3.5f);
     }
 public:
@@ -64,11 +67,11 @@ public:
         PositionF startingPosition = PositionF(0.5f, World::AverageGroundHeight + 8.5f, 0.5f, Dimension::Overworld);
         viewPoint = std::make_shared<ViewPoint>(world, startingPosition, 32);
         player = std::make_shared<Player>(L"default-player-name", gameInput);
-        world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
+        playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
     }
     virtual void move(double deltaTime) override
     {
-        Display::grabMouse(!isDialogUp);
+        Display::grabMouse(!isDialogUp && !gameInput->paused.get());
         Ui::move(deltaTime);
         world.move(deltaTime, lock_manager);
     }
@@ -109,7 +112,7 @@ public:
     }
     virtual bool handleMouseMove(MouseMoveEvent &event) override
     {
-        if(!isDialogUp)
+        if(!isDialogUp && !gameInput->paused.get())
         {
             float viewTheta = gameInput->viewTheta.get();
             float viewPhi = gameInput->viewPhi.get();
@@ -166,6 +169,10 @@ public:
             calculateMoveDirection();
             return true;
         }
+        if(event.key == KeyboardKey::Escape)
+        {
+            return true;
+        }
         return false;
     }
     virtual bool handleKeyDown(KeyDownEvent &event) override
@@ -199,6 +206,11 @@ public:
         {
             isDDown = true;
             calculateMoveDirection();
+            return true;
+        }
+        if(event.key == KeyboardKey::Escape)
+        {
+            gameInput->paused.set(!gameInput->paused.get());
             return true;
         }
         return false;
@@ -239,15 +251,7 @@ public:
         return true;
     }
 protected:
-    virtual void clear(Renderer &renderer) override
-    {
-        background = HSVF(0.6, 0.5, 1);
-        Ui::clear(renderer);
-        Matrix tform = player->getViewTransform();
-        viewPoint->setPosition(player->getPosition());
-        viewPoint->render(renderer, tform, lock_manager);
-        renderer << start_overlay << enable_depth_buffer;
-    }
+    virtual void clear(Renderer &renderer) override;
 };
 }
 }

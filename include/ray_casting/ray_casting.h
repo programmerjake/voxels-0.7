@@ -24,6 +24,10 @@
 #include "util/enum_traits.h"
 #include <algorithm>
 #include <tuple>
+#include <cstdint>
+#include <atomic>
+#include <cassert>
+#include <iterator>
 
 namespace programmerjake
 {
@@ -34,6 +38,19 @@ struct Entity;
 
 namespace RayCasting
 {
+typedef std::uint32_t BlockCollisionMask;
+constexpr BlockCollisionMask BlockCollisionMaskGround = 1 << 0;
+constexpr BlockCollisionMask BlockCollisionMaskFluid = 1 << 1;
+constexpr BlockCollisionMask BlockCollisionMaskDefault = ~BlockCollisionMaskFluid;
+constexpr BlockCollisionMask BlockCollisionMaskEverything = ~(BlockCollisionMask)0;
+inline BlockCollisionMask allocateBlockCollisionMask()
+{
+    static std::atomic_int nextBit(2);
+    int bit = nextBit++;
+    assert(bit < 32);
+    return (BlockCollisionMask)1 << bit;
+}
+
 struct Ray final
 {
     PositionF startPosition;
@@ -45,6 +62,10 @@ struct Ray final
     static constexpr float eps = 1e-4;
     constexpr Ray(PositionF startPosition, VectorF direction)
         : startPosition(startPosition), direction(direction)
+    {
+    }
+    constexpr Ray()
+        : startPosition(), direction()
     {
     }
     constexpr PositionF eval(float t) const
@@ -114,9 +135,9 @@ public:
         float maxCornerZ = collideWithPlane(VectorF(0, 0, -1), maxCorner.z);
         float zt = std::max(minCornerZ, maxCornerZ);
         BlockFace zbf = minCornerZ > maxCornerZ ? BlockFace::NZ : BlockFace::PZ;
-        if(xt < yt && xt < zt)
+        if(xt < yt && xt < zt && xt > 0)
             return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
-        else if(yt < zt)
+        else if(yt < zt && yt > 0)
             return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
         else
             return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
@@ -127,6 +148,44 @@ public:
 inline Ray transform(Matrix tform, Ray r)
 {
     return Ray(transform(tform, r.startPosition), tform.applyNoTranslate(r.direction));
+}
+
+class RayBlockIterator
+{
+public:
+    typedef const std::pair<float, PositionI> value_type;
+private:
+    Ray ray;
+    std::pair<float, PositionI> currentValue;
+    VectorF nextRayIntersectionTValues, rayIntersectionStepTValues;
+    VectorI positionDeltaValues;
+    explicit RayBlockIterator(Ray ray);
+public:
+    RayBlockIterator()
+        : RayBlockIterator(Ray())
+    {
+    }
+    friend RayBlockIterator makeRayBlockIterator(Ray ray);
+    value_type &operator *() const
+    {
+        return currentValue;
+    }
+    value_type *operator ->() const
+    {
+        return &currentValue;
+    }
+    RayBlockIterator operator ++(int)
+    {
+        RayBlockIterator retval = *this;
+        operator ++();
+        return retval;
+    }
+    const RayBlockIterator &operator ++();
+};
+
+inline RayBlockIterator makeRayBlockIterator(Ray ray)
+{
+    return RayBlockIterator(ray);
 }
 
 struct Collision final
@@ -142,21 +201,22 @@ struct Collision final
     Type type;
     World *world;
     PositionI blockPosition;
+    BlockFaceOrNone blockFace;
     Entity *entity;
     constexpr Collision()
-        : t(-1), type(Type::None), world(nullptr), blockPosition(), entity(nullptr)
+        : t(-1), type(Type::None), world(nullptr), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
     {
     }
     explicit constexpr Collision(World &world)
-        : t(-1), type(Type::None), world(&world), blockPosition(), entity(nullptr)
+        : t(-1), type(Type::None), world(&world), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
     {
     }
-    constexpr Collision(World &world, float t, PositionI blockPosition)
-        : t(t), type(Type::Block), world(&world), blockPosition(blockPosition), entity(nullptr)
+    constexpr Collision(World &world, float t, PositionI blockPosition, BlockFaceOrNone blockFace)
+        : t(t), type(Type::Block), world(&world), blockPosition(blockPosition), blockFace(blockFace), entity(nullptr)
     {
     }
     constexpr Collision(World &world, float t, Entity &entity)
-        : t(t), type(Type::Entity), world(&world), blockPosition(), entity(&entity)
+        : t(t), type(Type::Entity), world(&world), blockPosition(), blockFace(), entity(&entity)
     {
     }
     constexpr bool valid() const

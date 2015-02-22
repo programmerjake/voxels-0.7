@@ -138,7 +138,11 @@ void ViewPoint::generateMeshesFn()
                     lockIt.unlock();
                     WorldLockManager lock_manager;
                     BlockIterator cbi = world.getBlockIterator(chunkPosition);
-                    std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes.load();
+                    std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->chunkVariables.cachedMeshesLock);
+                    if(!cbi.chunk->chunkVariables.cachedMeshesUpToDate.exchange(true))
+                        cbi.chunk->chunkVariables.cachedMeshes = nullptr;
+                    std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes;
+                    cachedChunkMeshesLock.unlock();
                     if(chunkMeshes != nullptr)
                     {
                         for(RenderLayer rl : enum_traits<RenderLayer>())
@@ -160,7 +164,11 @@ void ViewPoint::generateMeshesFn()
                                 BlockIterator sbi = cbi;
                                 PositionI subchunkPosition = chunkPosition + BlockChunk::getChunkRelativePositionFromSubchunkIndex(subchunkIndex);
                                 sbi.moveTo(subchunkPosition);
-                                std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = sbi.getSubchunk().cachedMeshes.load();
+                                sbi.updateLock(lock_manager);
+                                BlockChunkSubchunk &subchunk = sbi.getSubchunk();
+                                if(!subchunk.cachedMeshesUpToDate.exchange(true))
+                                    subchunk.cachedMeshes = nullptr;
+                                std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = subchunk.cachedMeshes;
                                 if(subchunkMeshes != nullptr)
                                 {
                                     for(RenderLayer rl : enum_traits<RenderLayer>())
@@ -194,7 +202,8 @@ void ViewPoint::generateMeshesFn()
                                         }
                                     }
                                 }
-                                sbi.getSubchunk().cachedMeshes.store(subchunkMeshes);
+                                sbi.updateLock(lock_manager);
+                                subchunk.cachedMeshes = subchunkMeshes;
                                 for(RenderLayer rl : enum_traits<RenderLayer>())
                                 {
                                     chunkMeshes->at(rl).append(subchunkMeshes->at(rl));
@@ -202,7 +211,9 @@ void ViewPoint::generateMeshesFn()
                             }
                         }
                     }
-                    cbi.chunk->chunkVariables.cachedMeshes.store(chunkMeshes);
+                    cachedChunkMeshesLock.lock();
+                    cbi.chunk->chunkVariables.cachedMeshes = chunkMeshes;
+                    cachedChunkMeshesLock.unlock();
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
                         meshes->at(rl).append(chunkMeshes->at(rl));
