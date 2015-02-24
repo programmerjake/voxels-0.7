@@ -106,6 +106,8 @@
 		<Unit filename="include/generate/biome/decorator.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
+		<Unit filename="include/item/item.h" />
+		<Unit filename="include/item/item_struct.h" />
 		<Unit filename="include/lighting/lighting.h" />
 		<Unit filename="include/physics/physics.h" />
 		<Unit filename="include/platform/audio.h" />
