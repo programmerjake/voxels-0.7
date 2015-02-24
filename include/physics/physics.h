@@ -39,6 +39,8 @@
 #include <mutex>
 #include "util/cached_variable.h"
 #include "util/logging.h"
+#include "util/object_counter.h"
+#include "util/ordered_weak_ptr.h"
 
 namespace programmerjake
 {
@@ -52,8 +54,9 @@ struct PhysicsProperties final
     typedef std::uint32_t CollisionMaskType;
     CollisionMaskType myCollisionMask; // for checking when this object is colliding with other objects
     CollisionMaskType othersCollisionMask; // for checking when other objects are colliding with this object
-    static constexpr CollisionMaskType blockCollisionMask = 0x1;
-    static constexpr CollisionMaskType itemCollisionMask = 0x2;
+    static constexpr CollisionMaskType blockCollisionMask = 1 << 0;
+    static constexpr CollisionMaskType itemCollisionMask = 1 << 1;
+    static constexpr CollisionMaskType playerCollisionMask = 1 << 2;
     static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF & ~itemCollisionMask;
     explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask, CollisionMaskType othersCollisionMask = defaultCollisionMask, float bounceFactor = std::sqrt(0.5f), float slideFactor = 1 - std::sqrt(0.5f))
         : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), myCollisionMask(myCollisionMask), othersCollisionMask(othersCollisionMask)
@@ -155,6 +158,8 @@ struct write<PhysicsConstraint>
 class PhysicsObject final : public std::enable_shared_from_this<PhysicsObject>
 {
     friend class PhysicsWorld;
+public:
+    ObjectCounter<PhysicsObject, 0> objectCounter;
 private:
     checked_array<PositionF, 2> position;
     checked_array<VectorF, 2> velocity;
@@ -269,6 +274,12 @@ public:
     void adjustPosition(const PhysicsObject & rt);
     bool isSupportedBy(const PhysicsObject & rt) const;
     void transferToNewWorld(std::shared_ptr<PhysicsWorld> newWorld);
+    bool collidesWithBlock(const BlockShape &shape, PositionI blockPosition)
+    {
+        std::shared_ptr<PhysicsObject> temp = makeEmptyNoAddToWorld(PositionF(), VectorF(), world.lock());
+        temp->setToBlock(shape, blockPosition);
+        return collides(*temp);
+    }
 };
 
 class PhysicsWorld final : public std::enable_shared_from_this<PhysicsWorld>
@@ -332,7 +343,7 @@ public:
         return 1 - variableSetIndex;
     }
 private:
-    std::unordered_set<std::shared_ptr<PhysicsObject>> objects;
+    std::unordered_set<ordered_weak_ptr<PhysicsObject>> objects;
     void addObject(std::shared_ptr<PhysicsObject> o)
     {
         std::unique_lock<std::recursive_mutex> lockIt(theLock);
@@ -345,8 +356,9 @@ private:
     }
     struct CollisionEvent final
     {
+        ObjectCounter<PhysicsWorld, 0> objectCounter;
         double collisionTime;
-        std::weak_ptr<PhysicsObject> a, b;
+        ordered_weak_ptr<PhysicsObject> a, b;
         std::uint64_t aTag, bTag;
         CollisionEvent(double collisionTime, std::shared_ptr<PhysicsObject> a, std::shared_ptr<PhysicsObject> b)
             : collisionTime(collisionTime), a(a), b(b), aTag(a->latestUpdateTag), bTag(b->latestUpdateTag)
@@ -383,7 +395,7 @@ private:
     };
     std::priority_queue<CollisionEvent, std::vector<CollisionEvent>, CollisionEventCompare> eventsQueue;
     std::unordered_set<CollisionEvent, CollisionEventHash> eventsSet;
-    std::unordered_map<std::intptr_t, std::weak_ptr<PhysicsObject>> changedObjects;
+    std::unordered_set<ordered_weak_ptr<PhysicsObject>> changedObjects;
     void swapVariableSetIndex()
     {
         variableSetIndex = (variableSetIndex != 0 ? 0 : 1);
@@ -595,7 +607,7 @@ inline std::shared_ptr<PhysicsObject> PhysicsObject::makeBox(PositionF position,
 {
     std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, extents, world, properties, Type::Box));
     world->objects.insert(retval);
-    world->changedObjects[(std::intptr_t)retval.get()] = retval;
+    world->changedObjects.insert(retval);
     return retval;
 }
 
@@ -603,7 +615,7 @@ inline std::shared_ptr<PhysicsObject> PhysicsObject::makeCylinder(PositionF posi
 {
     std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, VectorF(radius, yExtents, radius), world, properties, Type::Cylinder));
     world->objects.insert(retval);
-    world->changedObjects[(std::intptr_t)retval.get()] = retval;
+    world->changedObjects.insert(retval);
     return retval;
 }
 
@@ -658,7 +670,7 @@ inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocit
     newVelocity /= newStateCount;
     position[variableSetIndex] = newPosition;
     velocity[variableSetIndex] = newVelocity;
-    world->changedObjects[(std::intptr_t)this] = shared_from_this();
+    world->changedObjects.insert(shared_from_this());
     latestUpdateTag++;
 }
 

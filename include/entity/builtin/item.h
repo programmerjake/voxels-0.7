@@ -15,8 +15,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef ITEM_H_INCLUDED
-#define ITEM_H_INCLUDED
+#ifndef ENTITY_ITEM_H_INCLUDED
+#define ENTITY_ITEM_H_INCLUDED
 
 #include "entity/entity.h"
 #include <unordered_map>
@@ -29,6 +29,7 @@ namespace programmerjake
 {
 namespace voxels
 {
+class Player;
 namespace Entities
 {
 namespace builtin
@@ -46,16 +47,27 @@ protected:
     struct ItemData final
     {
         float angle = 0, bobPhase = 0;
-        #warning change back item timeLeft
-        double timeLeft = (5 * 60, 8);
+        double timeLeft = 5 * 60;
+        double ignorePlayerTime = 0;
+        const Player *ignorePlayer = nullptr;
         std::int8_t count = 1;
-        ItemData()
+        bool followingPlayer = false;
+        void init()
         {
             std::minstd_rand generator((int)(std::intptr_t)this);
             generator.discard(1000);
             std::uniform_real_distribution<float> distribution(0, 2 * M_PI);
             angle = distribution(generator);
             bobPhase = distribution(generator);
+        }
+        ItemData()
+        {
+            init();
+        }
+        ItemData(const Player *ignorePlayer, double ignorePlayerTime)
+            : ignorePlayerTime(ignorePlayerTime), ignorePlayer(ignorePlayer)
+        {
+            init();
         }
     };
     static std::shared_ptr<ItemData> getItemData(const Entity &entity)
@@ -87,21 +99,7 @@ public:
         std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
         dest.append(transform(getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition())), meshes[rl]));
     }
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
-    {
-        std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
-        constexpr float angleSpeed = 2 * M_PI / 7.5f;
-        constexpr float bobSpeed = 2.1f * angleSpeed;
-        data->angle = std::fmod(data->angle + angleSpeed * (float)deltaTime, M_PI * 2);
-        data->bobPhase = std::fmod(data->bobPhase + bobSpeed * (float)deltaTime, M_PI * 2);
-        data->timeLeft -= deltaTime;
-        if(data->timeLeft <= 0)
-            entity.destroy();
-        else
-        {
-            //getDebugLog() << L"Entity " << (void *)&entity << L": pos:" << (VectorF)entity.physicsObject->getPosition() << postnl;
-        }
-    }
+    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
     {
         std::shared_ptr<ItemData> data = getItemData(entity);
@@ -111,10 +109,21 @@ public:
     {
         getOrMakeItemData(entity);
     }
+    virtual std::shared_ptr<void> makeItemDataIgnorePlayer(const Player *player, double ignoreTime = 1) const
+    {
+        return std::shared_ptr<void>(new ItemData(player, ignoreTime));
+    }
+    virtual bool ignorePlayer(Entity &entity, const Player *player) const
+    {
+        std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
+        if(data->ignorePlayerTime > 0 && data->ignorePlayer == player)
+            return true;
+        return false;
+    }
 };
 }
 }
 }
 }
 
-#endif // ITEM_H_INCLUDED
+#endif // ENTITY_ITEM_H_INCLUDED

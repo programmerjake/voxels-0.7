@@ -16,3 +16,21 @@
  *
  */
 #include "block/builtin/stone.h"
+#include "entity/builtin/items/stone.h"
+
+namespace programmerjake
+{
+namespace voxels
+{
+namespace Blocks
+{
+namespace builtin
+{
+void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+{
+    world.addEntity(Entities::builtin::items::Stone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+}
+}
+}
+}
+}

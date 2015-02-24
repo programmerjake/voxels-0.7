@@ -590,6 +590,9 @@ public:
     {
         return Matrix::identity();
     }
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+    {
+    }
 };
 
 #ifdef PACK_BLOCK

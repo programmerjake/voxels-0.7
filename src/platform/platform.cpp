@@ -35,6 +35,7 @@
 #include <vector>
 #include "platform/audio.h"
 #include "platform/thread_priority.h"
+#include "util/logging.h"
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -843,7 +844,7 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
     return retval;
 }
 
-static PlatformEvent *makeEvent()
+static std::shared_ptr<PlatformEvent> makeEvent()
 {
     static bool needCharEvent = false;
     static wstring characters;
@@ -852,12 +853,12 @@ static PlatformEvent *makeEvent()
         needCharEvent = false;
         wchar_t character = characters[0];
         characters.erase(0, 1);
-        return new KeyPressEvent(character);
+        return std::make_shared<KeyPressEvent>(character);
     }
     if(needQuitEvent)
     {
         needQuitEvent = false;
-        return new QuitEvent();
+        return std::make_shared<QuitEvent>();
     }
     while(true)
     {
@@ -871,14 +872,14 @@ static PlatformEvent *makeEvent()
         case SDL_KEYDOWN:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            PlatformEvent *retval = new KeyDownEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
+            auto retval = std::make_shared<KeyDownEvent>(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
             keyState[key] = true;
             return retval;
         }
         case SDL_KEYUP:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            PlatformEvent *retval = new KeyUpEvent(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
+            auto retval = std::make_shared<KeyUpEvent>(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
             keyState[key] = false;
             return retval;
         }
@@ -886,13 +887,13 @@ static PlatformEvent *makeEvent()
         {
             if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
                 break;
-            return new MouseMoveEvent(SDLEvent.motion.x, SDLEvent.motion.y, SDLEvent.motion.xrel, SDLEvent.motion.yrel);
+            return std::make_shared<MouseMoveEvent>(SDLEvent.motion.x, SDLEvent.motion.y, SDLEvent.motion.xrel, SDLEvent.motion.yrel);
         }
         case SDL_MOUSEWHEEL:
         {
             if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
                 break;
-            return new MouseScrollEvent(SDLEvent.wheel.x, SDLEvent.wheel.y);
+            return std::make_shared<MouseScrollEvent>(SDLEvent.wheel.x, SDLEvent.wheel.y);
         }
         case SDL_MOUSEBUTTONDOWN:
         {
@@ -900,7 +901,7 @@ static PlatformEvent *makeEvent()
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState | button); // set bit
-            return new MouseDownEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+            return std::make_shared<MouseDownEvent>(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
         }
         case SDL_MOUSEBUTTONUP:
         {
@@ -908,14 +909,14 @@ static PlatformEvent *makeEvent()
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState & ~button); // clear bit
-            return new MouseUpEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+            return std::make_shared<MouseUpEvent>(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
         }
         case SDL_FINGERMOTION:
-            return new TouchMoveEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchMoveEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
         case SDL_FINGERDOWN:
-            return new TouchDownEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchDownEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
         case SDL_FINGERUP:
-            return new TouchUpEvent(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchUpEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true), SDLEvent.tfinger.pressure);
         case SDL_JOYAXISMOTION:
         case SDL_JOYBALLMOTION:
         case SDL_JOYHATMOTION:
@@ -926,7 +927,7 @@ static PlatformEvent *makeEvent()
         case SDL_WINDOWEVENT_RESIZED:
             break;
         case SDL_QUIT:
-            return new QuitEvent();
+            return std::make_shared<QuitEvent>();
         case SDL_SYSWMEVENT:
             //TODO (jacob#): handle SDL_SYSWMEVENT
             break;
@@ -994,7 +995,7 @@ shared_ptr<EventHandler> DefaultEventHandler_handler(new DefaultEventHandler);
 
 static void handleEvents(shared_ptr<EventHandler> eventHandler)
 {
-    for(PlatformEvent *e = makeEvent(); e != nullptr; e = makeEvent())
+    for(std::shared_ptr<PlatformEvent> e = makeEvent(); e != nullptr; e = makeEvent())
     {
         if(eventHandler == nullptr || !e->dispatch(eventHandler))
         {
@@ -1515,6 +1516,129 @@ void setThreadPriority(ThreadPriority priority)
         break;
     }
     SDL_SetThreadPriority(sdlPriority);
+}
+}
+}
+
+#include <execinfo.h>
+#include <cxxabi.h>
+
+namespace programmerjake
+{
+namespace voxels
+{
+namespace
+{
+std::atomic_bool stackTraceDumpingEnabled(false);
+}
+void setStackTraceDumpingEnabled(bool v)
+{
+    stackTraceDumpingEnabled = v;
+}
+bool getStackTraceDumpingEnabled()
+{
+    return stackTraceDumpingEnabled;
+}
+void dumpStackTraceToDebugLog()
+{
+    static thread_local bool inDumpStackTrace = false;
+    if(inDumpStackTrace || !stackTraceDumpingEnabled)
+        return;
+    inDumpStackTrace = true;
+    auto flagUnlocker = [](bool *f)
+    {
+        *f = false;
+    };
+    auto unlockFlag = std::unique_ptr<bool, decltype(flagUnlocker)>(&inDumpStackTrace, flagUnlocker);
+    auto &os = getDebugLog();
+    os << L"stack trace:\n";
+    const unsigned maxBacktraceFrames = 16;
+    void *addressList[maxBacktraceFrames + 1];
+    int addressListLength = backtrace(addressList, sizeof(addressList) / sizeof(addressList[0]));
+    if(addressListLength <= 0)
+    {
+        os << L"    empty: possibly corrupt" << postnl;
+        return;
+    }
+    auto symbolListDeleter = [](char **symbolList)
+    {
+        free(symbolList);
+    };
+    auto pSymbolList = std::unique_ptr<char *, decltype(symbolListDeleter)>(backtrace_symbols(addressList, addressListLength), symbolListDeleter);
+    char **symbolList = pSymbolList.get();
+    std::size_t functionNameSize = 256;
+    char *functionName = (char *)malloc(functionNameSize);
+    struct functionNameDeleterType
+    {
+        char *&functionName;
+        ~functionNameDeleterType()
+        {
+            free(functionName);
+        }
+        functionNameDeleterType(char *&functionName)
+            : functionName(functionName)
+        {
+        }
+    } functionNameDeleter(functionName);
+    for(int i = 1; i < addressListLength; i++) // start at 1 to skip this function
+    {
+        char *beginName = nullptr, *beginOffset = nullptr, *endOffset = nullptr;
+        for(char *j = symbolList[i]; *j; j++)
+        {
+            switch(*j)
+            {
+            case '(':
+                beginName = j;
+                break;
+            case '+':
+                beginOffset = j;
+                break;
+            case ')':
+                if(beginOffset)
+                    endOffset = j;
+                break;
+            }
+        }
+        std::string line = symbolList[i];
+        functionName[0] = '\0';
+        if(beginName && beginOffset && endOffset && beginName < beginOffset)
+        {
+            *beginName++ = '\0';
+            *beginOffset++ = '\0';
+            *endOffset++ = '\0';
+            int status;
+            char *retval = abi::__cxa_demangle(beginName, functionName, &functionNameSize, &status);
+            if(status == 0)
+            {
+                functionName = retval;
+                if(string(functionName).substr(0, 5) == "std::")
+                    continue;
+                if(string(functionName).substr(0, 11) == "__gnu_cxx::")
+                    continue;
+                line = symbolList[i];
+                line += " : ";
+                line += functionName;
+                line += "+";
+                line += beginOffset;
+            }
+            else
+            {
+                line = symbolList[i];
+                line += " : ";
+                line += beginName;
+                line += "()+";
+                line += beginOffset;
+            }
+        }
+        os << L" " << i << L":\n";
+        while(line.size() > 60)
+        {
+            os << L"    " << string_cast<std::wstring>(line.substr(0, 60)) << L"\n";
+            line.erase(0, 60);
+        }
+        os << L"    " << string_cast<std::wstring>(line.substr(0, 60)) << L"\n";
+    }
+    os << postnl;
 }
 
 namespace

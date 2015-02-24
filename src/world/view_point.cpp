@@ -108,17 +108,45 @@ public:
         return block.lighting;
     }
 };
+
+std::atomic_size_t cachedChunkMeshCount(0), cachedSubchunkMeshCount(0), cachedViewPointMeshCount(0);
+
+enum_array<Mesh, RenderLayer> *incCachedMeshCount(std::atomic_size_t *meshCount, enum_array<Mesh, RenderLayer> *retval)
+{
+    meshCount->fetch_add(1);
+    return retval;
+}
+
+std::shared_ptr<enum_array<Mesh, RenderLayer>> makeCachedMesh(std::atomic_size_t *meshCount)
+{
+    return std::shared_ptr<enum_array<Mesh, RenderLayer>>(incCachedMeshCount(meshCount, new enum_array<Mesh, RenderLayer>), [meshCount](enum_array<Mesh, RenderLayer> *v)
+    {
+        meshCount->fetch_sub(1);
+        delete v;
+    });
+}
+
+void dumpMeshStats()
+{
+    getDebugLog() << L"Chunk Mesh Count:" << cachedChunkMeshCount.load() << L"  Subchunk Mesh Count:" << cachedSubchunkMeshCount.load() << L"  ViewPoint Mesh Count:" << cachedViewPointMeshCount.load() << postnl;
+    ObjectCounter<WrappedEntity, 0>::dumpCount();
+    ObjectCounter<PhysicsObject, 0>::dumpCount();
+    ObjectCounter<PhysicsWorld, 0>::dumpCount();
+    ObjectCounter<PhysicsWorld, 1>::dumpCount();
+    ObjectCounter<BlockChunk, 0>::dumpCount();
+}
 }
 
 void ViewPoint::generateMeshesFn()
 {
+    auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     BlockLightingCache lightingCache;
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
     while(!shuttingDown)
     {
         PositionF position = this->position;
         std::int32_t viewDistance = this->viewDistance;
-        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
+        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = makeCachedMesh(&cachedViewPointMeshCount);
         bool anyUpdates = false;
         if(blockRenderMeshes == nullptr)
             anyUpdates = true;
@@ -151,9 +179,9 @@ void ViewPoint::generateMeshesFn()
                         }
                         continue; // chunk is up-to-date
                     }
-                    chunkMeshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
+                    chunkMeshes = makeCachedMesh(&cachedChunkMeshCount);
                     anyUpdates = true;
-                    //debugLog << L"generating ... (" << chunkPosition.x << L", " << chunkPosition.y << L", " << chunkPosition.z << L")\x1b[K\r" << std::flush;
+                    getDebugLog() << L"generating ... (" << chunkPosition.x << L", " << chunkPosition.y << L", " << chunkPosition.z << L")\x1b[K\r" << post;
                     VectorI subchunkIndex;
                     for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
                     {
@@ -177,7 +205,7 @@ void ViewPoint::generateMeshesFn()
                                     }
                                     continue; // subchunk is up-to-date
                                 }
-                                subchunkMeshes = std::make_shared<enum_array<Mesh, RenderLayer>>();
+                                subchunkMeshes = makeCachedMesh(&cachedSubchunkMeshCount);
                                 WorldLightingProperties wlp = world.getLighting();
                                 for(std::int32_t bx = 0; bx < BlockChunk::subchunkSizeXYZ; bx++)
                                 {
@@ -219,8 +247,16 @@ void ViewPoint::generateMeshesFn()
                         meshes->at(rl).append(chunkMeshes->at(rl));
                     }
                 }
+                auto currentTime = std::chrono::steady_clock::now();
+                if(currentTime - std::chrono::seconds(1) >= lastDumpMeshStatsTime)
+                {
+                    lastDumpMeshStatsTime = currentTime;
+                    dumpMeshStats();
+                }
             }
         }
+
+
 
         if(anyUpdates == false)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

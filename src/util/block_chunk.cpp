@@ -17,6 +17,8 @@
  */
 #include "util/block_chunk.h"
 #include "util/wrapped_entity.h"
+#include "util/logging.h"
+#include "platform/platform.h"
 
 namespace programmerjake
 {
@@ -30,6 +32,12 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
         blockUpdateListHead = blockUpdateListHead->chunk_next;
         delete deleteMe;
     }
+}
+
+BlockChunk::BlockChunk(PositionI basePosition)
+    : BasicBlockChunk(basePosition)
+{
+    dumpStackTraceToDebugLog();
 }
 
 BlockChunk::~BlockChunk()

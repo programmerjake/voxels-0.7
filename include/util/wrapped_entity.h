@@ -22,6 +22,7 @@
 #include "util/world_lock_manager.h"
 #include "util/intrusive_list.h"
 #include "entity/entity_struct.h"
+#include "util/object_counter.h"
 #include <mutex>
 
 namespace programmerjake
@@ -30,6 +31,7 @@ namespace voxels
 {
 struct WrappedEntity final
 {
+    ObjectCounter<WrappedEntity, 0> objectCounter;
     Entity entity;
     intrusive_list_members<WrappedEntity> subchunkListMembers;
     typedef intrusive_list<WrappedEntity, &WrappedEntity::subchunkListMembers> SubchunkListType;
@@ -38,6 +40,13 @@ struct WrappedEntity final
     BlockChunkSubchunk *currentSubchunk = nullptr;
     BlockChunk *currentChunk = nullptr;
     std::uint64_t lastEntityRunCount = 0;
+    WrappedEntity()
+    {
+    }
+    WrappedEntity(Entity e)
+        : entity(e)
+    {
+    }
 };
 }
 }

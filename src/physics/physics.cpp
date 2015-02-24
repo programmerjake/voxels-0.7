@@ -25,7 +25,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
     //getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
-    float stepDuration = 1 / 240.0f;
+    float stepDuration = 1 / 60.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;
     for(std::size_t step = 1; step <= stepCount; step++)
@@ -35,10 +35,22 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
         else
             currentTime += stepDuration;
         bool anyCollisions = true;
-        for(std::size_t i = 0; i < 100 && anyCollisions; i++)
+        for(std::size_t i = 0; i < 10 && anyCollisions; i++)
         {
             anyCollisions = false;
-            std::vector<std::shared_ptr<PhysicsObject>> objectsVector(objects.begin(), objects.end());
+            std::vector<std::shared_ptr<PhysicsObject>> objectsVector;
+            objectsVector.reserve(objects.size());
+            for(auto i = objects.begin(); i != objects.end();)
+            {
+                std::shared_ptr<PhysicsObject> v = i->lock();
+                if(v == nullptr)
+                    i = objects.erase(i);
+                else
+                {
+                    objectsVector.push_back(v);
+                    ++i;
+                }
+            }
             std::vector<std::pair<float, std::shared_ptr<PhysicsObject>>> temporaryObjectsVector;
             temporaryObjectsVector.resize(objectsVector.size());
             for(std::size_t i = 0; i < temporaryObjectsVector.size(); i++)
@@ -112,6 +124,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             constexpr std::size_t bigHashPrime = 14713, smallHashPrime = 91;
             struct HashNode final
             {
+                ObjectCounter<PhysicsWorld, 1> objectCounter;
                 HashNode * hashNext;
                 int x, z;
                 std::shared_ptr<PhysicsObject> object;
@@ -123,7 +136,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             collideObjectsList.reserve(objects.size());
             for(auto i = objects.begin(); i != objects.end();)
             {
-                std::shared_ptr<PhysicsObject> o = *i;
+                std::shared_ptr<PhysicsObject> o = i->lock();
                 if(!o || o->isDestroyed())
                 {
                     i = objects.erase(i);
@@ -172,8 +185,9 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 i++;
             }
             std::size_t startCollideObjectsListSize = collideObjectsList.size();
-            for(std::shared_ptr<PhysicsObject> objectA : objects)
+            for(auto i = objects.begin(); i != objects.end(); i++)
             {
+                std::shared_ptr<PhysicsObject> objectA = i->lock();
                 if(objectA->isStatic())
                     continue;
                 collideObjectsList.resize(startCollideObjectsListSize);

@@ -71,6 +71,9 @@ private:
     BlockUpdate(const BlockUpdate &) = delete;
     const BlockUpdate &operator =(const BlockUpdate &) = delete;
 public:
+    ~BlockUpdate()
+    {
+    }
     PositionI getPosition() const
     {
         return position;
@@ -209,10 +212,8 @@ struct BlockChunkChunkVariables final
 
 struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables>
 {
-    explicit BlockChunk(PositionI basePosition)
-        : BasicBlockChunk(basePosition)
-    {
-    }
+    ObjectCounter<BlockChunk, 0> objectCounter;
+    explicit BlockChunk(PositionI basePosition);
     ~BlockChunk();
 };
 

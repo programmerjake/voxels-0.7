@@ -93,31 +93,10 @@ protected:
                         block = Block(Blocks::builtin::Air::descriptor());
                         block.lighting = Lighting::makeSkyLighting();
                     }
-                    if((std::abs(pos.x) == 10 || std::abs(pos.z) == 10) && (std::abs(pos.x) > 2 || pos.z > 0) && std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
-                    {
-                        if(pos.y < 10 + World::AverageGroundHeight)
-                            block = Block(Blocks::builtin::Stone::descriptor());
-                    }
-                    if(std::abs(pos.x) <= 10 && std::abs(pos.z) <= 10)
-                    {
-                        if(pos.y == 10 + World::AverageGroundHeight)
-                            block = Block(Blocks::builtin::Stone::descriptor());
-                        else if(pos.y < 10 + World::AverageGroundHeight)
-                            block.lighting = Lighting();
-                    }
                     blocks[x][y][z] = block;
                 }
             }
         }
-#if 1
-        constexpr float newEntityHeight = 8.5f + World::AverageGroundHeight;
-        PositionF epos = VectorF(0.5f, newEntityHeight, 0.5f) + chunkBasePosition * VectorF(0, 0, 0);
-        if(BlockChunk::getChunkBasePosition((PositionI)epos) == chunkBasePosition)
-        {
-            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos, VectorF(0), lock_manager);
-            world.addEntity(Entities::builtin::items::Stone::descriptor(), epos + VectorF(0, 1, 0), VectorF(0), lock_manager);
-        }
-#endif
     }
 };
 }
@@ -213,11 +192,10 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
     {
         lightingThreadFn();
     });
-    const int initSize = 1;
     WorldLockManager lock_manager;
-    for(int dx = -initSize; dx <= initSize; dx++)
+    for(int dx = -1; dx < 1; dx++)
     {
-        for(int dz = -initSize; dz <= initSize; dz++)
+        for(int dz = -1; dz < 1; dz++)
         {
             BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
             initialChunk->chunkVariables.generateStarted = true;
@@ -512,10 +490,8 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
 Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
 {
     assert(descriptor != nullptr);
-    Entity e(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData);
     BlockIterator bi = getBlockIterator((PositionI)position);
-    WrappedEntity *entity = new WrappedEntity;
-    entity->entity = std::move(e);
+    WrappedEntity *entity = new WrappedEntity(Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData));
     descriptor->makeData(entity->entity, *this, lock_manager);
     std::unique_lock<std::recursive_mutex> lockChunk(bi.chunk->chunkVariables.entityListLock);
     WrappedEntity::ChunkListType &chunkList = bi.chunk->chunkVariables.entityList;

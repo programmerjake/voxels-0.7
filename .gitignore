@@ -11,4 +11,4 @@ voxels-optimized
 gmon.out
 ValgrindOut.xml
 core
-
+*.log

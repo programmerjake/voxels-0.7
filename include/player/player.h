@@ -28,6 +28,9 @@
 #include <cassert>
 #include <memory>
 #include <atomic>
+#include <mutex>
+#include <iterator>
+#include "util/intrusive_list.h"
 
 namespace programmerjake
 {
@@ -51,7 +54,7 @@ private:
     Mesh rightLeg;
     void generateMeshes();
     PlayerEntity()
-        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.3, 0.9, true, false, PhysicsProperties(PhysicsProperties::defaultCollisionMask, PhysicsProperties::defaultCollisionMask, 0, 1)))
+        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.3, 0.9, true, false, PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1)))
     {
         generateMeshes();
     }
@@ -78,19 +81,40 @@ public:
 class Player final
 {
     friend class Entities::builtin::PlayerEntity;
+    friend class Players_t;
+    Player(const Player &) = delete;
+    Player &operator =(const Player &) = delete;
 private:
+    intrusive_list_members<Player> playersListMembers;
+    void addToPlayersList();
+    void removeFromPlayersList();
     PositionF lastPosition;
     std::shared_ptr<GameInput> gameInput;
     struct GameInputMonitoring
     {
         std::atomic_bool gotJump;
+        std::atomic_int actionCount;
+        std::atomic_int dropCount;
+        std::atomic_bool gotAttack;
         GameInputMonitoring()
-            : gotJump(false)
+            : gotJump(false), actionCount(0), dropCount(0), gotAttack(false)
         {
         }
         bool retrieveGotJump()
         {
             return gotJump.exchange(false);
+        }
+        bool retrieveGotAttack()
+        {
+            return gotAttack.exchange(false);
+        }
+        int retrieveActionCount()
+        {
+            return actionCount.exchange(0);
+        }
+        int retrieveDropCount()
+        {
+            return dropCount.exchange(0);
         }
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
@@ -107,6 +131,27 @@ public:
                 gameInputMonitoring->gotJump = true;
             return Event::ReturnType::Propagate;
         });
+        gameInput->attack.onChange.bind([this](EventArguments&)
+        {
+            if(this->gameInput->attack.get())
+                gameInputMonitoring->gotAttack = true;
+            return Event::ReturnType::Propagate;
+        });
+        gameInput->action.bind([this](EventArguments&)
+        {
+            gameInputMonitoring->actionCount++;
+            return Event::ReturnType::Propagate;
+        });
+        gameInput->drop.bind([this](EventArguments&)
+        {
+            gameInputMonitoring->dropCount++;
+            return Event::ReturnType::Propagate;
+        });
+        addToPlayersList();
+    }
+    ~Player()
+    {
+        removeFromPlayersList();
     }
     Matrix getWorldOrientationXZTransform() const
     {
@@ -125,7 +170,72 @@ public:
     {
         return lastPosition;
     }
+    RayCasting::Ray getViewRay() const
+    {
+        return transform(inverse(getViewTransform()), RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));
+    }
+    RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask, const Entity *playerEntity)
+    {
+        return world.castRay(getViewRay(), lock_manager, 10, rayBlockCollisionMask, playerEntity);
+    }
+    void addItem()
+    {
+        #warning implement
+    }
 };
+
+class LockedPlayers;
+
+class Players_t final
+{
+    friend class Player;
+    friend class LockedPlayers;
+private:
+    typedef intrusive_list<Player, &Player::playersListMembers> ListType;
+    static ListType *pPlayers;
+    static std::recursive_mutex playersLock;
+    static void addPlayer(Player *player);
+    static void removePlayer(Player *player);
+    static ListType::iterator begin();
+    static ListType::iterator end();
+public:
+    LockedPlayers lock();
+};
+
+class LockedPlayers final
+{
+    friend class Players_t;
+private:
+    std::unique_lock<std::recursive_mutex> theLock;
+    LockedPlayers()
+        : theLock(Players_t::playersLock)
+    {
+    }
+public:
+    typedef Players_t::ListType::iterator iterator;
+    iterator begin() const
+    {
+        return Players_t::begin();
+    }
+    iterator end() const
+    {
+        return Players_t::end();
+    }
+    void unlock()
+    {
+        theLock.unlock();
+    }
+    void lock()
+    {
+        theLock.lock();
+    }
+    bool try_lock()
+    {
+        return theLock.try_lock();
+    }
+};
+
+extern Players_t Players;
 }
 }
 

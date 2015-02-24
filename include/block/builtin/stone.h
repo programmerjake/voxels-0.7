@@ -47,6 +47,8 @@ private:
         : StoneBlock(L"builtin.stone", TextureAtlas::Stone.td())
     {
     }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
 };
 }
 }

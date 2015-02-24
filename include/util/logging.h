@@ -41,15 +41,15 @@ class LogStream : public std::wostringstream
 private:
     std::function<void(std::wstring)> *const postFunction;
 public:
-    std::mutex *const theLock;
-    LogStream(std::mutex *theLock, std::function<void(std::wstring)> *postFunction)
+    std::recursive_mutex *const theLock;
+    LogStream(std::recursive_mutex *theLock, std::function<void(std::wstring)> *postFunction)
         : postFunction(postFunction), theLock(theLock)
     {
     }
     void setPostFunction(std::function<void(std::wstring)> newPostFunction)
     {
         assert(newPostFunction != nullptr);
-        std::unique_lock<std::mutex> lockIt(*theLock);
+        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
         *postFunction = newPostFunction;
     }
     friend void operator <<(std::wostream &os, post_t);
@@ -59,14 +59,14 @@ inline void operator <<(std::wostream &os, post_t)
 {
     LogStream *logStream = dynamic_cast<LogStream *>(&os);
     assert(logStream != nullptr);
-    std::unique_lock<std::mutex> lockIt(*logStream->theLock);
+    std::unique_lock<std::recursive_mutex> lockIt(*logStream->theLock);
     (*logStream->postFunction)(logStream->str());
     logStream->str(L"");
 }
 
 inline LogStream &getDebugLog()
 {
-    static std::mutex theLock;
+    static std::recursive_mutex theLock;
     static std::function<void(std::wstring)> postFunction = [](std::wstring str)
     {
         std::wcout << str << std::flush;

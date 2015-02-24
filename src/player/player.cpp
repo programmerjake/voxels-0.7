@@ -18,6 +18,9 @@
 #include "player/player.h"
 #include "render/generate.h"
 #include "texture/texture_atlas.h"
+#include "block/builtin/stone.h"
+#include "block/builtin/air.h"
+#include "entity/builtin/items/stone.h"
 
 namespace programmerjake
 {
@@ -59,6 +62,98 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     {
 
     }
+    for(int i = player->gameInputMonitoring->retrieveActionCount(); i > 0; i--)
+    {
+        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, &entity);
+        if(c.valid())
+        {
+            switch(c.type)
+            {
+            case RayCasting::Collision::Type::None:
+                break;
+            case RayCasting::Collision::Type::Entity:
+                break;
+            case RayCasting::Collision::Type::Block:
+            {
+                PositionI pos = c.blockPosition;
+                bool good = true;
+                switch(c.blockFace)
+                {
+                case BlockFaceOrNone::NX:
+                    pos.x--;
+                    break;
+                case BlockFaceOrNone::PX:
+                    pos.x++;
+                    break;
+                case BlockFaceOrNone::NY:
+                    pos.y--;
+                    break;
+                case BlockFaceOrNone::PY:
+                    pos.y++;
+                    break;
+                case BlockFaceOrNone::NZ:
+                    pos.z--;
+                    break;
+                case BlockFaceOrNone::PZ:
+                    pos.z++;
+                    break;
+                default:
+                    good = false;
+                    break;
+                }
+                Block b = Block(Blocks::builtin::Stone::descriptor());
+                good = good && b.good();
+                if(good)
+                {
+                    if(entity.physicsObject->collidesWithBlock(b.descriptor->blockShape, pos))
+                        good = false;
+                }
+                if(good)
+                {
+                    world.setBlock(world.getBlockIterator(pos), lock_manager, b);
+                }
+                break;
+            }
+            }
+        }
+    }
+    if(player->gameInputMonitoring->retrieveGotAttack())
+    {
+        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, &entity);
+        if(c.valid())
+        {
+            switch(c.type)
+            {
+            case RayCasting::Collision::Type::None:
+                break;
+            case RayCasting::Collision::Type::Entity:
+                break;
+            case RayCasting::Collision::Type::Block:
+            {
+                PositionI pos = c.blockPosition;
+                bool good = true;
+                BlockIterator bi = world.getBlockIterator(pos);
+                Block b = bi.get(lock_manager);
+                good = good && b.good();
+                if(good)
+                {
+                    world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
+                    b.descriptor->onBreak(world, b, bi, lock_manager);
+                }
+                break;
+            }
+            }
+        }
+    }
+    for(int i = player->gameInputMonitoring->retrieveDropCount(); i > 0; i--)
+    {
+        const Entities::builtin::Item *newDescriptor = Entities::builtin::items::Stone::descriptor();
+        if(newDescriptor != nullptr)
+        {
+            RayCasting::Ray ray = player->getViewRay();
+            world.addEntity(newDescriptor, ray.startPosition, normalize(ray.direction) * 6, lock_manager, newDescriptor->makeItemDataIgnorePlayer(player.get()));
+        }
+    }
     #warning implement
 }
 void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
@@ -73,5 +168,66 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
 }
 }
 }
+
+void Player::addToPlayersList()
+{
+    Players.addPlayer(this);
+}
+void Player::removeFromPlayersList()
+{
+    Players.removePlayer(this);
+}
+
+Players_t::ListType *Players_t::pPlayers = nullptr;
+std::recursive_mutex Players_t::playersLock;
+void Players_t::addPlayer(Player *player)
+{
+    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    if(pPlayers == nullptr)
+    {
+        pPlayers = new ListType([](Player *)
+        {
+        });
+    }
+    pPlayers->push_front(player);
+}
+void Players_t::removePlayer(Player *player)
+{
+    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    if(pPlayers == nullptr)
+    {
+        pPlayers = new ListType([](Player *)
+        {
+        });
+    }
+    pPlayers->erase(pPlayers->to_iterator(player));
+}
+Players_t::ListType::iterator Players_t::begin()
+{
+    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    if(pPlayers == nullptr)
+    {
+        pPlayers = new ListType([](Player *)
+        {
+        });
+    }
+    return pPlayers->begin();
+}
+Players_t::ListType::iterator Players_t::end()
+{
+    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    if(pPlayers == nullptr)
+    {
+        pPlayers = new ListType([](Player *)
+        {
+        });
+    }
+    return pPlayers->end();
+}
+LockedPlayers Players_t::lock()
+{
+    return LockedPlayers();
+}
+Players_t Players;
 }
 }

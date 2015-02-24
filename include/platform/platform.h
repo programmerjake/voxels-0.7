@@ -314,6 +314,9 @@ unsigned getGlobalAudioSampleRate();
 unsigned getGlobalAudioChannelCount();
 bool audioRunning();
 int main(std::vector<std::wstring> args); // called by the platform's main function
+void dumpStackTraceToDebugLog();
+void setStackTraceDumpingEnabled(bool v);
+bool getStackTraceDumpingEnabled();
 }
 }
 

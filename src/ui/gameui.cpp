@@ -45,11 +45,8 @@ void GameUi::clear(Renderer &renderer)
     Ui::clear(renderer);
     Matrix tform = player->getViewTransform();
     viewPoint->setPosition(player->getPosition());
-    Matrix invViewTransform = inverse(tform);
-    RayCasting::Ray ray(PositionF(0, 0, 0, player->getPosition().d), VectorF(0, 0, -1));
-    ray = transform(invViewTransform, ray);
     renderer << RenderLayer::Opaque;
-    RayCasting::Collision collision = world.castRay(ray, lock_manager, 10, RayCasting::BlockCollisionMaskDefault, playerEntity);
+    RayCasting::Collision collision = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, playerEntity);
     if(collision.valid())
     {
         Matrix selectionBoxTransform;

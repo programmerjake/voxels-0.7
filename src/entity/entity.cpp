@@ -28,7 +28,7 @@ void Entity::destroy()
 {
     if(physicsObject)
         physicsObject->destroy();
-    data = nullptr;
+    *this = Entity();
 }
 
 EntityDescriptor::EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor)

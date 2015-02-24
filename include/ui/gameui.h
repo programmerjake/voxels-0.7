@@ -100,14 +100,35 @@ public:
     {
         if(Ui::handleMouseUp(event))
             return true;
-        #warning implement
+        if(event.button == MouseButton_Left)
+        {
+            gameInput->attack.set(false);
+            return true;
+        }
+        if(event.button == MouseButton_Right)
+        {
+            return true;
+        }
         return true;
     }
     virtual bool handleMouseDown(MouseDownEvent &event) override
     {
         if(Ui::handleMouseDown(event))
             return true;
-        #warning implement
+        if(event.button == MouseButton_Left)
+        {
+            gameInput->attack.set(true);
+            return true;
+        }
+        if(event.button == MouseButton_Right)
+        {
+            if(!isDialogUp && !gameInput->paused.get())
+            {
+                EventArguments args;
+                gameInput->action(args);
+            }
+            return true;
+        }
         return true;
     }
     virtual bool handleMouseMove(MouseMoveEvent &event) override
@@ -208,9 +229,20 @@ public:
             calculateMoveDirection();
             return true;
         }
+        if(event.key == KeyboardKey::Q)
+        {
+            EventArguments args;
+            gameInput->drop(args);
+            return true;
+        }
         if(event.key == KeyboardKey::Escape)
         {
             gameInput->paused.set(!gameInput->paused.get());
+            return true;
+        }
+        if(event.key == KeyboardKey::F12)
+        {
+            setStackTraceDumpingEnabled(!getStackTraceDumpingEnabled());
             return true;
         }
         return false;
