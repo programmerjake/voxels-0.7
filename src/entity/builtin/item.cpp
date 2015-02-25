@@ -68,16 +68,17 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
         entity.destroy();
         return;
     }
-    if(data->followingPlayer && distanceSquared < 0.5 * 0.5)
-    {
-        onGiveToPlayer(*closestPlayer);
-        entity.destroy();
-        return;
-    }
     if(data->followingPlayer)
     {
         VectorF displacement = playerPosition - position;
-        VectorF velocity = normalize(displacement) * std::min<float>(3, abs(displacement));
+        float speed = std::max<float>(1, absSquared(displacement)) * 3;
+        VectorF velocity = normalize(displacement) * speed;
+        if(abs(displacement) < deltaTime * speed)
+        {
+            onGiveToPlayer(*closestPlayer);
+            entity.destroy();
+            return;
+        }
         entity.physicsObject->setCurrentState(position, velocity);
         return;
     }

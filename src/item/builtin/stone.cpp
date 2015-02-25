@@ -40,9 +40,9 @@ Entity *Stone::dropAsEntity(Item item, World &world, WorldLockManager &lock_mana
 {
     return player.createDroppedItemEntity(Entities::builtin::items::Stone::descriptor(), world, lock_manager);
 }
-Item Stone::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player, const Entity *playerEntity) const
+Item Stone::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
 {
-    RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager, playerEntity);
+    RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
     if(c.valid())
     {
         if(player.placeBlock(c, world, lock_manager, Block(Blocks::builtin::Stone::descriptor())))

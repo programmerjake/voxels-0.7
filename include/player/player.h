@@ -96,6 +96,7 @@ private:
     void removeFromPlayersList();
     PositionF lastPosition;
     std::shared_ptr<GameInput> gameInput;
+    Entity *playerEntity;
     struct GameInputMonitoring
     {
         std::atomic_bool gotJump;
@@ -125,6 +126,10 @@ private:
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
 public:
+    Entity *getPlayerEntity() const
+    {
+        return playerEntity;
+    }
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
@@ -182,7 +187,7 @@ public:
     {
         return transform(inverse(getViewTransform()), RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));
     }
-    RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask, const Entity *playerEntity)
+    RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask)
     {
         return world.castRay(getViewRay(), lock_manager, 10, rayBlockCollisionMask, playerEntity);
     }
@@ -193,9 +198,9 @@ public:
         assert(itemDescriptor != nullptr);
         return world.addEntity(descriptor, ray.startPosition, normalize(ray.direction) * 6, lock_manager, itemDescriptor->makeItemDataIgnorePlayer(this));
     }
-    RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, const Entity *playerEntity, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
+    RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
     {
-        RayCasting::Collision c = castRay(world, lock_manager, rayBlockCollisionMask, playerEntity);
+        RayCasting::Collision c = castRay(world, lock_manager, rayBlockCollisionMask);
         if(c.valid())
         {
             switch(c.type)
@@ -236,17 +241,7 @@ public:
         }
         return RayCasting::Collision(world);
     }
-    bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b)
-    {
-        BlockIterator bi = world.getBlockIterator(collision.blockPosition);
-        Block oldBlock = bi.get(lock_manager);
-        if(oldBlock.descriptor == Blocks::builtin::Air::descriptor())
-        {
-            world.setBlock(bi, lock_manager, b);
-            return true;
-        }
-        return false;
-    }
+    bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b);
     int addItem(Item item)
     {
         if(!item.good())

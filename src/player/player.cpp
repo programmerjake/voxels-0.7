@@ -59,7 +59,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     if(player->gameInputMonitoring->retrieveGotJump() || player->gameInput->jump.get())
     {
         if(entity.physicsObject->isSupported())
-            newVelocity.y += 5;
+            newVelocity.y = std::max<float>(5, newVelocity.y);
     }
     entity.physicsObject->setCurrentState(player->lastPosition, newVelocity);
     if(player->gameInput->isCreativeMode.get())
@@ -71,13 +71,13 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         Item item = player->removeSelectedItem();
         if(item.good())
         {
-            item = item.descriptor->onUse(item, world, lock_manager, *player, &entity);
+            item = item.descriptor->onUse(item, world, lock_manager, *player);
             player->addItem(item);
         }
     }
     if(player->gameInputMonitoring->retrieveGotAttack())
     {
-        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, &entity);
+        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
         if(c.valid())
         {
             switch(c.type)
@@ -122,6 +122,7 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
         return;
     }
     player->lastPosition = entity.physicsObject->getPosition();
+    player->playerEntity = &entity;
 }
 }
 }
@@ -134,6 +135,23 @@ void Player::removeFromPlayersList()
 {
     Players.removePlayer(this);
 }
+
+bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b)
+{
+    if(!b.good())
+        return false;
+    BlockIterator bi = world.getBlockIterator(collision.blockPosition);
+    Block oldBlock = bi.get(lock_manager);
+    if(oldBlock.descriptor == Blocks::builtin::Air::descriptor())
+    {
+        if(playerEntity->physicsObject->collidesWithBlock(b.descriptor->blockShape, collision.blockPosition))
+            return false;
+        world.setBlock(bi, lock_manager, b);
+        return true;
+    }
+    return false;
+}
+
 
 Players_t::ListType *Players_t::pPlayers = nullptr;
 std::recursive_mutex Players_t::playersLock;

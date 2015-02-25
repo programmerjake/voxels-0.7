@@ -74,7 +74,7 @@ public:
         return true;
     }
     virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override = 0;
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player, const Entity *playerEntity) const override = 0;
+    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override = 0;
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override = 0;
 };
 }

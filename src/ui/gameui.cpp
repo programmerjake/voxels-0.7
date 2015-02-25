@@ -49,7 +49,7 @@ void GameUi::clear(Renderer &renderer)
     Matrix tform = player->getViewTransform();
     viewPoint->setPosition(player->getPosition());
     renderer << RenderLayer::Opaque;
-    RayCasting::Collision collision = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, playerEntity);
+    RayCasting::Collision collision = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
     if(collision.valid())
     {
         Matrix selectionBoxTransform;

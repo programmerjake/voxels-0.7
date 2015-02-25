@@ -50,7 +50,7 @@ public:
     virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const = 0;
     virtual bool dataEqual(std::shared_ptr<void> data1, std::shared_ptr<void> data2) const = 0;
     virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player, const Entity *playerEntity) const = 0;
+    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const = 0;
 };
 
