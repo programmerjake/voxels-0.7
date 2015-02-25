@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
+ * Voxels is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Voxels is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Voxels; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ *
+ */
 #ifndef ITEM_STRUCT_H_INCLUDED
 #define ITEM_STRUCT_H_INCLUDED
 
@@ -5,6 +25,8 @@
 #include <cstdint>
 #include <utility>
 #include <cassert>
+#include "render/mesh.h"
+#include "util/checked_array.h"
 
 namespace programmerjake
 {
@@ -160,6 +182,48 @@ struct ItemStack final
             item = Item();
         }
         return 1;
+    }
+    void render(Mesh &dest, float minX, float maxX, float minY, float maxY) const;
+};
+
+template <std::size_t W, std::size_t H>
+class ItemStackArray final
+{
+public:
+    checked_array<checked_array<ItemStack, H>, W> itemStacks;
+    /** @brief insert another item into this ItemStackArray
+     * @param item the Item to insert
+     * @return 1 if the item could be inserted, 0 otherwise
+     */
+    int insert(Item theItem)
+    {
+        for(auto &i : itemStacks)
+        {
+            for(ItemStack &itemStack : i)
+            {
+                int retval = itemStack.insert(theItem);
+                if(retval > 0)
+                    return retval;
+            }
+        }
+        return 0;
+    }
+    /** @brief remove an item from this ItemStackArray
+     * @param item the Item to remove
+     * @return 1 if the item could be removed, 0 otherwise
+     */
+    int remove(Item theItem)
+    {
+        for(auto &i : itemStacks)
+        {
+            for(ItemStack &itemStack : i)
+            {
+                int retval = itemStack.remove(theItem);
+                if(retval > 0)
+                    return retval;
+            }
+        }
+        return 0;
     }
 };
 }

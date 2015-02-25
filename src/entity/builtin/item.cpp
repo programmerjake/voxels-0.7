@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -18,6 +21,7 @@
 #include "entity/builtin/item.h"
 #include "player/player.h"
 #include "physics/physics.h"
+#include "util/math_constants.h"
 
 namespace programmerjake
 {
@@ -28,7 +32,7 @@ namespace Entities
 namespace builtin
 {
 
-void Item::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
+void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
 {
     std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
     constexpr float angleSpeed = 2 * M_PI / 7.5f;
@@ -66,7 +70,7 @@ void Item::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager
     }
     if(data->followingPlayer && distanceSquared < 0.5 * 0.5)
     {
-        closestPlayer->addItem();
+        onGiveToPlayer(*closestPlayer);
         entity.destroy();
         return;
     }

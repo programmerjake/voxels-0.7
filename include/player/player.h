@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -31,6 +34,9 @@
 #include <mutex>
 #include <iterator>
 #include "util/intrusive_list.h"
+#include "item/item_struct.h"
+#include "entity/builtin/item.h"
+#include "block/builtin/air.h"
 
 namespace programmerjake
 {
@@ -120,6 +126,8 @@ private:
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
 public:
     const std::wstring name;
+    std::size_t currentItemIndex = 0;
+    ItemStackArray<9, 4> items;
     Player(std::wstring name, std::shared_ptr<GameInput> gameInput)
         : gameInput(gameInput), name(name)
     {
@@ -178,9 +186,95 @@ public:
     {
         return world.castRay(getViewRay(), lock_manager, 10, rayBlockCollisionMask, playerEntity);
     }
-    void addItem()
+    Entity *createDroppedItemEntity(EntityDescriptorPointer descriptor, World &world, WorldLockManager &lock_manager)
     {
-        #warning implement
+        RayCasting::Ray ray = getViewRay();
+        const Entities::builtin::EntityItem *itemDescriptor = dynamic_cast<const Entities::builtin::EntityItem *>(descriptor);
+        assert(itemDescriptor != nullptr);
+        return world.addEntity(descriptor, ray.startPosition, normalize(ray.direction) * 6, lock_manager, itemDescriptor->makeItemDataIgnorePlayer(this));
+    }
+    RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, const Entity *playerEntity, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
+    {
+        RayCasting::Collision c = castRay(world, lock_manager, rayBlockCollisionMask, playerEntity);
+        if(c.valid())
+        {
+            switch(c.type)
+            {
+            case RayCasting::Collision::Type::None:
+                return RayCasting::Collision(world);
+            case RayCasting::Collision::Type::Entity:
+                return RayCasting::Collision(world);
+            case RayCasting::Collision::Type::Block:
+            {
+                PositionI &pos = c.blockPosition;
+                switch(c.blockFace)
+                {
+                case BlockFaceOrNone::NX:
+                    pos.x--;
+                    break;
+                case BlockFaceOrNone::PX:
+                    pos.x++;
+                    break;
+                case BlockFaceOrNone::NY:
+                    pos.y--;
+                    break;
+                case BlockFaceOrNone::PY:
+                    pos.y++;
+                    break;
+                case BlockFaceOrNone::NZ:
+                    pos.z--;
+                    break;
+                case BlockFaceOrNone::PZ:
+                    pos.z++;
+                    break;
+                default:
+                    return RayCasting::Collision(world);
+                }
+                return c;
+            }
+            }
+        }
+        return RayCasting::Collision(world);
+    }
+    bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b)
+    {
+        BlockIterator bi = world.getBlockIterator(collision.blockPosition);
+        Block oldBlock = bi.get(lock_manager);
+        if(oldBlock.descriptor == Blocks::builtin::Air::descriptor())
+        {
+            world.setBlock(bi, lock_manager, b);
+            return true;
+        }
+        return false;
+    }
+    int addItem(Item item)
+    {
+        if(!item.good())
+            return 1;
+        int addedCount = items.itemStacks[currentItemIndex][0].insert(item);
+        if(addedCount > 0)
+            return addedCount;
+        return items.insert(item);
+    }
+    ItemStack &getSelectedItemStack()
+    {
+        return items.itemStacks[currentItemIndex][0];
+    }
+    const ItemStack &getSelectedItemStack() const
+    {
+        return items.itemStacks[currentItemIndex][0];
+    }
+    Item getSelectedItem() const
+    {
+        return getSelectedItemStack().item;
+    }
+    Item removeSelectedItem()
+    {
+        Item retval = getSelectedItem();
+        int removedCount = getSelectedItemStack().remove(retval);
+        if(removedCount > 0)
+            return retval;
+        return Item();
     }
 };
 

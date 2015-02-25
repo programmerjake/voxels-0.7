@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -123,7 +126,6 @@ struct TransformedMeshRRef
         : tform(tform), mesh(mesh)
     {
     }
-    operator Mesh() &&;
     operator std::shared_ptr<Mesh>() &&;
     operator TransformedMesh() &&;
 };
@@ -136,7 +138,6 @@ struct ColorizedMeshRRef
         : color(color), mesh(mesh)
     {
     }
-    operator Mesh() &&;
     operator std::shared_ptr<Mesh>() &&;
     operator ColorizedMesh() &&;
 };
@@ -150,7 +151,6 @@ struct ColorizedTransformedMeshRRef
         : color(color), tform(tform), mesh(mesh)
     {
     }
-    operator Mesh() &&;
     operator std::shared_ptr<Mesh>() &&;
     operator ColorizedTransformedMesh() &&;
 };
@@ -452,11 +452,6 @@ inline ColorizedTransformedMeshRef::operator ColorizedTransformedMesh() const
 }
 
 
-inline TransformedMeshRRef::operator Mesh() &&
-{
-    return Mesh(std::move(*this));
-}
-
 inline TransformedMeshRRef::operator std::shared_ptr<Mesh>() &&
 {
     return std::shared_ptr<Mesh>(new Mesh(std::move(*this)));
@@ -467,11 +462,6 @@ inline TransformedMeshRRef::operator TransformedMesh() &&
     return TransformedMesh(tform, std::shared_ptr<Mesh>(new Mesh(std::move(mesh))));
 }
 
-inline ColorizedMeshRRef::operator Mesh() &&
-{
-    return Mesh(std::move(*this));
-}
-
 inline ColorizedMeshRRef::operator std::shared_ptr<Mesh>() &&
 {
     return std::shared_ptr<Mesh>(new Mesh(std::move(*this)));
@@ -480,11 +470,6 @@ inline ColorizedMeshRRef::operator std::shared_ptr<Mesh>() &&
 inline ColorizedMeshRRef::operator ColorizedMesh() &&
 {
     return ColorizedMesh(color, std::shared_ptr<Mesh>(new Mesh(std::move(mesh))));
-}
-
-inline ColorizedTransformedMeshRRef::operator Mesh() &&
-{
-    return Mesh(std::move(*this));
 }
 
 inline ColorizedTransformedMeshRRef::operator std::shared_ptr<Mesh>() &&

@@ -106,6 +106,8 @@
 		<Unit filename="include/generate/biome/decorator.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
+		<Unit filename="include/item/builtin/block.h" />
+		<Unit filename="include/item/builtin/stone.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />
 		<Unit filename="include/lighting/lighting.h" />
@@ -165,6 +167,7 @@
 		<Unit filename="include/util/linked_map.h" />
 		<Unit filename="include/util/lock.h" />
 		<Unit filename="include/util/logging.h" />
+		<Unit filename="include/util/math_constants.h" />
 		<Unit filename="include/util/matrix.h" />
 		<Unit filename="include/util/monitored_variable.h" />
 		<Unit filename="include/util/object_counter.h" />
@@ -189,7 +192,10 @@
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
 		<Unit filename="src/entity/builtin/item.cpp" />
+		<Unit filename="src/entity/builtin/stone.cpp" />
 		<Unit filename="src/entity/entity.cpp" />
+		<Unit filename="src/item/builtin/stone.cpp" />
+		<Unit filename="src/item/item.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />

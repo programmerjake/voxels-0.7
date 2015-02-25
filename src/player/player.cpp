@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -21,6 +24,7 @@
 #include "block/builtin/stone.h"
 #include "block/builtin/air.h"
 #include "entity/builtin/items/stone.h"
+#include "item/item.h"
 
 namespace programmerjake
 {
@@ -64,57 +68,11 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     }
     for(int i = player->gameInputMonitoring->retrieveActionCount(); i > 0; i--)
     {
-        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault, &entity);
-        if(c.valid())
+        Item item = player->removeSelectedItem();
+        if(item.good())
         {
-            switch(c.type)
-            {
-            case RayCasting::Collision::Type::None:
-                break;
-            case RayCasting::Collision::Type::Entity:
-                break;
-            case RayCasting::Collision::Type::Block:
-            {
-                PositionI pos = c.blockPosition;
-                bool good = true;
-                switch(c.blockFace)
-                {
-                case BlockFaceOrNone::NX:
-                    pos.x--;
-                    break;
-                case BlockFaceOrNone::PX:
-                    pos.x++;
-                    break;
-                case BlockFaceOrNone::NY:
-                    pos.y--;
-                    break;
-                case BlockFaceOrNone::PY:
-                    pos.y++;
-                    break;
-                case BlockFaceOrNone::NZ:
-                    pos.z--;
-                    break;
-                case BlockFaceOrNone::PZ:
-                    pos.z++;
-                    break;
-                default:
-                    good = false;
-                    break;
-                }
-                Block b = Block(Blocks::builtin::Stone::descriptor());
-                good = good && b.good();
-                if(good)
-                {
-                    if(entity.physicsObject->collidesWithBlock(b.descriptor->blockShape, pos))
-                        good = false;
-                }
-                if(good)
-                {
-                    world.setBlock(world.getBlockIterator(pos), lock_manager, b);
-                }
-                break;
-            }
-            }
+            item = item.descriptor->onUse(item, world, lock_manager, *player, &entity);
+            player->addItem(item);
         }
     }
     if(player->gameInputMonitoring->retrieveGotAttack())
@@ -147,11 +105,10 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     }
     for(int i = player->gameInputMonitoring->retrieveDropCount(); i > 0; i--)
     {
-        const Entities::builtin::Item *newDescriptor = Entities::builtin::items::Stone::descriptor();
-        if(newDescriptor != nullptr)
+        Item item = player->removeSelectedItem();
+        if(item.good())
         {
-            RayCasting::Ray ray = player->getViewRay();
-            world.addEntity(newDescriptor, ray.startPosition, normalize(ray.direction) * 6, lock_manager, newDescriptor->makeItemDataIgnorePlayer(player.get()));
+            item.descriptor->dropAsEntity(item, world, lock_manager, *player);
         }
     }
     #warning implement

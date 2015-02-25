@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -24,6 +27,7 @@
 #include <cstdint>
 #include <random>
 #include "util/logging.h"
+#include "util/math_constants.h"
 
 namespace programmerjake
 {
@@ -34,13 +38,13 @@ namespace Entities
 {
 namespace builtin
 {
-class Item : public EntityDescriptor
+class EntityItem : public EntityDescriptor
 {
 protected:
     enum_array<Mesh, RenderLayer> meshes;
     Matrix preorientSelectionBoxTransform;
     static constexpr float baseSize = 0.5f, extraHeight = 0.1f;
-    Item(std::wstring name, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
+    EntityItem(std::wstring name, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
         : EntityDescriptor(name, PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))), meshes(meshes), preorientSelectionBoxTransform(preorientSelectionBoxTransform)
     {
     }
@@ -93,6 +97,7 @@ protected:
     {
         return Matrix::rotateY(data->angle).concat(Matrix::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
     }
+    virtual void onGiveToPlayer(Player &player) const = 0;
 public:
     virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override
     {
@@ -120,6 +125,7 @@ public:
             return true;
         return false;
     }
+    static constexpr float dropSpeed = 3;
 };
 }
 }

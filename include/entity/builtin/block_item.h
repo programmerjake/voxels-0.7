@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * This file is part of Voxels.
+ *
  * Voxels is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -29,7 +32,7 @@ namespace Entities
 {
 namespace builtin
 {
-class BlockItem : public Item
+class BlockItem : public EntityItem
 {
 private:
     static Matrix getPreorientSelectionBoxTransform()
@@ -44,13 +47,14 @@ private:
     }
 protected:
     BlockItem(std::wstring name, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
-        : Item(name, makeMeshes(td, td, td, td, td, td, rl), getPreorientSelectionBoxTransform())
+        : EntityItem(name, makeMeshes(td, td, td, td, td, td, rl), getPreorientSelectionBoxTransform())
     {
     }
     BlockItem(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, RenderLayer rl = RenderLayer::Opaque)
-        : Item(name, makeMeshes(nx, px, ny, py, nz, pz, rl), getPreorientSelectionBoxTransform())
+        : EntityItem(name, makeMeshes(nx, px, ny, py, nz, pz, rl), getPreorientSelectionBoxTransform())
     {
     }
+    virtual void onGiveToPlayer(Player &player) const override = 0;
 };
 }
 }
