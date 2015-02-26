@@ -55,7 +55,7 @@ public:
     {
         done = true;
     }
-    virtual void layout() override final
+    virtual void layout() override
     {
         minX = -Display::scaleX();
         maxX = Display::scaleX();
@@ -63,7 +63,7 @@ public:
         maxY = Display::scaleY();
         Container::layout();
     }
-    virtual void reset() override final
+    virtual void reset() override
     {
         minX = -Display::scaleX();
         maxX = Display::scaleX();

@@ -26,6 +26,7 @@
 #include "player/player.h"
 #include "platform/platform.h"
 #include "util/math_constants.h"
+#include "ui/item.h"
 
 namespace programmerjake
 {
@@ -41,6 +42,7 @@ private:
     std::shared_ptr<ViewPoint> viewPoint;
     std::shared_ptr<GameInput> gameInput;
     std::shared_ptr<Player> player;
+    std::shared_ptr<UiItem> uiItem;
     const Entity *playerEntity;
     bool isDialogUp = false;
     bool isWDown = false;
@@ -285,6 +287,17 @@ public:
             return true;
         #warning implement
         return true;
+    }
+    virtual void reset() override
+    {
+        if(uiItem == nullptr)
+        {
+            float simYRes = 480;
+            float scale = 2 / simYRes;
+            uiItem = std::make_shared<UiItem>(-8 * scale, 8 * scale, -1, -1 + 16 * scale, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[0][0]));
+            add(uiItem);
+        }
+        Ui::reset();
     }
 protected:
     virtual void clear(Renderer &renderer) override;
