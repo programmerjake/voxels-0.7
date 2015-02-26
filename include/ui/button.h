@@ -181,7 +181,7 @@ protected:
             textWidth = 1;
         if(textHeight == 0)
             textHeight = 1;
-        float textScale = 0.5 * (maxY - minY - 2 * spacing) / textHeight;
+        float textScale = (maxY - minY - 2 * spacing) / textHeight;
         textScale = std::min<float>(textScale, (maxX - minX - 2 * spacing) / textWidth);
         if(pressed.get())
         {

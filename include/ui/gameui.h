@@ -42,7 +42,7 @@ private:
     std::shared_ptr<ViewPoint> viewPoint;
     std::shared_ptr<GameInput> gameInput;
     std::shared_ptr<Player> player;
-    std::shared_ptr<UiItem> uiItem;
+    bool addedUi = false;
     const Entity *playerEntity;
     bool isDialogUp = false;
     bool isWDown = false;
@@ -290,12 +290,22 @@ public:
     }
     virtual void reset() override
     {
-        if(uiItem == nullptr)
+        std::shared_ptr<Player> player = this->player;
+        if(!addedUi)
         {
-            float simYRes = 480;
+            addedUi = true;
+            float simYRes = 240;
             float scale = 2 / simYRes;
-            uiItem = std::make_shared<UiItem>(-8 * scale, 8 * scale, -1, -1 + 16 * scale, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[0][0]));
-            add(uiItem);
+            float hotBarItemSize = 20 * scale;
+            int hotBarSize = player->items.itemStacks.size();
+            float hotBarWidth = hotBarItemSize * hotBarSize;
+            for(int i = 0; i < hotBarSize; i++)
+            {
+                add(std::make_shared<UiItemWithBorder>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
+                {
+                    return player->currentItemIndex == i;
+                }));
+            }
         }
         Ui::reset();
     }

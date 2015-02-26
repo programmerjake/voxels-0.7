@@ -451,9 +451,10 @@ public:
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
+        float logMinZ = std::log(minZ), logMaxZ = std::log(maxZ);
         for(std::size_t i = 0; i < elements.size(); i++)
         {
-            elements[i]->render(renderer, interpolate((float)(i + 1) / elements.size(), maxZ, minZ), interpolate((float)i / elements.size(), maxZ, minZ), hasFocus && i == currentFocusIndex);
+            elements[i]->render(renderer, std::exp(interpolate((float)(i + 1) / elements.size(), logMaxZ, logMinZ)), std::exp(interpolate((float)i / elements.size(), logMaxZ, logMinZ)), hasFocus && i == currentFocusIndex);
         }
     }
 public:

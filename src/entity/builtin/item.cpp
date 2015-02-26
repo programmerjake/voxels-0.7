@@ -61,7 +61,9 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
     if(!data->followingPlayer && closestPlayer != nullptr && distanceSquared < 2 * 2)
     {
         data->followingPlayer = true;
+        auto oldPhysicsObject = entity.physicsObject;
         entity.physicsObject = PhysicsObject::makeEmpty(position, VectorF(0), entity.physicsObject->getWorld());
+        oldPhysicsObject->destroy();
     }
     if(data->followingPlayer && closestPlayer == nullptr)
     {

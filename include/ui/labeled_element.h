@@ -53,7 +53,7 @@ protected:
             textWidth = 1;
         if(textHeight == 0)
             textHeight = 1;
-        float textScale = 0.5f * (maxY - minY) / textHeight;
+        float textScale = (maxY - minY) / textHeight;
         textScale = std::min<float>(textScale, (maxX - newMinX) / textWidth);
         float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
         float centerY = 0.5f * (minY + maxY);

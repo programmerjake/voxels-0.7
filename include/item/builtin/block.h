@@ -67,7 +67,7 @@ public:
     {
         Matrix tform = Matrix::scale(std::min<float>(maxX - minX, maxY - minY));
         tform = tform.concat(Matrix::translate(minX, minY, -1));
-        tform = tform.scale(maxRenderZ);
+        tform = tform.concat(Matrix::scale(maxRenderZ));
         dest.append(transform(tform, mesh));
     }
     virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override

@@ -197,11 +197,11 @@ public:
      */
     int insert(Item theItem)
     {
-        for(auto &i : itemStacks)
+        for(std::size_t y = 0; y < H; y++)
         {
-            for(ItemStack &itemStack : i)
+            for(std::size_t x = 0; x < W; x++)
             {
-                int retval = itemStack.insert(theItem);
+                int retval = itemStacks[x][y].insert(theItem);
                 if(retval > 0)
                     return retval;
             }
@@ -214,11 +214,11 @@ public:
      */
     int remove(Item theItem)
     {
-        for(auto &i : itemStacks)
+        for(std::size_t y = 0; y < H; y++)
         {
-            for(ItemStack &itemStack : i)
+            for(std::size_t x = 0; x < W; x++)
             {
-                int retval = itemStack.remove(theItem);
+                int retval = itemStacks[x][y].remove(theItem);
                 if(retval > 0)
                     return retval;
             }
