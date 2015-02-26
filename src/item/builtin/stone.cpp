@@ -33,29 +33,9 @@ namespace builtin
 {
 
 Stone::Stone()
-    : ItemBlock(L"builtin.stone", TextureAtlas::Stone.td())
+    : ItemBlock(L"builtin.stone", TextureAtlas::Stone.td(), Blocks::builtin::Stone::descriptor(), Entities::builtin::items::Stone::descriptor())
 {
 }
-Entity *Stone::dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
-{
-    return player.createDroppedItemEntity(Entities::builtin::items::Stone::descriptor(), world, lock_manager);
-}
-Item Stone::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
-{
-    RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
-    if(c.valid())
-    {
-        if(player.placeBlock(c, world, lock_manager, Block(Blocks::builtin::Stone::descriptor())))
-            return Item();
-    }
-    return item;
-}
-Item Stone::onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const
-{
-    world.addEntity(Entities::builtin::items::Stone::descriptor(), dispensePosition + VectorF(0.5f), dispenseDirection * Entities::builtin::EntityItem::dropSpeed, lock_manager);
-    return Item();
-}
-
 }
 }
 }

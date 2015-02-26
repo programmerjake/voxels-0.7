@@ -46,9 +46,6 @@ public:
     {
         return pointer();
     }
-    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
-    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override;
 };
 }
 }

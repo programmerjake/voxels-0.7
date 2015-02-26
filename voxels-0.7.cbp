@@ -140,6 +140,7 @@
 		<Unit filename="include/ui/dynamic_label.h" />
 		<Unit filename="include/ui/element.h" />
 		<Unit filename="include/ui/gameui.h" />
+		<Unit filename="include/ui/item.h" />
 		<Unit filename="include/ui/label.h" />
 		<Unit filename="include/ui/labeled_element.h" />
 		<Unit filename="include/ui/shaded_container.h" />

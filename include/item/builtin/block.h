@@ -26,6 +26,9 @@
 #include <cmath>
 #include "util/math_constants.h"
 #include <algorithm>
+#include "block/block.h"
+#include "entity/builtin/item.h"
+#include "player/player.h"
 
 namespace programmerjake
 {
@@ -38,9 +41,11 @@ namespace builtin
 class ItemBlock : public ItemDescriptor
 {
     Mesh mesh;
+    BlockDescriptorPointer block;
+    const Entities::builtin::EntityItem *entity;
 protected:
-    ItemBlock(std::wstring name, Mesh boxMesh)
-        : ItemDescriptor(name)
+    ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemDescriptor(name), block(block), entity(entity)
     {
         Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
         tform = tform.concat(Matrix::rotateY(-M_PI / 4));
@@ -49,12 +54,12 @@ protected:
         tform = tform.concat(Matrix::translate(0.5f, 0.5f, 0.1f));
         mesh = transform(tform, std::move(boxMesh));
     }
-    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz)
-        : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz))
+    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz), block, entity)
     {
     }
-    ItemBlock(std::wstring name, TextureDescriptor td)
-        : ItemBlock(name, td, td, td, td, td, td)
+    ItemBlock(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemBlock(name, td, td, td, td, td, td, block, entity)
     {
     }
 public:
@@ -73,9 +78,25 @@ public:
     {
         return true;
     }
-    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override = 0;
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override = 0;
-    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override = 0;
+    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    {
+        return player.createDroppedItemEntity(entity, world, lock_manager);
+    }
+    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    {
+        RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
+        if(c.valid())
+        {
+            if(player.placeBlock(c, world, lock_manager, Block(block)))
+                return Item();
+        }
+        return item;
+    }
+    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override
+    {
+        world.addEntity(entity, dispensePosition + VectorF(0.5f), dispenseDirection * Entities::builtin::EntityItem::dropSpeed, lock_manager);
+        return Item();
+    }
 };
 }
 }
