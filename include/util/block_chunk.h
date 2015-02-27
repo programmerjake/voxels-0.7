@@ -39,6 +39,7 @@
 #include "util/atomic_shared_ptr.h"
 #include "util/lock.h"
 #include <cstdint>
+#include "generate/biome/biome.h"
 
 namespace programmerjake
 {
@@ -158,11 +159,17 @@ struct BlockChunkBlock final
     const BlockChunkBlock &operator =(const BlockChunkBlock &) = delete;
 };
 
+struct BlockChunkBiome final
+{
+    BiomeProperties biomeProperties;
+};
+
 typedef std::uint64_t BlockChunkInvalidateCountType;
 
 struct BlockChunkSubchunk final
 {
     std::mutex lock;
+    std::mutex biome_lock;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     std::atomic_bool cachedMeshesUpToDate;
     WrappedEntity::SubchunkListType entityList;
@@ -213,7 +220,7 @@ struct BlockChunkChunkVariables final
     }
 };
 
-struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkSubchunk, BlockChunkChunkVariables>
+struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiome, BlockChunkSubchunk, BlockChunkChunkVariables>
 {
     ObjectCounter<BlockChunk, 0> objectCounter;
     explicit BlockChunk(PositionI basePosition);
@@ -289,6 +296,69 @@ public:
     }
     BlockChunkFullLock(const BlockChunkFullLock &) = delete;
     const BlockChunkFullLock operator =(const BlockChunkFullLock &) = delete;
+};
+
+class BlockChunkColumnLock final
+{
+    BlockChunk &chunk;
+    struct SubchunkLockIterator
+    {
+        VectorI pos;
+        BlockChunk *chunk;
+        std::mutex &operator *() const
+        {
+            return chunk->subchunks[pos.x][0][pos.z].lock;
+        }
+        std::mutex *operator ->() const
+        {
+            return &operator *();
+        }
+        bool operator ==(const SubchunkLockIterator &rt) const
+        {
+            return rt.pos == pos;
+        }
+        bool operator !=(const SubchunkLockIterator &rt) const
+        {
+            return rt.pos != pos;
+        }
+        const SubchunkLockIterator &operator ++()
+        {
+            pos.x++;
+            if(pos.x >= BlockChunk::subchunkCountX)
+            {
+                pos.x = 0;
+                pos.z++;
+            }
+            return *this;
+        }
+        SubchunkLockIterator operator ++(int)
+        {
+            SubchunkLockIterator retval = *this;
+            operator ++();
+            return std::move(retval);
+        }
+        SubchunkLockIterator()
+        {
+        }
+        SubchunkLockIterator(VectorI pos, BlockChunk *chunk)
+        {
+        }
+    };
+public:
+    explicit BlockChunkColumnLock(BlockChunk &chunk)
+        : chunk(chunk)
+    {
+        SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk), end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+        lock_all(begin, end);
+    }
+    ~BlockChunkColumnLock()
+    {
+        SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk), end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+        for(auto i = begin; i != end; i++)
+            i->unlock();
+    }
+    BlockChunkColumnLock(const BlockChunkColumnLock &) = delete;
+    const BlockChunkColumnLock operator =(const BlockChunkColumnLock &) = delete;
 };
 
 #if 0

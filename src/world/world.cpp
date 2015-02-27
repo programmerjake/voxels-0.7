@@ -24,6 +24,7 @@
 #include <random>
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
+#include "block/builtin/grass.h"
 #include "entity/builtin/items/stone.h"
 #include <cmath>
 #include <random>
@@ -89,8 +90,10 @@ protected:
                     PositionI pos = chunkBasePosition + VectorI(x, y, z);
                     PositionF fpos = pos + VectorF(0.5f);
                     Block block;
-                    if(fpos.y <= groundHeight)
+                    if(pos.y < groundHeight)
                         block = Block(Blocks::builtin::Stone::descriptor());
+                    else if(pos.y == groundHeight)
+                        block = Block(Blocks::builtin::Grass::descriptor());
                     else
                     {
                         block = Block(Blocks::builtin::Air::descriptor());
@@ -342,13 +345,25 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
 #endif
 
     typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
+    typedef checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> BiomeArrayType;
     std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
+    std::unique_ptr<BiomeArrayType> biomes(new BiomeArrayType);
     BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition);
     for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
     {
         BlockIterator bi = gcbi;
         bi.moveBy(*i);
         blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
+    }
+    for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+    {
+        for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+        {
+            BlockIterator bi = gcbi;
+            bi.moveBy(VectorI(dx, 0, dz));
+            bi.updateBiomeLock(new_lock_manager);
+            biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
+        }
     }
     BlockIterator cbi = getBlockIterator(chunk->basePosition);
     {
@@ -389,6 +404,16 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
         }
     }
     new_lock_manager.clear();
+    for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+    {
+        for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+        {
+            BlockIterator bi = cbi;
+            bi.moveBy(VectorI(dx, 0, dz));
+            bi.updateBiomeLock(lock_manager);
+            biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
+        }
+    }
     setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
 }
 

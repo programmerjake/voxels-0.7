@@ -34,185 +34,190 @@ namespace programmerjake
 {
 namespace voxels
 {
-class RandomWorldGenerator : public WorldGenerator
+class RandomSource final
 {
-protected:
-    class RandomSource final
+    friend class RandomWorldGenerator;
+public:
+    typedef std::size_t RandomClass;
+    static constexpr RandomClass fbmRandomStart = 0;
+    static constexpr RandomClass fbmRandomSize = 5;
+    static constexpr RandomClass biomeTemperatureStart = fbmRandomStart + fbmRandomSize;
+    static constexpr RandomClass biomeTemperatureSize = 5;
+    static constexpr RandomClass biomeHumidityStart = biomeTemperatureStart + biomeTemperatureSize;
+    static constexpr RandomClass biomeHumiditySize = 5;
+    static RandomClass allocateRandomClasses(std::size_t count)
     {
-        friend class RandomWorldGenerator;
-    public:
-        typedef std::size_t RandomClass;
-        static constexpr RandomClass fbmRandomStart = 0;
-        static constexpr RandomClass fbmRandomSize = 5;
-        static RandomClass allocateRandomClasses(std::size_t count)
+        static std::atomic_size_t nextRandomClass(biomeHumidityStart + biomeHumiditySize);
+        return nextRandomClass.fetch_add(count, std::memory_order_relaxed);
+    }
+private:
+    struct RandomChunkKey
+    {
+        PositionI basePosition;
+        RandomClass randomClass;
+        RandomChunkKey(PositionI basePosition, RandomClass randomClass)
+            : basePosition(basePosition), randomClass(randomClass)
         {
-            static std::atomic_size_t nextRandomClass(fbmRandomStart + fbmRandomSize);
-            return nextRandomClass.fetch_add(count, std::memory_order_relaxed);
         }
-    private:
-        struct RandomChunkKey
+        RandomChunkKey() = default;
+        bool operator ==(const RandomChunkKey &rt) const
         {
-            PositionI basePosition;
-            RandomClass randomClass;
-            RandomChunkKey(PositionI basePosition, RandomClass randomClass)
-                : basePosition(basePosition), randomClass(randomClass)
-            {
-            }
-            RandomChunkKey() = default;
-            bool operator ==(const RandomChunkKey &rt) const
-            {
-                return basePosition == rt.basePosition && randomClass == rt.randomClass;
-            }
-            bool operator !=(const RandomChunkKey &rt) const
-            {
-                return basePosition != rt.basePosition || randomClass != rt.randomClass;
-            }
-        };
-        struct RandomChunkKeyHasher
+            return basePosition == rt.basePosition && randomClass == rt.randomClass;
+        }
+        bool operator !=(const RandomChunkKey &rt) const
         {
-            std::size_t operator ()(const RandomChunkKey &v) const
-            {
-                return std::hash<PositionI>()(v.basePosition) + 65537 * v.randomClass;
-            }
-        };
-        struct RandomCacheChunk
+            return basePosition != rt.basePosition || randomClass != rt.randomClass;
+        }
+    };
+    struct RandomChunkKeyHasher
+    {
+        std::size_t operator ()(const RandomChunkKey &v) const
         {
-            checked_array<checked_array<checked_array<std::uint32_t, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> values;
-            const RandomChunkKey key;
-            typedef std::minstd_rand random_generator;
-            static random_generator makeRandomGenerator(World::SeedType seed, RandomChunkKey key)
+            return std::hash<PositionI>()(v.basePosition) + 65537 * v.randomClass;
+        }
+    };
+    struct RandomCacheChunk
+    {
+        checked_array<checked_array<checked_array<std::uint32_t, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> values;
+        const RandomChunkKey key;
+        typedef std::minstd_rand random_generator;
+        static random_generator makeRandomGenerator(World::SeedType seed, RandomChunkKey key)
+        {
+            seed += RandomChunkKeyHasher()(key);
+            return random_generator(seed);
+        }
+        RandomCacheChunk(World::SeedType seed, RandomChunkKey key)
+            : key(key)
+        {
+            random_generator rg = makeRandomGenerator(seed, key);
+            std::uniform_int_distribution<std::int32_t> distribution;
+            for(auto &i : values)
             {
-                seed += RandomChunkKeyHasher()(key);
-                return random_generator(seed);
-            }
-            RandomCacheChunk(World::SeedType seed, RandomChunkKey key)
-                : key(key)
-            {
-                random_generator rg = makeRandomGenerator(seed, key);
-                std::uniform_int_distribution<std::int32_t> distribution;
-                for(auto &i : values)
+                for(auto &j : i)
                 {
-                    for(auto &j : i)
+                    for(auto &v : j)
                     {
-                        for(auto &v : j)
-                        {
-                            v = distribution(rg);
-                        }
+                        v = distribution(rg);
                     }
                 }
             }
-            std::int32_t getValueI(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
-            {
-                return values[rx][ry][rz];
-            }
-            std::int32_t getValueI(VectorI relativePosition) const
-            {
-                return getValueI(relativePosition.x, relativePosition.y, relativePosition.z);
-            }
-            float getValueCanonicalF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
-            {
-                return (float)getValueI(rx, ry, rz) * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
-            }
-            float getValueBalancedF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
-            {
-                std::uint32_t v = getValueI(rx, ry, rz);
-                v <<= 1; // shift max bit into sign bit
-                return (float)(std::int32_t)v * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
-            }
-            float getValueCanonicalF(VectorI relativePosition) const
-            {
-                return getValueCanonicalF(relativePosition.x, relativePosition.y, relativePosition.z);
-            }
-            float getValueBalancedF(VectorI relativePosition) const
-            {
-                return getValueBalancedF(relativePosition.x, relativePosition.y, relativePosition.z);
-            }
-        };
-        const World::SeedType seed;
-        std::unordered_map<RandomChunkKey, RandomCacheChunk, RandomChunkKeyHasher> randomCache;
-        RandomSource(World::SeedType seed)
-            : seed(seed)
-        {
         }
-    public:
-        const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)
+        std::int32_t getValueI(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
-            RandomChunkKey key(chunkBasePosition, randomClass);
-            auto iter = randomCache.find(key);
-            if(iter == randomCache.end())
-            {
-                iter = std::get<0>(randomCache.insert(std::make_pair(key, RandomCacheChunk(seed, key))));
-            }
-            return std::get<1>(*iter);
+            return values[rx][ry][rz];
         }
-        std::int32_t getValueI(PositionI position, RandomClass randomClass)
+        std::int32_t getValueI(VectorI relativePosition) const
         {
-            return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueI(BlockChunk::getChunkRelativePosition((VectorI)position));
+            return getValueI(relativePosition.x, relativePosition.y, relativePosition.z);
         }
-        float getValueBalancedF(PositionI position, RandomClass randomClass)
+        float getValueCanonicalF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
-            return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueBalancedF(BlockChunk::getChunkRelativePosition((VectorI)position));
+            return (float)getValueI(rx, ry, rz) * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
         }
-        float getValueCanonicalF(PositionI position, RandomClass randomClass)
+        float getValueBalancedF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
-            return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueCanonicalF(BlockChunk::getChunkRelativePosition((VectorI)position));
+            std::uint32_t v = getValueI(rx, ry, rz);
+            v <<= 1; // shift max bit into sign bit
+            return (float)(std::int32_t)v * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
         }
-        float getValueBalancedF(PositionF position, RandomClass randomClass)
+        float getValueCanonicalF(VectorI relativePosition) const
         {
-            PositionI floorPos = (PositionI)position;
-            VectorF t = position - floorPos;
-            VectorF nt = VectorF(1) - t;
-            float vnxnynz = getValueBalancedF(floorPos + VectorI(0, 0, 0), randomClass);
-            float vpxnynz = getValueBalancedF(floorPos + VectorI(1, 0, 0), randomClass);
-            float vnxpynz = getValueBalancedF(floorPos + VectorI(0, 1, 0), randomClass);
-            float vpxpynz = getValueBalancedF(floorPos + VectorI(1, 1, 0), randomClass);
-            float vnxnypz = getValueBalancedF(floorPos + VectorI(0, 0, 1), randomClass);
-            float vpxnypz = getValueBalancedF(floorPos + VectorI(1, 0, 1), randomClass);
-            float vnxpypz = getValueBalancedF(floorPos + VectorI(0, 1, 1), randomClass);
-            float vpxpypz = getValueBalancedF(floorPos + VectorI(1, 1, 1), randomClass);
-            float vnxny = vnxnynz * nt.z + vnxnypz * t.z;
-            float vpxny = vpxnynz * nt.z + vpxnypz * t.z;
-            float vnxpy = vnxpynz * nt.z + vnxpypz * t.z;
-            float vpxpy = vpxpynz * nt.z + vpxpypz * t.z;
-            float vnx = vnxny * nt.y + vnxpy * t.y;
-            float vpx = vpxny * nt.y + vpxpy * t.y;
-            return vnx * nt.x + vpx * t.x;
+            return getValueCanonicalF(relativePosition.x, relativePosition.y, relativePosition.z);
         }
-        float getValueCanonicalF(PositionF position, RandomClass randomClass)
+        float getValueBalancedF(VectorI relativePosition) const
         {
-            PositionI floorPos = (PositionI)position;
-            VectorF t = position - floorPos;
-            VectorF nt = VectorF(1) - t;
-            float vnxnynz = getValueCanonicalF(floorPos + VectorI(0, 0, 0), randomClass);
-            float vpxnynz = getValueCanonicalF(floorPos + VectorI(1, 0, 0), randomClass);
-            float vnxpynz = getValueCanonicalF(floorPos + VectorI(0, 1, 0), randomClass);
-            float vpxpynz = getValueCanonicalF(floorPos + VectorI(1, 1, 0), randomClass);
-            float vnxnypz = getValueCanonicalF(floorPos + VectorI(0, 0, 1), randomClass);
-            float vpxnypz = getValueCanonicalF(floorPos + VectorI(1, 0, 1), randomClass);
-            float vnxpypz = getValueCanonicalF(floorPos + VectorI(0, 1, 1), randomClass);
-            float vpxpypz = getValueCanonicalF(floorPos + VectorI(1, 1, 1), randomClass);
-            float vnxny = vnxnynz * nt.z + vnxnypz * t.z;
-            float vpxny = vpxnynz * nt.z + vpxnypz * t.z;
-            float vnxpy = vnxpynz * nt.z + vnxpypz * t.z;
-            float vpxpy = vpxpynz * nt.z + vpxpypz * t.z;
-            float vnx = vnxny * nt.y + vnxpy * t.y;
-            float vpx = vpxny * nt.y + vpxpy * t.y;
-            return vnx * nt.x + vpx * t.x;
-        }
-        float getFBMValue(PositionF position, float amplitudeFactor = 0.4f)
-        {
-            float retval = 0;
-            float factor = 1;
-            float scale = 1;
-            for(RandomClass randomClass = fbmRandomStart; randomClass < fbmRandomStart + fbmRandomSize; randomClass++)
-            {
-                retval += factor * getValueBalancedF(position * scale, randomClass);
-                factor *= amplitudeFactor;
-                scale *= 2;
-            }
-            return retval;
+            return getValueBalancedF(relativePosition.x, relativePosition.y, relativePosition.z);
         }
     };
+    const World::SeedType seed;
+    std::unordered_map<RandomChunkKey, RandomCacheChunk, RandomChunkKeyHasher> randomCache;
+    RandomSource(World::SeedType seed)
+        : seed(seed)
+    {
+    }
+public:
+    const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)
+    {
+        RandomChunkKey key(chunkBasePosition, randomClass);
+        auto iter = randomCache.find(key);
+        if(iter == randomCache.end())
+        {
+            iter = std::get<0>(randomCache.insert(std::make_pair(key, RandomCacheChunk(seed, key))));
+        }
+        return std::get<1>(*iter);
+    }
+    std::int32_t getValueI(PositionI position, RandomClass randomClass)
+    {
+        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueI(BlockChunk::getChunkRelativePosition((VectorI)position));
+    }
+    float getValueBalancedF(PositionI position, RandomClass randomClass)
+    {
+        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueBalancedF(BlockChunk::getChunkRelativePosition((VectorI)position));
+    }
+    float getValueCanonicalF(PositionI position, RandomClass randomClass)
+    {
+        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass).getValueCanonicalF(BlockChunk::getChunkRelativePosition((VectorI)position));
+    }
+    float getValueBalancedF(PositionF position, RandomClass randomClass)
+    {
+        PositionI floorPos = (PositionI)position;
+        VectorF t = position - floorPos;
+        VectorF nt = VectorF(1) - t;
+        float vnxnynz = getValueBalancedF(floorPos + VectorI(0, 0, 0), randomClass);
+        float vpxnynz = getValueBalancedF(floorPos + VectorI(1, 0, 0), randomClass);
+        float vnxpynz = getValueBalancedF(floorPos + VectorI(0, 1, 0), randomClass);
+        float vpxpynz = getValueBalancedF(floorPos + VectorI(1, 1, 0), randomClass);
+        float vnxnypz = getValueBalancedF(floorPos + VectorI(0, 0, 1), randomClass);
+        float vpxnypz = getValueBalancedF(floorPos + VectorI(1, 0, 1), randomClass);
+        float vnxpypz = getValueBalancedF(floorPos + VectorI(0, 1, 1), randomClass);
+        float vpxpypz = getValueBalancedF(floorPos + VectorI(1, 1, 1), randomClass);
+        float vnxny = vnxnynz * nt.z + vnxnypz * t.z;
+        float vpxny = vpxnynz * nt.z + vpxnypz * t.z;
+        float vnxpy = vnxpynz * nt.z + vnxpypz * t.z;
+        float vpxpy = vpxpynz * nt.z + vpxpypz * t.z;
+        float vnx = vnxny * nt.y + vnxpy * t.y;
+        float vpx = vpxny * nt.y + vpxpy * t.y;
+        return vnx * nt.x + vpx * t.x;
+    }
+    float getValueCanonicalF(PositionF position, RandomClass randomClass)
+    {
+        PositionI floorPos = (PositionI)position;
+        VectorF t = position - floorPos;
+        VectorF nt = VectorF(1) - t;
+        float vnxnynz = getValueCanonicalF(floorPos + VectorI(0, 0, 0), randomClass);
+        float vpxnynz = getValueCanonicalF(floorPos + VectorI(1, 0, 0), randomClass);
+        float vnxpynz = getValueCanonicalF(floorPos + VectorI(0, 1, 0), randomClass);
+        float vpxpynz = getValueCanonicalF(floorPos + VectorI(1, 1, 0), randomClass);
+        float vnxnypz = getValueCanonicalF(floorPos + VectorI(0, 0, 1), randomClass);
+        float vpxnypz = getValueCanonicalF(floorPos + VectorI(1, 0, 1), randomClass);
+        float vnxpypz = getValueCanonicalF(floorPos + VectorI(0, 1, 1), randomClass);
+        float vpxpypz = getValueCanonicalF(floorPos + VectorI(1, 1, 1), randomClass);
+        float vnxny = vnxnynz * nt.z + vnxnypz * t.z;
+        float vpxny = vpxnynz * nt.z + vpxnypz * t.z;
+        float vnxpy = vnxpynz * nt.z + vnxpypz * t.z;
+        float vpxpy = vpxpynz * nt.z + vpxpypz * t.z;
+        float vnx = vnxny * nt.y + vnxpy * t.y;
+        float vpx = vpxny * nt.y + vpxpy * t.y;
+        return vnx * nt.x + vpx * t.x;
+    }
+    float getFBMValue(PositionF position, RandomClass randomClassStart = fbmRandomStart, std::size_t randomClassCount = fbmRandomSize, float amplitudeFactor = 0.4f)
+    {
+        float retval = 0;
+        float factor = 1;
+        float scale = 1;
+        for(RandomClass randomClass = randomClassStart; randomClass < randomClassStart + randomClassCount; randomClass++)
+        {
+            retval += factor * getValueBalancedF(position * scale, randomClass);
+            factor *= amplitudeFactor;
+            scale *= 2;
+        }
+        return retval;
+    }
+};
+
+class RandomWorldGenerator : public WorldGenerator
+{
+protected:
     typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlocksArray;
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const = 0;
 public:
@@ -220,6 +225,21 @@ public:
     {
         std::unique_ptr<BlocksArray> blocks(new BlocksArray);
         RandomSource randomSource(world.getWorldGeneratorSeed());
+        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
+        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
+        {
+            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
+            {
+                PositionI pos = chunkBasePosition + VectorI(x, 0, z);
+                BlockIterator bi2 = bi;
+                bi2.moveTo(pos);
+                PositionF fpos = pos;
+                fpos *= 0.1f;
+                float temperature = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);
+                float humidity = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeHumidityStart, RandomSource::biomeHumiditySize) * 0.4f + 0.5f, 0, 1);
+                world.setBiomeProperties(bi2, lock_manager, BiomeProperties(BiomeDescriptors.getBiomeWeights(temperature, humidity, pos, randomSource)));
+            }
+        }
         generate(chunkBasePosition, *blocks, world, lock_manager, randomSource);
         world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
     }

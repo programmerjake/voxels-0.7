@@ -18,31 +18,46 @@
  * MA 02110-1301, USA.
  *
  */
+#ifndef TUNDRA_H_INCLUDED
+#define TUNDRA_H_INCLUDED
+
 #include "generate/biome/biome.h"
-#include <algorithm>
-#include <cmath>
+#include "util/global_instance_maker.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
-std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
-
-BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
+namespace Biomes
 {
-    BiomeWeights retval;
-    for(BiomeWeights::value_type &v : retval)
+namespace builtin
+{
+class Tundra final : public BiomeDescriptor
+{
+    friend class global_instance_maker<Tundra>;
+public:
+    static const Tundra *pointer()
     {
-        std::get<1>(v) = std::max<float>(0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
+        return global_instance_maker<Tundra>::getInstance();
     }
-    retval.normalize();
-    for(BiomeWeights::value_type &v : retval)
+    static BiomeDescriptorPointer descriptor()
     {
-        std::get<1>(v) = std::pow(std::get<1>(v), 4);
+        return pointer();
     }
-    retval.normalize();
-    return std::move(retval);
+private:
+    Tundra()
+        : BiomeDescriptor(L"builtin.tundra", 0, 0)
+    {
+    }
+public:
+    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
+    {
+        return (1 - temperature) * (1 - humidity);
+    }
+};
 }
 }
 }
+}
+
+#endif // TUNDRA_H_INCLUDED

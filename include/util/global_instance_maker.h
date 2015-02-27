@@ -32,7 +32,8 @@ private:
     static T *instance;
     static void init()
     {
-        instance = new T();
+        if(instance == nullptr)
+            instance = new T();
     }
     static void deinit()
     {
@@ -59,6 +60,7 @@ private:
 public:
     static const T *getInstance()
     {
+        init();
         return theHelper.passthrough(instance);
     }
 };

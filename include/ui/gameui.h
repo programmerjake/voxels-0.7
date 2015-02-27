@@ -27,6 +27,7 @@
 #include "platform/platform.h"
 #include "util/math_constants.h"
 #include "ui/item.h"
+#include "util/game_version.h"
 
 namespace programmerjake
 {
@@ -70,8 +71,10 @@ public:
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
         : world(world), lock_manager(lock_manager), gameInput(std::make_shared<GameInput>())
     {
+        if(GameVersion::DEBUG)
+            gameInput->paused.set(true);
         PositionF startingPosition = PositionF(0.5f, World::AverageGroundHeight + 8.5f, 0.5f, Dimension::Overworld);
-        viewPoint = std::make_shared<ViewPoint>(world, startingPosition, 32);
+        viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 32 : 64);
         player = std::make_shared<Player>(L"default-player-name", gameInput);
         playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
     }
@@ -221,8 +224,9 @@ public:
         {
             return true;
         }
+        default:
+            return false;
         }
-        return false;
     }
     virtual bool handleKeyDown(KeyDownEvent &event) override
     {
@@ -289,8 +293,9 @@ public:
             gameInput->hotBarSelect(args);
             return true;
         }
+        default:
+            return false;
         }
-        return false;
     }
     virtual bool handleKeyPress(KeyPressEvent &event) override
     {
@@ -336,9 +341,9 @@ public:
             float simYRes = 240;
             float scale = 2 / simYRes;
             float hotBarItemSize = 20 * scale;
-            int hotBarSize = player->items.itemStacks.size();
+            std::size_t hotBarSize = player->items.itemStacks.size();
             float hotBarWidth = hotBarItemSize * hotBarSize;
-            for(int i = 0; i < hotBarSize; i++)
+            for(std::size_t i = 0; i < hotBarSize; i++)
             {
                 add(std::make_shared<UiItemWithBorder>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
                 {

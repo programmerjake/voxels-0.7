@@ -54,11 +54,18 @@ class BlockIterator final
         VectorI currentSubchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
         return chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z];
     }
+    BlockChunkSubchunk &getBiomeSubchunk() const
+    {
+        VectorI currentSubchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
+        return chunk->subchunks[currentSubchunkIndex.x][0][currentSubchunkIndex.z];
+    }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        //PositionI currentSubchunkBasePosition = BlockChunk::getSubchunkBaseAbsolutePosition(currentBasePosition);
-        //debugLog << std::this_thread::get_id() << L": " << currentSubchunkBasePosition << std::endl;
         lock_manager.block_lock.set(getSubchunk().lock);
+    }
+    void updateBiomeLock(WorldLockManager &lock_manager) const
+    {
+        lock_manager.biome_lock.set(getBiomeSubchunk().biome_lock);
     }
     BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
@@ -227,10 +234,19 @@ private:
         updateLock(lock_manager);
         return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
     }
+    BlockChunkBiome &getBiome() const
+    {
+        return chunk->biomes[currentRelativePosition.x][currentRelativePosition.z];
+    }
 public:
     Block get(WorldLockManager &lock_manager) const
     {
         return (Block)getBlock(lock_manager).block;
+    }
+    const BiomeProperties &getBiomeProperties(WorldLockManager &lock_manager) const
+    {
+        updateBiomeLock(lock_manager);
+        return getBiome().biomeProperties;
     }
     BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const
     {

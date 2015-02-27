@@ -29,17 +29,20 @@
 #include <cassert>
 #include <utility>
 #include <tuple>
+#include "util/util.h"
+#include "util/position.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
 class BiomeDescriptor;
+class RandomSource;
 typedef const BiomeDescriptor *BiomeDescriptorPointer;
 typedef std::size_t BiomeIndex;
 class BiomeDescriptor
 {
-    friend class Biomes_t;
+    friend class BiomeDescriptors_t;
 private:
     BiomeIndex index;
 public:
@@ -48,29 +51,57 @@ public:
         return index;
     }
     const std::wstring name;
+    const float temperature;
+    const float humidity;
     const ColorF grassColor;
     const ColorF leavesColor;
     const ColorF waterColor;
-    BiomeDescriptor(std::wstring name, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
+    static ColorF makeBiomeGrassColor(float temperature, float humidity)
+    {
+        temperature = limit<float>(temperature, 0, 1);
+        humidity = limit<float>(humidity, 0, 1) * temperature;
+        return interpolate(temperature, RGBF(0.5f, 0.7f, 0.6f), interpolate(humidity, RGBF(0.75f, 0.7f, 0.33f), RGBF(0.25f, 1.0f, 0.2f)));
+    }
+    static ColorF makeBiomeLeavesColor(float temperature, float humidity)
+    {
+        temperature = limit<float>(temperature, 0, 1);
+        humidity = limit<float>(humidity, 0, 1) * temperature;
+        return interpolate(temperature, RGBF(0.4f, 0.63f, 0.5f), interpolate(humidity, RGBF(0.7f, 0.65f, 0.16f), RGBF(0.1f, 0.8f, 0.0f)));
+    }
+    static ColorF makeBiomeWaterColor(float temperature, float humidity)
+    {
+        temperature = limit<float>(temperature, 0, 1);
+        humidity = limit<float>(humidity, 0, 1) * temperature;
+        return interpolate(temperature, RGBF(0.0f, 0.0f, 1.0f), interpolate(humidity, RGBF(0.0f, 0.63f, 0.83f), RGBF(0.0f, 0.9f, 0.75f)));
+    }
+    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const = 0;
+protected:
+    BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
+    BiomeDescriptor(std::wstring name, float temperature, float humidity)
+        : BiomeDescriptor(name, temperature, humidity, makeBiomeGrassColor(temperature, humidity), makeBiomeLeavesColor(temperature, humidity), makeBiomeWaterColor(temperature, humidity))
+    {
+    }
 };
 
-class Biomes_t final
+class BiomeWeights;
+
+class BiomeDescriptors_t final
 {
     friend class BiomeDescriptor;
 private:
     static linked_map<std::wstring, BiomeDescriptorPointer> *pBiomeNameMap;
     static std::vector<BiomeDescriptorPointer> *pBiomeVector;
-    static void addBiome(BiomeDescriptorPointer biome)
+    static void addBiome(BiomeDescriptor *biome)
     {
         if(pBiomeVector == nullptr)
         {
-            pBiomeNameMap = new decltype(*pBiomeNameMap);
-            pBiomeVector = new decltype(*pBiomeVector);
+            pBiomeNameMap = new linked_map<std::wstring, BiomeDescriptorPointer>;
+            pBiomeVector = new std::vector<BiomeDescriptorPointer>;
         }
         biome->index = pBiomeVector->size();
         pBiomeVector->push_back(biome);
         assert(0 == pBiomeNameMap->count(biome->name));
-        pBiomeNameMap->insert(typename decltype(*pBiomeNameMap)::value_type(biome->name, biome));
+        pBiomeNameMap->insert(linked_map<std::wstring, BiomeDescriptorPointer>::value_type(biome->name, biome));
     }
 public:
     std::size_t size() const
@@ -88,7 +119,7 @@ public:
     iterator end() const
     {
         assert(pBiomeVector != nullptr);
-        return pBiomeVector->cbegin();
+        return pBiomeVector->cend();
     }
     iterator find(BiomeIndex bi) const
     {
@@ -114,14 +145,15 @@ public:
     {
         return *find(bi);
     }
+    BiomeWeights getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const;
 };
 
-static constexpr Biomes_t Biomes;
+static constexpr BiomeDescriptors_t BiomeDescriptors;
 
-inline BiomeDescriptor::BiomeDescriptor(std::wstring name, ColorF grassColor, ColorF leavesColor, ColorF waterColor)
-    : name(name), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
+inline BiomeDescriptor::BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor)
+    : name(name), temperature(temperature), humidity(humidity), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
 {
-    Biomes.addBiome(this);
+    BiomeDescriptors.addBiome(this);
 }
 
 template <typename T>
@@ -139,10 +171,10 @@ public:
 private:
     typedef std::vector<value_type> ElementsType;
 public:
-    typedef ElementsType::iterator iterator;
-    typedef ElementsType::const_iterator const_iterator;
-    typedef ElementsType::size_type size_type;
-    typedef ElementsType::difference_type difference_type;
+    typedef typename ElementsType::iterator iterator;
+    typedef typename ElementsType::const_iterator const_iterator;
+    typedef typename ElementsType::size_type size_type;
+    typedef typename ElementsType::difference_type difference_type;
 private:
     ElementsType elements;
     static std::size_t getIndex(BiomeDescriptorPointer biome)
@@ -154,8 +186,8 @@ private:
 public:
     BiomeMap()
     {
-        elements.reserve(Biomes.size());
-        for(BiomeDescriptorPointer v : Biomes)
+        elements.reserve(BiomeDescriptors.size());
+        for(BiomeDescriptorPointer v : BiomeDescriptors)
         {
             elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<>());
         }
@@ -245,7 +277,7 @@ public:
             ++next_iter;
         return std::pair<const_iterator, const_iterator>(iter, next_iter);
     }
-    void swap(BiomeArray &rt)
+    void swap(BiomeMap &rt)
     {
         std::swap(elements, rt.elements);
     }
@@ -253,7 +285,6 @@ public:
 
 class BiomeWeights final : public BiomeMap<float>
 {
-private:
 public:
     void normalize()
     {
@@ -273,14 +304,15 @@ struct BiomeProperties final
 {
 private:
     BiomeWeights weights;
-    template <ColorF BiomeDescriptor::*member>
+    bool good = false;
+    template <const ColorF BiomeDescriptor::*member>
     ColorF calcColorInternal() const
     {
         ColorF retval = RGBAF(0, 0, 0, 0);
-        for(const value_type &v : weights)
+        for(const BiomeWeights::value_type &v : weights)
         {
             float weight = std::get<1>(v);
-            BiomeDescriptor &biome = *std::get<0>(v);
+            const BiomeDescriptor &biome = *std::get<0>(v);
             ColorF c = biome.*member;
             retval.r += c.r * weight;
             retval.g += c.g * weight;
@@ -289,14 +321,14 @@ private:
         }
         return retval;
     }
-    template <float BiomeDescriptor::*member>
+    template <const float BiomeDescriptor::*member>
     float calcFloatInternal() const
     {
         float retval = 0;
-        for(const value_type &v : weights)
+        for(const BiomeWeights::value_type &v : weights)
         {
             float weight = std::get<1>(v);
-            BiomeDescriptor &biome = *std::get<0>(v);
+            const BiomeDescriptor &biome = *std::get<0>(v);
             retval += biome.*member * weight;
         }
         return retval;
@@ -326,6 +358,16 @@ public:
         grassColor = calcColorInternal<&BiomeDescriptor::grassColor>();
         leavesColor = calcColorInternal<&BiomeDescriptor::leavesColor>();
         waterColor = calcColorInternal<&BiomeDescriptor::waterColor>();
+        good = true;
+    }
+    BiomeProperties()
+    {
+    }
+    void swap(BiomeProperties &rt)
+    {
+        BiomeProperties temp = std::move(*this);
+        *this = std::move(rt);
+        rt = std::move(temp);
     }
 };
 }
@@ -334,7 +376,7 @@ public:
 namespace std
 {
 template <typename T>
-void swap(programmerjake::voxels::BiomeArray<T> &a, programmerjake::voxels::BiomeArray<T> &b)
+void swap(programmerjake::voxels::BiomeMap<T> &a, programmerjake::voxels::BiomeMap<T> &b)
 {
     a.swap(b);
 }

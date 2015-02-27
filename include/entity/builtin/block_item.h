@@ -45,7 +45,17 @@ private:
         retval[rl].append(transform(getPreorientSelectionBoxTransform(), Generate::unitBox(nx, px, ny, py, nz, pz)));
         return std::move(retval);
     }
+    static enum_array<Mesh, RenderLayer> makeMeshes(Mesh mesh, RenderLayer rl)
+    {
+        enum_array<Mesh, RenderLayer> retval;
+        retval[rl].append(transform(getPreorientSelectionBoxTransform(), std::move(mesh)));
+        return std::move(retval);
+    }
 protected:
+    BlockItem(std::wstring name, Mesh mesh, RenderLayer rl = RenderLayer::Opaque)
+        : EntityItem(name, makeMeshes(std::move(mesh), rl), getPreorientSelectionBoxTransform())
+    {
+    }
     BlockItem(std::wstring name, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)
         : EntityItem(name, makeMeshes(td, td, td, td, td, td, rl), getPreorientSelectionBoxTransform())
     {

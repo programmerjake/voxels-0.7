@@ -35,7 +35,7 @@ namespace builtin
 {
 class FullBlock : public BlockDescriptor
 {
-private:
+protected:
     static Mesh makeFaceMeshNX(TextureDescriptor td)
     {
         return Generate::unitBox(td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor());
@@ -61,6 +61,18 @@ private:
         return Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td);
     }
 protected:
+    FullBlock(std::wstring name, LightProperties lightProperties,
+              RayCasting::BlockCollisionMask blockRayCollisionMask,
+              bool isFaceBlockedNX, bool isFaceBlockedPX,
+              bool isFaceBlockedNY, bool isFaceBlockedPY,
+              bool isFaceBlockedNZ, bool isFaceBlockedPZ)
+        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)),
+                          lightProperties, blockRayCollisionMask,
+                          isFaceBlockedNX, isFaceBlockedPX,
+                          isFaceBlockedNY, isFaceBlockedPY,
+                          isFaceBlockedNZ, isFaceBlockedPZ)
+    {
+    }
     FullBlock(std::wstring name, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
         : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, blockRayCollisionMask, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
     {

@@ -47,6 +47,8 @@ protected:
     ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
         : ItemDescriptor(name), block(block), entity(entity)
     {
+        assert(block != nullptr);
+        assert(entity != nullptr);
         Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
         tform = tform.concat(Matrix::rotateY(-M_PI / 4));
         tform = tform.concat(Matrix::rotateX(M_PI / 6));

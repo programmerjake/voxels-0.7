@@ -220,6 +220,7 @@ public:
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param newBlock the new block
      * @see setBlockRange
+     * @see setBiomeProperties
      */
     void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
     {
@@ -243,6 +244,34 @@ public:
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod > 0)
                 rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+        }
+    }
+    /** @brief set a block column's biome properties
+     *
+     * @param bi a <code>BlockIterator</code> to the block column to set
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param newBiomeProperties the new biome properties
+     * @see setBlock
+     */
+    void setBiomeProperties(BlockIterator bi, WorldLockManager &lock_manager, BiomeProperties newBiomeProperties)
+    {
+        bi.updateBiomeLock(lock_manager);
+        BlockChunkBiome &b = bi.getBiome();
+        b.biomeProperties = std::move(newBiomeProperties);
+        lightingStable = false;
+        PositionI pos = bi.position();
+        pos.y = 0;
+        for(std::int32_t y = 0; y < BlockChunk::chunkSizeY; y++)
+        {
+            for(int dx = -1; dx <= 1; dx++)
+            {
+                for(int dz = -1; dz <= 1; dz++)
+                {
+                    BlockIterator bi2 = bi;
+                    bi2.moveTo(pos + VectorI(dx, y, dz));
+                    invalidateBlock(std::move(bi2), lock_manager);
+                }
+            }
         }
     }
     /** @brief set a block range

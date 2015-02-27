@@ -37,10 +37,11 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename BT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
+template <typename BT, typename BiomeT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
 struct BasicBlockChunk
 {
     typedef BT BlockType;
+    typedef BiomeT BiomeType;
     typedef SCT SubchunkType;
     typedef CVT ChunkVariablesType;
     const PositionI basePosition;
@@ -128,6 +129,7 @@ struct BasicBlockChunk
     {
         return PositionI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z), pos.d);
     }
+    checked_array<checked_array<BiomeType, chunkSizeZ>, chunkSizeX> biomes;
     checked_array<checked_array<checked_array<BlockType, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
     checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>, subchunkCountX> subchunks;
     ChunkVariablesType chunkVariables;

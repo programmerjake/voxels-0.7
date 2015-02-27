@@ -58,9 +58,11 @@ struct WorldLockManager final
         }
     };
     LockManager<std::mutex> block_lock;
+    LockManager<std::mutex> biome_lock;
     void clear()
     {
         block_lock.clear();
+        biome_lock.clear();
     }
 };
 }

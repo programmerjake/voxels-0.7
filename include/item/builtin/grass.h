@@ -18,31 +18,38 @@
  * MA 02110-1301, USA.
  *
  */
-#include "generate/biome/biome.h"
-#include <algorithm>
-#include <cmath>
+#ifndef ITEM_GRASS_H_INCLUDED
+#define ITEM_GRASS_H_INCLUDED
+
+#include "item/builtin/block.h"
+#include "util/global_instance_maker.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
-std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
-
-BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
+namespace Items
 {
-    BiomeWeights retval;
-    for(BiomeWeights::value_type &v : retval)
+namespace builtin
+{
+class Grass final : public ItemBlock
+{
+    friend class global_instance_maker<Grass>;
+private:
+    Grass();
+public:
+    static const Grass *pointer()
     {
-        std::get<1>(v) = std::max<float>(0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
+        return global_instance_maker<Grass>::getInstance();
     }
-    retval.normalize();
-    for(BiomeWeights::value_type &v : retval)
+    static ItemDescriptorPointer descriptor()
     {
-        std::get<1>(v) = std::pow(std::get<1>(v), 4);
+        return pointer();
     }
-    retval.normalize();
-    return std::move(retval);
+};
 }
 }
 }
+}
+
+#endif // ITEM_GRASS_H_INCLUDED

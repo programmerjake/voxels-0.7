@@ -26,6 +26,7 @@ namespace programmerjake
 namespace voxels
 {
 ItemDescriptor::ItemDescriptor(std::wstring name)
+    : name(name)
 {
     ItemDescriptors.add(this);
 }

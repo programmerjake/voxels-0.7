@@ -18,31 +18,29 @@
  * MA 02110-1301, USA.
  *
  */
-#include "generate/biome/biome.h"
-#include <algorithm>
-#include <cmath>
+#include "entity/builtin/items/grass.h"
+#include "item/builtin/grass.h"
+#include "player/player.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
-std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
-
-BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
+namespace Entities
 {
-    BiomeWeights retval;
-    for(BiomeWeights::value_type &v : retval)
-    {
-        std::get<1>(v) = std::max<float>(0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
-    }
-    retval.normalize();
-    for(BiomeWeights::value_type &v : retval)
-    {
-        std::get<1>(v) = std::pow(std::get<1>(v), 4);
-    }
-    retval.normalize();
-    return std::move(retval);
+namespace builtin
+{
+namespace items
+{
+
+void Grass::onGiveToPlayer(Player &player) const
+{
+    player.addItem(Item(Items::builtin::Grass::descriptor()));
+}
+
 }
 }
 }
+}
+}
+

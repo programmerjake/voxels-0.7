@@ -18,31 +18,46 @@
  * MA 02110-1301, USA.
  *
  */
+#ifndef BIOME_DESERT_H_INCLUDED
+#define BIOME_DESERT_H_INCLUDED
+
 #include "generate/biome/biome.h"
-#include <algorithm>
-#include <cmath>
+#include "util/global_instance_maker.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
-std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
-
-BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
+namespace Biomes
 {
-    BiomeWeights retval;
-    for(BiomeWeights::value_type &v : retval)
+namespace builtin
+{
+class Desert final : public BiomeDescriptor
+{
+    friend class global_instance_maker<Desert>;
+public:
+    static const Desert *pointer()
     {
-        std::get<1>(v) = std::max<float>(0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
+        return global_instance_maker<Desert>::getInstance();
     }
-    retval.normalize();
-    for(BiomeWeights::value_type &v : retval)
+    static BiomeDescriptorPointer descriptor()
     {
-        std::get<1>(v) = std::pow(std::get<1>(v), 4);
+        return pointer();
     }
-    retval.normalize();
-    return std::move(retval);
+private:
+    Desert()
+        : BiomeDescriptor(L"builtin.desert", 1, 0)
+    {
+    }
+public:
+    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
+    {
+        return temperature * (1 - humidity);
+    }
+};
 }
 }
 }
+}
+
+#endif // BIOME_DESERT_H_INCLUDED
