@@ -896,6 +896,12 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         {
             if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
                 break;
+#ifdef SDL_MOUSEWHEEL_FLIPPED
+            if(SDLEvent.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+            {
+                return std::make_shared<MouseScrollEvent>(-SDLEvent.wheel.x, -SDLEvent.wheel.y);
+            }
+#endif
             return std::make_shared<MouseScrollEvent>(SDLEvent.wheel.x, SDLEvent.wheel.y);
         }
         case SDL_MOUSEBUTTONDOWN:

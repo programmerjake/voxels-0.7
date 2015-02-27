@@ -18,6 +18,7 @@
  * MA 02110-1301, USA.
  *
  */
+#include "platform/event.h"
 #ifndef PLATFORM_H_INCLUDED
 #define PLATFORM_H_INCLUDED
 
@@ -47,7 +48,7 @@ std::shared_ptr<stream::Reader> getResourceReader(std::wstring resource);
 enum class KeyboardKey
 {
     Unknown,
-    A,
+    A, // alphabet must be in order
     B,
     C,
     D,
@@ -92,7 +93,7 @@ enum class KeyboardKey
     Delete,
     Period,
     FSlash,
-    Num0,
+    Num0, // numbers must be in order
     Num1,
     Num2,
     Num3,
@@ -103,7 +104,7 @@ enum class KeyboardKey
     Num8,
     Num9,
     Colon,
-    F1,
+    F1, // F keys must be in order
     F2,
     F3,
     F4,
@@ -128,7 +129,7 @@ enum class KeyboardKey
     RShift,
     LCtrl,
     RCtrl,
-    KPad0,
+    KPad0, // numbers must be in order
     KPad1,
     KPad2,
     KPad3,
@@ -324,4 +325,3 @@ bool getStackTraceDumpingEnabled();
 }
 
 #endif // PLATFORM_H_INCLUDED
-#include "platform/event.h"

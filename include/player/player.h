@@ -160,6 +160,22 @@ public:
             gameInputMonitoring->dropCount++;
             return Event::ReturnType::Propagate;
         });
+        gameInput->hotBarMoveLeft.bind([this](EventArguments&)
+        {
+            currentItemIndex = (currentItemIndex + items.itemStacks.size() - 1) % items.itemStacks.size();
+            return Event::ReturnType::Propagate;
+        });
+        gameInput->hotBarMoveRight.bind([this](EventArguments&)
+        {
+            currentItemIndex = (currentItemIndex + 1) % items.itemStacks.size();
+            return Event::ReturnType::Propagate;
+        });
+        gameInput->hotBarSelect.bind([this](EventArguments &argsIn)
+        {
+            HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
+            currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
+            return Event::ReturnType::Propagate;
+        });
         addToPlayersList();
     }
     ~Player()

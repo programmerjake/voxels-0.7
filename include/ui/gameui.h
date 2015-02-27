@@ -160,45 +160,67 @@ public:
     {
         if(Ui::handleMouseScroll(event))
             return true;
-        #warning implement
+        int direction = event.scrollX;
+        if(direction == 0)
+            direction = event.scrollY;
+        EventArguments args;
+        if(direction < 0)
+            gameInput->hotBarMoveLeft(args);
+        else if(direction > 0)
+            gameInput->hotBarMoveRight(args);
         return true;
     }
     virtual bool handleKeyUp(KeyUpEvent &event) override
     {
         if(Ui::handleKeyUp(event))
             return true;
-        if(event.key == KeyboardKey::Space)
+        switch(event.key)
+        {
+        case KeyboardKey::Space:
         {
             gameInput->jump.set(false);
             return true;
         }
-        if(event.key == KeyboardKey::W)
+        case KeyboardKey::W:
         {
             isWDown = false;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::A)
+        case KeyboardKey::A:
         {
             isADown = false;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::S)
+        case KeyboardKey::S:
         {
             isSDown = false;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::D)
+        case KeyboardKey::D:
         {
             isDDown = false;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::Escape)
+        case KeyboardKey::Escape:
         {
             return true;
+        }
+        case KeyboardKey::Num1:
+        case KeyboardKey::Num2:
+        case KeyboardKey::Num3:
+        case KeyboardKey::Num4:
+        case KeyboardKey::Num5:
+        case KeyboardKey::Num6:
+        case KeyboardKey::Num7:
+        case KeyboardKey::Num8:
+        case KeyboardKey::Num9:
+        {
+            return true;
+        }
         }
         return false;
     }
@@ -206,50 +228,67 @@ public:
     {
         if(Ui::handleKeyDown(event))
             return true;
-        if(event.key == KeyboardKey::Space)
+        switch(event.key)
+        {
+        case KeyboardKey::Space:
         {
             gameInput->jump.set(true);
             return true;
         }
-        if(event.key == KeyboardKey::W)
+        case KeyboardKey::W:
         {
             isWDown = true;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::A)
+        case KeyboardKey::A:
         {
             isADown = true;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::S)
+        case KeyboardKey::S:
         {
             isSDown = true;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::D)
+        case KeyboardKey::D:
         {
             isDDown = true;
             calculateMoveDirection();
             return true;
         }
-        if(event.key == KeyboardKey::Q)
+        case KeyboardKey::Q:
         {
             EventArguments args;
             gameInput->drop(args);
             return true;
         }
-        if(event.key == KeyboardKey::Escape)
+        case KeyboardKey::Escape:
         {
             gameInput->paused.set(!gameInput->paused.get());
             return true;
         }
-        if(event.key == KeyboardKey::F12)
+        case KeyboardKey::F12:
         {
             setStackTraceDumpingEnabled(!getStackTraceDumpingEnabled());
             return true;
+        }
+        case KeyboardKey::Num1:
+        case KeyboardKey::Num2:
+        case KeyboardKey::Num3:
+        case KeyboardKey::Num4:
+        case KeyboardKey::Num5:
+        case KeyboardKey::Num6:
+        case KeyboardKey::Num7:
+        case KeyboardKey::Num8:
+        case KeyboardKey::Num9:
+        {
+            HotBarSelectEventArguments args((std::size_t)event.key - (std::size_t)KeyboardKey::Num1);
+            gameInput->hotBarSelect(args);
+            return true;
+        }
         }
         return false;
     }

@@ -28,6 +28,14 @@ namespace programmerjake
 {
 namespace voxels
 {
+struct HotBarSelectEventArguments : public EventArguments
+{
+    std::size_t newSelection;
+    HotBarSelectEventArguments(std::size_t newSelection = 0)
+        : newSelection(newSelection)
+    {
+    }
+};
 struct GameInput
 {
     MonitoredBool isCreativeMode;
@@ -36,9 +44,9 @@ struct GameInput
     MonitoredVectorF moveDirectionPlayerRelative; // w a s d
     MonitoredBool attack; // Left Mouse Button
     Event action; // Right Mouse Button
-    Event HotbarMoveLeft; // scroll left
-    Event HotbarMoveRight; // scroll right
-    Event HotbarSelect; // touch hotbar
+    Event hotBarMoveLeft; // scroll left
+    Event hotBarMoveRight; // scroll right
+    Event hotBarSelect; // touch hot bar or 1-9
     MonitoredBool sneak; // shift
     Event drop; // q
     Event openInventory; // e
