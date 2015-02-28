@@ -39,7 +39,7 @@ BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidi
     retval.normalize();
     for(BiomeWeights::value_type &v : retval)
     {
-        std::get<1>(v) = std::pow(std::get<1>(v), 4);
+        std::get<1>(v) = std::pow(std::get<1>(v), 20);
     }
     retval.normalize();
     return std::move(retval);

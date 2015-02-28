@@ -234,7 +234,7 @@ public:
                 BlockIterator bi2 = bi;
                 bi2.moveTo(pos);
                 PositionF fpos = pos;
-                fpos *= 0.1f;
+                fpos *= 0.01f;
                 float temperature = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);
                 float humidity = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeHumidityStart, RandomSource::biomeHumiditySize) * 0.4f + 0.5f, 0, 1);
                 world.setBiomeProperties(bi2, lock_manager, BiomeProperties(BiomeDescriptors.getBiomeWeights(temperature, humidity, pos, randomSource)));
