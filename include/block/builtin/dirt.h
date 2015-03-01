@@ -18,8 +18,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef GRASS_H_INCLUDED
-#define GRASS_H_INCLUDED
+#ifndef DIRT_H_INCLUDED
+#define DIRT_H_INCLUDED
 
 #include "block/builtin/dirt_block.h"
 #include "util/global_instance_maker.h"
@@ -33,27 +33,27 @@ namespace Blocks
 {
 namespace builtin
 {
-class Grass final : public DirtBlock
+class Dirt final : public DirtBlock
 {
-    friend class global_instance_maker<Grass>;
+    friend class global_instance_maker<Dirt>;
 public:
-    static const Grass *pointer()
+    static const Dirt *pointer()
     {
-        return global_instance_maker<Grass>::getInstance();
+        return global_instance_maker<Dirt>::getInstance();
     }
     static BlockDescriptorPointer descriptor()
     {
         return pointer();
     }
 private:
-    Grass()
-        : DirtBlock(L"builtin.grass", true,
-                    TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td(),
-                    TextureAtlas::Dirt.td(), TextureDescriptor(),
-                    TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td(),
-                    TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td(),
-                    TextureDescriptor(), TextureAtlas::GrassTop.td(),
-                    TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td())
+    Dirt()
+        : DirtBlock(L"builtin.dirt", true,
+                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
+                    TextureDescriptor(), TextureDescriptor(),
+                    TextureDescriptor(), TextureDescriptor(),
+                    TextureDescriptor(), TextureDescriptor())
     {
     }
 public:
@@ -65,4 +65,5 @@ public:
 }
 }
 
-#endif // GRASS_H_INCLUDED
+#endif // DIRT_H_INCLUDED
+

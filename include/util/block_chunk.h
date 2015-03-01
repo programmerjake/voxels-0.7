@@ -18,7 +18,6 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/block.h"
 #ifndef BLOCK_CHUNK_H_INCLUDED
 #define BLOCK_CHUNK_H_INCLUDED
 
@@ -40,6 +39,7 @@
 #include "util/lock.h"
 #include <cstdint>
 #include "generate/biome/biome.h"
+#include "block/block_struct.h"
 
 namespace programmerjake
 {

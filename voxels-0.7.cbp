@@ -93,6 +93,7 @@
 		<Unit filename="include/block/block.h" />
 		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
+		<Unit filename="include/block/builtin/dirt.h" />
 		<Unit filename="include/block/builtin/dirt_block.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
 		<Unit filename="include/block/builtin/grass.h" />
@@ -102,6 +103,7 @@
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/entity/builtin/block_item.h" />
 		<Unit filename="include/entity/builtin/item.h" />
+		<Unit filename="include/entity/builtin/items/dirt.h" />
 		<Unit filename="include/entity/builtin/items/grass.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
 		<Unit filename="include/entity/entity.h" />
@@ -115,6 +117,7 @@
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
 		<Unit filename="include/item/builtin/block.h" />
+		<Unit filename="include/item/builtin/dirt.h" />
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/stone.h" />
 		<Unit filename="include/item/item.h" />
@@ -199,15 +202,18 @@
 		<Unit filename="include/world/world_generator.h" />
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
+		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
+		<Unit filename="src/entity/builtin/dirt.cpp" />
 		<Unit filename="src/entity/builtin/grass.cpp" />
 		<Unit filename="src/entity/builtin/item.cpp" />
 		<Unit filename="src/entity/builtin/stone.cpp" />
 		<Unit filename="src/entity/entity.cpp" />
 		<Unit filename="src/generate/biome/biome.cpp" />
 		<Unit filename="src/generate/biome/builtin/builtin.cpp" />
+		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />
 		<Unit filename="src/item/item.cpp" />

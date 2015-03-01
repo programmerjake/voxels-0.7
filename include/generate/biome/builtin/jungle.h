@@ -21,8 +21,14 @@
 #ifndef BIOME_JUNGLE_H_INCLUDED
 #define BIOME_JUNGLE_H_INCLUDED
 
-#include "generate/biome/biome.h"
+#include "generate/biome/biome_descriptor.h"
 #include "util/global_instance_maker.h"
+#include "generate/random_world_generator.h"
+#include "world/world.h"
+#include "block/builtin/air.h"
+#include "block/builtin/grass.h"
+#include "block/builtin/stone.h"
+#include "block/builtin/dirt.h"
 
 namespace programmerjake
 {
@@ -53,6 +59,33 @@ public:
     virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
     {
         return temperature * humidity;
+    }
+    virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
+    {
+        PositionF pos = (PositionF)columnBasePosition;
+        pos.y = 0;
+        return randomSource.getFBMValue(pos * 0.05f) + 3 + World::AverageGroundHeight;
+    }
+    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    {
+        for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
+        {
+            PositionI position = columnBasePosition + VectorI(0, dy, 0);
+            VectorI relativePosition = position - chunkBasePosition;
+            Block block;
+            if(position.y < groundHeight - 5)
+                block = Block(Blocks::builtin::Stone::descriptor());
+            else if(position.y < groundHeight)
+                block = Block(Blocks::builtin::Dirt::descriptor());
+            else if(position.y == groundHeight)
+                block = Block(Blocks::builtin::Grass::descriptor());
+            else
+            {
+                block = Block(Blocks::builtin::Air::descriptor());
+                block.lighting = Lighting::makeSkyLighting();
+            }
+            blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
+        }
     }
 };
 }

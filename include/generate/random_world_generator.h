@@ -231,6 +231,7 @@ public:
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
                 PositionI pos = chunkBasePosition + VectorI(x, 0, z);
+                pos.y = 0;
                 BlockIterator bi2 = bi;
                 bi2.moveTo(pos);
                 PositionF fpos = pos;

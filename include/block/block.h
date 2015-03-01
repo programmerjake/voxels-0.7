@@ -190,6 +190,9 @@ public:
     {
         return block;
     }
+    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    {
+    }
     virtual bool isDataEqual(const BlockDataPointer<BlockData> &a, const BlockDataPointer<BlockData> &b) const
     {
         return a == b;

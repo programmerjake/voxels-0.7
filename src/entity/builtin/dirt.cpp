@@ -18,32 +18,29 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/grass.h"
-#include "block/builtin/dirt.h"
 #include "entity/builtin/items/dirt.h"
+#include "item/builtin/dirt.h"
+#include "player/player.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
+namespace Entities
 {
 namespace builtin
 {
-void Grass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+namespace items
 {
-    world.addEntity(Entities::builtin::items::Dirt::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
-}
-void Grass::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+
+void Dirt::onGiveToPlayer(Player &player) const
 {
-    BlockIterator bi = blockIterator;
-    bi.moveBy(VectorI(0, 1, 0));
-    Block b = bi.get(lock_manager);
-    if(b.lighting.toFloat(world.getLighting()) >= 4.0f / 15)
-        return;
-    world.setBlock(blockIterator, lock_manager, Block(Dirt::descriptor()));
+    player.addItem(Item(Items::builtin::Dirt::descriptor()));
+}
+
 }
 }
 }
 }
 }
+

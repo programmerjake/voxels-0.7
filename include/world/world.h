@@ -45,7 +45,9 @@
 #include "util/flag.h"
 #include "util/spin_lock.h"
 #include "util/parallel_map.h"
+#include "generate/biome/biome_descriptor.h"
 #include <algorithm>
+#include <random>
 
 namespace programmerjake
 {
@@ -75,6 +77,47 @@ public:
         return worldGeneratorSeed;
     }
     static constexpr std::int32_t AverageGroundHeight = 64;
+private:
+    std::mt19937 randomGenerator;
+    std::mutex randomGeneratorLock;
+public:
+    struct WorldRandomNumberGenerator final
+    {
+        friend class World;
+    private:
+        World &world;
+        WorldRandomNumberGenerator(World &world)
+            : world(world)
+        {
+        }
+    public:
+        typedef std::mt19937::result_type result_type;
+        static result_type min()
+        {
+            return std::mt19937::min();
+        }
+        static result_type max()
+        {
+            return std::mt19937::max();
+        }
+        result_type operator ()() const
+        {
+            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            return world.randomGenerator();
+        }
+        void discard(unsigned long long count) const
+        {
+            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            world.randomGenerator.discard(count);
+        }
+    };
+private:
+    WorldRandomNumberGenerator wrng;
+public:
+    WorldRandomNumberGenerator &getRandomGenerator()
+    {
+        return wrng;
+    }
 private:
     struct internal_construct_flag
     {

@@ -58,49 +58,26 @@ public:
     {
         return global_instance_maker<MyWorldGenerator>::getInstance();
     }
-private:
-    int getGroundHeightHelper(PositionI pos, RandomSource &randomSource) const
-    {
-        pos.y = 0;
-        PositionF fpos = pos + VectorF(0.5f);
-        return ifloor(3 * randomSource.getFBMValue(fpos * 0.1f) + World::AverageGroundHeight);
-    }
-    int getGroundHeight(PositionI pos, RandomSource &randomSource) const
-    {
-#if 0
-        int retval = 0;
-        for(int dx = -1; dx <= 1; dx++)
-            for(int dz = -1; dz <= 1; dz++)
-                retval += getGroundHeightHelper(pos + VectorI(dx, 0, dz), randomSource);
-        return retval / 9;
-#else
-        return getGroundHeightHelper(pos, randomSource);
-#endif
-    }
 protected:
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
     {
+        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
         for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
-                int groundHeight = getGroundHeight(chunkBasePosition + VectorI(x, 0, z), randomSource);
-                for(int y = 0; y < BlockChunk::chunkSizeY; y++)
+                PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
+                bi.moveTo(columnBasePosition);
+                const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
+                float groundHeightF = 0;
+                for(const BiomeWeights::value_type &v : bp.getWeights())
                 {
-                    PositionI pos = chunkBasePosition + VectorI(x, y, z);
-                    PositionF fpos = pos + VectorF(0.5f);
-                    Block block;
-                    if(pos.y < groundHeight)
-                        block = Block(Blocks::builtin::Stone::descriptor());
-                    else if(pos.y == groundHeight)
-                        block = Block(Blocks::builtin::Grass::descriptor());
-                    else
-                    {
-                        block = Block(Blocks::builtin::Air::descriptor());
-                        block.lighting = Lighting::makeSkyLighting();
-                    }
-                    blocks[x][y][z] = block;
+                    BiomeDescriptorPointer biome = std::get<0>(v);
+                    float weight = std::get<1>(v);
+                    groundHeightF += weight * biome->getGroundHeight(columnBasePosition, randomSource);
                 }
+                int groundHeight = ifloor(0.5f + groundHeightF);
+                bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
             }
         }
     }
@@ -115,20 +92,6 @@ World::World(SeedType seed)
 
 namespace
 {
-World::SeedType makeSeed(wstring seed)
-{
-    World::SeedType retval = 0;
-    for(wchar_t ch : seed)
-    {
-        retval *= 8191;
-        retval += ch;
-    }
-    return retval;
-}
-}
-
-namespace
-{
 World::SeedType makeRandomSeed()
 {
     random_device g;
@@ -137,7 +100,7 @@ World::SeedType makeRandomSeed()
 }
 
 World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag)
-    : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
+    : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
 }
 
@@ -191,7 +154,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
 }
 
 World::World(SeedType seed, const WorldGenerator *worldGenerator)
-    : physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
+    : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
     getDebugLog() << L"generating initial world..." << postnl;
     lightingThread = thread([this]()
@@ -543,6 +506,24 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
         if(chunkIter.is_locked())
             chunkIter.unlock();
         BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+        if(chunk->chunkVariables.generated)
+        {
+            float fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
+            int randomTickCount = ifloor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator()));
+            for(int i = 0; i < randomTickCount; i++)
+            {
+                VectorI relativePosition = VectorI(std::uniform_int_distribution<>(0, BlockChunk::chunkSizeX - 1)(getRandomGenerator()),
+                                                   std::uniform_int_distribution<>(0, BlockChunk::chunkSizeY - 1)(getRandomGenerator()),
+                                                   std::uniform_int_distribution<>(0, BlockChunk::chunkSizeZ - 1)(getRandomGenerator()));
+                BlockIterator bi = cbi;
+                bi.moveBy(relativePosition);
+                Block b = bi.get(lock_manager);
+                if(b.good())
+                {
+                    b.descriptor->randomTick(b, *this, bi, lock_manager);
+                }
+            }
+        }
         std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
         WrappedEntity::ChunkListType &chunkEntityList = chunk->chunkVariables.entityList;
         auto i = chunkEntityList.begin();

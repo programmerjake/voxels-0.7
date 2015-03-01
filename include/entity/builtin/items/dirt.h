@@ -18,32 +18,46 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/grass.h"
-#include "block/builtin/dirt.h"
-#include "entity/builtin/items/dirt.h"
+#ifndef ENTITIES_BUILTIN_ITEMS_DIRT_H_INCLUDED
+#define ENTITIES_BUILTIN_ITEMS_DIRT_H_INCLUDED
+
+#include "entity/builtin/block_item.h"
+#include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
+#include "render/generate.h"
+#include "item/builtin/dirt.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
+namespace Entities
 {
 namespace builtin
 {
-void Grass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+namespace items
 {
-    world.addEntity(Entities::builtin::items::Dirt::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
-}
-void Grass::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+class Dirt final : public BlockItem
 {
-    BlockIterator bi = blockIterator;
-    bi.moveBy(VectorI(0, 1, 0));
-    Block b = bi.get(lock_manager);
-    if(b.lighting.toFloat(world.getLighting()) >= 4.0f / 15)
-        return;
-    world.setBlock(blockIterator, lock_manager, Block(Dirt::descriptor()));
+    friend class Items::builtin::Dirt;
+    friend class global_instance_maker<Dirt>;
+private:
+    Dirt()
+        : BlockItem(L"builtin.items.dirt", TextureAtlas::Dirt.td())
+    {
+    }
+public:
+    static const Dirt *descriptor()
+    {
+        return global_instance_maker<Dirt>::getInstance();
+    }
+protected:
+    virtual void onGiveToPlayer(Player &player) const override;
+};
 }
 }
 }
 }
 }
+
+#endif // ENTITIES_BUILTIN_ITEMS_DIRT_H_INCLUDED
