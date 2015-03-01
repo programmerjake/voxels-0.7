@@ -91,6 +91,7 @@
 			<Add library="GL" />
 		</Linker>
 		<Unit filename="include/block/block.h" />
+		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/block/builtin/dirt_block.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
@@ -106,6 +107,7 @@
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/entity/entity_struct.h" />
 		<Unit filename="include/generate/biome/biome.h" />
+		<Unit filename="include/generate/biome/biome_descriptor.h" />
 		<Unit filename="include/generate/biome/builtin/desert.h" />
 		<Unit filename="include/generate/biome/builtin/jungle.h" />
 		<Unit filename="include/generate/biome/builtin/tundra.h" />

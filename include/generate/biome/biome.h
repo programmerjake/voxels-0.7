@@ -31,6 +31,7 @@
 #include <tuple>
 #include "util/util.h"
 #include "util/position.h"
+#include "block/block_struct.h"
 
 namespace programmerjake
 {
@@ -40,48 +41,8 @@ class BiomeDescriptor;
 class RandomSource;
 typedef const BiomeDescriptor *BiomeDescriptorPointer;
 typedef std::size_t BiomeIndex;
-class BiomeDescriptor
-{
-    friend class BiomeDescriptors_t;
-private:
-    BiomeIndex index;
-public:
-    BiomeIndex getIndex() const
-    {
-        return index;
-    }
-    const std::wstring name;
-    const float temperature;
-    const float humidity;
-    const ColorF grassColor;
-    const ColorF leavesColor;
-    const ColorF waterColor;
-    static ColorF makeBiomeGrassColor(float temperature, float humidity)
-    {
-        temperature = limit<float>(temperature, 0, 1);
-        humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.5f, 0.7f, 0.6f), interpolate(humidity, RGBF(0.75f, 0.7f, 0.33f), RGBF(0.25f, 1.0f, 0.2f)));
-    }
-    static ColorF makeBiomeLeavesColor(float temperature, float humidity)
-    {
-        temperature = limit<float>(temperature, 0, 1);
-        humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.4f, 0.63f, 0.5f), interpolate(humidity, RGBF(0.7f, 0.65f, 0.16f), RGBF(0.1f, 0.8f, 0.0f)));
-    }
-    static ColorF makeBiomeWaterColor(float temperature, float humidity)
-    {
-        temperature = limit<float>(temperature, 0, 1);
-        humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.0f, 0.0f, 1.0f), interpolate(humidity, RGBF(0.0f, 0.63f, 0.83f), RGBF(0.0f, 0.9f, 0.75f)));
-    }
-    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const = 0;
-protected:
-    BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
-    BiomeDescriptor(std::wstring name, float temperature, float humidity)
-        : BiomeDescriptor(name, temperature, humidity, makeBiomeGrassColor(temperature, humidity), makeBiomeLeavesColor(temperature, humidity), makeBiomeWaterColor(temperature, humidity))
-    {
-    }
-};
+
+BiomeIndex getBiomeIndex(BiomeDescriptorPointer);
 
 class BiomeWeights;
 
@@ -91,18 +52,7 @@ class BiomeDescriptors_t final
 private:
     static linked_map<std::wstring, BiomeDescriptorPointer> *pBiomeNameMap;
     static std::vector<BiomeDescriptorPointer> *pBiomeVector;
-    static void addBiome(BiomeDescriptor *biome)
-    {
-        if(pBiomeVector == nullptr)
-        {
-            pBiomeNameMap = new linked_map<std::wstring, BiomeDescriptorPointer>;
-            pBiomeVector = new std::vector<BiomeDescriptorPointer>;
-        }
-        biome->index = pBiomeVector->size();
-        pBiomeVector->push_back(biome);
-        assert(0 == pBiomeNameMap->count(biome->name));
-        pBiomeNameMap->insert(linked_map<std::wstring, BiomeDescriptorPointer>::value_type(biome->name, biome));
-    }
+    static void addBiome(BiomeDescriptor *biome);
 public:
     std::size_t size() const
     {
@@ -130,7 +80,7 @@ public:
     {
         if(biome == nullptr)
             return end();
-        return find(biome->index);
+        return find(getBiomeIndex(biome));
     }
     iterator find(std::wstring name) const
     {
@@ -149,12 +99,6 @@ public:
 };
 
 static constexpr BiomeDescriptors_t BiomeDescriptors;
-
-inline BiomeDescriptor::BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor)
-    : name(name), temperature(temperature), humidity(humidity), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
-{
-    BiomeDescriptors.addBiome(this);
-}
 
 template <typename T>
 class BiomeMap
@@ -181,7 +125,7 @@ private:
     {
         if(biome == nullptr)
             return ~(std::size_t)0;
-        return biome->getIndex();
+        return getBiomeIndex(biome);
     }
 public:
     BiomeMap()
@@ -334,6 +278,7 @@ private:
         return retval;
     }
     ColorF grassColor, leavesColor, waterColor;
+    BiomeDescriptorPointer dominantBiome = nullptr;
 public:
     const BiomeWeights &getWeights() const
     {
@@ -351,15 +296,11 @@ public:
     {
         return waterColor;
     }
-    BiomeProperties(BiomeWeights weights)
-        : weights(weights)
+    BiomeDescriptorPointer getDominantBiome() const
     {
-        weights.normalize();
-        grassColor = calcColorInternal<&BiomeDescriptor::grassColor>();
-        leavesColor = calcColorInternal<&BiomeDescriptor::leavesColor>();
-        waterColor = calcColorInternal<&BiomeDescriptor::waterColor>();
-        good = true;
+        return dominantBiome;
     }
+    explicit BiomeProperties(BiomeWeights weights);
     BiomeProperties()
     {
     }

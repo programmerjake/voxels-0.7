@@ -77,5 +77,90 @@ void BlockDescriptors_t::remove(BlockDescriptorPointer bd) const
         blocksMap = nullptr;
     }
 }
+
+#ifdef PACK_BLOCK
+PackedBlock::PackedBlock(const Block &b)
+    : descriptor(b.descriptor ? b.descriptor->getBlockDescriptorIndex() : BlockDescriptorIndex(nullptr)), lighting(b.lighting), data(b.data)
+{
+}
+#endif
+
+void Block::createNewLighting(Lighting oldLighting)
+{
+    if(!good())
+    {
+        lighting = Lighting();
+    }
+    else
+    {
+        lighting = descriptor->lightProperties.createNewLighting(oldLighting);
+    }
+}
+
+bool Block::operator ==(const Block &r) const
+{
+    if(descriptor != r.descriptor)
+    {
+        return false;
+    }
+
+    if(descriptor == nullptr)
+    {
+        return true;
+    }
+
+    if(lighting != r.lighting)
+    {
+        return false;
+    }
+
+    if(data == r.data)
+    {
+        return true;
+    }
+
+    return descriptor->isDataEqual(data, r.data);
+}
+
+BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
+{
+    checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    for(int x = 0; (size_t)x < blocks.size(); x++)
+    {
+        for(int y = 0; (size_t)y < blocks[x].size(); y++)
+        {
+            for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
+            {
+                BlockIterator curBi = bi;
+                curBi.moveBy(VectorI(x - 1, y - 1, z - 1));
+                auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                const Block &b = curBi.get(lock_manager);
+
+                if(b)
+                {
+                    std::get<0>(l) = b.descriptor->lightProperties;
+                    std::get<1>(l) = b.lighting;
+                }
+
+                blocks[x][y][z] = l;
+            }
+        }
+    }
+
+    return BlockLighting(blocks, wlp);
+}
+}
+}
+
+namespace std
+{
+size_t hash<programmerjake::voxels::Block>::operator()(const programmerjake::voxels::Block &b) const
+{
+    if(b.descriptor == nullptr)
+    {
+        return 0;
+    }
+
+    return std::hash<programmerjake::voxels::BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
 }
 }

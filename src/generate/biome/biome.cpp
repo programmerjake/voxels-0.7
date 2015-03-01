@@ -18,7 +18,7 @@
  * MA 02110-1301, USA.
  *
  */
-#include "generate/biome/biome.h"
+#include "generate/biome/biome_descriptor.h"
 #include <algorithm>
 #include <cmath>
 
@@ -28,6 +28,47 @@ namespace voxels
 {
 linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
 std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
+
+BiomeProperties::BiomeProperties(BiomeWeights weights)
+    : weights(weights)
+{
+    weights.normalize();
+    grassColor = calcColorInternal<&BiomeDescriptor::grassColor>();
+    leavesColor = calcColorInternal<&BiomeDescriptor::leavesColor>();
+    waterColor = calcColorInternal<&BiomeDescriptor::waterColor>();
+    float maxWeight = -1;
+    dominantBiome = nullptr;
+    for(const BiomeWeights::value_type &v : weights)
+    {
+        float weight = std::get<1>(v);
+        BiomeDescriptorPointer biome = std::get<0>(v);
+        if(weight > maxWeight)
+        {
+            dominantBiome = biome;
+            maxWeight = weight;
+        }
+    }
+    good = true;
+}
+
+BiomeIndex getBiomeIndex(BiomeDescriptorPointer biome)
+{
+    return biome->getIndex();
+}
+
+void BiomeDescriptors_t::addBiome(BiomeDescriptor *biome)
+{
+    if(pBiomeVector == nullptr)
+    {
+        pBiomeNameMap = new linked_map<std::wstring, BiomeDescriptorPointer>;
+        pBiomeVector = new std::vector<BiomeDescriptorPointer>;
+    }
+    biome->index = pBiomeVector->size();
+    pBiomeVector->push_back(biome);
+    assert(0 == pBiomeNameMap->count(biome->name));
+    pBiomeNameMap->insert(linked_map<std::wstring, BiomeDescriptorPointer>::value_type(biome->name, biome));
+}
+
 
 BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
 {
