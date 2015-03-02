@@ -44,11 +44,14 @@
 #include "util/checked_array.h"
 #include "block/block_struct.h"
 #include "util/block_iterator.h"
+#include <list>
 
 namespace programmerjake
 {
 namespace voxels
 {
+typedef std::list<std::pair<PositionI, Block>> BlockUpdateSet;
+
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
@@ -186,9 +189,8 @@ public:
             renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual Block moveStep(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual void moveStep(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {
-        return block;
     }
     virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {

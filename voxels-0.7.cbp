@@ -95,6 +95,7 @@
 		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/block/builtin/dirt.h" />
 		<Unit filename="include/block/builtin/dirt_block.h" />
+		<Unit filename="include/block/builtin/fluid.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/stone.h" />
@@ -157,7 +158,6 @@
 		<Unit filename="include/ui/labeled_element.h" />
 		<Unit filename="include/ui/shaded_container.h" />
 		<Unit filename="include/ui/ui.h" />
-		<Unit filename="include/util/arena_allocator.h" />
 		<Unit filename="include/util/atomic_shared_ptr.h" />
 		<Unit filename="include/util/balanced_tree.h" />
 		<Unit filename="include/util/basic_block_chunk.h" />
