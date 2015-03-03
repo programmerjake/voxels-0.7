@@ -61,11 +61,11 @@ class BlockIterator final
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        lock_manager.block_lock.set(getSubchunk().lock);
+        lock_manager.block_biome_lock.set(getSubchunk().lock);
     }
     void updateBiomeLock(WorldLockManager &lock_manager) const
     {
-        lock_manager.biome_lock.set(getBiomeSubchunk().biome_lock);
+        lock_manager.block_biome_lock.set(getBiomeSubchunk().biome_lock);
     }
     BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)

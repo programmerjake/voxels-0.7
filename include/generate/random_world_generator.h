@@ -234,6 +234,8 @@ public:
                 pos.y = 0;
                 BlockIterator bi2 = bi;
                 bi2.moveTo(pos);
+                //pos.x *= 10;
+                //pos.z *= 10;
                 PositionF fpos = pos;
                 fpos *= 0.01f;
                 float temperature = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);

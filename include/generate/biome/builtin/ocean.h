@@ -59,12 +59,9 @@ private:
 public:
     virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
     {
-        float v = randomSource.getFBMValue(pos * 0.05f) * 1.5;
+        pos.y = 0;
+        float v = randomSource.getFBMValue((PositionF)pos * 0.01f) * 2;
         v *= v;
-        VectorF posXZ = pos;
-        posXZ.y = 0;
-        v *= limit<float>(abs(posXZ) / 5, 0, 1);
-        v = std::max<float>(v, 0);
         return v;
     }
     virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
@@ -103,6 +100,10 @@ public:
             }
             blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
         }
+    }
+    virtual bool isGoodStartingPosition() const override
+    {
+        return false;
     }
 };
 }

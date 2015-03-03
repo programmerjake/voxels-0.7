@@ -66,6 +66,10 @@ public:
     virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const = 0;
     virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const = 0;
     virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const = 0;
+    virtual bool isGoodStartingPosition() const
+    {
+        return true;
+    }
 protected:
     BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
     BiomeDescriptor(std::wstring name, float temperature, float humidity)

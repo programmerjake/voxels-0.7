@@ -206,20 +206,33 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
     : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
     getDebugLog() << L"generating initial world..." << postnl;
-    lightingThread = thread([this]()
-    {
-        lightingThreadFn();
-    });
     WorldLockManager lock_manager;
-    for(int dx = -1; dx < 1; dx++)
+restart:
+    for(int dx = 0; dx >= -1; dx--)
     {
-        for(int dz = -1; dz < 1; dz++)
+        for(int dz = 0; dz >= -1; dz--)
         {
             BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
             initialChunk->chunkVariables.generateStarted = true;
             getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
             generateChunk(initialChunk, lock_manager);
             initialChunk->chunkVariables.generated = true;
+            if(dx == 0 && dz == 0)
+            {
+                BlockIterator bi = getBlockIterator(PositionI(0, 0, 0, Dimension::Overworld));
+                if(!bi.getBiomeProperties(lock_manager).getDominantBiome()->isGoodStartingPosition())
+                {
+                    lock_manager.clear();
+                    physicsWorld = std::make_shared<PhysicsWorld>();
+                    auto &rg = getRandomGenerator();
+                    worldGeneratorSeed = rg();
+                    goto restart;
+                }
+                lightingThread = thread([this]()
+                {
+                    lightingThreadFn();
+                });
+            }
         }
     }
     blockUpdateThread = thread([this]()
@@ -450,7 +463,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
         {
             BlockChunkSubchunk *srcSubchunk = srcChunkIter->currentSubchunk;
             assert(srcSubchunk);
-            new_lock_manager.block_lock.set(srcSubchunk->lock);
+            new_lock_manager.block_biome_lock.set(srcSubchunk->lock);
             WrappedEntity::SubchunkListType &srcSubchunkList = srcSubchunk->entityList;
             WrappedEntity::SubchunkListType::iterator srcSubchunkIter = srcSubchunkList.to_iterator(&*srcChunkIter);
             if(!srcChunkIter->entity.good())
@@ -643,7 +656,7 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
             WrappedEntity &entity = *i;
             if(!entity.entity.good())
             {
-                lock_manager.block_lock.set(entity.currentSubchunk->lock);
+                lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
                 WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
                 subchunkEntityList.erase(subchunkEntityList.to_iterator(&entity));
                 i = chunkEntityList.erase(i);
@@ -663,7 +676,7 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
                 ++i;
                 continue;
             }
-            lock_manager.block_lock.set(entity.currentSubchunk->lock);
+            lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
             WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
             subchunkEntityList.detach(subchunkEntityList.to_iterator(&entity));
             destBi.updateLock(lock_manager);

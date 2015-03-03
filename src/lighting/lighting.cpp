@@ -43,7 +43,7 @@ float BlockLighting::evalVertex(const checked_array<checked_array<checked_array<
     }
     return retval;
 }
-
+#if 0
 namespace
 {
 void dump(bool v)
@@ -90,7 +90,7 @@ void dump(const checked_array<T, N> &v)
 }
 #define DUMP(v) do {std::cout << #v << std::endl; dump(v); std::cout << std::endl;} while(0)
 }
-
+#endif
 BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
 {
     checked_array<checked_array<checked_array<bool, 3>, 3>, 3> isOpaque, setOpaque;
