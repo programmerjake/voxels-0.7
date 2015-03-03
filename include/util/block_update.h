@@ -31,7 +31,8 @@ namespace voxels
 enum class BlockUpdateKind
 {
     Lighting,
-    //General,
+    General,
+    FluidUpdateNotify,
     Water,
     DEFINE_ENUM_LIMITS(Lighting, Water)
 };
@@ -42,8 +43,10 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
     {
     case BlockUpdateKind::Lighting:
         return 0;
-    //case BlockUpdateKind::General:
-        //return 0.05f;
+    case BlockUpdateKind::General:
+        return 0.05f;
+    case BlockUpdateKind::FluidUpdateNotify:
+        return 0;
     case BlockUpdateKind::Water:
         return 0.25f;
     }

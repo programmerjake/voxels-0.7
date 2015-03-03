@@ -98,6 +98,7 @@ private:
     friend class BlockIterator;
     friend class World;
     BlockUpdate *node;
+public:
     BlockUpdate &operator *()
     {
         return *node;
@@ -106,6 +107,7 @@ private:
     {
         return node;
     }
+private:
     explicit BlockUpdateIterator(BlockUpdate *node)
         : node(node)
     {

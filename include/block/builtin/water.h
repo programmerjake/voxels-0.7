@@ -42,7 +42,7 @@ private:
         }
     };
     Water(unsigned newLevel = 0, bool falling = false)
-        : Fluid(L"builtin.water", newLevel, falling, LightProperties(Lighting(0, 0, 0), Lighting(2, 3, 3)), TextureAtlas::WaterSide0.td())
+        : Fluid(L"builtin.water", newLevel, falling, LightProperties(Lighting(0, 0, 0), Lighting(2, 3, 3)), TextureAtlas::WaterSide0.td(), BlockUpdateKind::Water)
     {
     }
 public:
