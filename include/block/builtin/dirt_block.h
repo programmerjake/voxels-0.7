@@ -100,7 +100,7 @@ protected:
         ColorF grassShading;
         Matrix tform = Matrix::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh();
-        Mesh &faceMesh = getTempRenderMesh();
+        Mesh &faceMesh = getTempRenderMesh2();
         blockMesh.clear();
         for(BlockFace bf : enum_traits<BlockFace>())
         {
