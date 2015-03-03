@@ -466,14 +466,17 @@ private:
     SeedType worldGeneratorSeed;
     WorldLightingProperties lighting;
     std::thread lightingThread;
+    std::thread blockUpdateThread;
     std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
     std::mutex viewPointsLock;
     std::list<ViewPoint *> viewPoints;
     void lightingThreadFn();
+    void blockUpdateThreadFn();
     void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
     void chunkGeneratingThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
+    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(float deltaTime, BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
     RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator bi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);

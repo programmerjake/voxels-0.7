@@ -44,6 +44,7 @@
 #include "util/checked_array.h"
 #include "block/block_struct.h"
 #include "util/block_iterator.h"
+#include "util/block_update.h"
 #include <list>
 
 namespace programmerjake
@@ -84,9 +85,9 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
     {
-        assert(false); // shouldn't be called
+        assert(false); // base class shouldn't be called
     }
     virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {
@@ -100,15 +101,20 @@ protected:
         static thread_local Mesh retval;
         return retval;
     }
-    static void lightMesh(Mesh &mesh, const BlockLighting &lighting)
+    static Mesh &getTempRenderMesh2()
+    {
+        static thread_local Mesh retval;
+        return retval;
+    }
+    static void lightMesh(Mesh &mesh, const BlockLighting &lighting, VectorF offset)
     {
         BlockLighting bl = lighting;
 
         for(Triangle &tri : mesh.triangles)
         {
-            tri.c1 = bl.lightVertex(tri.p1, tri.c1, tri.n1);
-            tri.c2 = bl.lightVertex(tri.p2, tri.c2, tri.n2);
-            tri.c3 = bl.lightVertex(tri.p3, tri.c3, tri.n3);
+            tri.c1 = bl.lightVertex(tri.p1 + offset, tri.c1, tri.n1);
+            tri.c2 = bl.lightVertex(tri.p2 + offset, tri.c2, tri.n2);
+            tri.c3 = bl.lightVertex(tri.p3 + offset, tri.c3, tri.n3);
         }
     }
 public:
@@ -132,6 +138,9 @@ public:
                     continue;
                 }
 
+                if(meshCenter.size() != 0)
+                    return true;
+
                 if(meshFace[bf].size() == 0)
                     continue;
 
@@ -144,7 +153,7 @@ public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const
+    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
     {
         if(isStaticMesh)
         {
@@ -156,6 +165,7 @@ public:
             bool drewAny = false;
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
             Mesh &blockMesh = getTempRenderMesh();
+            Mesh &faceMesh = getTempRenderMesh();
             blockMesh.clear();
             for(BlockFace bf : enum_traits<BlockFace>())
             {
@@ -172,15 +182,21 @@ public:
                 {
                     continue;
                 }
-
-                blockMesh.append(meshFace[bf]);
                 drewAny = true;
+                if(meshFace[bf].size() == 0)
+                    continue;
+                faceMesh.clear();
+                faceMesh.append(meshFace[bf]);
+                lightMesh(faceMesh, lighting[toBlockFaceOrNone(bf)], getBlockFaceInDirection(bf));
+                blockMesh.append(faceMesh);
             }
 
             if(drewAny)
             {
-                blockMesh.append(meshCenter);
-                lightMesh(blockMesh, lighting);
+                faceMesh.clear();
+                faceMesh.append(meshCenter);
+                lightMesh(faceMesh, lighting[BlockFaceOrNone::None], VectorF(0));
+                blockMesh.append(faceMesh);
                 dest.append(transform(tform, blockMesh));
             }
         }
@@ -189,7 +205,7 @@ public:
             renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual void moveStep(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
     }
     virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
@@ -213,6 +229,10 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
     {
+    }
+    virtual bool isReplaceable() const
+    {
+        return false;
     }
 };
 }

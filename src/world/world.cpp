@@ -25,6 +25,7 @@
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
 #include "block/builtin/grass.h"
+#include "block/builtin/water.h"
 #include "entity/builtin/items/stone.h"
 #include <cmath>
 #include <random>
@@ -107,7 +108,6 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
 World::World()
     : World(makeRandomSeed())
 {
-
 }
 
 BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager)
@@ -120,6 +120,55 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
     for(BlockUpdate *node = chunk->chunkVariables.blockUpdateListHead; node != nullptr;)
     {
         if(node->kind == kind)
+        {
+            if(node->chunk_prev != nullptr)
+                node->chunk_prev->chunk_next = node->chunk_next;
+            else
+                chunk->chunkVariables.blockUpdateListHead = node->chunk_next;
+            if(node->chunk_next != nullptr)
+                node->chunk_next->chunk_prev = node->chunk_prev;
+            else
+                chunk->chunkVariables.blockUpdateListTail = node->chunk_prev;
+            BlockUpdate *next_node = node->chunk_next;
+            node->chunk_prev = nullptr;
+            node->chunk_next = retval;
+            if(retval != nullptr)
+                retval->chunk_prev = node;
+            retval = node;
+            node = next_node;
+            VectorI relativePos = BlockChunk::getChunkRelativePosition(retval->position);
+            for(BlockUpdate **pnode = &chunk->blocks[relativePos.x][relativePos.y][relativePos.z].updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
+            {
+                if(*pnode == retval)
+                {
+                    *pnode = retval->block_next;
+                    break;
+                }
+            }
+            retval->block_next = nullptr;
+        }
+        else
+            node = node->chunk_next;
+    }
+    return retval;
+}
+
+BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(float deltaTime, BlockIterator bi, WorldLockManager &lock_manager)
+{
+    BlockChunk *chunk = bi.chunk;
+    lock_manager.clear();
+    BlockChunkFullLock lockChunk(*chunk);
+    auto lockIt = std::unique_lock<decltype(chunk->chunkVariables.blockUpdateListLock)>(chunk->chunkVariables.blockUpdateListLock);
+    BlockUpdate *retval = nullptr;
+    for(BlockUpdate *node = chunk->chunkVariables.blockUpdateListHead; node != nullptr;)
+    {
+        if(node->kind == BlockUpdateKind::Lighting)
+        {
+            node = node->chunk_next;
+            continue;
+        }
+        node->time_left -= deltaTime;
+        if(node->time_left <= 0)
         {
             if(node->chunk_prev != nullptr)
                 node->chunk_prev->chunk_next = node->chunk_next;
@@ -173,6 +222,10 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
             initialChunk->chunkVariables.generated = true;
         }
     }
+    blockUpdateThread = thread([this]()
+    {
+        blockUpdateThreadFn();
+    });
     lock_manager.clear();
     getDebugLog() << L"lighting initial world..." << postnl;
     for(int i = 0; i < 500 && !isLightingStable(); i++)
@@ -270,6 +323,64 @@ void World::lightingThreadFn()
                         {
                             b.lighting = newLighting;
                             setBlock(bi, lock_manager, b);
+                        }
+                    }
+
+                    BlockUpdate *deleteMe = node;
+                    node = node->chunk_next;
+                    if(node != nullptr)
+                        node->chunk_prev = nullptr;
+                    delete deleteMe;
+                }
+                if(destructing)
+                    break;
+            }
+        }
+        if(!didAnything)
+        {
+            lightingStable = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+}
+
+void World::blockUpdateThreadFn()
+{
+    setThreadPriority(ThreadPriority::Low);
+    WorldLockManager lock_manager;
+    BlockChunkMap *chunks = &physicsWorld->chunks;
+    auto lastUpdateTime = std::chrono::steady_clock::now();
+    while(!destructing)
+    {
+        bool didAnything = false;
+        auto currentUpdateTime = std::chrono::steady_clock::now();
+        float deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentUpdateTime - lastUpdateTime).count();
+        lastUpdateTime = currentUpdateTime;
+        for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
+        {
+            if(destructing)
+                break;
+            BlockChunk *chunk = &(*chunkIter);
+            if(chunkIter.is_locked())
+                chunkIter.unlock();
+            BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+            for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(deltaTime, cbi, lock_manager); node != nullptr; node = removeAllReadyBlockUpdatesInChunk(0, cbi, lock_manager))
+            {
+                didAnything = true;
+                while(node != nullptr)
+                {
+                    BlockIterator bi = cbi;
+                    bi.moveTo(node->position);
+                    Block b = bi.get(lock_manager);
+                    if(b.good())
+                    {
+                        BlockUpdateSet blockUpdateSet;
+                        b.descriptor->tick(blockUpdateSet, *this, b, bi, lock_manager, node->kind);
+                        for(BlockUpdateSet::value_type v : blockUpdateSet)
+                        {
+                            bi = cbi;
+                            bi.moveTo(std::get<0>(v));
+                            setBlock(bi, lock_manager, std::get<1>(v));
                         }
                     }
 

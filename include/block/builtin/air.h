@@ -44,6 +44,10 @@ public:
     {
         return pointer();
     }
+    virtual bool isReplaceable() const override
+    {
+        return true;
+    }
 private:
     Air()
         : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), (RayCasting::BlockCollisionMask)0, true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)

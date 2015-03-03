@@ -21,3 +21,4 @@
 #include "generate/biome/builtin/desert.h"
 #include "generate/biome/builtin/jungle.h"
 #include "generate/biome/builtin/tundra.h"
+#include "generate/biome/builtin/ocean.h"

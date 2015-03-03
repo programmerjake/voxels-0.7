@@ -223,7 +223,14 @@ void ViewPoint::generateMeshesFn()
                                             {
                                                 if(bd->drawsAnything(bbi.get(lock_manager), bbi, lock_manager))
                                                 {
-                                                    BlockLighting lighting = lightingCache.getBlockLighting(bbi, lock_manager, wlp);
+                                                    enum_array<BlockLighting, BlockFaceOrNone> lighting;
+                                                    lighting[BlockFaceOrNone::None] = lightingCache.getBlockLighting(bbi, lock_manager, wlp);
+                                                    for(BlockFace bf : enum_traits<BlockFace>())
+                                                    {
+                                                        BlockIterator bfbi = bbi;
+                                                        bfbi.moveToward(bf);
+                                                        lighting[toBlockFaceOrNone(bf)] = lightingCache.getBlockLighting(bfbi, lock_manager, wlp);
+                                                    }
                                                     for(RenderLayer rl : enum_traits<RenderLayer>())
                                                     {
                                                         bd->render(bbi.get(lock_manager), subchunkMeshes->at(rl), bbi, lock_manager, rl, lighting);

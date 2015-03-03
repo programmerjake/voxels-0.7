@@ -100,6 +100,7 @@
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
+		<Unit filename="include/block/builtin/water.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/entity/builtin/block_item.h" />
@@ -113,6 +114,7 @@
 		<Unit filename="include/generate/biome/biome_descriptor.h" />
 		<Unit filename="include/generate/biome/builtin/desert.h" />
 		<Unit filename="include/generate/biome/builtin/jungle.h" />
+		<Unit filename="include/generate/biome/builtin/ocean.h" />
 		<Unit filename="include/generate/biome/builtin/tundra.h" />
 		<Unit filename="include/generate/biome/decorator.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
@@ -217,6 +219,7 @@
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />
 		<Unit filename="src/item/item.cpp" />
+		<Unit filename="src/lighting/lighting.cpp" />
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />

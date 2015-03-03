@@ -143,6 +143,16 @@ public:
         return Lighting(constexpr_min(directSkylight, r.directSkylight), constexpr_min(indirectSkylight, r.indirectSkylight), constexpr_min(indirectArtificalLight, r.indirectArtificalLight));
     }
 private:
+    static constexpr LightValueType sum(LightValueType a, LightValueType b)
+    {
+        return constexpr_min<LightValueType>(a + b, maxLight);
+    }
+public:
+    constexpr Lighting sum(Lighting r) const
+    {
+        return Lighting(sum(directSkylight, r.directSkylight), sum(indirectSkylight, r.indirectSkylight), sum(indirectArtificalLight, r.indirectArtificalLight));
+    }
+private:
     static constexpr LightValueType reduce(LightValueType a, LightValueType b)
     {
         return (a < b ? 0 : a - b);
@@ -170,9 +180,12 @@ struct PackedLighting final
 {
     typedef Lighting::LightValueType LightValueType;
     static constexpr int lightBitWidth = Lighting::lightBitWidth;
-    LightValueType directSkylight: lightBitWidth;
-    LightValueType indirectSkylight: lightBitWidth;
-    LightValueType indirectArtificalLight: lightBitWidth;
+LightValueType directSkylight:
+    lightBitWidth;
+LightValueType indirectSkylight:
+    lightBitWidth;
+LightValueType indirectArtificalLight:
+    lightBitWidth;
     constexpr explicit PackedLighting(Lighting l = Lighting())
         : directSkylight(l.directSkylight), indirectSkylight(l.indirectSkylight), indirectArtificalLight(l.indirectArtificalLight)
     {
@@ -200,6 +213,10 @@ struct LightProperties final
                .combine(nz.stripDirectSkylight().reduce(reduceValue))
                .combine(pz.stripDirectSkylight().reduce(reduceValue));
     }
+    constexpr Lighting eval(Lighting inputLighting) const
+    {
+        return emissiveValue.combine(inputLighting.reduce(reduceValue));
+    }
     constexpr Lighting createNewLighting(Lighting oldLighting) const
     {
         return emissiveValue.combine(oldLighting.minimize(Lighting::makeMaxLight().reduce(reduceValue)));
@@ -212,6 +229,14 @@ struct LightProperties final
     constexpr Lighting calculateTransmittedLighting(Lighting lighting, Args ...args) const
     {
         return calculateTransmittedLighting(lighting).combine(calculateTransmittedLighting(args...));
+    }
+    constexpr LightProperties compose(LightProperties inFrontValue) const
+    {
+        return LightProperties(inFrontValue.emissiveValue.combine(inFrontValue.calculateTransmittedLighting(emissiveValue)), reduceValue.sum(inFrontValue.reduceValue));
+    }
+    constexpr LightProperties combine(LightProperties other) const
+    {
+        return LightProperties(other.emissiveValue.combine(emissiveValue), other.reduceValue.minimize(reduceValue));
     }
 };
 
@@ -237,144 +262,13 @@ struct BlockLighting final
                                                       lightValues[1][1][1]))));
     }
 private:
-    float evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset)
-    {
-        float retval = 0;
-        for(int dx = 0; dx < 2; dx++)
-        {
-            for(int dy = 0; dy < 2; dy++)
-            {
-                for(int dz = 0; dz < 2; dz++)
-                {
-                    VectorI pos = offset + VectorI(dx, dy, dz);
-                    retval = std::max<float>(retval, blockValues[pos.x][pos.y][pos.z]);
-                }
-            }
-        }
-        return retval;
-    }
+    float evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset);
 public:
     constexpr BlockLighting()
-        : lightValues {{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
+        : lightValues{{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
     {
     }
-    BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
-    {
-        for(int dx :
-                {
-                    -1, 1
-                })
-        {
-            for(int dy :
-                    {
-                        -1, 1
-                    })
-            {
-                for(int dz :
-                        {
-                            -1, 1
-                        })
-                {
-                    VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
-                    for(VectorI propagateDir :
-                            {
-                                VectorI(-dx, 0, 0), VectorI(0, -dy, 0), VectorI(0, 0, -dz)
-                            })
-                    {
-                        VectorI p = startPos + propagateDir;
-                        std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
-                    }
-                }
-            }
-        }
-        for(int dx :
-                {
-                    -1, 1
-                })
-        {
-            for(int dy :
-                    {
-                        -1, 1
-                    })
-            {
-                const int dz = 0;
-                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
-                for(VectorI propagateDir :
-                        {
-                            VectorI(-dx, 0, 0), VectorI(0, -dy, 0)
-                        })
-                {
-                    VectorI p = startPos + propagateDir;
-                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
-                }
-            }
-        }
-        for(int dx :
-                {
-                    -1, 1
-                })
-        {
-            for(int dz :
-                    {
-                        -1, 1
-                    })
-            {
-                const int dy = 0;
-                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
-                for(VectorI propagateDir :
-                        {
-                            VectorI(-dx, 0, 0), VectorI(0, 0, -dz)
-                        })
-                {
-                    VectorI p = startPos + propagateDir;
-                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
-                }
-            }
-        }
-        for(int dy :
-                {
-                    -1, 1
-                })
-        {
-            for(int dz :
-                    {
-                        -1, 1
-                    })
-            {
-                const int dx = 0;
-                VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
-                for(VectorI propagateDir :
-                        {
-                            VectorI(0, -dy, 0), VectorI(0, 0, -dz)
-                        })
-                {
-                    VectorI p = startPos + propagateDir;
-                    std::get<1>(blocks[p.x][p.y][p.z]) = std::get<1>(blocks[p.x][p.y][p.z]).combine(std::get<0>(blocks[p.x][p.y][p.z]).calculateTransmittedLighting(std::get<1>(blocks[startPos.x][startPos.y][startPos.z])));
-                }
-            }
-        }
-        checked_array<checked_array<checked_array<float, 3>, 3>, 3> blockValues;
-        for(size_t x = 0; x < blockValues.size(); x++)
-        {
-            for(size_t y = 0; y < blockValues[x].size(); y++)
-            {
-                for(size_t z = 0; z < blockValues[x][y].size(); z++)
-                {
-                    blockValues[x][y][z] = std::get<1>(blocks[x][y][z]).toFloat(wlp);
-                }
-            }
-        }
-        for(int ox = 0; ox <= 1; ox++)
-        {
-            for(int oy = 0; oy <= 1; oy++)
-            {
-                for(int oz = 0; oz <= 1; oz++)
-                {
-                    lightValues[ox][oy][oz] = evalVertex(blockValues, VectorI(ox, oy, oz));
-                }
-            }
-        }
-    }
+    BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp);
 private:
     static constexpr VectorF getLightVector()
     {

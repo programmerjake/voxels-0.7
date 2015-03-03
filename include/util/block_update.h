@@ -32,7 +32,8 @@ enum class BlockUpdateKind
 {
     Lighting,
     //General,
-    DEFINE_ENUM_LIMITS(Lighting, Lighting)
+    Water,
+    DEFINE_ENUM_LIMITS(Lighting, Water)
 };
 
 inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
@@ -42,7 +43,9 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
     case BlockUpdateKind::Lighting:
         return 0;
     //case BlockUpdateKind::General:
-        //return 0.05;
+        //return 0.05f;
+    case BlockUpdateKind::Water:
+        return 0.25f;
     }
     assert(false);
     return 0;

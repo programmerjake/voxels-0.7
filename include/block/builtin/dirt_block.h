@@ -90,18 +90,18 @@ protected:
     {
         return blockIterator.getBiomeProperties(lock_manager).getGrassColor();
     }
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const BlockLighting &lighting) const override
+    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
     {
         if(rl != RenderLayer::Opaque)
         {
             return;
         }
         bool drewAny = false;
+        ColorF grassShading;
         Matrix tform = Matrix::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh();
+        Mesh &faceMesh = getTempRenderMesh();
         blockMesh.clear();
-        ColorF grassShading;
-        bool gotGrassShading = false;
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
@@ -117,22 +117,24 @@ protected:
             {
                 continue;
             }
-            if(!gotGrassShading)
-            {
-                gotGrassShading = true;
-                grassShading = getGrassShading(block, blockIterator, lock_manager);
-            }
-            blockMesh.append(meshFace[bf]);
-            blockMesh.append(colorize(grassShading, meshGrassFace[bf]));
             drewAny = true;
+            grassShading = getGrassShading(block, blockIterator, lock_manager);
+            if(meshFace[bf].size() == 0 && meshGrassFace[bf].size() == 0)
+                continue;
+            faceMesh.clear();
+            faceMesh.append(meshFace[bf]);
+            faceMesh.append(colorize(grassShading, meshGrassFace[bf]));
+            lightMesh(faceMesh, lighting[toBlockFaceOrNone(bf)], getBlockFaceInDirection(bf));
+            blockMesh.append(faceMesh);
         }
 
         if(drewAny)
         {
-            assert(gotGrassShading);
-            blockMesh.append(meshCenter);
-            blockMesh.append(colorize(grassShading, meshGrassCenter));
-            lightMesh(blockMesh, lighting);
+            faceMesh.clear();
+            faceMesh.append(meshCenter);
+            faceMesh.append(colorize(grassShading, meshGrassCenter));
+            lightMesh(faceMesh, lighting[BlockFaceOrNone::None], VectorF(0));
+            blockMesh.append(faceMesh);
             dest.append(transform(tform, blockMesh));
         }
     }
@@ -153,6 +155,9 @@ protected:
             {
                 continue;
             }
+
+            if(meshCenter.size() != 0 || meshGrassCenter.size() != 0)
+                return true;
 
             if(meshFace[bf].size() == 0 && meshGrassFace[bf].size() == 0)
                 continue;
