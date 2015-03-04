@@ -265,6 +265,8 @@ World::~World()
     destructing = true;
     if(lightingThread.joinable())
         lightingThread.join();
+    if(blockUpdateThread.joinable())
+        blockUpdateThread.join();
     for(auto &t : chunkGeneratingThreads)
         if(t.joinable())
             t.join();
