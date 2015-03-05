@@ -26,6 +26,7 @@
 #include "util/util.h"
 #include "texture/texture_descriptor.h"
 #include "block/builtin/air.h"
+#include "item/item_struct.h"
 
 namespace programmerjake
 {
@@ -60,6 +61,7 @@ public:
     {
         return interpolate<float>((float)level / (float)getMaxLevel(d), 0.95f, 0.01f);
     }
+    virtual Item getFilledBucket() const = 0;
 private:
     TextureDescriptor td;
     static std::wstring makeName(std::wstring baseName, unsigned level, bool falling)
@@ -278,7 +280,21 @@ protected:
 public:
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
     {
-        return RayCasting::Collision(world);
+        float height = getSideHeight(blockIterator.position().d);
+        if(ray.dimension() != blockIterator.position().d)
+            return RayCasting::Collision(world);
+        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
+        if(!std::get<0>(collision))
+            return RayCasting::Collision(world);
+        if(std::get<1>(collision) < RayCasting::Ray::eps)
+        {
+            collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
+            if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
+                return RayCasting::Collision(world);
+            std::get<1>(collision) = RayCasting::Ray::eps;
+            return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
+        }
+        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
     }
 private:
     void setBlock(BlockUpdateSet &blockUpdateSet, BlockIterator blockIterator, WorldLockManager &lock_manager, Block newBlock) const
@@ -290,7 +306,7 @@ private:
             blockUpdateSet.emplace_back(blockIterator.position(), newBlock);
         }
     }
-    bool getIsFalling(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    bool getIsFalling(BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned newLevel) const
     {
         BlockIterator bi = blockIterator;
         bi.moveTowardNY();
@@ -302,7 +318,7 @@ private:
         {
             if(isSameKind(bd))
             {
-                return bd->level > 0;
+                return bd->level > 0 || newLevel > 0;
             }
             return false;
         }
@@ -329,7 +345,7 @@ public:
         if(kind == fluidUpdateKind)
         {
             unsigned maxLevel = getMaxLevel(blockIterator.position().d);
-            bool isFalling = getIsFalling(blockIterator, lock_manager);
+            bool isFalling = getIsFalling(blockIterator, lock_manager, level);
             BlockIterator bi = blockIterator;
             Block b;
             unsigned newLevel = level;
@@ -409,28 +425,28 @@ public:
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager))));
+                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPX();
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager))));
+                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardNZ();
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager))));
+                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPZ();
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager))));
+                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
             }
             bi = blockIterator;
@@ -438,7 +454,7 @@ public:
             b = bi.get(lock_manager);
             if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
             {
-                setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager))));
+                setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
             }
         }
     }

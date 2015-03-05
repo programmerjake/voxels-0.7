@@ -131,7 +131,11 @@ public:
         }
         if(event.button == MouseButton_Right)
         {
+#ifdef DEBUG_VERSION
+            if(!isDialogUp)
+#else
             if(!isDialogUp && !gameInput->paused.get())
+#endif // DEBUG_VERSION
             {
                 EventArguments args;
                 gameInput->action(args);

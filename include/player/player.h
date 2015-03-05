@@ -258,6 +258,7 @@ public:
         return RayCasting::Collision(world);
     }
     bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b);
+    bool removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction = false);
     int addItem(Item item)
     {
         if(!item.good())

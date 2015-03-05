@@ -18,28 +18,38 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/stone.h"
-#include "entity/builtin/items/stone.h"
-#include "block/builtin/cobblestone.h"
-#include "entity/builtin/items/cobblestone.h"
+#ifndef ITEM_COBBLESTONE_H_INCLUDED
+#define ITEM_COBBLESTONE_H_INCLUDED
+
+#include "item/builtin/block.h"
+#include "util/global_instance_maker.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
+namespace Items
 {
 namespace builtin
 {
-void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+class Cobblestone final : public ItemBlock
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    friend class global_instance_maker<Cobblestone>;
+private:
+    Cobblestone();
+public:
+    static const Cobblestone *pointer()
+    {
+        return global_instance_maker<Cobblestone>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
 }
-void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
-{
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
 }
 }
 }
-}
-}
+
+#endif // ITEM_COBBLESTONE_H_INCLUDED

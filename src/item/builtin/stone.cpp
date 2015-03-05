@@ -21,6 +21,9 @@
 #include "item/builtin/stone.h"
 #include "block/builtin/stone.h"
 #include "entity/builtin/items/stone.h"
+#include "item/builtin/cobblestone.h"
+#include "block/builtin/cobblestone.h"
+#include "entity/builtin/items/cobblestone.h"
 #include "texture/texture_atlas.h"
 #include "player/player.h"
 namespace programmerjake
@@ -34,6 +37,10 @@ namespace builtin
 
 Stone::Stone()
     : ItemBlock(L"builtin.stone", TextureAtlas::Stone.td(), Blocks::builtin::Stone::descriptor(), Entities::builtin::items::Stone::descriptor())
+{
+}
+Cobblestone::Cobblestone()
+    : ItemBlock(L"builtin.cobblestone", TextureAtlas::Cobblestone.td(), Blocks::builtin::Cobblestone::descriptor(), Entities::builtin::items::Cobblestone::descriptor())
 {
 }
 }

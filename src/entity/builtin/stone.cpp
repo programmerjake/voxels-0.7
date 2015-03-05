@@ -19,7 +19,9 @@
  *
  */
 #include "entity/builtin/items/stone.h"
+#include "entity/builtin/items/cobblestone.h"
 #include "item/builtin/stone.h"
+#include "item/builtin/cobblestone.h"
 #include "player/player.h"
 
 namespace programmerjake
@@ -36,6 +38,11 @@ namespace items
 void Stone::onGiveToPlayer(Player &player) const
 {
     player.addItem(Item(Items::builtin::Stone::descriptor()));
+}
+
+void Cobblestone::onGiveToPlayer(Player &player) const
+{
+    player.addItem(Item(Items::builtin::Cobblestone::descriptor()));
 }
 
 }

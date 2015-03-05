@@ -18,8 +18,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef ITEM_BLOCK_H_INCLUDED
-#define ITEM_BLOCK_H_INCLUDED
+#ifndef ITEM_IMAGE_H_INCLUDED
+#define ITEM_IMAGE_H_INCLUDED
 
 #include "item/item.h"
 #include "render/generate.h"
@@ -38,30 +38,35 @@ namespace Items
 {
 namespace builtin
 {
-class ItemBlock : public ItemDescriptor
+class ItemImage : public ItemDescriptor
 {
     Mesh mesh;
     BlockDescriptorPointer block;
     const Entities::builtin::EntityItem *entity;
+public:
+    static Mesh makeMesh(TextureDescriptor td)
+    {
+        assert(td);
+        const ColorF c = colorizeIdentity();
+		const VectorF p4 = VectorF(0, 0, 0);
+		const VectorF p5 = VectorF(1, 0, 0);
+		const VectorF p7 = VectorF(1, 1, 0);
+		const VectorF p6 = VectorF(0, 1, 0);
+        return Generate::quadrilateral(td,
+									 p4, c,
+									 p5, c,
+									 p7, c,
+									 p6, c
+									 );
+    }
 protected:
-    ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemDescriptor(name), block(block), entity(entity)
+    ItemImage(std::wstring name, Mesh faceMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemDescriptor(name), mesh(faceMesh), block(block), entity(entity)
     {
-        assert(block != nullptr);
         assert(entity != nullptr);
-        Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
-        tform = tform.concat(Matrix::rotateY(-M_PI / 4));
-        tform = tform.concat(Matrix::rotateX(M_PI / 6));
-        tform = tform.concat(Matrix::scale(0.8f / M_SQRT3, 0.8f / M_SQRT3, 0.1f / M_SQRT3));
-        tform = tform.concat(Matrix::translate(0.5f, 0.5f, 0.1f));
-        mesh = transform(tform, std::move(boxMesh));
     }
-    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz), block, entity)
-    {
-    }
-    ItemBlock(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemBlock(name, td, td, td, td, td, td, block, entity)
+    ItemImage(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemImage(name, makeMesh(td), block, entity)
     {
     }
     virtual Item getAfterPlaceItem() const
@@ -90,6 +95,8 @@ public:
     }
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
     {
+        if(block == nullptr)
+            return item;
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
         if(c.valid())
         {
@@ -109,4 +116,5 @@ public:
 }
 }
 
-#endif // ITEM_BLOCK_H_INCLUDED
+#endif // ITEM_IMAGE_H_INCLUDED
+

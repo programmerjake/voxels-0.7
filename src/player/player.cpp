@@ -152,6 +152,22 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
     return false;
 }
 
+bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction)
+{
+    PositionI pos = collision.blockPosition;
+    bool good = true;
+    BlockIterator bi = world.getBlockIterator(pos);
+    Block b = bi.get(lock_manager);
+    good = good && b.good();
+    if(good)
+    {
+        world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
+        if(runBreakAction)
+            b.descriptor->onBreak(world, b, bi, lock_manager);
+        return true;
+    }
+    return false;
+}
 
 Players_t::ListType *Players_t::pPlayers = nullptr;
 std::recursive_mutex Players_t::playersLock;

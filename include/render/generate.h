@@ -165,6 +165,8 @@ namespace Generate
 		}
 		return retval;
 	}
+
+	Mesh item3DImage(TextureDescriptor td, float thickness = -1);
 }
 }
 }

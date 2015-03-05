@@ -27,6 +27,7 @@
 #include "block/builtin/grass.h"
 #include "block/builtin/water.h"
 #include "entity/builtin/items/stone.h"
+#include "entity/builtin/items/bucket.h"
 #include <cmath>
 #include <random>
 #include <limits>
@@ -80,6 +81,10 @@ protected:
                 int groundHeight = ifloor(0.5f + groundHeightF);
                 bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
             }
+        }
+        if(chunkBasePosition.x == 0 && chunkBasePosition.z == 0)
+        {
+            world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
         }
     }
 };
@@ -471,7 +476,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
             if(!srcChunkIter->entity.good())
             {
                 srcSubchunkList.erase(srcSubchunkIter);
-                srcChunkIter = gcbi.chunk->chunkVariables.entityList.erase(srcChunkIter);
+                srcChunkIter = srcChunkList.erase(srcChunkIter);
                 continue;
             }
             srcChunkIter->lastEntityRunCount = 0;

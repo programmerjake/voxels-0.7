@@ -89,7 +89,7 @@ const TextureAtlas
     TextureAtlas::ChestSide(208, 16, 16, 16),
     TextureAtlas::ChestTop(224, 16, 16, 16),
     TextureAtlas::ChestFront(240, 16, 16, 16),
-    TextureAtlas::CobbleStone(0, 32, 16, 16),
+    TextureAtlas::Cobblestone(0, 32, 16, 16),
     TextureAtlas::Coal(16, 32, 16, 16),
     TextureAtlas::CoalOre(32, 32, 16, 16),
     TextureAtlas::CocoaSmallSide(48, 32, 16, 16),

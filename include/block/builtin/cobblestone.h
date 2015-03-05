@@ -18,10 +18,12 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/stone.h"
-#include "entity/builtin/items/stone.h"
-#include "block/builtin/cobblestone.h"
-#include "entity/builtin/items/cobblestone.h"
+#ifndef COBBLESTONE_H_INCLUDED
+#define COBBLESTONE_H_INCLUDED
+
+#include "block/builtin/stone_block.h"
+#include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -31,15 +33,29 @@ namespace Blocks
 {
 namespace builtin
 {
-void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+class Cobblestone final : public StoneBlock
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    friend class global_instance_maker<Cobblestone>;
+public:
+    static const Cobblestone *pointer()
+    {
+        return global_instance_maker<Cobblestone>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    Cobblestone()
+        : StoneBlock(L"builtin.cobblestone", TextureAtlas::Cobblestone.td())
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
+};
 }
-void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
-{
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
 }
 }
 }
-}
-}
+
+#endif // COBBLESTONE_H_INCLUDED

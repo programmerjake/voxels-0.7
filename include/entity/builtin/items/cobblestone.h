@@ -18,28 +18,43 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/stone.h"
-#include "entity/builtin/items/stone.h"
-#include "block/builtin/cobblestone.h"
-#include "entity/builtin/items/cobblestone.h"
+#ifndef ENTITIES_BUILTIN_ITEMS_COBBLESTONE_H_INCLUDED
+#define ENTITIES_BUILTIN_ITEMS_COBBLESTONE_H_INCLUDED
+
+#include "entity/builtin/block_item.h"
+#include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
+namespace Entities
 {
 namespace builtin
 {
-void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+namespace items
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
-}
-void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+class Cobblestone final : public BlockItem
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    friend class global_instance_maker<Cobblestone>;
+private:
+    Cobblestone()
+        : BlockItem(L"builtin.items.cobblestone", TextureAtlas::Cobblestone.td())
+    {
+    }
+public:
+    static const Cobblestone *descriptor()
+    {
+        return global_instance_maker<Cobblestone>::getInstance();
+    }
+protected:
+    virtual void onGiveToPlayer(Player &player) const override;
+};
 }
 }
 }
 }
 }
+
+#endif // ENTITIES_BUILTIN_ITEMS_COBBLESTONE_H_INCLUDED

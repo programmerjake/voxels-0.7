@@ -90,7 +90,7 @@ public:
     ChestSide,
     ChestTop,
     ChestFront,
-    CobbleStone,
+    Cobblestone,
     Coal,
     CoalOre,
     CocoaSmallSide,

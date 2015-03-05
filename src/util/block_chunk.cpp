@@ -45,17 +45,15 @@ BlockChunk::BlockChunk(PositionI basePosition)
 
 BlockChunk::~BlockChunk()
 {
-    for(auto &i : subchunks)
+    for(auto i = chunkVariables.entityList.begin(); i != chunkVariables.entityList.end(); i = chunkVariables.entityList.erase(i))
     {
-        for(auto &j : i)
+        WrappedEntity &we = *i;
+        if(we.currentSubchunk != nullptr)
         {
-            for(BlockChunkSubchunk &subchunk : j)
-            {
-                subchunk.entityList.clear();
-            }
+            auto iter = we.currentSubchunk->entityList.to_iterator(&we);
+            we.currentSubchunk->entityList.erase(iter);
         }
     }
-    chunkVariables.entityList.clear();
 }
 }
 }
