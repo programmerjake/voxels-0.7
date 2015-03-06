@@ -45,9 +45,11 @@ public:
     static constexpr RandomClass biomeTemperatureSize = 5;
     static constexpr RandomClass biomeHumidityStart = biomeTemperatureStart + biomeTemperatureSize;
     static constexpr RandomClass biomeHumiditySize = 5;
+    static constexpr RandomClass oreGeneratePositionStart = biomeHumidityStart + biomeHumiditySize;
+    static constexpr RandomClass oreGeneratePositionSize = 1;
     static RandomClass allocateRandomClasses(std::size_t count)
     {
-        static std::atomic_size_t nextRandomClass(biomeHumidityStart + biomeHumiditySize);
+        static std::atomic_size_t nextRandomClass(oreGeneratePositionStart + oreGeneratePositionSize);
         return nextRandomClass.fetch_add(count, std::memory_order_relaxed);
     }
 private:

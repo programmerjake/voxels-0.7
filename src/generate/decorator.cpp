@@ -18,29 +18,39 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef DECORATOR_H_INCLUDED
-#define DECORATOR_H_INCLUDED
-
-#include <memory>
+#include "generate/decorator.h"
+#include <cassert>
 
 namespace programmerjake
 {
 namespace voxels
 {
-class Decorator
+Decorator::Decorator(std::wstring name, int chunkSearchDistance)
+    : index(DecoratorIndexNone), name(name), chunkSearchDistance(chunkSearchDistance)
 {
-    Decorator(const Decorator &) = delete;
-    const Decorator &operator =(const Decorator &) = delete;
-public:
-    Decorator()
-    {
-
-    }
-    virtual ~Decorator()
-    {
-    }
-};
-}
+    assert(chunkSearchDistance >= 0);
+    Decorators_t::addDecorator(this);
 }
 
-#endif // DECORATOR_H_INCLUDED
+std::unordered_map<std::wstring, DecoratorPointer> *Decorators_t::map = nullptr;
+std::vector<DecoratorPointer> *Decorators_t::list = nullptr;
+
+void Decorators_t::addDecorator(Decorator *decorator)
+{
+    assert(decorator != nullptr);
+    makeMap();
+    if(!std::get<1>(map->insert(std::pair<std::wstring, DecoratorPointer>(decorator->name, decorator))))
+    {
+        assert(false);
+    }
+    decorator->index = list->size();
+    list->push_back(decorator);
+}
+
+DecoratorIndex Decorators_t::getIndex(DecoratorPointer decorator)
+{
+    return decorator->getIndex();
+}
+
+}
+}

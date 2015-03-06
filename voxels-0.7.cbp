@@ -120,7 +120,12 @@
 		<Unit filename="include/generate/biome/builtin/jungle.h" />
 		<Unit filename="include/generate/biome/builtin/ocean.h" />
 		<Unit filename="include/generate/biome/builtin/tundra.h" />
-		<Unit filename="include/generate/biome/decorator.h" />
+		<Unit filename="include/generate/decorator.h" />
+		<Unit filename="include/generate/decorator/dirt_vein.h" />
+		<Unit filename="include/generate/decorator/mineral_vein.h" />
+		<Unit filename="include/generate/decorator/mineral_vein.h/" />
+		<Unit filename="include/generate/decorator/mineral_vein.h/" />
+		<Unit filename="include/generate/decorator_declaration.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
 		<Unit filename="include/item/builtin/block.h" />
@@ -223,6 +228,8 @@
 		<Unit filename="src/entity/entity.cpp" />
 		<Unit filename="src/generate/biome/biome.cpp" />
 		<Unit filename="src/generate/biome/builtin/builtin.cpp" />
+		<Unit filename="src/generate/decorator.cpp" />
+		<Unit filename="src/generate/decorator/dirt_vein.cpp" />
 		<Unit filename="src/item/builtin/bucket.cpp" />
 		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/grass.cpp" />

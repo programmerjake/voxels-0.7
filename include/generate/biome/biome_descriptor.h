@@ -23,6 +23,7 @@
 
 #include "generate/biome/biome.h"
 #include "util/block_chunk.h"
+#include "generate/decorator_declaration.h"
 
 namespace programmerjake
 {
@@ -69,6 +70,10 @@ public:
     virtual bool isGoodStartingPosition() const
     {
         return true;
+    }
+    virtual float getChunkDecoratorCount(DecoratorPointer decorator) const
+    {
+        return 0;
     }
 protected:
     BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
