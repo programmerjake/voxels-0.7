@@ -57,11 +57,12 @@ protected:
         result = columnBasePosition + VectorI(0, std::uniform_int_distribution<decltype(maxGenerateHeight)>(minGenerateHeight, maxGenerateHeight)(rg), 0);
         return std::uniform_int_distribution<std::size_t>(minBlockCount, maxBlockCount)(rg);
     }
-    MineralVeinDecorator(std::wstring name, std::size_t minBlockCount, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight)
-        : Decorator(name, 0), minBlockCount(minBlockCount), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight)
+    MineralVeinDecorator(std::wstring name, std::size_t minBlockCount, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight, float defaultPreChunkGenerateCount)
+        : Decorator(name, 0), minBlockCount(minBlockCount), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight), defaultPreChunkGenerateCount(defaultPreChunkGenerateCount)
     {
     }
 public:
+    const float defaultPreChunkGenerateCount;
     /** @brief generate this decorator in a chunk
      *
      * @param simulate if the generation should be simulated (viz., don't change any blocks or add entities, just return true if generation would succeed)

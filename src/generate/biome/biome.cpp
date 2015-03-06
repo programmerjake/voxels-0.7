@@ -19,7 +19,7 @@
  *
  */
 #include "generate/biome/biome_descriptor.h"
-#include "generate/decorator/dirt_vein.h"
+#include "generate/decorator/mineral_vein.h"
 #include <algorithm>
 #include <cmath>
 
@@ -89,8 +89,9 @@ BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidi
 
 float BiomeDescriptor::getChunkDecoratorCount(DecoratorPointer decorator) const
 {
-    if(decorator == Decorators::builtin::DirtVeinDecorator::pointer())
-        return 30;
+    const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(decorator);
+    if(mineralVeinDecorator != nullptr)
+        return mineralVeinDecorator->defaultPreChunkGenerateCount;
     return 0;
 }
 }
