@@ -31,6 +31,8 @@ namespace voxels
 {
 namespace Decorators
 {
+namespace builtin
+{
 class DirtVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<DirtVeinDecorator>;
@@ -51,6 +53,7 @@ public:
         return pointer();
     }
 };
+}
 }
 }
 }

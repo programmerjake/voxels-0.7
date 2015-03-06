@@ -19,6 +19,7 @@
  *
  */
 #include "generate/biome/biome_descriptor.h"
+#include "generate/decorator/dirt_vein.h"
 #include <algorithm>
 #include <cmath>
 
@@ -84,6 +85,13 @@ BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidi
     }
     retval.normalize();
     return std::move(retval);
+}
+
+float BiomeDescriptor::getChunkDecoratorCount(DecoratorPointer decorator) const
+{
+    if(decorator == Decorators::builtin::DirtVeinDecorator::pointer())
+        return 30;
+    return 0;
 }
 }
 }

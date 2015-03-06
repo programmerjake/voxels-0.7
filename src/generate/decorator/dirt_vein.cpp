@@ -26,9 +26,12 @@ namespace voxels
 {
 namespace Decorators
 {
+namespace builtin
+{
 DirtVeinDecorator::DirtVeinDecorator()
     : MineralVeinDecorator(L"builtin.dirt_vein", 33, 33, 0, 256)
 {
+}
 }
 }
 }

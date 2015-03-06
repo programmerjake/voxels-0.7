@@ -39,6 +39,7 @@
 #include "util/global_instance_maker.h"
 #include "platform/thread_priority.h"
 #include "util/wrapped_entity.h"
+#include "generate/decorator.h"
 
 using namespace std;
 
@@ -64,6 +65,7 @@ protected:
     virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
     {
         BlockIterator bi = world.getBlockIterator(chunkBasePosition);
+        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
@@ -79,7 +81,41 @@ protected:
                     groundHeightF += weight * biome->getGroundHeight(columnBasePosition, randomSource);
                 }
                 int groundHeight = ifloor(0.5f + groundHeightF);
+                groundHeights[x][z] = groundHeight;
                 bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
+            }
+        }
+        std::minstd_rand rg(std::hash<PositionI>()(chunkBasePosition));
+        rg.discard(30);
+        std::size_t decoratorGenerateNumber = 0;
+        for(DecoratorPointer decorator : DecoratorsList)
+        {
+            #warning implement decorators spanning multiple chunks
+            for(int x = 0; x < BlockChunk::chunkSizeX; x++)
+            {
+                for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
+                {
+                    PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
+                    bi.moveTo(columnBasePosition);
+                    const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
+                    float generateCountF = 0;
+                    for(const BiomeWeights::value_type &v : bp.getWeights())
+                    {
+                        BiomeDescriptorPointer biome = std::get<0>(v);
+                        float weight = std::get<1>(v);
+                        generateCountF += weight * biome->getChunkDecoratorCount(decorator);
+                    }
+                    generateCountF /= BlockChunk::chunkSizeX * BlockChunk::chunkSizeZ;
+                    int generateCount = ifloor(std::uniform_real_distribution<float>(0, 1)(rg) + generateCountF);
+                    int groundHeight = groundHeights[x][z];
+                    for(int i = 0; i < generateCount; i++)
+                    {
+                        // volatile so compiler won't complain about unused variable
+                        volatile bool succeded = decorator->generateInChunk(false, chunkBasePosition, columnBasePosition, columnBasePosition + VectorI(0, groundHeight, 0),
+                                                                   lock_manager, world, blocks, randomSource, decoratorGenerateNumber++);
+                        #warning check succeded value
+                    }
+                }
             }
         }
         if(chunkBasePosition.x == 0 && chunkBasePosition.z == 0)

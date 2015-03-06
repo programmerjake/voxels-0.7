@@ -35,6 +35,8 @@ namespace voxels
 {
 namespace Decorators
 {
+namespace builtin
+{
 class MineralVeinDecorator : public Decorator
 {
 protected:
@@ -153,6 +155,7 @@ public:
         return true;
     }
 };
+}
 }
 }
 }
