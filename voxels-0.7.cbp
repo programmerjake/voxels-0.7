@@ -123,6 +123,7 @@
 		<Unit filename="include/generate/decorator.h" />
 		<Unit filename="include/generate/decorator/dirt_vein.h" />
 		<Unit filename="include/generate/decorator/mineral_vein.h" />
+		<Unit filename="include/generate/decorator/pregenerated_instance.h" />
 		<Unit filename="include/generate/decorator_declaration.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
@@ -182,6 +183,7 @@
 		<Unit filename="include/util/circular_deque.h" />
 		<Unit filename="include/util/color.h" />
 		<Unit filename="include/util/cpu_relax.h" />
+		<Unit filename="include/util/decorator_cache.h" />
 		<Unit filename="include/util/dimension.h" />
 		<Unit filename="include/util/enum_traits.h" />
 		<Unit filename="include/util/event.h" />

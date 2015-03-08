@@ -35,11 +35,13 @@
 #include <unordered_map>
 #include <mutex>
 #include <chrono>
+#include <list>
 #include "util/logging.h"
 #include "util/global_instance_maker.h"
 #include "platform/thread_priority.h"
 #include "util/wrapped_entity.h"
 #include "generate/decorator.h"
+#include "util/decorator_cache.h"
 
 using namespace std;
 
@@ -49,6 +51,64 @@ namespace voxels
 {
 namespace
 {
+class BiomesCache final
+{
+private:
+    struct Chunk final
+    {
+        checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> columns;
+        std::list<PositionI>::iterator chunksListIterator;
+        bool empty = true;
+    };
+    std::unordered_map<PositionI, Chunk> chunks;
+    std::list<PositionI> chunksList;
+    void deleteChunk()
+    {
+        chunks.erase(chunksList.back());
+        chunksList.pop_back();
+    }
+    Chunk &getChunk(PositionI pos, RandomSource &randomSource)
+    {
+        pos.y = 0;
+        if(chunks.size() > 100)
+        {
+            deleteChunk();
+        }
+        Chunk &retval = chunks[pos];
+        if(retval.empty)
+        {
+            retval.empty = false;
+            for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+            {
+                for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+                {
+                    retval.columns[dx][dz] = randomSource.getBiomeProperties(pos + VectorI(dx, 0, dz));
+                }
+            }
+            retval.chunksListIterator = chunksList.insert(chunksList.begin(), pos);
+        }
+        else
+        {
+            chunksList.splice(chunksList.begin(), chunksList, retval.chunksListIterator);
+        }
+        return retval;
+    }
+public:
+    void fillWorldChunk(World &world, PositionI chunkBasePosition, WorldLockManager &lock_manager, RandomSource &randomSource)
+    {
+        Chunk &c = getChunk(chunkBasePosition, randomSource);
+        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
+        for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+        {
+            for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+            {
+                bi.moveTo(chunkBasePosition + VectorI(dx, 0, dz));
+                world.setBiomeProperties(bi, lock_manager, c.columns[dx][dz]);
+            }
+        }
+    }
+};
+
 class MyWorldGenerator final : public RandomWorldGenerator
 {
     friend class global_instance_maker<MyWorldGenerator>;
@@ -61,11 +121,23 @@ public:
     {
         return global_instance_maker<MyWorldGenerator>::getInstance();
     }
-protected:
-    virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
+private:
+    void generateGroundChunk(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                             checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights,
+                             PositionI chunkBasePosition,
+                             WorldLockManager &lock_manager, World &world,
+                             RandomSource &randomSource) const
     {
+        static thread_local std::shared_ptr<BiomesCache> pBiomesCache = nullptr;
+        static thread_local World::SeedType seed = 0;
+        if(seed != world.getWorldGeneratorSeed())
+            pBiomesCache = nullptr;
+        if(pBiomesCache == nullptr)
+        {
+            pBiomesCache = std::make_shared<BiomesCache>();
+        }
+        pBiomesCache->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
         BlockIterator bi = world.getBlockIterator(chunkBasePosition);
-        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
@@ -85,35 +157,101 @@ protected:
                 bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
             }
         }
-        std::minstd_rand rg(std::hash<PositionI>()(chunkBasePosition));
+    }
+    std::vector<std::shared_ptr<const DecoratorInstance>> generateDecoratorsInChunk(DecoratorDescriptorPointer descriptor, PositionI chunkBasePosition,
+                                 WorldLockManager &lock_manager, World &world,
+                                 RandomSource &randomSource) const
+    {
+        static thread_local checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+        static thread_local checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+        std::vector<std::shared_ptr<const DecoratorInstance>> retval;
+        std::size_t decoratorGenerateNumber = std::hash<DecoratorDescriptorPointer>()(descriptor) + std::hash<PositionI>()(chunkBasePosition);
+        std::minstd_rand rg(decoratorGenerateNumber);
         rg.discard(30);
-        std::size_t decoratorGenerateNumber = 0;
-        for(DecoratorPointer decorator : DecoratorsList)
+        BlockIterator chunkBaseIterator = world.getBlockIterator(chunkBasePosition);
+        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
-            #warning implement decorators spanning multiple chunks
-            for(int x = 0; x < BlockChunk::chunkSizeX; x++)
+            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
-                for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
+                BlockIterator bi = chunkBaseIterator;
+                PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
+                bi.moveTo(columnBasePosition);
+                const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
+                float generateCountF = 0;
+                for(const BiomeWeights::value_type &v : bp.getWeights())
                 {
-                    PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
-                    bi.moveTo(columnBasePosition);
-                    const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
-                    float generateCountF = 0;
-                    for(const BiomeWeights::value_type &v : bp.getWeights())
+                    BiomeDescriptorPointer biome = std::get<0>(v);
+                    float weight = std::get<1>(v);
+                    generateCountF += weight * biome->getChunkDecoratorCount(descriptor);
+                }
+                generateCountF /= BlockChunk::chunkSizeX * BlockChunk::chunkSizeZ;
+                int generateCount = ifloor(std::uniform_real_distribution<float>(0, 1)(rg) + generateCountF);
+                VectorI relativeColumnSurfacePosition = columnBasePosition + VectorI(0, World::AverageGroundHeight, 0) - chunkBasePosition;
+                while(relativeColumnSurfacePosition.y >= 0 && relativeColumnSurfacePosition.y < BlockChunk::chunkSizeY - 1)
+                {
+                    const Block &b = blocks[relativeColumnSurfacePosition.x][relativeColumnSurfacePosition.y][relativeColumnSurfacePosition.z];
+                    if(!b.good())
+                        break;
+                    if(b.descriptor->isGroundBlock())
+                        relativeColumnSurfacePosition.y++;
+                    else
+                        break;
+                }
+                while(relativeColumnSurfacePosition.y > 0 && relativeColumnSurfacePosition.y < BlockChunk::chunkSizeY)
+                {
+                    const Block &b = blocks[relativeColumnSurfacePosition.x][relativeColumnSurfacePosition.y][relativeColumnSurfacePosition.z];
+                    if(!b.good())
+                        break;
+                    if(!b.descriptor->isGroundBlock())
+                        relativeColumnSurfacePosition.y--;
+                    else
+                        break;
+                }
+                PositionI columnSurfacePosition = relativeColumnSurfacePosition + chunkBasePosition;
+                for(int i = 0; i < generateCount; i++)
+                {
+                    auto instance = descriptor->createInstance(chunkBasePosition, columnBasePosition, columnSurfacePosition,
+                                 lock_manager, chunkBaseIterator,
+                                 blocks,
+                                 randomSource, decoratorGenerateNumber++);
+                    if(instance != nullptr)
+                        retval.push_back(instance);
+                }
+            }
+        }
+        return std::move(retval);
+    }
+protected:
+    virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
+    {
+        static thread_local std::shared_ptr<DecoratorCache> pDecoratorCache = nullptr;
+        static thread_local World::SeedType lastSeed = 0;
+        if(lastSeed != world.getWorldGeneratorSeed())
+            pDecoratorCache = nullptr;
+        if(pDecoratorCache == nullptr)
+            pDecoratorCache = std::make_shared<DecoratorCache>();
+        DecoratorCache &decoratorCache = *pDecoratorCache;
+        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+        for(DecoratorDescriptorPointer descriptor : DecoratorDescriptors)
+        {
+            int chunkSearchDistance = descriptor->chunkSearchDistance;
+            for(VectorI i = VectorI(-chunkSearchDistance, 0, 0); i.x <= chunkSearchDistance; i.x++)
+            {
+                for(i.z = -chunkSearchDistance; i.z <= chunkSearchDistance; i.z++)
+                {
+                    VectorI rcpos = VectorI(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ) * i;
+                    PositionI pos = rcpos + chunkBasePosition;
+                    auto instances = decoratorCache.getChunkInstances(pos, descriptor);
+                    if(!std::get<1>(instances))
                     {
-                        BiomeDescriptorPointer biome = std::get<0>(v);
-                        float weight = std::get<1>(v);
-                        generateCountF += weight * biome->getChunkDecoratorCount(decorator);
+                        decoratorCache.setChunkInstances(pos, descriptor, generateDecoratorsInChunk(descriptor, pos, lock_manager, world, randomSource));
+                        instances = decoratorCache.getChunkInstances(pos, descriptor);
                     }
-                    generateCountF /= BlockChunk::chunkSizeX * BlockChunk::chunkSizeZ;
-                    int generateCount = ifloor(std::uniform_real_distribution<float>(0, 1)(rg) + generateCountF);
-                    int groundHeight = groundHeights[x][z];
-                    for(int i = 0; i < generateCount; i++)
+                    for(std::shared_ptr<const DecoratorInstance> instance : std::get<0>(instances))
                     {
-                        // volatile so compiler won't complain about unused variable
-                        volatile bool succeded = decorator->generateInChunk(false, chunkBasePosition, columnBasePosition, columnBasePosition + VectorI(0, groundHeight, 0),
-                                                                   lock_manager, world, blocks, randomSource, decoratorGenerateNumber++);
-                        #warning check succeded value
+                        instance->generateInChunk(chunkBasePosition, lock_manager, world, blocks);
                     }
                 }
             }

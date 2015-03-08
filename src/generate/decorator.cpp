@@ -25,31 +25,31 @@ namespace programmerjake
 {
 namespace voxels
 {
-Decorator::Decorator(std::wstring name, int chunkSearchDistance)
-    : index(DecoratorIndexNone), name(name), chunkSearchDistance(chunkSearchDistance)
+DecoratorDescriptor::DecoratorDescriptor(std::wstring name, int chunkSearchDistance)
+    : index(DecoratorDescriptorIndexNone), name(name), chunkSearchDistance(chunkSearchDistance)
 {
     assert(chunkSearchDistance >= 0);
-    Decorators_t::addDecorator(this);
+    DecoratorDescriptors_t::addDescriptor(this);
 }
 
-std::unordered_map<std::wstring, DecoratorPointer> *Decorators_t::map = nullptr;
-std::vector<DecoratorPointer> *Decorators_t::list = nullptr;
+std::unordered_map<std::wstring, DecoratorDescriptorPointer> *DecoratorDescriptors_t::map = nullptr;
+std::vector<DecoratorDescriptorPointer> *DecoratorDescriptors_t::list = nullptr;
 
-void Decorators_t::addDecorator(Decorator *decorator)
+void DecoratorDescriptors_t::addDescriptor(DecoratorDescriptor *descriptor)
 {
-    assert(decorator != nullptr);
+    assert(descriptor != nullptr);
     makeMap();
-    if(!std::get<1>(map->insert(std::pair<std::wstring, DecoratorPointer>(decorator->name, decorator))))
+    if(!std::get<1>(map->insert(std::pair<std::wstring, DecoratorDescriptorPointer>(descriptor->name, descriptor))))
     {
         assert(false);
     }
-    decorator->index = list->size();
-    list->push_back(decorator);
+    descriptor->index = list->size();
+    list->push_back(descriptor);
 }
 
-DecoratorIndex Decorators_t::getIndex(DecoratorPointer decorator)
+DecoratorDescriptorIndex DecoratorDescriptors_t::getIndex(DecoratorDescriptorPointer descriptor)
 {
-    return decorator->getIndex();
+    return descriptor->getIndex();
 }
 
 }

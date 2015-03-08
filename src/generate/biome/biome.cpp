@@ -87,9 +87,9 @@ BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidi
     return std::move(retval);
 }
 
-float BiomeDescriptor::getChunkDecoratorCount(DecoratorPointer decorator) const
+float BiomeDescriptor::getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const
 {
-    const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(decorator);
+    const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(descriptor);
     if(mineralVeinDecorator != nullptr)
         return mineralVeinDecorator->defaultPreChunkGenerateCount;
     return 0;

@@ -48,6 +48,10 @@ public:
     {
         return true;
     }
+    virtual bool isGroundBlock() const override
+    {
+        return false;
+    }
 private:
     Air()
         : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), (RayCasting::BlockCollisionMask)0, true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)

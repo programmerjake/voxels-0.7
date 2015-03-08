@@ -31,33 +31,33 @@ namespace programmerjake
 {
 namespace voxels
 {
-class Decorator;
-typedef const Decorator *DecoratorPointer;
-typedef std::size_t DecoratorIndex;
-static constexpr DecoratorIndex DecoratorIndexNone = ~(DecoratorIndex)0;
-class Decorators_t final
+class DecoratorDescriptor;
+typedef const DecoratorDescriptor *DecoratorDescriptorPointer;
+typedef std::size_t DecoratorDescriptorIndex;
+static constexpr DecoratorDescriptorIndex DecoratorDescriptorIndexNone = ~(DecoratorDescriptorIndex)0;
+class DecoratorDescriptors_t final
 {
-    friend class Decorator;
+    friend class DecoratorDescriptor;
 private:
-    static std::unordered_map<std::wstring, DecoratorPointer> *map;
-    static std::vector<DecoratorPointer> *list;
+    static std::unordered_map<std::wstring, DecoratorDescriptorPointer> *map;
+    static std::vector<DecoratorDescriptorPointer> *list;
     static void makeMap()
     {
         if(map == nullptr)
         {
-            map = new std::unordered_map<std::wstring, DecoratorPointer>;
-            list = new std::vector<DecoratorPointer>;
+            map = new std::unordered_map<std::wstring, DecoratorDescriptorPointer>;
+            list = new std::vector<DecoratorDescriptorPointer>;
         }
     }
-    static void addDecorator(Decorator *decorator);
-    static DecoratorIndex getIndex(DecoratorPointer decorator);
+    static void addDescriptor(DecoratorDescriptor *descriptor);
+    static DecoratorDescriptorIndex getIndex(DecoratorDescriptorPointer descriptor);
 public:
     std::size_t size() const
     {
         makeMap();
         return list->size();
     }
-    typedef typename std::vector<DecoratorPointer>::const_iterator iterator;
+    typedef typename std::vector<DecoratorDescriptorPointer>::const_iterator iterator;
     iterator begin() const
     {
         makeMap();
@@ -68,12 +68,12 @@ public:
         makeMap();
         return list->end();
     }
-    iterator find(DecoratorPointer decorator)
+    iterator find(DecoratorDescriptorPointer descriptor)
     {
         makeMap();
-        if(decorator == nullptr)
+        if(descriptor == nullptr)
             return list->end();
-        return list->begin() + getIndex(decorator);
+        return list->begin() + getIndex(descriptor);
     }
     iterator find(std::wstring name)
     {
@@ -85,7 +85,7 @@ public:
     }
 };
 
-static constexpr Decorators_t DecoratorsList;
+static constexpr DecoratorDescriptors_t DecoratorDescriptors;
 }
 }
 

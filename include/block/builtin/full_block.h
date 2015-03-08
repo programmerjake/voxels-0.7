@@ -99,6 +99,10 @@ public:
         }
         return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
     }
+    virtual bool isGroundBlock() const override
+    {
+        return true;
+    }
 };
 }
 }

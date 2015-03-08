@@ -71,7 +71,7 @@ public:
     {
         return true;
     }
-    virtual float getChunkDecoratorCount(DecoratorPointer decorator) const;
+    virtual float getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const;
 protected:
     BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
     BiomeDescriptor(std::wstring name, float temperature, float humidity)

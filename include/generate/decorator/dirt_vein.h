@@ -48,7 +48,7 @@ public:
     {
         return global_instance_maker<DirtVeinDecorator>::getInstance();
     }
-    static DecoratorPointer getDecoratorPointer()
+    static DecoratorDescriptorPointer descriptor()
     {
         return pointer();
     }

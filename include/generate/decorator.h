@@ -32,6 +32,7 @@
 #include "util/checked_array.h"
 #include "generate/decorator_declaration.h"
 #include "util/block_chunk.h"
+#include <cassert>
 
 namespace programmerjake
 {
@@ -39,46 +40,64 @@ namespace voxels
 {
 class World;
 class RandomSource;
-class Decorator
+class DecoratorInstance : public std::enable_shared_from_this<DecoratorInstance>
 {
-    friend class Decorators_t;
-    Decorator(const Decorator &) = delete;
-    const Decorator &operator =(const Decorator &) = delete;
+    DecoratorInstance(const DecoratorInstance &) = delete;
+    DecoratorInstance &operator =(const DecoratorInstance &) = delete;
+public:
+    const PositionI position;
+    const DecoratorDescriptorPointer descriptor;
+protected:
+    DecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor)
+        : position(position), descriptor(descriptor)
+    {
+        assert(descriptor != nullptr);
+    }
+public:
+    virtual ~DecoratorInstance() = default;
+    virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
+                                 checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks) const = 0;
+};
+
+class DecoratorDescriptor
+{
+    friend class DecoratorDescriptors_t;
+    DecoratorDescriptor(const DecoratorDescriptor &) = delete;
+    const DecoratorDescriptor &operator =(const DecoratorDescriptor &) = delete;
 private:
-    DecoratorIndex index;
+    DecoratorDescriptorIndex index;
 public:
     const std::wstring name;
-    /** the distance (in additional chunks) to search to see if this Decorator is used.
+    /** the distance (in additional chunks) to search to see if this decorator is used.
      * (ex. 0 means this decorator doesn't generate past chunk boundaries,
      * whereas 5 means that this decorator could potentially span a distance of 5 chunks
      * from the central chunk in the X and Z directions.)
      */
     const int chunkSearchDistance;
-    DecoratorIndex getIndex() const
+    DecoratorDescriptorIndex getIndex() const
     {
         return index;
     }
-    virtual ~Decorator() = default;
+    virtual ~DecoratorDescriptor() = default;
 protected:
-    Decorator(std::wstring name, int chunkSearchDistance);
+    DecoratorDescriptor(std::wstring name, int chunkSearchDistance);
 public:
-    /** @brief generate this decorator in a chunk
+    /** @brief create a DecoratorInstance for this decorator in a chunk
      *
-     * @param simulate if the generation should be simulated (viz., don't change any blocks or add entities, just return true if generation would succeed)
      * @param chunkBasePosition the base position of the chunk to generate in
      * @param columnBasePosition the base position of the column to generate in
      * @param surfacePosition the surface position of the column to generate in
      * @param lock_manager the WorldLockManager
-     * @param world the World
+     * @param chunkBaseIterator a BlockIterator to chunkBasePosition
      * @param blocks the blocks for this chunk
      * @param randomSource the RandomSource
-     * @param generateNumber the number of times that a decorator was generated or tried to generate (use for picking a different position each time)
-     * @return true if this decorator was generated or would be generated (if called again with simulate = false)
+     * @param generateNumber a number that is different for each decorator in a chunk (use for picking a different position each time)
+     * @return the new DecoratorInstance or nullptr
      *
      */
-    virtual bool generateInChunk(bool simulate, PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
-                                 WorldLockManager &lock_manager, World &world,
-                                 checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+    virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
+                                 WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
+                                 const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
                                  RandomSource &randomSource, std::size_t generateNumber) const = 0;
 };
 }

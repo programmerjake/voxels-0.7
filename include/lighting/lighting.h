@@ -238,6 +238,10 @@ struct LightProperties final
     {
         return LightProperties(other.emissiveValue.combine(emissiveValue), other.reduceValue.minimize(reduceValue));
     }
+    constexpr bool isTotallyTransparent() const
+    {
+        return reduceValue.directSkylight == 0 && reduceValue.indirectSkylight <= 1 && reduceValue.indirectArtificalLight <= 1;
+    }
 };
 
 struct BlockLighting final

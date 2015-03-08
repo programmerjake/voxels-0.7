@@ -39,7 +39,7 @@ void Grass::randomTick(const Block &block, World &world, BlockIterator blockIter
     BlockIterator bi = blockIterator;
     bi.moveBy(VectorI(0, 1, 0));
     Block b = bi.get(lock_manager);
-    if(b.lighting.toFloat(world.getLighting()) >= 4.0f / 15)
+    if(b.lighting.toFloat(world.getLighting()) >= 4.0f / 15 && b.descriptor->lightProperties.isTotallyTransparent())
         return;
     world.setBlock(blockIterator, lock_manager, Block(Dirt::descriptor()));
 }

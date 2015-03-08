@@ -234,6 +234,7 @@ public:
     {
         return false;
     }
+    virtual bool isGroundBlock() const = 0;
 };
 }
 }

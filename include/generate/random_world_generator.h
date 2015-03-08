@@ -215,6 +215,15 @@ public:
         }
         return retval;
     }
+    BiomeProperties getBiomeProperties(PositionI pos)
+    {
+        pos.y = 0;
+        PositionF fpos = pos;
+        fpos *= 0.01f;
+        float temperature = limit<float>(getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);
+        float humidity = limit<float>(getFBMValue(fpos, RandomSource::biomeHumidityStart, RandomSource::biomeHumiditySize) * 0.4f + 0.5f, 0, 1);
+        return BiomeProperties(BiomeDescriptors.getBiomeWeights(temperature, humidity, pos, *this));
+    }
 };
 
 class RandomWorldGenerator : public WorldGenerator
@@ -227,24 +236,6 @@ public:
     {
         std::unique_ptr<BlocksArray> blocks(new BlocksArray);
         RandomSource randomSource(world.getWorldGeneratorSeed());
-        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
-        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
-        {
-            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
-            {
-                PositionI pos = chunkBasePosition + VectorI(x, 0, z);
-                pos.y = 0;
-                BlockIterator bi2 = bi;
-                bi2.moveTo(pos);
-                //pos.x *= 10;
-                //pos.z *= 10;
-                PositionF fpos = pos;
-                fpos *= 0.01f;
-                float temperature = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);
-                float humidity = limit<float>(randomSource.getFBMValue(fpos, RandomSource::biomeHumidityStart, RandomSource::biomeHumiditySize) * 0.4f + 0.5f, 0, 1);
-                world.setBiomeProperties(bi2, lock_manager, BiomeProperties(BiomeDescriptors.getBiomeWeights(temperature, humidity, pos, randomSource)));
-            }
-        }
         generate(chunkBasePosition, *blocks, world, lock_manager, randomSource);
         world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
     }

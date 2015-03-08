@@ -39,7 +39,9 @@ void Dirt::randomTick(const Block &block, World &world, BlockIterator blockItera
     BlockIterator bi = blockIterator;
     bi.moveBy(VectorI(0, 1, 0));
     Block b = bi.get(lock_manager);
-    if(b.lighting.toFloat(world.getLighting()) < 4.0f / 15)
+    if(!b.good())
+        return;
+    if(b.lighting.toFloat(world.getLighting()) < 4.0f / 15 || !b.descriptor->lightProperties.isTotallyTransparent())
         return;
     for(int dx = -1; dx <= 1; dx++)
     {

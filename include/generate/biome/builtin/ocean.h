@@ -53,15 +53,14 @@ public:
     }
 private:
     Ocean()
-        : BiomeDescriptor(L"builtin.ocean", 1, 1)
+        : BiomeDescriptor(L"builtin.ocean", 0.5f, 1)
     {
     }
 public:
     virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
     {
         pos.y = 0;
-        float v = randomSource.getFBMValue((PositionF)pos * 0.01f) * 2;
-        v *= v;
+        float v = limit<float>(randomSource.getFBMValue((PositionF)pos * 0.01f) * 0.4f + 0.5f, 0, 1);
         return v;
     }
     virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
@@ -79,8 +78,10 @@ public:
             Block block;
             if(position.y < groundHeight - 5)
                 block = Block(Blocks::builtin::Stone::descriptor());
-            else if(position.y <= groundHeight)
+            else if(position.y < groundHeight || (position.y == groundHeight && position.y < World::AverageGroundHeight))
                 block = Block(Blocks::builtin::Dirt::descriptor());
+            else if(position.y == groundHeight)
+                block = Block(Blocks::builtin::Grass::descriptor());
             else if(position.y <= World::AverageGroundHeight)
             {
                 block = Block(Blocks::builtin::Water::descriptor());
