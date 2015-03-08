@@ -53,10 +53,12 @@ int main(std::vector<std::wstring> args)
     Renderer renderer;
     WorldLockManager lock_manager;
     auto theUi = make_shared<ui::GameUi>(renderer, *world, lock_manager);
+    auto playingSound = sound.play(0.3f, true);
     theUi->run(renderer);
     theUi = nullptr;
     endGraphics();
     lock_manager.clear();
+    playingSound->stop();
     world = nullptr;
     return 0;
 }

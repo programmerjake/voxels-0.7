@@ -19,6 +19,7 @@
  *
  */
 #include "generate/decorator/dirt_vein.h"
+#include "generate/decorator/cobblestone_spike.h"
 
 namespace programmerjake
 {
@@ -28,10 +29,7 @@ namespace Decorators
 {
 namespace builtin
 {
-DirtVeinDecorator::DirtVeinDecorator()
-    : MineralVeinDecorator(L"builtin.dirt_vein", 33, 33, 0, 256, 30)
-{
-}
+
 }
 }
 }

@@ -20,6 +20,7 @@
  */
 #include "generate/biome/biome_descriptor.h"
 #include "generate/decorator/mineral_vein.h"
+#include "generate/decorator/cobblestone_spike.h"
 #include <algorithm>
 #include <cmath>
 
@@ -92,6 +93,8 @@ float BiomeDescriptor::getChunkDecoratorCount(DecoratorDescriptorPointer descrip
     const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(descriptor);
     if(mineralVeinDecorator != nullptr)
         return mineralVeinDecorator->defaultPreChunkGenerateCount;
+    if(dynamic_cast<const Decorators::builtin::CobblestoneSpikeDecorator *>(descriptor) != nullptr)
+        return 0.05;
     return 0;
 }
 }

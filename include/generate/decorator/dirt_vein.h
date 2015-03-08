@@ -37,7 +37,10 @@ class DirtVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<DirtVeinDecorator>;
 private:
-    DirtVeinDecorator();
+    DirtVeinDecorator()
+        : MineralVeinDecorator(L"builtin.dirt_vein", 33, 33, 0, 256, 30)
+    {
+    }
 protected:
     virtual Block getOreBlock() const override
     {

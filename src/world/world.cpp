@@ -109,6 +109,81 @@ public:
     }
 };
 
+class GroundChunksCache final
+{
+private:
+    struct Chunk final
+    {
+        checked_array<checked_array<checked_array<PackedBlock, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        std::list<PositionI>::iterator chunksListIterator;
+        bool empty = true;
+    };
+    std::unordered_map<PositionI, Chunk> chunks;
+    std::list<PositionI> chunksList;
+    void deleteChunk()
+    {
+        chunks.erase(chunksList.back());
+        chunksList.pop_back();
+    }
+    template <typename T>
+    Chunk &getChunk(PositionI pos, T generateFn)
+    {
+        pos.y = 0;
+        if(chunks.size() > 10)
+        {
+            deleteChunk();
+        }
+        Chunk &retval = chunks[pos];
+        if(retval.empty)
+        {
+            retval.empty = false;
+            static thread_local checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+            generateFn(pos, blocks, retval.groundHeights);
+            for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+            {
+                for(int dy = 0; dy < BlockChunk::chunkSizeY; dy++)
+                {
+                    for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+                    {
+                        retval.blocks[dx][dy][dz] = (PackedBlock)std::move(blocks[dx][dy][dz]);
+                        blocks[dx][dy][dz] = Block();
+                    }
+                }
+            }
+            retval.chunksListIterator = chunksList.insert(chunksList.begin(), pos);
+        }
+        else
+        {
+            chunksList.splice(chunksList.begin(), chunksList, retval.chunksListIterator);
+        }
+        return retval;
+    }
+public:
+    template <typename T>
+    void getChunk(PositionI chunkBasePosition, checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks, checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights, T generateFn)
+    {
+        Chunk &c = getChunk(chunkBasePosition, generateFn);
+        for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+        {
+            for(int dy = 0; dy < BlockChunk::chunkSizeY; dy++)
+            {
+                for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+                {
+                    blocks[dx][dy][dz] = (Block)c.blocks[dx][dy][dz];
+                }
+            }
+        }
+        for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+        {
+            for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+            {
+                groundHeights[dx][dz] = c.groundHeights[dx][dz];
+            }
+        }
+    }
+};
+
 class MyWorldGenerator final : public RandomWorldGenerator
 {
     friend class global_instance_maker<MyWorldGenerator>;
@@ -122,21 +197,12 @@ public:
         return global_instance_maker<MyWorldGenerator>::getInstance();
     }
 private:
-    void generateGroundChunk(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+    void generateGroundChunkH(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
                              checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights,
                              PositionI chunkBasePosition,
                              WorldLockManager &lock_manager, World &world,
                              RandomSource &randomSource) const
     {
-        static thread_local std::shared_ptr<BiomesCache> pBiomesCache = nullptr;
-        static thread_local World::SeedType seed = 0;
-        if(seed != world.getWorldGeneratorSeed())
-            pBiomesCache = nullptr;
-        if(pBiomesCache == nullptr)
-        {
-            pBiomesCache = std::make_shared<BiomesCache>();
-        }
-        pBiomesCache->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
         BlockIterator bi = world.getBlockIterator(chunkBasePosition);
         for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
@@ -157,6 +223,29 @@ private:
                 bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
             }
         }
+    }
+    void generateGroundChunk(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                             checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights,
+                             PositionI chunkBasePosition,
+                             WorldLockManager &lock_manager, World &world,
+                             RandomSource &randomSource) const
+    {
+        static thread_local std::shared_ptr<BiomesCache> pBiomesCache = nullptr;
+        static thread_local std::shared_ptr<GroundChunksCache> pGroundCache = nullptr;
+        static thread_local World::SeedType seed = 0;
+        if(seed != world.getWorldGeneratorSeed())
+            pBiomesCache = nullptr;
+        if(pBiomesCache == nullptr)
+        {
+            pBiomesCache = std::make_shared<BiomesCache>();
+            pGroundCache = std::make_shared<GroundChunksCache>();
+        }
+        pBiomesCache->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
+        pGroundCache->getChunk(chunkBasePosition, blocks, groundHeights, [&](PositionI chunkBasePosition, checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                             checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights)
+        {
+            generateGroundChunkH(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+        });
     }
     std::vector<std::shared_ptr<const DecoratorInstance>> generateDecoratorsInChunk(DecoratorDescriptorPointer descriptor, PositionI chunkBasePosition,
                                  WorldLockManager &lock_manager, World &world,
