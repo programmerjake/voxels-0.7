@@ -42,6 +42,7 @@
 #include "util/wrapped_entity.h"
 #include "generate/decorator.h"
 #include "util/decorator_cache.h"
+#include "util/wood_descriptor.h"
 
 using namespace std;
 
@@ -347,7 +348,17 @@ protected:
         }
         if(chunkBasePosition.x == 0 && chunkBasePosition.z == 0)
         {
-            world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+            for(int i = 0; i < 10; i++)
+            {
+                world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+            }
+            for(WoodDescriptorPointer woodDescriptor : WoodDescriptors)
+            {
+                for(int i = 0; i < 10; i++)
+                {
+                    world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                }
+            }
         }
     }
 };

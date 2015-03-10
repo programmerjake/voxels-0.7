@@ -102,6 +102,8 @@
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/block/builtin/water.h" />
+		<Unit filename="include/block/builtin/wood.h" />
+		<Unit filename="include/block/builtin/woods.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/entity/builtin/block_item.h" />
@@ -112,6 +114,7 @@
 		<Unit filename="include/entity/builtin/items/dirt.h" />
 		<Unit filename="include/entity/builtin/items/grass.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
+		<Unit filename="include/entity/builtin/items/wood.h" />
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/entity/entity_struct.h" />
 		<Unit filename="include/generate/biome/biome.h" />
@@ -135,6 +138,7 @@
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/stone.h" />
+		<Unit filename="include/item/builtin/wood.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />
 		<Unit filename="include/lighting/lighting.h" />
@@ -210,6 +214,7 @@
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
+		<Unit filename="include/util/wood_descriptor.h" />
 		<Unit filename="include/util/world_lock_manager.h" />
 		<Unit filename="include/util/wrapped_entity.h" />
 		<Unit filename="include/world/view_point.h" />
@@ -220,6 +225,7 @@
 		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
+		<Unit filename="src/block/builtin/woods.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
 		<Unit filename="src/entity/builtin/bucket.cpp" />
 		<Unit filename="src/entity/builtin/dirt.cpp" />
@@ -262,6 +268,7 @@
 		<Unit filename="src/util/matrix.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />
+		<Unit filename="src/util/wood_descriptor.cpp" />
 		<Unit filename="src/world/view_point.cpp" />
 		<Unit filename="src/world/world.cpp" />
 		<Extensions>

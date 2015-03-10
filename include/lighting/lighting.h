@@ -240,7 +240,7 @@ struct LightProperties final
     }
     constexpr bool isTotallyTransparent() const
     {
-        return reduceValue.directSkylight == 0 && reduceValue.indirectSkylight <= 1 && reduceValue.indirectArtificalLight <= 1;
+        return reduceValue.indirectSkylight <= 1 && reduceValue.indirectArtificalLight <= 1;
     }
 };
 
