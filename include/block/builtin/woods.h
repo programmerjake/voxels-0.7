@@ -47,8 +47,9 @@ public:
     }
 private:
     Oak()
-        : SimpleWood(L"builtin.oak", TextureAtlas::WoodEnd.td(), TextureAtlas::OakWood.td(), TextureAtlas::OakPlank.td(), TextureAtlas::OakSapling.td(), TextureAtlas::OakLeaves.td())
+        : SimpleWood(L"builtin.oak", TextureAtlas::WoodEnd.td(), TextureAtlas::OakWood.td(), TextureAtlas::OakPlank.td(), TextureAtlas::OakSapling.td(), TextureAtlas::OakLeaves.td(), std::vector<TreeDescriptorPointer>())
     {
+        #warning add tree descriptors
     }
 };
 }

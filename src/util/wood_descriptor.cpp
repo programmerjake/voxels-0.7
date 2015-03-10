@@ -23,19 +23,77 @@
 #include "entity/builtin/item.h"
 #include "entity/builtin/items/wood.h"
 #include "item/builtin/wood.h"
+#include "world/world.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
+bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManager &lock_manager) const
+{
+    if(!good())
+        return false;
+    Tree placedTree(*this);
+    BlockIterator originBlockIterator = world.getBlockIterator(generatePosition);
+    try
+    {
+        for(VectorI rpos = getArrayMin(); rpos.x < getArrayEnd().x; rpos.x++)
+        {
+            for(rpos.y = getArrayMin().y; rpos.y < getArrayEnd().y; rpos.y++)
+            {
+                for(rpos.z = getArrayMin().z; rpos.z < getArrayEnd().z; rpos.z++)
+                {
+                    if(!placedTree.getBlock(rpos).good())
+                        continue;
+                    BlockIterator bi = originBlockIterator;
+                    bi.moveBy(rpos);
+                    Block worldBlock = bi.get(lock_manager);
+                    Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos));
+                    placedTree.setBlock(rpos, selectedBlock);
+                }
+            }
+        }
+    }
+    catch(TreeDoesNotFitException &)
+    {
+        return false;
+    }
+    for(VectorI rpos = getArrayMin(); rpos.x < getArrayEnd().x; rpos.x++)
+    {
+        for(rpos.y = getArrayMin().y; rpos.y < getArrayEnd().y; rpos.y++)
+        {
+            for(rpos.z = getArrayMin().z; rpos.z < getArrayEnd().z; rpos.z++)
+            {
+                Block b = placedTree.getBlock(rpos);
+                if(!b.good())
+                    continue;
+                BlockIterator bi = originBlockIterator;
+                bi.moveBy(rpos);
+                world.setBlock(bi, lock_manager, b);
+            }
+        }
+    }
+    return true;
+}
+
+virtual Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock) const
+{
+    if(!treeBlock.good())
+        return Block();
+    if(!originalWorldBlock.good() || originalWorldBlock.descriptor->isGroundBlock())
+        throw TreeDoesNotFitException();
+    return treeBlock;
+}
+
+
 linked_map<std::wstring, WoodDescriptorPointer> *WoodDescriptors_t::pNameMap = nullptr;
 
 namespace Woods
 {
 namespace builtin
 {
-SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves)
-    : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves)
+SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees)
+    : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, trees)
 {
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor = nullptr;

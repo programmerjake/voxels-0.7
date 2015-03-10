@@ -24,12 +24,17 @@
 #include "texture/texture_descriptor.h"
 #include "util/linked_map.h"
 #include "util/enum_traits.h"
-#include "block/block_struct.h"
+#include "block/block.h"
 #include "entity/entity_struct.h"
 #include "item/item_struct.h"
+#include "util/position.h"
 #include <iterator>
 #include <string>
 #include <cassert>
+#include <vector>
+#include <memory>
+#include <cassert>
+#include <stdexcept>
 
 namespace programmerjake
 {
@@ -45,7 +50,103 @@ enum class LogOrientation
 };
 
 class WoodDescriptor;
+class TreeDescriptor;
+class World;
+class WorldLockManager;
 typedef const WoodDescriptor *WoodDescriptorPointer;
+typedef const TreeDescriptor *TreeDescriptorPointer;
+
+class Tree final : public std::enable_shared_from_this<Tree>
+{
+private:
+    std::vector<PackedBlock> blocksArray;
+    VectorI arrayOrigin, arraySize;
+public:
+    TreeDescriptorPointer descriptor;
+    VectorI getArrayMin() const
+    {
+        return arrayOrigin;
+    }
+    VectorI getArraySize() const
+    {
+        return arraySize;
+    }
+    VectorI getArrayEnd() const
+    {
+        return arrayOrigin + arraySize;
+    }
+    VectorI getArrayMax() const
+    {
+        return getArrayEnd() - VectorI(1);
+    }
+    bool good() const
+    {
+        return descriptor != nullptr;
+    }
+    Tree()
+        : descriptor(nullptr), arrayOrigin(0), arraySize(0)
+    {
+    }
+    Tree(TreeDescriptorPointer descriptor, VectorI arrayOrigin, VectorI arraySize)
+        : descriptor(descriptor), blocksArray(arraySize.x * arraySize.y * arraySize.z), arrayOrigin(arrayOrigin), arraySize(arraySize)
+    {
+    }
+private:
+    std::size_t getArrayIndex(VectorI p) const
+    {
+        p -= arrayOrigin;
+        assert(p.x < arraySize.x && p.x >= 0 && p.y < arraySize.y && p.y >= 0 && p.z < arraySize.z && p.z >= 0);
+        return p.x * arraySize.y * arraySize.z + p.y * arraySize.z + p.z;
+    }
+public:
+    void setBlock(VectorI position, Block b)
+    {
+        blocksArray[getArrayIndex(position)] = (PackedBlock)b;
+    }
+    Block getBlock(VectorI position) const
+    {
+        if(position.x < getArrayMin().x || position.x >= getArrayEnd().x ||
+           position.y < getArrayMin().y || position.y >= getArrayEnd().y ||
+           position.z < getArrayMin().z || position.z >= getArrayEnd().z)
+            return Block();
+        return (Block)blocksArray[getArrayIndex(position)];
+    }
+    bool placeInWorld(PositionI generatePosition, World &world, WorldLockManager &lock_manager) const;
+};
+
+class TreeDoesNotFitException final : public std::exception
+{
+public:
+    virtual const char *what() const
+    {
+        return "Tree doesn't fit";
+    }
+};
+
+class TreeDescriptor
+{
+    TreeDescriptor(const TreeDescriptor &) = delete;
+    const TreeDescriptor &operator =(const TreeDescriptor &) = delete;
+public:
+    virtual ~TreeDescriptor() = default;
+    const int baseSize;
+protected:
+    explicit TreeDescriptor(int baseSize)
+        : baseSize(baseSize)
+    {
+    }
+public:
+    virtual Tree generateTree(std::uint32_t seed) const = 0;
+    /** @brief select the block to use when a tree overlaps blocks in the world
+     *
+     * @param originalWorldBlock the original block in the world
+     * @param treeBlock the block in the tree
+     * @return the selected block or an empty block for the original world block
+     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a dirt block is right above a sapling)
+     */
+    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock) const;
+};
+
 class WoodDescriptor
 {
     WoodDescriptor(const WoodDescriptor &) = delete;
@@ -53,6 +154,7 @@ class WoodDescriptor
 public:
     virtual ~WoodDescriptor() = default;
     const std::wstring name;
+    const std::vector<TreeDescriptorPointer> trees;
 private:
     TextureDescriptor logTop, logSide, planks, sapling, leaves;
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
@@ -68,7 +170,7 @@ private:
     EntityDescriptorPointer saplingEntityDescriptor;
     EntityDescriptorPointer leavesEntityDescriptor;
 protected:
-    WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves);
+    WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees);
     void setDescriptors(enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors,
                         BlockDescriptorPointer planksBlockDescriptor,
                         BlockDescriptorPointer saplingBlockDescriptor,
@@ -244,8 +346,8 @@ public:
 
 static constexpr WoodDescriptors_t WoodDescriptors{};
 
-inline WoodDescriptor::WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves)
-    : name(name), logTop(logTop), logSide(logSide), planks(planks), sapling(sapling), leaves(leaves)
+inline WoodDescriptor::WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees)
+    : name(name), trees(std::move(trees)), logTop(logTop), logSide(logSide), planks(planks), sapling(sapling), leaves(leaves)
 {
     WoodDescriptors_t::add(this);
 }
@@ -257,7 +359,7 @@ namespace builtin
 class SimpleWood : public WoodDescriptor
 {
 public:
-    SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves);
+    SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees);
 };
 }
 }
