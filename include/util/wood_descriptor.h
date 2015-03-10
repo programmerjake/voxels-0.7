@@ -35,6 +35,7 @@
 #include <memory>
 #include <cassert>
 #include <stdexcept>
+#include "generate/biome/biome.h"
 
 namespace programmerjake
 {
@@ -56,7 +57,7 @@ class WorldLockManager;
 typedef const WoodDescriptor *WoodDescriptorPointer;
 typedef const TreeDescriptor *TreeDescriptorPointer;
 
-class Tree final : public std::enable_shared_from_this<Tree>
+class Tree final
 {
 private:
     std::vector<PackedBlock> blocksArray;
@@ -130,9 +131,11 @@ class TreeDescriptor
 public:
     virtual ~TreeDescriptor() = default;
     const int baseSize;
+    const bool canGenerateFromSapling;
+    const std::wstring name;
 protected:
-    explicit TreeDescriptor(int baseSize)
-        : baseSize(baseSize)
+    explicit TreeDescriptor(std::wstring name, int baseSize, bool canGenerateFromSapling)
+        : baseSize(baseSize), canGenerateFromSapling(canGenerateFromSapling), name(name)
     {
     }
 public:
@@ -141,10 +144,12 @@ public:
      *
      * @param originalWorldBlock the original block in the world
      * @param treeBlock the block in the tree
+     * @param canThrow if this can throw TreeDoesNotFitException
      * @return the selected block or an empty block for the original world block
      * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a dirt block is right above a sapling)
      */
-    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock) const;
+    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock, bool canThrow) const;
+    virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const = 0;
 };
 
 class WoodDescriptor
@@ -156,11 +161,11 @@ public:
     const std::wstring name;
     const std::vector<TreeDescriptorPointer> trees;
 private:
-    TextureDescriptor logTop, logSide, planks, sapling, leaves;
+    TextureDescriptor logTop, logSide, planks, sapling, leaves, blockedLeaves;
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor;
     BlockDescriptorPointer saplingBlockDescriptor;
-    BlockDescriptorPointer leavesBlockDescriptor;
+    enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors; // index is if the block can decay
     ItemDescriptorPointer logItemDescriptor;
     ItemDescriptorPointer planksItemDescriptor;
     ItemDescriptorPointer saplingItemDescriptor;
@@ -170,11 +175,11 @@ private:
     EntityDescriptorPointer saplingEntityDescriptor;
     EntityDescriptorPointer leavesEntityDescriptor;
 protected:
-    WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees);
+    WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees);
     void setDescriptors(enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors,
                         BlockDescriptorPointer planksBlockDescriptor,
                         BlockDescriptorPointer saplingBlockDescriptor,
-                        BlockDescriptorPointer leavesBlockDescriptor,
+                        enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors, // index is if the block can decay
                         ItemDescriptorPointer logItemDescriptor,
                         ItemDescriptorPointer planksItemDescriptor,
                         ItemDescriptorPointer saplingItemDescriptor,
@@ -187,7 +192,7 @@ protected:
         this->logBlockDescriptors = logBlockDescriptors;
         this->planksBlockDescriptor = planksBlockDescriptor;
         this->saplingBlockDescriptor = saplingBlockDescriptor;
-        this->leavesBlockDescriptor = leavesBlockDescriptor;
+        this->leavesBlockDescriptors = leavesBlockDescriptors;
         this->logItemDescriptor = logItemDescriptor;
         this->planksItemDescriptor = planksItemDescriptor;
         this->saplingItemDescriptor = saplingItemDescriptor;
@@ -218,6 +223,10 @@ public:
     {
         return leaves;
     }
+    TextureDescriptor getBlockedLeavesTexture() const
+    {
+        return blockedLeaves;
+    }
     BlockDescriptorPointer getLogBlockDescriptor(LogOrientation logOrientation) const
     {
         return logBlockDescriptors[logOrientation];
@@ -230,9 +239,9 @@ public:
     {
         return saplingBlockDescriptor;
     }
-    BlockDescriptorPointer getLeavesBlockDescriptor() const
+    BlockDescriptorPointer getLeavesBlockDescriptor(bool canDecay) const
     {
-        return leavesBlockDescriptor;
+        return leavesBlockDescriptors[canDecay];
     }
     ItemDescriptorPointer getLogItemDescriptor() const
     {
@@ -346,8 +355,8 @@ public:
 
 static constexpr WoodDescriptors_t WoodDescriptors{};
 
-inline WoodDescriptor::WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees)
-    : name(name), trees(std::move(trees)), logTop(logTop), logSide(logSide), planks(planks), sapling(sapling), leaves(leaves)
+inline WoodDescriptor::WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
+    : name(name), trees(std::move(trees)), logTop(logTop), logSide(logSide), planks(planks), sapling(sapling), leaves(leaves), blockedLeaves(blockedLeaves)
 {
     WoodDescriptors_t::add(this);
 }
@@ -359,7 +368,7 @@ namespace builtin
 class SimpleWood : public WoodDescriptor
 {
 public:
-    SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees);
+    SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees);
 };
 }
 }

@@ -128,6 +128,7 @@
 		<Unit filename="include/generate/decorator/dirt_vein.h" />
 		<Unit filename="include/generate/decorator/mineral_vein.h" />
 		<Unit filename="include/generate/decorator/pregenerated_instance.h" />
+		<Unit filename="include/generate/decorator/tree.h" />
 		<Unit filename="include/generate/decorator_declaration.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
@@ -153,6 +154,7 @@
 		<Unit filename="include/render/generate.h" />
 		<Unit filename="include/render/mesh.h" />
 		<Unit filename="include/render/render_layer.h" />
+		<Unit filename="include/render/render_settings.h" />
 		<Unit filename="include/render/renderer.h" />
 		<Unit filename="include/render/text.h" />
 		<Unit filename="include/render/triangle.h" />
@@ -250,6 +252,7 @@
 		<Unit filename="src/player/player.cpp" />
 		<Unit filename="src/ray_casting/ray_casting.cpp" />
 		<Unit filename="src/render/mesh.cpp" />
+		<Unit filename="src/render/render_settings.cpp" />
 		<Unit filename="src/render/text.cpp" />
 		<Unit filename="src/script/script.cpp" />
 		<Unit filename="src/stream/compressed_stream.cpp" />

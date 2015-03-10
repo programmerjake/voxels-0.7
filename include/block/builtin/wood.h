@@ -24,6 +24,7 @@
 #include "block/builtin/full_block.h"
 #include "util/wood_descriptor.h"
 #include "world/world.h"
+#include "render/render_settings.h"
 
 namespace programmerjake
 {
@@ -156,17 +157,25 @@ class WoodLeaves : public FullBlock
 {
 private:
     const WoodDescriptorPointer woodDescriptor;
-    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    const bool canDecay;
+protected:
+    enum_array<Mesh, BlockFace> meshBlockedFace;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor, bool canDecay)
     {
         std::wstring retval = L"builtin.wood_leaves(woodDescriptor=";
         retval += woodDescriptor->name;
+        retval += L",canDecay=";
+        if(canDecay)
+            retval += L"true";
+        else
+            retval += L"false";
         retval += L")";
         return retval;
     }
 public:
-    WoodLeaves(WoodDescriptorPointer woodDescriptor)
-        : FullBlock(makeName(woodDescriptor), LightProperties(Lighting(), Lighting::makeDirectOnlyLighting()), RayCasting::BlockCollisionMaskGround,
-                    false, false, false, false, false, false), woodDescriptor(woodDescriptor)
+    WoodLeaves(WoodDescriptorPointer woodDescriptor, bool canDecay)
+        : FullBlock(makeName(woodDescriptor, canDecay), LightProperties(Lighting(), Lighting::makeDirectOnlyLighting()), RayCasting::BlockCollisionMaskGround,
+                    false, false, false, false, false, false), woodDescriptor(woodDescriptor), canDecay(canDecay)
     {
         TextureDescriptor td = woodDescriptor->getLeavesTexture();
         meshFace[BlockFace::NX] = makeFaceMeshNX(td);
@@ -175,10 +184,21 @@ public:
         meshFace[BlockFace::PY] = makeFaceMeshPY(td);
         meshFace[BlockFace::NZ] = makeFaceMeshNZ(td);
         meshFace[BlockFace::PZ] = makeFaceMeshPZ(td);
+        td = woodDescriptor->getBlockedLeavesTexture();
+        meshBlockedFace[BlockFace::NX] = makeFaceMeshNX(td);
+        meshBlockedFace[BlockFace::PX] = makeFaceMeshPX(td);
+        meshBlockedFace[BlockFace::NY] = makeFaceMeshNY(td);
+        meshBlockedFace[BlockFace::PY] = makeFaceMeshPY(td);
+        meshBlockedFace[BlockFace::NZ] = makeFaceMeshNZ(td);
+        meshBlockedFace[BlockFace::PZ] = makeFaceMeshPZ(td);
     }
     WoodDescriptorPointer getWoodDescriptor() const
     {
         return woodDescriptor;
+    }
+    bool getCanDecay() const
+    {
+        return canDecay;
     }
     virtual bool isReplaceable() const override
     {
@@ -208,6 +228,7 @@ public:
         Mesh &blockMesh = getTempRenderMesh();
         Mesh &faceMesh = getTempRenderMesh2();
         blockMesh.clear();
+        const enum_array<Mesh, BlockFace> &currentMeshFace = *(globalRenderSettings.useFancyLeaves ? &meshFace : &meshBlockedFace);
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
@@ -219,16 +240,16 @@ public:
                 continue;
             }
 
-            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)] || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
             {
                 continue;
             }
             drewAny = true;
             leavesShading = getLeavesShading(block, blockIterator, lock_manager);
-            if(meshFace[bf].size() == 0)
+            if(currentMeshFace[bf].size() == 0)
                 continue;
             faceMesh.clear();
-            faceMesh.append(colorize(leavesShading, meshFace[bf]));
+            faceMesh.append(colorize(leavesShading, currentMeshFace[bf]));
             lightMesh(faceMesh, lighting[toBlockFaceOrNone(bf)], getBlockFaceInDirection(bf));
             blockMesh.append(faceMesh);
         }
@@ -251,18 +272,16 @@ public:
                 continue;
             }
 
-            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)])
+            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)] || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
             {
                 continue;
             }
-
-            if(meshFace[bf].size() == 0)
-                continue;
 
             return true;
         }
         return false;
     }
+    #warning add leaves decaying
 };
 }
 }

@@ -30,6 +30,7 @@
 #include "block/builtin/stone.h"
 #include "block/builtin/dirt.h"
 #include "block/builtin/water.h"
+#include "generate/decorator/tree.h"
 
 namespace programmerjake
 {
@@ -105,6 +106,12 @@ public:
     virtual bool isGoodStartingPosition() const override
     {
         return false;
+    }
+    virtual float getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const override
+    {
+        if(dynamic_cast<const Decorators::builtin::TreeDecorator *>(descriptor) != nullptr)
+            return 0;
+        return BiomeDescriptor::getChunkDecoratorCount(descriptor);
     }
 };
 }

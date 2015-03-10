@@ -46,6 +46,7 @@
 #include "util/block_iterator.h"
 #include "util/block_update.h"
 #include <list>
+#include "render/render_settings.h"
 
 namespace programmerjake
 {

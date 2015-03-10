@@ -77,12 +77,12 @@ public:
         assert(chunkBasePosition.d == position.d);
         VectorI minPos = minRelativePosition() + position;
         VectorI maxPos = maxRelativePosition() + position;
-        minPos.x = std::max<float>(minPos.x, chunkBasePosition.x);
-        minPos.y = std::max<float>(minPos.y, chunkBasePosition.y);
-        minPos.z = std::max<float>(minPos.z, chunkBasePosition.z);
-        maxPos.x = std::min<float>(maxPos.x, chunkBasePosition.x + BlockChunk::chunkSizeX - 1);
-        maxPos.y = std::min<float>(maxPos.y, chunkBasePosition.y + BlockChunk::chunkSizeY - 1);
-        maxPos.z = std::min<float>(maxPos.z, chunkBasePosition.z + BlockChunk::chunkSizeZ - 1);
+        minPos.x = std::max(minPos.x, chunkBasePosition.x);
+        minPos.y = std::max(minPos.y, chunkBasePosition.y);
+        minPos.z = std::max(minPos.z, chunkBasePosition.z);
+        maxPos.x = std::min(maxPos.x, chunkBasePosition.x + BlockChunk::chunkSizeX - 1);
+        maxPos.y = std::min(maxPos.y, chunkBasePosition.y + BlockChunk::chunkSizeY - 1);
+        maxPos.z = std::min(maxPos.z, chunkBasePosition.z + BlockChunk::chunkSizeZ - 1);
         for(VectorI pos = minPos; pos.x <= maxPos.x; pos.x++)
         {
             for(pos.y = minPos.y; pos.y <= maxPos.y; pos.y++)

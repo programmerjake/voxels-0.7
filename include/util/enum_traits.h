@@ -38,6 +38,7 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
 {
     T value;
     constexpr enum_iterator()
+        : value((T)0)
     {
     }
     constexpr enum_iterator(T value)
@@ -48,9 +49,9 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
     {
         return value;
     }
-    friend constexpr enum_iterator<T> operator +(std::ptrdiff_t a, T b)
+    friend constexpr enum_iterator<T> operator +(std::ptrdiff_t a, enum_iterator b)
     {
-        return enum_iterator<T>((T)(a + (std::ptrdiff_t)b));
+        return enum_iterator<T>((T)(a + (std::ptrdiff_t)b.value));
     }
     constexpr enum_iterator<T> operator +(std::ptrdiff_t b) const
     {
@@ -126,6 +127,107 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
     }
 };
 
+template <>
+struct enum_iterator<bool> : public std::iterator<std::random_access_iterator_tag, const bool>
+{
+    unsigned char value;
+    constexpr enum_iterator()
+        : value(0)
+    {
+    }
+    constexpr enum_iterator(bool value)
+        : value(value ? 1 : 0)
+    {
+    }
+    struct int_construct_t
+    {
+    };
+    constexpr enum_iterator(int value, int_construct_t)
+        : value(value)
+    {
+    }
+    constexpr const bool operator *() const
+    {
+        return value != 0;
+    }
+    friend constexpr enum_iterator<bool> operator +(std::ptrdiff_t a, enum_iterator b)
+    {
+        return enum_iterator<bool>(a + b.value, int_construct_t());
+    }
+    constexpr enum_iterator<bool> operator +(std::ptrdiff_t b) const
+    {
+        return enum_iterator<bool>(value + b, int_construct_t());
+    }
+    constexpr enum_iterator<bool> operator -(std::ptrdiff_t b) const
+    {
+        return enum_iterator<bool>(value - b, int_construct_t());
+    }
+    constexpr std::ptrdiff_t operator -(enum_iterator b) const
+    {
+        return (std::ptrdiff_t)value - (std::ptrdiff_t)b.value;
+    }
+    constexpr const bool operator [](std::ptrdiff_t b) const
+    {
+        return operator +(b).operator *();
+    }
+    const enum_iterator & operator +=(std::ptrdiff_t b)
+    {
+        value += b;
+        return *this;
+    }
+    const enum_iterator & operator -=(std::ptrdiff_t b)
+    {
+        value -= b;
+        return *this;
+    }
+    const enum_iterator & operator ++()
+    {
+        value++;
+        return *this;
+    }
+    const enum_iterator & operator --()
+    {
+        value--;
+        return *this;
+    }
+    enum_iterator operator ++(int)
+    {
+        enum_iterator retval = *this;
+        value++;
+        return retval;
+    }
+    enum_iterator operator --(int)
+    {
+        enum_iterator retval = *this;
+        value--;
+        return retval;
+    }
+    constexpr bool operator ==(enum_iterator b) const
+    {
+        return value == b.value;
+    }
+    constexpr bool operator !=(enum_iterator b) const
+    {
+        return value != b.value;
+    }
+    constexpr bool operator >=(enum_iterator b) const
+    {
+        return value >= b.value;
+    }
+    constexpr bool operator <=(enum_iterator b) const
+    {
+        return value <= b.value;
+    }
+    constexpr bool operator >(enum_iterator b) const
+    {
+        return value > b.value;
+    }
+    constexpr bool operator <(enum_iterator b) const
+    {
+        return value < b.value;
+    }
+};
+
 template <typename T, T minV, T maxV>
 struct enum_traits_default
 {
@@ -150,6 +252,27 @@ struct enum_traits_default
 template <typename T>
 struct enum_traits<T, typename std::enable_if<std::is_enum<T>::value>::type> : public enum_traits_default<T, T::enum_first, T::enum_last>
 {
+};
+
+template <>
+struct enum_traits<bool, void>
+{
+    typedef bool type;
+    typedef unsigned char rwtype;
+    static constexpr bool minimum = false;
+    static constexpr bool maximum = true;
+    static constexpr enum_iterator<bool> begin()
+    {
+        return enum_iterator<bool>(minimum);
+    }
+    static constexpr enum_iterator<bool> end()
+    {
+        return enum_iterator<bool>(maximum) + 1;
+    }
+    static constexpr std::size_t size()
+    {
+        return 2;
+    }
 };
 
 #define DEFINE_ENUM_LIMITS(first, last) \

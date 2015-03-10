@@ -48,7 +48,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
                     BlockIterator bi = originBlockIterator;
                     bi.moveBy(rpos);
                     Block worldBlock = bi.get(lock_manager);
-                    Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos));
+                    Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos), true);
                     placedTree.setBlock(rpos, selectedBlock);
                 }
             }
@@ -76,12 +76,16 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
     return true;
 }
 
-Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock) const
+Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock, bool canThrow) const
 {
     if(!treeBlock.good())
         return Block();
     if(!originalWorldBlock.good() || originalWorldBlock.descriptor->isGroundBlock())
+    {
+        if(!canThrow)
+            return Block();
         throw TreeDoesNotFitException();
+    }
     return treeBlock;
 }
 
@@ -92,13 +96,13 @@ namespace Woods
 {
 namespace builtin
 {
-SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, std::vector<TreeDescriptorPointer> trees)
-    : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, trees)
+SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
+    : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, blockedLeaves, trees)
 {
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor = nullptr;
     BlockDescriptorPointer saplingBlockDescriptor = nullptr;
-    BlockDescriptorPointer leavesBlockDescriptor = nullptr;
+    enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors;
     ItemDescriptorPointer logItemDescriptor = nullptr;
     ItemDescriptorPointer planksItemDescriptor = nullptr;
     ItemDescriptorPointer saplingItemDescriptor = nullptr;
@@ -112,17 +116,20 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
         logBlockDescriptors[logOrientation] = new Blocks::builtin::WoodLog(this, logOrientation);
     }
     planksBlockDescriptor = new Blocks::builtin::WoodPlanks(this);
-    leavesBlockDescriptor = new Blocks::builtin::WoodLeaves(this);
+    for(bool canDecay : enum_traits<bool>())
+    {
+        leavesBlockDescriptors[canDecay] = new Blocks::builtin::WoodLeaves(this, canDecay);
+    }
     logEntityDescriptor = new Entities::builtin::items::WoodLog(this);
     planksEntityDescriptor = new Entities::builtin::items::WoodPlanks(this);
     leavesEntityDescriptor = new Entities::builtin::items::WoodLeaves(this);
     logItemDescriptor = new Items::builtin::WoodLog(this, logBlockDescriptors[LogOrientation::Y], logEntityDescriptor);
     planksItemDescriptor = new Items::builtin::WoodPlanks(this, planksBlockDescriptor, planksEntityDescriptor);
-    leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptor, leavesEntityDescriptor);
+    leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptors[false], leavesEntityDescriptor);
     setDescriptors(logBlockDescriptors,
                    planksBlockDescriptor,
                    saplingBlockDescriptor,
-                   leavesBlockDescriptor,
+                   leavesBlockDescriptors,
                    logItemDescriptor,
                    planksItemDescriptor,
                    saplingItemDescriptor,

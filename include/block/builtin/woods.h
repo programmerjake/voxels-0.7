@@ -18,8 +18,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef BUILTIN_WOOD_H_INCLUDED
-#define BUILTIN_WOOD_H_INCLUDED
+#ifndef BLOCK_BUILTIN_WOOD_H_INCLUDED
+#define BLOCK_BUILTIN_WOOD_H_INCLUDED
 
 #include "util/wood_descriptor.h"
 #include "texture/texture_atlas.h"
@@ -45,11 +45,11 @@ public:
     {
         return pointer();
     }
+    static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
 private:
     Oak()
-        : SimpleWood(L"builtin.oak", TextureAtlas::WoodEnd.td(), TextureAtlas::OakWood.td(), TextureAtlas::OakPlank.td(), TextureAtlas::OakSapling.td(), TextureAtlas::OakLeaves.td(), std::vector<TreeDescriptorPointer>())
+        : SimpleWood(L"builtin.oak", TextureAtlas::WoodEnd.td(), TextureAtlas::OakWood.td(), TextureAtlas::OakPlank.td(), TextureAtlas::OakSapling.td(), TextureAtlas::OakLeaves.td(), TextureAtlas::OakLeavesBlocked.td(), makeTreeDescriptors())
     {
-        #warning add tree descriptors
     }
 };
 }
@@ -57,4 +57,4 @@ private:
 }
 }
 
-#endif // BUILTIN_WOOD_H_INCLUDED
+#endif // BLOCK_BUILTIN_WOOD_H_INCLUDED
