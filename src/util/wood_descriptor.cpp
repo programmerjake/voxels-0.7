@@ -76,7 +76,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
     return true;
 }
 
-virtual Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock) const
+Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock) const
 {
     if(!treeBlock.good())
         return Block();

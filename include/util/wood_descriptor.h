@@ -84,11 +84,11 @@ public:
         return descriptor != nullptr;
     }
     Tree()
-        : descriptor(nullptr), arrayOrigin(0), arraySize(0)
+        : arrayOrigin(0), arraySize(0), descriptor(nullptr)
     {
     }
     Tree(TreeDescriptorPointer descriptor, VectorI arrayOrigin, VectorI arraySize)
-        : descriptor(descriptor), blocksArray(arraySize.x * arraySize.y * arraySize.z), arrayOrigin(arrayOrigin), arraySize(arraySize)
+        : blocksArray(arraySize.x * arraySize.y * arraySize.z), arrayOrigin(arrayOrigin), arraySize(arraySize), descriptor(descriptor)
     {
     }
 private:
@@ -117,7 +117,7 @@ public:
 class TreeDoesNotFitException final : public std::exception
 {
 public:
-    virtual const char *what() const
+    virtual const char *what() const noexcept override
     {
         return "Tree doesn't fit";
     }
