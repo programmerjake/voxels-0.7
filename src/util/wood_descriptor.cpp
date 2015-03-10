@@ -111,8 +111,14 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
     {
         logBlockDescriptors[logOrientation] = new Blocks::builtin::WoodLog(this, logOrientation);
     }
+    planksBlockDescriptor = new Blocks::builtin::WoodPlanks(this);
+    leavesBlockDescriptor = new Blocks::builtin::WoodLeaves(this);
     logEntityDescriptor = new Entities::builtin::items::WoodLog(this);
+    planksEntityDescriptor = new Entities::builtin::items::WoodPlanks(this);
+    leavesEntityDescriptor = new Entities::builtin::items::WoodLeaves(this);
     logItemDescriptor = new Items::builtin::WoodLog(this, logBlockDescriptors[LogOrientation::Y], logEntityDescriptor);
+    planksItemDescriptor = new Items::builtin::WoodPlanks(this, planksBlockDescriptor, planksEntityDescriptor);
+    leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptor, leavesEntityDescriptor);
     setDescriptors(logBlockDescriptors,
                    planksBlockDescriptor,
                    saplingBlockDescriptor,

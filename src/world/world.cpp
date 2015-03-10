@@ -357,6 +357,8 @@ protected:
                 for(int i = 0; i < 10; i++)
                 {
                     world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
                 }
             }
         }

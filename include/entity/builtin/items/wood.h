@@ -65,6 +65,65 @@ protected:
         player.addItem(Item(woodDescriptor->getLogItemDescriptor()));
     }
 };
+class WoodPlanks final : public BlockItem
+{
+private:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    {
+        std::wstring retval = L"builtin.items.wood_planks(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L")";
+        return retval;
+    }
+public:
+    explicit WoodPlanks(WoodDescriptorPointer woodDescriptor)
+        : BlockItem(makeName(woodDescriptor), woodDescriptor->getPlanksTexture(), RenderLayer::Opaque), woodDescriptor(woodDescriptor)
+    {
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
+    }
+protected:
+    virtual void onGiveToPlayer(Player &player) const override
+    {
+        player.addItem(Item(woodDescriptor->getPlanksItemDescriptor()));
+    }
+};
+class WoodLeaves final : public BlockItem
+{
+private:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    {
+        std::wstring retval = L"builtin.items.wood_leaves(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L")";
+        return retval;
+    }
+    static Mesh makeMesh(WoodDescriptorPointer woodDescriptor)
+    {
+        return colorize(BiomeDescriptor::makeBiomeLeavesColor(0.5f, 0.5f), Generate::unitBox(woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
+                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
+                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture()));
+    }
+public:
+    explicit WoodLeaves(WoodDescriptorPointer woodDescriptor)
+        : BlockItem(makeName(woodDescriptor),
+                    makeMesh(woodDescriptor), RenderLayer::Opaque), woodDescriptor(woodDescriptor)
+    {
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
+    }
+protected:
+    virtual void onGiveToPlayer(Player &player) const override
+    {
+        player.addItem(Item(woodDescriptor->getLeavesItemDescriptor()));
+    }
+};
 }
 }
 }

@@ -23,6 +23,8 @@
 
 #include "item/builtin/block.h"
 #include "util/wood_descriptor.h"
+#include "render/generate.h"
+#include "generate/biome/biome_descriptor.h"
 
 namespace programmerjake
 {
@@ -66,6 +68,55 @@ public:
                 return getAfterPlaceItem();
         }
         return item;
+    }
+};
+class WoodPlanks final : public ItemBlock
+{
+private:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    {
+        std::wstring retval = L"builtin.wood_planks(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L")";
+        return retval;
+    }
+public:
+    WoodPlanks(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemBlock(makeName(woodDescriptor),
+                    woodDescriptor->getPlanksTexture(), block, entity), woodDescriptor(woodDescriptor)
+    {
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
+    }
+};
+class WoodLeaves final : public ItemBlock
+{
+private:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    {
+        std::wstring retval = L"builtin.wood_leaves(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L")";
+        return retval;
+    }
+    static Mesh makeMesh(WoodDescriptorPointer woodDescriptor)
+    {
+        return colorize(BiomeDescriptor::makeBiomeLeavesColor(0.5f, 0.5f), Generate::unitBox(woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
+                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
+                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture()));
+    }
+public:
+    WoodLeaves(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+        : ItemBlock(makeName(woodDescriptor), makeMesh(woodDescriptor), block, entity), woodDescriptor(woodDescriptor)
+    {
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
     }
 };
 }

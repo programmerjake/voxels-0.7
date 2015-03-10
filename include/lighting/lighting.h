@@ -122,9 +122,21 @@ public:
         : directSkylight(ensureInValidRange(directSkylight)), indirectSkylight(ensureInValidRange(constexpr_max(directSkylight, indirectSkylight))), indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
     {
     }
+    enum MakeDirectOnlyType
+    {
+        MakeDirectOnly
+    };
+    constexpr Lighting(LightValueType directSkylight, LightValueType indirectSkylight, LightValueType indirectArtificalLight, MakeDirectOnlyType)
+        : directSkylight(ensureInValidRange(directSkylight)), indirectSkylight(ensureInValidRange(indirectSkylight)), indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
+    {
+    }
     static constexpr Lighting makeSkyLighting()
     {
         return Lighting(maxLight, maxLight, 0);
+    }
+    static constexpr Lighting makeDirectOnlyLighting()
+    {
+        return Lighting(maxLight, 0, 0, MakeDirectOnly);
     }
     static constexpr Lighting makeArtificialLighting(LightValueType indirectArtificalLight)
     {
@@ -136,11 +148,11 @@ public:
     }
     constexpr Lighting combine(Lighting r) const
     {
-        return Lighting(constexpr_max(directSkylight, r.directSkylight), constexpr_max(indirectSkylight, r.indirectSkylight), constexpr_max(indirectArtificalLight, r.indirectArtificalLight));
+        return Lighting(constexpr_max(directSkylight, r.directSkylight), constexpr_max(indirectSkylight, r.indirectSkylight), constexpr_max(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
     }
     constexpr Lighting minimize(Lighting r) const
     {
-        return Lighting(constexpr_min(directSkylight, r.directSkylight), constexpr_min(indirectSkylight, r.indirectSkylight), constexpr_min(indirectArtificalLight, r.indirectArtificalLight));
+        return Lighting(constexpr_min(directSkylight, r.directSkylight), constexpr_min(indirectSkylight, r.indirectSkylight), constexpr_min(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
     }
 private:
     static constexpr LightValueType sum(LightValueType a, LightValueType b)
@@ -150,7 +162,7 @@ private:
 public:
     constexpr Lighting sum(Lighting r) const
     {
-        return Lighting(sum(directSkylight, r.directSkylight), sum(indirectSkylight, r.indirectSkylight), sum(indirectArtificalLight, r.indirectArtificalLight));
+        return Lighting(sum(directSkylight, r.directSkylight), sum(indirectSkylight, r.indirectSkylight), sum(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
     }
 private:
     static constexpr LightValueType reduce(LightValueType a, LightValueType b)
@@ -192,7 +204,7 @@ LightValueType indirectArtificalLight:
     }
     constexpr explicit operator Lighting() const
     {
-        return Lighting(directSkylight, indirectSkylight, indirectArtificalLight);
+        return Lighting(directSkylight, indirectSkylight, indirectArtificalLight, Lighting::MakeDirectOnly);
     }
 };
 
