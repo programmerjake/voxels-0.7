@@ -68,7 +68,7 @@ public:
     {
         PositionF pos = (PositionF)columnBasePosition;
         pos.y = 0;
-        return randomSource.getFBMValue(pos * 0.05f) - 5 + World::AverageGroundHeight;
+        return randomSource.getFBMValue(pos * 0.05f) - 5 + World::SeaLevel;
     }
     virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
     {
@@ -79,16 +79,16 @@ public:
             Block block;
             if(position.y < groundHeight - 5)
                 block = Block(Blocks::builtin::Stone::descriptor());
-            else if(position.y < groundHeight || (position.y == groundHeight && position.y < World::AverageGroundHeight))
+            else if(position.y < groundHeight || (position.y == groundHeight && position.y < World::SeaLevel))
                 block = Block(Blocks::builtin::Dirt::descriptor());
             else if(position.y == groundHeight)
                 block = Block(Blocks::builtin::Grass::descriptor());
-            else if(position.y <= World::AverageGroundHeight)
+            else if(position.y <= World::SeaLevel)
             {
                 block = Block(Blocks::builtin::Water::descriptor());
                 block.lighting = Lighting::makeSkyLighting();
                 LightProperties waterLightProperties = Blocks::builtin::Water::descriptor()->lightProperties;
-                for(auto i = position.y; i <= World::AverageGroundHeight; i++)
+                for(auto i = position.y; i <= World::SeaLevel; i++)
                 {
                     block.lighting = waterLightProperties.calculateTransmittedLighting(block.lighting);
                     if(block.lighting == Lighting(0, 0, 0))

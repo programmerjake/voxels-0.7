@@ -62,7 +62,7 @@ public:
     }
     virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
     {
-        return 7 + World::AverageGroundHeight;
+        return 7 + World::SeaLevel;
     }
     virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
     {

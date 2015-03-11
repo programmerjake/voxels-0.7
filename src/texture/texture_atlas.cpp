@@ -363,6 +363,7 @@ const TextureAtlas
     TextureAtlas::WoodShovel(272, 112, 16, 16),
     TextureAtlas::Wool(288, 112, 16, 16),
     TextureAtlas::Selection(288, 224, 32, 32),
+    TextureAtlas::Crosshairs(256, 224, 12, 12),
     TextureAtlas::Player1HeadFront(0, 288, 8, 8),
     TextureAtlas::Player1HeadBack(24, 288, 8, 8),
     TextureAtlas::Player1HeadLeft(16, 288, 8, 8),

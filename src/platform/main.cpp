@@ -38,6 +38,7 @@
 #include "util/logging.h"
 #include "entity/builtin/items/stone.h"
 #include "ui/gameui.h"
+#include "render/render_settings.h"
 
 using namespace std;
 
@@ -47,6 +48,7 @@ namespace voxels
 {
 int main(std::vector<std::wstring> args)
 {
+    //globalRenderSettings.useFancyLeaves = true;
     std::shared_ptr<World> world = std::make_shared<World>();
     Audio sound(L"background7.ogg", true);
     startGraphics();

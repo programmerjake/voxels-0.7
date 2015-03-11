@@ -63,8 +63,25 @@ public:
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
         if(c.valid())
         {
-            #warning add log orientations
-            if(player.placeBlock(c, world, lock_manager, Block(getBlock())))
+            LogOrientation logOrientation = LogOrientation::Y;
+            switch(c.blockFace)
+            {
+            case BlockFaceOrNone::None:
+                break;
+            case BlockFaceOrNone::NX:
+            case BlockFaceOrNone::PX:
+                logOrientation = LogOrientation::X;
+                break;
+            case BlockFaceOrNone::NY:
+            case BlockFaceOrNone::PY:
+                logOrientation = LogOrientation::Y;
+                break;
+            case BlockFaceOrNone::NZ:
+            case BlockFaceOrNone::PZ:
+                logOrientation = LogOrientation::Z;
+                break;
+            }
+            if(player.placeBlock(c, world, lock_manager, Block(woodDescriptor->getLogBlockDescriptor(logOrientation))))
                 return getAfterPlaceItem();
         }
         return item;

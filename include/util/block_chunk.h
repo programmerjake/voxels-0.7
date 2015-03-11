@@ -40,6 +40,7 @@
 #include <cstdint>
 #include "generate/biome/biome.h"
 #include "block/block_struct.h"
+#include <condition_variable>
 
 namespace programmerjake
 {
@@ -197,6 +198,8 @@ struct BlockChunkChunkVariables final
 {
     std::mutex cachedMeshesLock;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    bool generatingCachedMeshes = false;
+    std::condition_variable cachedMeshesCond;
     std::atomic_bool cachedMeshesUpToDate;
     BlockChunkChunkVariables()
         : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *v)

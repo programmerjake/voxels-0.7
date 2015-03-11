@@ -28,6 +28,7 @@
 #include "util/enum_traits.h"
 #include <mutex>
 #include <thread>
+#include <list>
 
 namespace programmerjake
 {
@@ -38,13 +39,13 @@ class ViewPoint final
     friend class World;
     PositionF position;
     std::int32_t viewDistance;
-    std::thread generateMeshesThread;
+    std::list<std::thread> generateMeshesThreads;
     std::recursive_mutex theLock;
     bool shuttingDown;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> blockRenderMeshes;
     World &world;
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
-    void generateMeshesFn();
+    void generateMeshesFn(bool isPrimaryThread);
     std::shared_ptr<void> pLightingCache;
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);

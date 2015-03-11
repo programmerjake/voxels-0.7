@@ -131,16 +131,18 @@ std::shared_ptr<enum_array<Mesh, RenderLayer>> makeCachedMesh(std::atomic_size_t
 
 void dumpMeshStats()
 {
+#if 0
     getDebugLog() << L"Chunk Mesh Count:" << cachedChunkMeshCount.load() << L"  Subchunk Mesh Count:" << cachedSubchunkMeshCount.load() << L"  ViewPoint Mesh Count:" << cachedViewPointMeshCount.load() << postnl;
     ObjectCounter<WrappedEntity, 0>::dumpCount();
     ObjectCounter<PhysicsObject, 0>::dumpCount();
     ObjectCounter<PhysicsWorld, 0>::dumpCount();
     ObjectCounter<PhysicsWorld, 1>::dumpCount();
     ObjectCounter<BlockChunk, 0>::dumpCount();
+#endif
 }
 }
 
-void ViewPoint::generateMeshesFn()
+void ViewPoint::generateMeshesFn(bool isPrimaryThread)
 {
     auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     BlockLightingCache lightingCache;
@@ -149,7 +151,9 @@ void ViewPoint::generateMeshesFn()
     {
         PositionF position = this->position;
         std::int32_t viewDistance = this->viewDistance;
-        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = makeCachedMesh(&cachedViewPointMeshCount);
+        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = nullptr;
+        if(isPrimaryThread)
+            meshes = makeCachedMesh(&cachedViewPointMeshCount);
         bool anyUpdates = false;
         if(blockRenderMeshes == nullptr)
             anyUpdates = true;
@@ -170,21 +174,34 @@ void ViewPoint::generateMeshesFn()
                     WorldLockManager lock_manager;
                     BlockIterator cbi = world.getBlockIterator(chunkPosition);
                     std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->chunkVariables.cachedMeshesLock);
+                    if(isPrimaryThread)
+                    {
+                        while(cbi.chunk->chunkVariables.generatingCachedMeshes)
+                            cbi.chunk->chunkVariables.cachedMeshesCond.wait(cachedChunkMeshesLock);
+                    }
+                    else if(cbi.chunk->chunkVariables.generatingCachedMeshes)
+                    {
+                        continue; // if not the primary thread, go on to a different chunk
+                    }
                     if(!cbi.chunk->chunkVariables.cachedMeshesUpToDate.exchange(true))
                         cbi.chunk->chunkVariables.cachedMeshes = nullptr;
                     std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes;
+                    cbi.chunk->chunkVariables.generatingCachedMeshes = (chunkMeshes == nullptr);
                     cachedChunkMeshesLock.unlock();
                     if(chunkMeshes != nullptr)
                     {
-                        for(RenderLayer rl : enum_traits<RenderLayer>())
+                        if(isPrimaryThread)
                         {
-                            meshes->at(rl).append(chunkMeshes->at(rl));
+                            for(RenderLayer rl : enum_traits<RenderLayer>())
+                            {
+                                meshes->at(rl).append(chunkMeshes->at(rl));
+                            }
                         }
                         continue; // chunk is up-to-date
                     }
                     chunkMeshes = makeCachedMesh(&cachedChunkMeshCount);
                     anyUpdates = true;
-                    getDebugLog() << L"generating ... (" << chunkPosition.x << L", " << chunkPosition.y << L", " << chunkPosition.z << L")\x1b[K\r" << post;
+                    //getDebugLog() << L"generating ... (" << chunkPosition.x << L", " << chunkPosition.y << L", " << chunkPosition.z << L")\x1b[K\r" << post;
                     VectorI subchunkIndex;
                     for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
                     {
@@ -251,10 +268,15 @@ void ViewPoint::generateMeshesFn()
                     }
                     cachedChunkMeshesLock.lock();
                     cbi.chunk->chunkVariables.cachedMeshes = chunkMeshes;
+                    cbi.chunk->chunkVariables.generatingCachedMeshes = false;
+                    cbi.chunk->chunkVariables.cachedMeshesCond.notify_all();
                     cachedChunkMeshesLock.unlock();
-                    for(RenderLayer rl : enum_traits<RenderLayer>())
+                    if(isPrimaryThread)
                     {
-                        meshes->at(rl).append(chunkMeshes->at(rl));
+                        for(RenderLayer rl : enum_traits<RenderLayer>())
+                        {
+                            meshes->at(rl).append(chunkMeshes->at(rl));
+                        }
                     }
                 }
                 auto currentTime = std::chrono::steady_clock::now();
@@ -266,14 +288,13 @@ void ViewPoint::generateMeshesFn()
             }
         }
 
-
-
         if(anyUpdates == false)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         lockIt.lock();
         //if(anyUpdates)
             //debugLog << L"generated render meshes.\x1b[K" << std::endl;
-        blockRenderMeshes = std::move(meshes);
+        if(isPrimaryThread)
+            blockRenderMeshes = std::move(meshes);
     }
 }
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
@@ -283,14 +304,20 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
         myPositionInViewPointsList = world.viewPoints.insert(world.viewPoints.end(), this);
     }
-    generateMeshesThread = std::thread([this](){generateMeshesFn();});
+    const int threadCount = 2;
+    generateMeshesThreads.emplace_back([this](){generateMeshesFn(true);});
+    for(int i = 1; i < threadCount; i++)
+        generateMeshesThreads.emplace_back([this](){generateMeshesFn(false);});
 }
 ViewPoint::~ViewPoint()
 {
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
     shuttingDown = true;
     lockIt.unlock();
-    generateMeshesThread.join();
+    for(std::thread &generateMeshesThread : generateMeshesThreads)
+    {
+        generateMeshesThread.join();
+    }
     {
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
         world.viewPoints.erase(myPositionInViewPointsList);

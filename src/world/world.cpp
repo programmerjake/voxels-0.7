@@ -25,6 +25,7 @@
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
 #include "block/builtin/grass.h"
+#include "block/builtin/dirt.h"
 #include "block/builtin/water.h"
 #include "entity/builtin/items/stone.h"
 #include "entity/builtin/items/bucket.h"
@@ -205,11 +206,11 @@ private:
                              RandomSource &randomSource) const
     {
         BlockIterator bi = world.getBlockIterator(chunkBasePosition);
-        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
+        for(int cx = 0; cx < BlockChunk::chunkSizeX; cx++)
         {
-            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
+            for(int cz = 0; cz < BlockChunk::chunkSizeZ; cz++)
             {
-                PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
+                PositionI columnBasePosition = chunkBasePosition + VectorI(cx, 0, cz);
                 bi.moveTo(columnBasePosition);
                 const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
                 float groundHeightF = 0;
@@ -220,8 +221,36 @@ private:
                     groundHeightF += weight * biome->getGroundHeight(columnBasePosition, randomSource);
                 }
                 int groundHeight = ifloor(0.5f + groundHeightF);
-                groundHeights[x][z] = groundHeight;
+                groundHeights[cx][cz] = groundHeight;
                 bp.getDominantBiome()->makeGroundColumn(chunkBasePosition, columnBasePosition, blocks, randomSource, groundHeight);
+                for(int cy = 0; cy < BlockChunk::chunkSizeY; cy++)
+                {
+                    VectorI pos = columnBasePosition + VectorI(0, cy, 0);
+                    if(pos.y <= World::SeaLevel)
+                    {
+                        Block &block = blocks[cx][cy][cz];
+                        if(block.descriptor == Blocks::builtin::Air::descriptor())
+                        {
+                            block = Block(Blocks::builtin::Water::descriptor());
+                            block.lighting = Lighting::makeSkyLighting();
+                            LightProperties waterLightProperties = Blocks::builtin::Water::descriptor()->lightProperties;
+                            for(auto i = pos.y; i <= World::SeaLevel; i++)
+                            {
+                                block.lighting = waterLightProperties.calculateTransmittedLighting(block.lighting);
+                                if(block.lighting == Lighting(0, 0, 0))
+                                    break;
+                            }
+                        }
+                        if(cy > 0 && dynamic_cast<const Blocks::builtin::Water *>(block.descriptor) != nullptr)
+                        {
+                            Block &surfaceBlock = blocks[cx][cy - 1][cz];
+                            if(surfaceBlock.descriptor == Blocks::builtin::Grass::descriptor())
+                            {
+                                surfaceBlock = Block(Blocks::builtin::Dirt::descriptor());
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -277,7 +306,7 @@ private:
                 }
                 generateCountF /= BlockChunk::chunkSizeX * BlockChunk::chunkSizeZ;
                 int generateCount = ifloor(std::uniform_real_distribution<float>(0, 1)(rg) + generateCountF);
-                VectorI relativeColumnSurfacePosition = columnBasePosition + VectorI(0, World::AverageGroundHeight, 0) - chunkBasePosition;
+                VectorI relativeColumnSurfacePosition = columnBasePosition + VectorI(0, World::SeaLevel, 0) - chunkBasePosition;
                 while(relativeColumnSurfacePosition.y >= 0 && relativeColumnSurfacePosition.y < BlockChunk::chunkSizeY - 1)
                 {
                     const Block &b = blocks[relativeColumnSurfacePosition.x][relativeColumnSurfacePosition.y][relativeColumnSurfacePosition.z];
@@ -350,15 +379,15 @@ protected:
         {
             for(int i = 0; i < 10; i++)
             {
-                world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
             }
             for(WoodDescriptorPointer woodDescriptor : WoodDescriptors)
             {
                 for(int i = 0; i < 10; i++)
                 {
-                    world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
-                    //world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
-                    world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::AverageGroundHeight, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    //world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
                 }
             }
         }
@@ -369,7 +398,6 @@ protected:
 World::World(SeedType seed)
     : World(seed, MyWorldGenerator::getInstance())
 {
-
 }
 
 namespace
@@ -488,7 +516,22 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
 {
     getDebugLog() << L"generating initial world..." << postnl;
     WorldLockManager lock_manager;
-restart:
+    for(;;)
+    {
+        RandomSource randomSource(getWorldGeneratorSeed());
+        BiomeProperties bp = randomSource.getBiomeProperties(PositionI(0, 0, 0, Dimension::Overworld));
+        if(!bp.getDominantBiome()->isGoodStartingPosition())
+        {
+            auto &rg = getRandomGenerator();
+            worldGeneratorSeed = rg();
+            continue;
+        }
+        break;
+    }
+    lightingThread = thread([this]()
+    {
+        lightingThreadFn();
+    });
     for(int dx = 0; dx >= -1; dx--)
     {
         for(int dz = 0; dz >= -1; dz--)
@@ -498,22 +541,6 @@ restart:
             getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
             generateChunk(initialChunk, lock_manager);
             initialChunk->chunkVariables.generated = true;
-            if(dx == 0 && dz == 0)
-            {
-                BlockIterator bi = getBlockIterator(PositionI(0, 0, 0, Dimension::Overworld));
-                if(!bi.getBiomeProperties(lock_manager).getDominantBiome()->isGoodStartingPosition())
-                {
-                    lock_manager.clear();
-                    physicsWorld = std::make_shared<PhysicsWorld>();
-                    auto &rg = getRandomGenerator();
-                    worldGeneratorSeed = rg();
-                    goto restart;
-                }
-                lightingThread = thread([this]()
-                {
-                    lightingThreadFn();
-                });
-            }
         }
     }
     blockUpdateThread = thread([this]()

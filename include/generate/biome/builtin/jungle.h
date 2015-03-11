@@ -64,7 +64,7 @@ public:
     {
         PositionF pos = (PositionF)columnBasePosition;
         pos.y = 0;
-        return randomSource.getFBMValue(pos * 0.05f) + 3 + World::AverageGroundHeight;
+        return randomSource.getFBMValue(pos * 0.05f) + 3 + World::SeaLevel;
     }
     virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
     {

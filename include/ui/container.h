@@ -449,14 +449,7 @@ public:
         return e->handleQuit(event);
     }
 protected:
-    virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
-    {
-        float logMinZ = std::log(minZ), logMaxZ = std::log(maxZ);
-        for(std::size_t i = 0; i < elements.size(); i++)
-        {
-            elements[i]->render(renderer, std::exp(interpolate((float)(i + 1) / elements.size(), logMaxZ, logMinZ)), std::exp(interpolate((float)i / elements.size(), logMaxZ, logMinZ)), hasFocus && i == currentFocusIndex);
-        }
-    }
+    virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override;
 public:
     void setFocus(std::shared_ptr<Element> e)
     {

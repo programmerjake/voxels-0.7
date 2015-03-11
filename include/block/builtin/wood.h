@@ -72,18 +72,43 @@ private:
             logVector = VectorI(0);
             break;
         case LogOrientation::X:
-            logVector = VectorI(1, 0, 0);
-            break;
         case LogOrientation::Y:
-            logVector = VectorI(0, 1, 0);
-            break;
         case LogOrientation::Z:
-            logVector = VectorI(0, 0, 1);
+            logVector = VectorI(0, 1, 0);
             break;
         }
         if(dot(faceVector, logVector) == 0)
             return woodDescriptor->getLogSideTexture();
         return woodDescriptor->getLogTopTexture();
+    }
+    static BlockFace vectorToBlockFace(VectorF v)
+    {
+        if(std::fabs(v.x) > std::fabs(v.y) && std::fabs(v.x) > std::fabs(v.z))
+        {
+            if(v.x < 0)
+                return BlockFace::NX;
+            return BlockFace::PX;
+        }
+        if(std::fabs(v.y) > std::fabs(v.z))
+        {
+            if(v.y < 0)
+                return BlockFace::NY;
+            return BlockFace::PY;
+        }
+        if(v.z < 0)
+            return BlockFace::NZ;
+        return BlockFace::PZ;
+    }
+    void transformBlock(Matrix tform)
+    {
+        tform = Matrix::translate(-0.5f, -0.5f, -0.5f).concat(tform).concat(Matrix::translate(0.5f, 0.5f, 0.5f));
+        enum_array<Mesh, BlockFace> newMeshFaces;
+        for(BlockFace srcBF : enum_traits<BlockFace>())
+        {
+            BlockFace destBF = vectorToBlockFace(tform.applyNoTranslate(getBlockFaceOutDirection(srcBF)));
+            newMeshFaces[destBF] = transform(tform, std::move(meshFace[srcBF]));
+        }
+        meshFace = std::move(newMeshFaces);
     }
 public:
     WoodLog(WoodDescriptorPointer woodDescriptor, LogOrientation logOrientation)
@@ -97,6 +122,18 @@ public:
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::PZ),
                     RenderLayer::Opaque), woodDescriptor(woodDescriptor), logOrientation(logOrientation)
     {
+        switch(logOrientation)
+        {
+        case LogOrientation::AllBark:
+        case LogOrientation::Y:
+            break;
+        case LogOrientation::X:
+            transformBlock(Matrix::rotateZ(M_PI / 2));
+            break;
+        case LogOrientation::Z:
+            transformBlock(Matrix::rotateX(M_PI / 2));
+            break;
+        }
     }
     WoodDescriptorPointer getWoodDescriptor() const
     {

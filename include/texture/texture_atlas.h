@@ -364,6 +364,7 @@ public:
     WoodShovel,
     Wool,
     Selection,
+    Crosshairs,
     Player1HeadFront,
     Player1HeadBack,
     Player1HeadLeft,

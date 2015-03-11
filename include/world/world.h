@@ -76,7 +76,7 @@ public:
     {
         return worldGeneratorSeed;
     }
-    static constexpr std::int32_t AverageGroundHeight = 64;
+    static constexpr std::int32_t SeaLevel = 64;
 private:
     std::mt19937 randomGenerator;
     std::mutex randomGeneratorLock;
@@ -185,7 +185,7 @@ public:
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         BlockUpdate **ppnode = &b.updateListHead;
         BlockUpdate *pnode = b.updateListHead;
-        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt;
+        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
         float retval = -1;
         while(pnode != nullptr)
         {
@@ -195,7 +195,6 @@ public:
                 if(updateTimeFromNow < 0)
                 {
                     *ppnode = pnode->block_next;
-                    lockIt = decltype(lockIt)(bi.chunk->chunkVariables.blockUpdateListLock);
                     if(pnode->chunk_prev == nullptr)
                         bi.chunk->chunkVariables.blockUpdateListHead = pnode->chunk_next;
                     else
@@ -219,7 +218,6 @@ public:
         {
             pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
             b.updateListHead = pnode;
-            lockIt = decltype(lockIt)(bi.chunk->chunkVariables.blockUpdateListLock);
             pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
             pnode->chunk_prev = nullptr;
             if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)

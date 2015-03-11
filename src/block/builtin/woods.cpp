@@ -60,9 +60,8 @@ public:
         const int ySize = 10;
         Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
         std::minstd_rand rg(seed);
+        rg.discard(10);
         int trunkHeight = std::uniform_int_distribution<int>(4, 6)(rg);
-        for(int i = 0; i < trunkHeight; i++)
-            retval.setBlock(VectorI(0, i, 0), logs[LogOrientation::Y]);
         int leavesRadius = 3;
         VectorI leavesCenter(0, trunkHeight - 1, 0);
         for(int x = -leavesRadius; x <= leavesRadius; x++)
@@ -72,12 +71,14 @@ public:
                 for(int z = -leavesRadius; z <= leavesRadius; z++)
                 {
                     VectorI pos(x, y, z);
-                    int adjustedRadius = leavesRadius - std::uniform_int_distribution<int>(0, 1)(rg);
+                    float adjustedRadius = leavesRadius - std::uniform_real_distribution<float>(0, 0.5f)(rg);
                     if(absSquared(pos - leavesCenter) < adjustedRadius * adjustedRadius)
                         retval.setBlock(pos, leaves);
                 }
             }
         }
+        for(int i = 0; i < trunkHeight; i++)
+            retval.setBlock(VectorI(0, i, 0), logs[LogOrientation::Y]);
         for(int y = 1; y < trunkHeight + 2; y++)
         {
             int size = 1;
@@ -132,6 +133,8 @@ public:
                 return Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor() && canThrow)
                 throw TreeDoesNotFitException();
+            if(dynamic_cast<const Blocks::builtin::WoodLog *>(originalWorldBlock.descriptor) != 0)
+                return Block();
             return Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
         }
         if(dynamic_cast<const Blocks::builtin::WoodLog *>(treeBlock.descriptor) != 0)

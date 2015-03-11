@@ -36,7 +36,6 @@ namespace voxels
 {
 class RandomSource final
 {
-    friend class RandomWorldGenerator;
 public:
     typedef std::size_t RandomClass;
     static constexpr RandomClass fbmRandomStart = 0;
@@ -133,11 +132,11 @@ private:
     };
     const World::SeedType seed;
     std::unordered_map<RandomChunkKey, RandomCacheChunk, RandomChunkKeyHasher> randomCache;
+public:
     RandomSource(World::SeedType seed)
         : seed(seed)
     {
     }
-public:
     const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)
     {
         RandomChunkKey key(chunkBasePosition, randomClass);

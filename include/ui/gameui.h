@@ -28,6 +28,8 @@
 #include "util/math_constants.h"
 #include "ui/item.h"
 #include "util/game_version.h"
+#include "ui/image.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -73,7 +75,7 @@ public:
     {
         if(GameVersion::DEBUG)
             gameInput->paused.set(true);
-        PositionF startingPosition = PositionF(0.5f, World::AverageGroundHeight + 8.5f, 0.5f, Dimension::Overworld);
+        PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
         viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 48 : 64);
         player = std::make_shared<Player>(L"default-player-name", gameInput);
         playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
@@ -347,6 +349,7 @@ public:
             float hotBarItemSize = 20 * scale;
             std::size_t hotBarSize = player->items.itemStacks.size();
             float hotBarWidth = hotBarItemSize * hotBarSize;
+            add(std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40));
             for(std::size_t i = 0; i < hotBarSize; i++)
             {
                 add(std::make_shared<UiItemWithBorder>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
