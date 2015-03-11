@@ -52,6 +52,63 @@ private:
     {
     }
 };
+class Birch : public SimpleWood
+{
+    friend class global_instance_maker<Birch>;
+public:
+    static const Birch *pointer()
+    {
+        return global_instance_maker<Birch>::getInstance();
+    }
+    static WoodDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+private:
+    Birch()
+        : SimpleWood(L"builtin.birch", TextureAtlas::WoodEnd.td(), TextureAtlas::BirchWood.td(), TextureAtlas::BirchPlank.td(), TextureAtlas::BirchSapling.td(), TextureAtlas::BirchLeaves.td(), TextureAtlas::BirchLeavesBlocked.td(), makeTreeDescriptors())
+    {
+    }
+};
+class Spruce : public SimpleWood
+{
+    friend class global_instance_maker<Spruce>;
+public:
+    static const Spruce *pointer()
+    {
+        return global_instance_maker<Spruce>::getInstance();
+    }
+    static WoodDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+private:
+    Spruce()
+        : SimpleWood(L"builtin.spruce", TextureAtlas::WoodEnd.td(), TextureAtlas::SpruceWood.td(), TextureAtlas::SprucePlank.td(), TextureAtlas::SpruceSapling.td(), TextureAtlas::SpruceLeaves.td(), TextureAtlas::SpruceLeavesBlocked.td(), makeTreeDescriptors())
+    {
+    }
+};
+class Jungle : public SimpleWood
+{
+    friend class global_instance_maker<Jungle>;
+public:
+    static const Jungle *pointer()
+    {
+        return global_instance_maker<Jungle>::getInstance();
+    }
+    static WoodDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+private:
+    Jungle()
+        : SimpleWood(L"builtin.jungle", TextureAtlas::WoodEnd.td(), TextureAtlas::JungleWood.td(), TextureAtlas::JunglePlank.td(), TextureAtlas::JungleSapling.td(), TextureAtlas::JungleLeaves.td(), TextureAtlas::JungleLeavesBlocked.td(), makeTreeDescriptors())
+    {
+    }
+};
 }
 }
 }

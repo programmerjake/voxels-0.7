@@ -162,13 +162,25 @@ public:
     }
     virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const override
     {
-        return 5;
+        return 10;
     }
 };
 }
 std::vector<TreeDescriptorPointer> Oak::makeTreeDescriptors()
 {
     return std::vector<TreeDescriptorPointer>{new SmallOakTree()};
+}
+std::vector<TreeDescriptorPointer> Birch::makeTreeDescriptors()
+{
+    return std::vector<TreeDescriptorPointer>{};
+}
+std::vector<TreeDescriptorPointer> Spruce::makeTreeDescriptors()
+{
+    return std::vector<TreeDescriptorPointer>{};
+}
+std::vector<TreeDescriptorPointer> Jungle::makeTreeDescriptors()
+{
+    return std::vector<TreeDescriptorPointer>{};
 }
 }
 }
