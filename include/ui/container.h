@@ -83,6 +83,18 @@ public:
         element->parent = sthis;
         return std::move(sthis);
     }
+private:
+    void removeHelper(std::size_t removedIndex, std::size_t &adjustIndex) const
+    {
+        if(adjustIndex != npos)
+        {
+            if(adjustIndex == removedIndex)
+                adjustIndex = npos;
+            else if(adjustIndex > removedIndex)
+                adjustIndex--;
+        }
+    }
+public:
     bool remove(std::shared_ptr<Element> element)
     {
         assert(element != nullptr);
@@ -91,12 +103,11 @@ public:
             if(elements[i] == element)
             {
                 element->parent.reset();
-                if(currentFocusIndex != npos)
+                removeHelper(i, currentFocusIndex);
+                removeHelper(i, lastMouseElement);
+                for(auto &v : touchElementMap)
                 {
-                    if(currentFocusIndex == i)
-                        currentFocusIndex = npos;
-                    else if(currentFocusIndex > i)
-                        currentFocusIndex--;
+                    removeHelper(i, std::get<1>(v));
                 }
                 elements.erase(elements.begin() + i);
                 return true;
@@ -110,7 +121,7 @@ public:
             return shared_from_this();
         return elements[currentFocusIndex];
     }
-    virtual bool canHaveKeyboardFocus() const override final
+    virtual bool canHaveKeyboardFocus() const override
     {
         for(const std::shared_ptr<Element> &e : elements)
             if(e->canHaveKeyboardFocus())

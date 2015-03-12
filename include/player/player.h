@@ -37,6 +37,7 @@
 #include "item/item_struct.h"
 #include "entity/builtin/item.h"
 #include "block/builtin/air.h"
+#include "entity/builtin/items/stone.h"
 
 namespace programmerjake
 {
@@ -46,6 +47,7 @@ class Player;
 namespace ui
 {
 class GameUi;
+class Ui;
 }
 
 namespace Entities
@@ -129,6 +131,7 @@ private:
         }
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
+    ui::GameUi *const gameUi;
 public:
     Entity *getPlayerEntity() const
     {
@@ -137,9 +140,9 @@ public:
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
-    ui::GameUi *const gameUi;
+    bool setDialog(std::shared_ptr<ui::Ui> ui);
     Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi)
-        : gameInput(gameInput), name(name), gameUi(gameUi)
+        : gameInput(gameInput), gameUi(gameUi), name(name)
     {
         assert(gameInput != nullptr);
         assert(gameUi != nullptr);

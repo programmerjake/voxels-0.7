@@ -57,8 +57,10 @@ void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus
         e.hasFocus = (hasFocus && i == currentFocusIndex);
         for(const MyElementType &other : myElements)
         {
-            if(e.overlaps(other))
-                e.depth++;
+            if(e.overlaps(other) && e.depth <= other.depth)
+            {
+                e.depth = 1 + other.depth;
+            }
         }
         if(e.depth > maxDepth)
             maxDepth = e.depth;

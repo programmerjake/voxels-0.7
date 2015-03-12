@@ -177,6 +177,7 @@
 		<Unit filename="include/ui/item.h" />
 		<Unit filename="include/ui/label.h" />
 		<Unit filename="include/ui/labeled_element.h" />
+		<Unit filename="include/ui/player_dialog.h" />
 		<Unit filename="include/ui/shaded_container.h" />
 		<Unit filename="include/ui/ui.h" />
 		<Unit filename="include/util/atomic_shared_ptr.h" />
@@ -264,6 +265,7 @@
 		<Unit filename="src/ui/container.cpp" />
 		<Unit filename="src/ui/element.cpp" />
 		<Unit filename="src/ui/gameui.cpp" />
+		<Unit filename="src/ui/player_dialog.cpp" />
 		<Unit filename="src/ui/ui.cpp" />
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/block_chunk.cpp" />

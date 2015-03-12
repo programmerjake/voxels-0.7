@@ -30,6 +30,7 @@
 #include "util/game_version.h"
 #include "ui/image.h"
 #include "texture/texture_atlas.h"
+#include "world/view_point.h"
 #include <mutex>
 
 namespace programmerjake
@@ -72,6 +73,7 @@ private:
             v = VectorF(0);
         gameInput->moveDirectionPlayerRelative.set(v * 3.5f);
     }
+    void startInventoryDialog();
 public:
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
         : world(world), lock_manager(lock_manager), gameInput(std::make_shared<GameInput>())
@@ -93,7 +95,12 @@ public:
                 dialog = newDialog;
                 lockIt.unlock();
                 add(dialog);
+                dialog->reset();
             }
+        }
+        if(dialog)
+        {
+            setFocus(dialog);
         }
         Display::grabMouse(!dialog && !gameInput->paused.get());
         Ui::move(deltaTime);
@@ -120,6 +127,8 @@ public:
     {
         if(Ui::handleTouchUp(event))
             return true;
+        if(dialog)
+            return true;
         #warning implement
         return true;
     }
@@ -127,12 +136,16 @@ public:
     {
         if(Ui::handleTouchDown(event))
             return true;
+        if(dialog)
+            return true;
         #warning implement
         return true;
     }
     virtual bool handleTouchMove(TouchMoveEvent &event) override
     {
         if(Ui::handleTouchMove(event))
+            return true;
+        if(dialog)
             return true;
         #warning implement
         return true;
@@ -146,6 +159,8 @@ public:
             gameInput->attack.set(false);
             return true;
         }
+        if(dialog)
+            return true;
         if(event.button == MouseButton_Right)
         {
             return true;
@@ -156,6 +171,8 @@ public:
     {
         if(Ui::handleMouseDown(event))
             return true;
+        if(dialog)
+            return true;
         if(event.button == MouseButton_Left)
         {
             gameInput->attack.set(true);
@@ -163,11 +180,7 @@ public:
         }
         if(event.button == MouseButton_Right)
         {
-#ifdef DEBUG_VERSION
-            if(!dialog)
-#else
             if(!dialog && !gameInput->paused.get())
-#endif // DEBUG_VERSION
             {
                 EventArguments args;
                 gameInput->action(args);
@@ -198,6 +211,8 @@ public:
     virtual bool handleMouseScroll(MouseScrollEvent &event) override
     {
         if(Ui::handleMouseScroll(event))
+            return true;
+        if(dialog)
             return true;
         int direction = event.scrollX;
         if(direction == 0)
@@ -245,6 +260,7 @@ public:
             return true;
         }
         case KeyboardKey::Escape:
+        case KeyboardKey::E:
         {
             return true;
         }
@@ -268,6 +284,8 @@ public:
     {
         if(Ui::handleKeyDown(event))
             return true;
+        if(dialog)
+            return false;
         switch(event.key)
         {
         case KeyboardKey::Space:
@@ -305,6 +323,11 @@ public:
             gameInput->drop(args);
             return true;
         }
+        case KeyboardKey::E:
+        {
+            startInventoryDialog();
+            return true;
+        }
         case KeyboardKey::Escape:
         {
             gameInput->paused.set(!gameInput->paused.get());
@@ -337,12 +360,16 @@ public:
     {
         if(Ui::handleKeyPress(event))
             return true;
+        if(dialog)
+            return false;
         #warning implement
         return false;
     }
     virtual bool handleMouseMoveOut(MouseEvent &event) override
     {
         if(Ui::handleMouseMoveOut(event))
+            return true;
+        if(dialog)
             return true;
         #warning implement
         return true;
@@ -351,6 +378,8 @@ public:
     {
         if(Ui::handleMouseMoveIn(event))
             return true;
+        if(dialog)
+            return true;
         #warning implement
         return true;
     }
@@ -358,12 +387,16 @@ public:
     {
         if(Ui::handleTouchMoveOut(event))
             return true;
+        if(dialog)
+            return true;
         #warning implement
         return true;
     }
     virtual bool handleTouchMoveIn(TouchEvent &event) override
     {
         if(Ui::handleTouchMoveIn(event))
+            return true;
+        if(dialog)
             return true;
         #warning implement
         return true;

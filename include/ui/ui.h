@@ -77,6 +77,10 @@ public:
             quit();
         return true;
     }
+    virtual bool canHaveKeyboardFocus() const override
+    {
+        return true;
+    }
 protected:
     virtual void clear(Renderer &renderer);
 };

@@ -22,6 +22,7 @@
 #include "render/generate.h"
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
+#include "ui/player_dialog.h"
 
 namespace programmerjake
 {
@@ -86,6 +87,10 @@ void GameUi::clear(Renderer &renderer)
     }
     viewPoint->render(renderer, tform, lock_manager);
     renderer << start_overlay << enable_depth_buffer;
+}
+void GameUi::startInventoryDialog()
+{
+    setDialog(std::make_shared<PlayerDialog>(player, TextureAtlas::InventoryUI.td()));
 }
 }
 }

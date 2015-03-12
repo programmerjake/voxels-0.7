@@ -25,6 +25,8 @@
 #include "block/builtin/air.h"
 #include "entity/builtin/items/stone.h"
 #include "item/item.h"
+#include "ui/gameui.h"
+#include "item/builtin/stone.h"
 
 namespace programmerjake
 {
@@ -129,11 +131,24 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
 
 void Player::addToPlayersList()
 {
+    for(std::size_t x = 0; x < items.itemStacks.size(); x++)
+    {
+        for(std::size_t y = 1; y < items.itemStacks[0].size(); y++)
+        {
+            items.itemStacks[x][y] = ItemStack(Item(Items::builtin::Stone::descriptor()), 2);
+        }
+    }
     Players.addPlayer(this);
 }
+
 void Player::removeFromPlayersList()
 {
     Players.removePlayer(this);
+}
+
+bool Player::setDialog(std::shared_ptr<ui::Ui> ui)
+{
+    return gameUi->setDialog(ui);
 }
 
 bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b)
