@@ -98,7 +98,7 @@ public:
         Display::grabMouse(!dialog && !gameInput->paused.get());
         Ui::move(deltaTime);
         world.move(deltaTime, lock_manager);
-        if(dialog->isDone())
+        if(dialog && dialog->isDone())
         {
             remove(dialog);
             dialog = nullptr;

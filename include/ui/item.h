@@ -163,7 +163,7 @@ public:
     }
     virtual void layout() override
     {
-        moveBy(0, getParent()->maxY - maxY);
+        moveBy(0, getParent()->minY - minY);
         UiItemWithBorder::layout();
     }
 };
