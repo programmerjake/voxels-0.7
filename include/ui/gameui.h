@@ -30,6 +30,7 @@
 #include "util/game_version.h"
 #include "ui/image.h"
 #include "texture/texture_atlas.h"
+#include <mutex>
 
 namespace programmerjake
 {
@@ -47,7 +48,9 @@ private:
     std::shared_ptr<Player> player;
     bool addedUi = false;
     const Entity *playerEntity;
-    bool isDialogUp = false;
+    std::shared_ptr<Ui> dialog = nullptr;
+    std::shared_ptr<Ui> newDialog = nullptr;
+    std::mutex newDialogLock;
     bool isWDown = false;
     bool isADown = false;
     bool isSDown = false;
@@ -77,14 +80,41 @@ public:
             gameInput->paused.set(true);
         PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
         viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 48 : 64);
-        player = std::make_shared<Player>(L"default-player-name", gameInput);
+        player = std::make_shared<Player>(L"default-player-name", gameInput, this);
         playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
     }
     virtual void move(double deltaTime) override
     {
-        Display::grabMouse(!isDialogUp && !gameInput->paused.get());
+        if(!dialog)
+        {
+            std::unique_lock<std::mutex> lockIt(newDialogLock);
+            if(newDialog != nullptr)
+            {
+                dialog = newDialog;
+                lockIt.unlock();
+                add(dialog);
+            }
+        }
+        Display::grabMouse(!dialog && !gameInput->paused.get());
         Ui::move(deltaTime);
         world.move(deltaTime, lock_manager);
+        if(dialog->isDone())
+        {
+            remove(dialog);
+            dialog = nullptr;
+            Display::grabMouse(!gameInput->paused.get());
+            std::unique_lock<std::mutex> lockIt(newDialogLock);
+            newDialog = nullptr;
+        }
+    }
+    bool setDialog(std::shared_ptr<Ui> newDialog)
+    {
+        assert(newDialog);
+        std::unique_lock<std::mutex> lockIt(newDialogLock);
+        if(this->newDialog)
+            return false;
+        this->newDialog = newDialog;
+        return true;
     }
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
@@ -134,9 +164,9 @@ public:
         if(event.button == MouseButton_Right)
         {
 #ifdef DEBUG_VERSION
-            if(!isDialogUp)
+            if(!dialog)
 #else
-            if(!isDialogUp && !gameInput->paused.get())
+            if(!dialog && !gameInput->paused.get())
 #endif // DEBUG_VERSION
             {
                 EventArguments args;
@@ -148,7 +178,7 @@ public:
     }
     virtual bool handleMouseMove(MouseMoveEvent &event) override
     {
-        if(!isDialogUp && !gameInput->paused.get())
+        if(!dialog && !gameInput->paused.get())
         {
             float viewTheta = gameInput->viewTheta.get();
             float viewPhi = gameInput->viewPhi.get();
@@ -282,7 +312,7 @@ public:
         }
         case KeyboardKey::F12:
         {
-            setStackTraceDumpingEnabled(!getStackTraceDumpingEnabled());
+            //setStackTraceDumpingEnabled(!getStackTraceDumpingEnabled());
             return true;
         }
         case KeyboardKey::Num1:
@@ -352,7 +382,7 @@ public:
             add(std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40));
             for(std::size_t i = 0; i < hotBarSize; i++)
             {
-                add(std::make_shared<UiItemWithBorder>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
+                add(std::make_shared<HotBarItem>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
                 {
                     return player->currentItemIndex == i;
                 }));

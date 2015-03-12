@@ -31,27 +31,55 @@ namespace voxels
 {
 namespace
 {
-Image loadImage()
+Image loadImage(std::wstring name)
 {
     try
     {
-        return Image(L"textures.png");
+        wcout << L"loading " << name << L"..." << flush;
+        Image retval = Image(name);
+        wcout << L"\r\x1b[K" << flush;
+        return retval;
     }
     catch(exception &e)
     {
-        cerr << "error : " << e.what() << endl;
+        cerr << "\r\x1b[Kerror : " << e.what() << endl;
         exit(1);
     }
 }
 }
 
-Image TextureAtlas::texture_ = nullptr;
-
-const Image &TextureAtlas::texture()
+checked_array<TextureAtlas::ImageDescriptor, 8> &TextureAtlas::textures()
 {
-    if(texture_ == nullptr)
-        texture_ = loadImage();
-    return texture_;
+    static checked_array<TextureAtlas::ImageDescriptor, 8> retval =
+    {
+        TextureAtlas::ImageDescriptor(L"textures.png", 512, 512),
+        TextureAtlas::ImageDescriptor(L"inventory.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"workbench.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"chestedit.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"creative.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"dispenserdropper.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"furnace.png", 256, 256),
+        TextureAtlas::ImageDescriptor(L"hopper.png", 256, 256),
+    };
+    return retval;
+}
+
+TextureAtlas::TextureLoader TextureAtlas::textureLoader;
+
+Image TextureAtlas::texture(std::size_t textureIndex)
+{
+    ImageDescriptor &t = textures()[textureIndex];
+    if(t.image == nullptr)
+        t.image = loadImage(t.fileName);
+    return t.image;
+}
+
+TextureAtlas::TextureLoader::TextureLoader()
+{
+    for(std::size_t i = 0; i < textures().size(); i++)
+    {
+        texture(i);
+    }
 }
 
 const TextureAtlas
@@ -369,7 +397,14 @@ const TextureAtlas
     TextureAtlas::Player1HeadLeft(16, 288, 8, 8),
     TextureAtlas::Player1HeadRight(8, 288, 8, 8),
     TextureAtlas::Player1HeadTop(32, 288, 8, 8),
-    TextureAtlas::Player1HeadBottom(40, 288, 8, 8);
+    TextureAtlas::Player1HeadBottom(40, 288, 8, 8),
+    TextureAtlas::InventoryUI(0, 105, 170, 151, 1),
+    TextureAtlas::WorkBenchUI(0, 105, 170, 151, 2),
+    TextureAtlas::ChestUI(0, 105, 170, 151, 3),
+    TextureAtlas::CreativeUI(0, 105, 170, 151, 4),
+    TextureAtlas::DispenserDropperUI(0, 105, 170, 151, 5),
+    TextureAtlas::FurnaceUI(0, 105, 170, 151, 6),
+    TextureAtlas::HopperUI(0, 105, 170, 151, 7);
 
 const TextureAtlas &TextureAtlas::Fire(int index)
 {

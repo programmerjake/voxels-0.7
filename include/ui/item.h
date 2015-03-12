@@ -153,6 +153,20 @@ protected:
         }
     }
 };
+
+class HotBarItem : public UiItemWithBorder
+{
+public:
+    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected)
+        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected)
+    {
+    }
+    virtual void layout() override
+    {
+        moveBy(0, getParent()->maxY - maxY);
+        UiItemWithBorder::layout();
+    }
+};
 }
 }
 }

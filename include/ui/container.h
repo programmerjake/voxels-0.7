@@ -83,6 +83,27 @@ public:
         element->parent = sthis;
         return std::move(sthis);
     }
+    bool remove(std::shared_ptr<Element> element)
+    {
+        assert(element != nullptr);
+        for(std::size_t i = 0; i < elements.size(); i++)
+        {
+            if(elements[i] == element)
+            {
+                element->parent.reset();
+                if(currentFocusIndex != npos)
+                {
+                    if(currentFocusIndex == i)
+                        currentFocusIndex = npos;
+                    else if(currentFocusIndex > i)
+                        currentFocusIndex--;
+                }
+                elements.erase(elements.begin() + i);
+                return true;
+            }
+        }
+        return false;
+    }
     virtual std::shared_ptr<Element> getFocusElement() override final
     {
         if(currentFocusIndex >= elements.size() || currentFocusIndex == npos)

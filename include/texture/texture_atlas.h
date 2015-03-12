@@ -22,6 +22,8 @@
 #define TEXTURE_ATLAS_H_INCLUDED
 
 #include "texture/texture_descriptor.h"
+#include "util/checked_array.h"
+#include <tuple>
 
 namespace programmerjake
 {
@@ -29,29 +31,64 @@ namespace voxels
 {
 class TextureAtlas final
 {
-	static Image texture_;
+    struct ImageDescriptor final
+    {
+        Image image;
+        const wchar_t *const fileName;
+        const int width, height;
+        constexpr ImageDescriptor(const wchar_t *fileName, int width, int height)
+            : image(), fileName(fileName), width(width), height(height)
+        {
+        }
+    };
+	static checked_array<ImageDescriptor, 8> &textures();
+    class TextureLoader final
+    {
+    public:
+        TextureLoader();
+    };
+    static TextureLoader textureLoader;
 public:
-    static const Image &texture();
+    static Image texture(std::size_t textureIndex);
 	const int left, top, width, height;
-    const float minU, maxU, minV, maxV;
-	enum {textureXRes = 512, textureYRes = 512};
+	std::size_t textureIndex;
+    float minU() const
+    {
+        return (left + pixelOffset) / textureXRes(textureIndex);
+    }
+    float maxU() const
+    {
+        return (left + width - pixelOffset) / textureXRes(textureIndex);
+    }
+    float minV() const
+    {
+        return 1 - (top + height - pixelOffset) / textureYRes(textureIndex);
+    }
+    float maxV() const
+    {
+        return 1 - (top + pixelOffset) / textureYRes(textureIndex);
+    }
+	static int textureXRes(std::size_t textureIndex)
+	{
+	    return textures()[textureIndex].width;
+	}
+	static int textureYRes(std::size_t textureIndex)
+	{
+	    return textures()[textureIndex].height;
+	}
     static constexpr float pixelOffset = 0.05f;
-	constexpr TextureAtlas(int left, int top, int width, int height)
-        : left(left), top(top), width(width), height(height),
-        minU((left + pixelOffset) / textureXRes),
-        maxU((left + width - pixelOffset) / textureXRes),
-        minV(1 - (top + height - pixelOffset) / textureYRes),
-        maxV(1 - (top + pixelOffset) / textureYRes)
+	constexpr TextureAtlas(int left, int top, int width, int height, std::size_t textureIndex = 0)
+        : left(left), top(top), width(width), height(height), textureIndex(textureIndex)
 	{
 	}
 	const TextureAtlas & operator =(const TextureAtlas &) = delete;
 	TextureDescriptor td() const
 	{
-		return TextureDescriptor(texture(), minU, maxU, minV, maxV);
+		return TextureDescriptor(texture(textureIndex), minU(), maxU(), minV(), maxV());
 	}
 	TextureDescriptor tdNoOffset() const
 	{
-	    return TextureDescriptor(texture(), (float)left / textureXRes, (float)(left + width) / textureXRes, 1 - (float)(top + height) / textureYRes, 1 - (float)top / textureYRes);
+	    return TextureDescriptor(texture(textureIndex), (float)left / textureXRes(textureIndex), (float)(left + width) / textureXRes(textureIndex), 1 - (float)(top + height) / textureYRes(textureIndex), 1 - (float)top / textureYRes(textureIndex));
 	}
 	static const TextureAtlas &Fire(int index);
 	static int FireFrameCount();
@@ -370,7 +407,14 @@ public:
     Player1HeadLeft,
     Player1HeadRight,
     Player1HeadTop,
-    Player1HeadBottom;
+    Player1HeadBottom,
+    InventoryUI,
+    WorkBenchUI,
+    ChestUI,
+    CreativeUI,
+    DispenserDropperUI,
+    FurnaceUI,
+    HopperUI;
 };
 }
 }

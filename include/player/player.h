@@ -43,6 +43,10 @@ namespace programmerjake
 namespace voxels
 {
 class Player;
+namespace ui
+{
+class GameUi;
+}
 
 namespace Entities
 {
@@ -133,10 +137,12 @@ public:
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
-    Player(std::wstring name, std::shared_ptr<GameInput> gameInput)
-        : gameInput(gameInput), name(name)
+    ui::GameUi *const gameUi;
+    Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi)
+        : gameInput(gameInput), name(name), gameUi(gameUi)
     {
         assert(gameInput != nullptr);
+        assert(gameUi != nullptr);
         gameInputMonitoring = std::make_shared<GameInputMonitoring>();
         gameInput->jump.onChange.bind([this](EventArguments&)
         {
