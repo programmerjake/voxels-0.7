@@ -131,13 +131,6 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
 
 void Player::addToPlayersList()
 {
-    for(std::size_t x = 0; x < items.itemStacks.size(); x++)
-    {
-        for(std::size_t y = 1; y < items.itemStacks[0].size(); y++)
-        {
-            items.itemStacks[x][y] = ItemStack(Item(Items::builtin::Stone::descriptor()), 2);
-        }
-    }
     Players.addPlayer(this);
 }
 

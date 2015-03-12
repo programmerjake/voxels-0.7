@@ -81,6 +81,28 @@ public:
         : player(player), backgroundImage(backgroundImage)
     {
     }
+protected:
+    virtual bool canSelectItemStack(std::shared_ptr<UiItem> item) const
+    {
+        return item != selectedItem;
+    }
+    std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(VectorF position)
+    {
+        position /= -position.z;
+        for(std::shared_ptr<Element> e : *this)
+        {
+            if(!e->isPointInside(position.x, position.y))
+                continue;
+            std::shared_ptr<UiItem> item = std::dynamic_pointer_cast<UiItem>(e);
+            if(item == nullptr)
+                continue;
+            if(!canSelectItemStack(item))
+                continue;
+            return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(item->getItemStack(), item->getItemStackLock());
+        }
+        return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(nullptr, nullptr);
+    }
+public:
     virtual void reset() override
     {
         if(!addedElements)
@@ -94,7 +116,7 @@ public:
             {
                 add(std::make_shared<UiItem>(imageGetPositionX(5 + 18 * x), imageGetPositionX(5 + 18 * x + 16),
                                              imageGetPositionY(5), imageGetPositionY(5 + 16),
-                                             std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][0])));
+                                             std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][0]), &player->itemsLock));
             }
             // add the rest of the player's items
             for(int x = 0; x < (int)player->items.itemStacks.size(); x++)
@@ -103,7 +125,7 @@ public:
                 {
                     add(std::make_shared<UiItem>(imageGetPositionX(5 + 18 * x), imageGetPositionX(5 + 18 * x + 16),
                                                  imageGetPositionY(28 + 18 * ((int)player->items.itemStacks[0].size() - y - 1)), imageGetPositionY(28 + 18 * ((int)player->items.itemStacks[0].size() - y - 1) + 16),
-                                                 std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y])));
+                                                 std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y]), &player->itemsLock));
                 }
             }
         }
@@ -116,12 +138,124 @@ public:
     }
     virtual bool handleKeyDown(KeyDownEvent &event) override
     {
-        if(event.key == KeyboardKey::Q || event.key == KeyboardKey::Escape)
+        if(event.key == KeyboardKey::E || event.key == KeyboardKey::Escape)
         {
             quit();
             return true;
         }
         return Ui::handleKeyDown(event);
+    }
+    virtual bool handleMouseDown(MouseDownEvent &event) override
+    {
+        if(Ui::handleMouseDown(event))
+            return true;
+        VectorF position = Display::transformMouseTo3D(event.x, event.y);
+        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        if(std::get<0>(itemStack) == nullptr)
+            return false;
+        std::unique_lock<std::recursive_mutex> theLock;
+        if(std::get<1>(itemStack) != nullptr)
+            theLock = std::unique_lock<std::recursive_mutex>(*std::get<1>(itemStack));
+        if(selectedItem == nullptr)
+        {
+            if(!std::get<0>(itemStack)->good())
+                return true;
+            std::shared_ptr<Player> player = this->player;
+            std::shared_ptr<ItemStack> selectedItemItemStack = std::shared_ptr<ItemStack>(new ItemStack(), [player](ItemStack *itemStack)
+            {
+                if(itemStack->good())
+                {
+                    for(std::size_t i = 0; i < itemStack->count; i++)
+                    {
+                        if(player->addItem(itemStack->item) < 1)
+                        {
+                            #warning finish
+                        }
+                    }
+                }
+                delete itemStack;
+            });
+            switch(event.button)
+            {
+            case MouseButton_Left:
+                *selectedItemItemStack = *std::get<0>(itemStack);
+                *std::get<0>(itemStack) = ItemStack();
+                break;
+            case MouseButton_Right:
+            {
+                unsigned transferCount = std::get<0>(itemStack)->count;
+                transferCount = transferCount / 2 + transferCount % 2;
+                for(unsigned i = 0; i < transferCount; i++)
+                {
+                    selectedItemItemStack->insert(std::get<0>(itemStack)->item);
+                    std::get<0>(itemStack)->remove(std::get<0>(itemStack)->item);
+                }
+                break;
+            }
+            default:
+                break;
+            }
+            if(selectedItemItemStack->good())
+            {
+                selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale, position.x + 8 * imageScale,
+                                                        position.y - 8 * imageScale, position.y + 8 * imageScale, selectedItemItemStack);
+                add(selectedItem);
+            }
+            return true;
+        }
+        else
+        {
+            std::shared_ptr<ItemStack> selectedItemItemStack = selectedItem->getItemStack();
+            switch(event.button)
+            {
+            case MouseButton_Left:
+                for(;;)
+                {
+                    Item item = selectedItemItemStack->item;
+                    if(!item.good())
+                        break;
+                    if(selectedItemItemStack->remove(item) < 1)
+                        break;
+                    if(std::get<0>(itemStack)->insert(item) < 1)
+                    {
+                        selectedItemItemStack->insert(item);
+                        break;
+                    }
+                }
+                break;
+            case MouseButton_Right:
+            {
+                Item item = selectedItemItemStack->item;
+                if(!item.good())
+                    break;
+                if(selectedItemItemStack->remove(item) < 1)
+                    break;
+                if(std::get<0>(itemStack)->insert(item) < 1)
+                {
+                    selectedItemItemStack->insert(item);
+                    break;
+                }
+                break;
+            }
+            default:
+                break;
+            }
+            if(!selectedItemItemStack->good())
+            {
+                remove(selectedItem);
+                selectedItem = nullptr;
+            }
+        }
+        return true;
+    }
+    virtual bool handleMouseMove(MouseMoveEvent &event) override
+    {
+        if(selectedItem)
+        {
+            VectorF position = Display::transformMouseTo3D(event.x, event.y);
+            selectedItem->moveCenterTo(position.x, position.y);
+        }
+        return Ui::handleMouseMove(event);
     }
 };
 }

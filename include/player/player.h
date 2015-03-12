@@ -140,6 +140,7 @@ public:
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
+    std::recursive_mutex itemsLock;
     bool setDialog(std::shared_ptr<ui::Ui> ui);
     Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi)
         : gameInput(gameInput), gameUi(gameUi), name(name)
@@ -171,16 +172,19 @@ public:
         });
         gameInput->hotBarMoveLeft.bind([this](EventArguments&)
         {
+            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
             currentItemIndex = (currentItemIndex + items.itemStacks.size() - 1) % items.itemStacks.size();
             return Event::ReturnType::Propagate;
         });
         gameInput->hotBarMoveRight.bind([this](EventArguments&)
         {
+            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
             currentItemIndex = (currentItemIndex + 1) % items.itemStacks.size();
             return Event::ReturnType::Propagate;
         });
         gameInput->hotBarSelect.bind([this](EventArguments &argsIn)
         {
+            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
             HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
             currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
             return Event::ReturnType::Propagate;
@@ -272,27 +276,30 @@ public:
     {
         if(!item.good())
             return 1;
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
         int addedCount = items.itemStacks[currentItemIndex][0].insert(item);
         if(addedCount > 0)
             return addedCount;
         return items.insert(item);
     }
-    ItemStack &getSelectedItemStack()
+    ItemStack &getSelectedItemStackReference()
     {
         return items.itemStacks[currentItemIndex][0];
     }
-    const ItemStack &getSelectedItemStack() const
+    const ItemStack getSelectedItemStack()
     {
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
         return items.itemStacks[currentItemIndex][0];
     }
-    Item getSelectedItem() const
+    Item getSelectedItem()
     {
         return getSelectedItemStack().item;
     }
     Item removeSelectedItem()
     {
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
         Item retval = getSelectedItem();
-        int removedCount = getSelectedItemStack().remove(retval);
+        int removedCount = getSelectedItemStackReference().remove(retval);
         if(removedCount > 0)
             return retval;
         return Item();

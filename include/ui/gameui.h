@@ -418,7 +418,7 @@ public:
                 add(std::make_shared<HotBarItem>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
                 {
                     return player->currentItemIndex == i;
-                }));
+                }, &player->itemsLock));
             }
         }
         Ui::reset();

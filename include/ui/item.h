@@ -28,6 +28,7 @@
 #include <sstream>
 #include "render/text.h"
 #include "texture/texture_atlas.h"
+#include <mutex>
 
 namespace programmerjake
 {
@@ -39,13 +40,18 @@ class UiItem : public Element
 {
 private:
     std::shared_ptr<ItemStack> itemStack;
+    std::recursive_mutex *itemStackLock;
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
         return itemStack;
     }
-    UiItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack)
-        : Element(minX, maxX, minY, maxY), itemStack(itemStack)
+    std::recursive_mutex *getItemStackLock() const
+    {
+        return itemStackLock;
+    }
+    UiItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::recursive_mutex *itemStackLock = nullptr)
+        : Element(minX, maxX, minY, maxY), itemStack(itemStack), itemStackLock(itemStackLock)
     {
     }
 protected:
@@ -54,17 +60,23 @@ protected:
         float backgroundZ = interpolate<float>(0.95f, minZ, maxZ);
         assert(backgroundZ / minZ > ItemDescriptor::maxRenderZ / ItemDescriptor::minRenderZ);
         float scale = backgroundZ / ItemDescriptor::maxRenderZ;
-        if(!itemStack->good())
+        std::unique_lock<std::recursive_mutex> theLock;
+        if(itemStackLock)
+            theLock = std::unique_lock<std::recursive_mutex>(*itemStackLock);
+        ItemStack is = *itemStack;
+        if(itemStackLock)
+            theLock.unlock();
+        if(!is.good())
             return;
-        Item item = itemStack->item;
+        Item item = is.item;
         Mesh dest;
         item.descriptor->render(item, dest, minX, maxX, minY, maxY);
         renderer << RenderLayer::Opaque << transform(Matrix::scale(scale), dest);
-        if(itemStack->count > 1)
+        if(is.count > 1)
         {
             std::wostringstream os;
             os << L"\n";
-            os << (unsigned)itemStack->count;
+            os << (unsigned)is.count;
             std::wstring text = os.str();
             Text::TextProperties textProperties = Text::defaultTextProperties;
             ColorF textColor = RGBF(1, 1, 1);
@@ -88,14 +100,19 @@ class UiItemWithBorder : public Element
 {
 private:
     std::shared_ptr<ItemStack> itemStack;
+    std::recursive_mutex *itemStackLock;
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
         return itemStack;
     }
+    std::recursive_mutex *getItemStackLock() const
+    {
+        return itemStackLock;
+    }
     std::function<bool()> isSelected;
-    UiItemWithBorder(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected)
-        : Element(minX, maxX, minY, maxY), itemStack(itemStack), isSelected(isSelected)
+    UiItemWithBorder(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::recursive_mutex *itemStackLock = nullptr)
+        : Element(minX, maxX, minY, maxY), itemStack(itemStack), itemStackLock(itemStackLock), isSelected(isSelected)
     {
     }
 protected:
@@ -123,18 +140,24 @@ protected:
         float backgroundZ = interpolate<float>(0.95f, minZ, maxZ);
         assert(backgroundZ / minZ > ItemDescriptor::maxRenderZ / ItemDescriptor::minRenderZ);
         float scale = backgroundZ / ItemDescriptor::maxRenderZ;
-        if(!itemStack->good())
+        std::unique_lock<std::recursive_mutex> theLock;
+        if(itemStackLock)
+            theLock = std::unique_lock<std::recursive_mutex>(*itemStackLock);
+        ItemStack is = *itemStack;
+        if(itemStackLock)
+            theLock.unlock();
+        if(!is.good())
             return;
-        Item item = itemStack->item;
+        Item item = is.item;
         Mesh dest;
         item.descriptor->render(item, dest, innerMinX, innerMaxX, innerMinY, innerMaxY);
         renderer << RenderLayer::Opaque << transform(Matrix::scale(scale), dest);
-        if(itemStack->count > 1)
+        if(is.count > 1)
         {
             std::wostringstream os;
             os << L"\n";
             os << L"\n";
-            os << (unsigned)itemStack->count;
+            os << (unsigned)is.count;
             std::wstring text = os.str();
             Text::TextProperties textProperties = Text::defaultTextProperties;
             ColorF textColor = RGBF(1, 1, 1);
@@ -157,8 +180,8 @@ protected:
 class HotBarItem : public UiItemWithBorder
 {
 public:
-    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected)
-        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected)
+    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::recursive_mutex *itemStackLock = nullptr)
+        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock)
     {
     }
     virtual void layout() override
