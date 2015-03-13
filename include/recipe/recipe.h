@@ -23,6 +23,7 @@
 
 #include "item/item.h"
 #include <vector>
+#include "util/checked_array.h"
 
 namespace programmerjake
 {
@@ -46,13 +47,13 @@ struct Recipe final
 
 struct RecipeInput final
 {
-    ItemStackArray<3, 3> itemStacks;
+    checked_array<checked_array<Item, 3>, 3> items;
     Item recipeBlock; // ex. crafting table, furnace, or nothing for inventory
 };
 
 struct RecipeOutput final
 {
-    ItemStackArray<3, 3> itemStacks;
+    checked_array<checked_array<Item, 3>, 3> items;
     ItemStack output;
     bool good() const
     {
@@ -61,9 +62,17 @@ struct RecipeOutput final
     RecipeOutput()
     {
     }
-    RecipeOutput(ItemStackArray<3, 3> itemStacks, ItemStack output)
-        : itemStacks(itemStacks), output(output)
+    RecipeOutput(checked_array<checked_array<Item, 3>, 3> items, ItemStack output)
+        : items(items), output(output)
     {
+    }
+    RecipeOutput(ItemStack output)
+        : items(), output(output)
+    {
+    }
+    void clear()
+    {
+        *this = RecipeOutput();
     }
 };
 

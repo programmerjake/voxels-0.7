@@ -272,12 +272,12 @@ public:
     }
     bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b);
     bool removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction = false);
-    int addItem(Item item)
+    unsigned addItem(Item item)
     {
         if(!item.good())
             return 1;
         std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-        int addedCount = items.itemStacks[currentItemIndex][0].insert(item);
+        unsigned addedCount = items.itemStacks[currentItemIndex][0].insert(item);
         if(addedCount > 0)
             return addedCount;
         return items.insert(item);

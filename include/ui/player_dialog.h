@@ -86,13 +86,9 @@ protected:
     {
         return item != selectedItem;
     }
-    virtual int removeFromItemStack(std::shared_ptr<ItemStack> itemStack, Item item) const
+    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount)
     {
-        return itemStack->remove(item);
-    }
-    virtual int addToItemStack(std::shared_ptr<ItemStack> itemStack, Item item) const
-    {
-        return itemStack->insert(item);
+        return destItemStack->transfer(*sourceItemStack, transferCount);
     }
     std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(VectorF position)
     {
@@ -200,15 +196,7 @@ public:
             default:
                 break;
             }
-            for(unsigned i = 0; i < transferCount; i++)
-            {
-                selectedItemItemStack->insert(std::get<0>(itemStack)->item);
-                if(removeFromItemStack(std::get<0>(itemStack), std::get<0>(itemStack)->item) == 0)
-                {
-                    selectedItemItemStack->remove(std::get<0>(itemStack)->item);
-                    break;
-                }
-            }
+            transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
             if(selectedItemItemStack->good())
             {
                 selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale, position.x + 8 * imageScale,
@@ -220,40 +208,19 @@ public:
         else
         {
             std::shared_ptr<ItemStack> selectedItemItemStack = selectedItem->getItemStack();
+            unsigned transferCount = 0;
             switch(event.button)
             {
             case MouseButton_Left:
-                for(;;)
-                {
-                    Item item = selectedItemItemStack->item;
-                    if(!item.good())
-                        break;
-                    if(selectedItemItemStack->remove(item) < 1)
-                        break;
-                    if(addToItemStack(std::get<0>(itemStack), item) < 1)
-                    {
-                        selectedItemItemStack->insert(item);
-                        break;
-                    }
-                }
+                transferCount = selectedItemItemStack->count;
                 break;
             case MouseButton_Right:
-            {
-                Item item = selectedItemItemStack->item;
-                if(!item.good())
-                    break;
-                if(selectedItemItemStack->remove(item) < 1)
-                    break;
-                if(addToItemStack(std::get<0>(itemStack), item) < 1)
-                {
-                    selectedItemItemStack->insert(item);
-                    break;
-                }
+                transferCount = 1;
                 break;
-            }
             default:
                 break;
             }
+            transferItems(selectedItemItemStack, std::get<0>(itemStack), transferCount);
             if(!selectedItemItemStack->good())
             {
                 remove(selectedItem);

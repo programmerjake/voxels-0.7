@@ -151,7 +151,7 @@ struct ItemStack final
      * @param item the Item to insert
      * @return 1 if the item could be inserted, 0 otherwise
      */
-    int insert(Item theItem)
+    unsigned insert(Item theItem)
     {
         if(!good())
         {
@@ -170,7 +170,7 @@ struct ItemStack final
      * @param item the Item to remove
      * @return 1 if the item could be removed, 0 otherwise
      */
-    int remove(Item theItem)
+    unsigned remove(Item theItem)
     {
         if(!good())
             return 0;
@@ -182,6 +182,26 @@ struct ItemStack final
             item = Item();
         }
         return 1;
+    }
+    unsigned transfer(ItemStack &src, unsigned transferCount)
+    {
+        if(transferCount > src.count)
+            transferCount = src.count;
+        if(transferCount > MaxCount - count)
+            transferCount = MaxCount - count;
+        if(transferCount == 0)
+            return 0;
+        if(!src.good())
+            return 0;
+        if(!good())
+            item = src.item;
+        else if(item != src.item)
+            return 0;
+        count += transferCount;
+        src.count -= transferCount;
+        if(src.count == 0)
+            src = ItemStack();
+        return transferCount;
     }
     void render(Mesh &dest, float minX, float maxX, float minY, float maxY) const;
 };
@@ -195,13 +215,13 @@ public:
      * @param item the Item to insert
      * @return 1 if the item could be inserted, 0 otherwise
      */
-    int insert(Item theItem)
+    unsigned insert(Item theItem)
     {
         for(std::size_t y = 0; y < H; y++)
         {
             for(std::size_t x = 0; x < W; x++)
             {
-                int retval = itemStacks[x][y].insert(theItem);
+                unsigned retval = itemStacks[x][y].insert(theItem);
                 if(retval > 0)
                     return retval;
             }
@@ -212,18 +232,42 @@ public:
      * @param item the Item to remove
      * @return 1 if the item could be removed, 0 otherwise
      */
-    int remove(Item theItem)
+    unsigned remove(Item theItem)
     {
         for(std::size_t y = 0; y < H; y++)
         {
             for(std::size_t x = 0; x < W; x++)
             {
-                int retval = itemStacks[x][y].remove(theItem);
+                unsigned retval = itemStacks[x][y].remove(theItem);
                 if(retval > 0)
                     return retval;
             }
         }
         return 0;
+    }
+    unsigned transfer(ItemStack &src, unsigned count)
+    {
+        unsigned retval = 0;
+        for(std::size_t y = 0; y < H; y++)
+        {
+            for(std::size_t x = 0; x < W; x++)
+            {
+                retval += itemStacks[x][y].transfer(src, count - retval);
+                if(count <= retval)
+                    return retval;
+            }
+        }
+        return retval;
+    }
+    void clear()
+    {
+        for(std::size_t y = 0; y < H; y++)
+        {
+            for(std::size_t x = 0; x < W; x++)
+            {
+                itemStacks[x][y] = ItemStack();
+            }
+        }
     }
 };
 }

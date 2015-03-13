@@ -110,12 +110,28 @@ public:
     }
     virtual bool matches(const RecipeInput &input, RecipeOutput &output) const override
     {
-        return false;
-        #warning finish WoodToPlanksRecipe
-#if 0
-        unsigned filledCount = 0;
-        for()
-#endif
+        if(input.recipeBlock.good())
+            return false;
+        unsigned filledSlotCount = 0;
+        const unsigned targetFilledSlotCount = 1;
+        for(const auto &i : input.items)
+        {
+            for(const Item &item : i)
+            {
+                if(!item.good())
+                    continue;
+                if(item.descriptor != woodDescriptor->getLogItemDescriptor())
+                    return false;
+                filledSlotCount++;
+                if(filledSlotCount > targetFilledSlotCount)
+                    return false;
+            }
+        }
+        if(filledSlotCount != targetFilledSlotCount)
+            return false;
+        const unsigned outputCount = 1;
+        output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), outputCount));
+        return true;
     }
 };
 }
