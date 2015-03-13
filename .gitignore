@@ -6,6 +6,7 @@ voxels-debug
 voxels
 voxels-debug-tsan
 voxels-optimized
+voxels-profile
 *~
 *.save
 gmon.out
