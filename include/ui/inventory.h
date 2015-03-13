@@ -48,8 +48,7 @@ private:
     {
         output = ItemStack();
         recipeOutput = RecipeOutput();
-        recipeInput = RecipeInput();
-        recipeInput.recipeBlock = Item();
+        RecipeInput::ItemsArrayType recipeInputItems;
         unsigned recipeCount = ItemStack::MaxCount;
         for(int x = 0; x < (int)inputItemStacks.itemStacks.size(); x++)
         {
@@ -57,13 +56,16 @@ private:
             {
                 if(inputItemStacks.itemStacks[x][y].good())
                 {
-                    recipeInput.items[x][y] = inputItemStacks.itemStacks[x][y].item;
+                    recipeInputItems[x][y] = inputItemStacks.itemStacks[x][y].item;
                     unsigned c = inputItemStacks.itemStacks[x][y].count;
                     if(recipeCount > c)
                         recipeCount = c;
                 }
             }
         }
+        recipeInput = RecipeInput(recipeInputItems, Item());
+        if(recipeInput.empty())
+            return;
         if(!RecipeDescriptors.getFirstMatch(recipeInput, recipeOutput))
         {
             recipeOutput = RecipeOutput();

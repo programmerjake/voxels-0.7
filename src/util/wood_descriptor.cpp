@@ -24,7 +24,7 @@
 #include "entity/builtin/items/wood.h"
 #include "item/builtin/wood.h"
 #include "world/world.h"
-#include "recipe/recipe.h"
+#include "recipe/builtin/unordered.h"
 
 namespace programmerjake
 {
@@ -99,38 +99,19 @@ namespace builtin
 {
 namespace
 {
-class WoodToPlanksRecipe final : public RecipeDescriptor
+class WoodToPlanksRecipe final : public Recipes::builtin::UnorderedRecipe
 {
 private:
     WoodDescriptorPointer woodDescriptor;
 public:
     WoodToPlanksRecipe(WoodDescriptorPointer woodDescriptor)
-        : RecipeDescriptor(), woodDescriptor(woodDescriptor)
+        : UnorderedRecipe{std::pair<Item, std::size_t>(Item(woodDescriptor->getLogItemDescriptor()), 1)}, woodDescriptor(woodDescriptor)
     {
     }
-    virtual bool matches(const RecipeInput &input, RecipeOutput &output) const override
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.recipeBlock.good())
-            return false;
-        unsigned filledSlotCount = 0;
-        const unsigned targetFilledSlotCount = 1;
-        for(const auto &i : input.items)
-        {
-            for(const Item &item : i)
-            {
-                if(!item.good())
-                    continue;
-                if(item.descriptor != woodDescriptor->getLogItemDescriptor())
-                    return false;
-                filledSlotCount++;
-                if(filledSlotCount > targetFilledSlotCount)
-                    return false;
-            }
-        }
-        if(filledSlotCount != targetFilledSlotCount)
-            return false;
-        const unsigned outputCount = 1;
-        output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), outputCount));
+        output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), 4));
         return true;
     }
 };
@@ -138,7 +119,6 @@ public:
 SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
     : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, blockedLeaves, trees)
 {
-    new WoodToPlanksRecipe(this);
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor = nullptr;
     BlockDescriptorPointer saplingBlockDescriptor = nullptr;
@@ -178,6 +158,7 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
                    planksEntityDescriptor,
                    saplingEntityDescriptor,
                    leavesEntityDescriptor);
+    new WoodToPlanksRecipe(this);
 }
 }
 }

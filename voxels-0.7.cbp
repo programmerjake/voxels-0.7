@@ -166,6 +166,7 @@
 		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/player/player.h" />
 		<Unit filename="include/ray_casting/ray_casting.h" />
+		<Unit filename="include/recipe/builtin/unordered.h" />
 		<Unit filename="include/recipe/recipe.h" />
 		<Unit filename="include/render/generate.h" />
 		<Unit filename="include/render/mesh.h" />

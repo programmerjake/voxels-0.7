@@ -24,6 +24,7 @@
 #include "item/item.h"
 #include <vector>
 #include "util/checked_array.h"
+#include "util/linked_map.h"
 
 namespace programmerjake
 {
@@ -47,8 +48,116 @@ struct Recipe final
 
 struct RecipeInput final
 {
-    checked_array<checked_array<Item, 3>, 3> items;
+    typedef checked_array<checked_array<Item, 3>, 3> ItemsArrayType;
+private:
+    ItemsArrayType items;
     Item recipeBlock; // ex. crafting table, furnace, or nothing for inventory
+    linked_map<Item, std::size_t> itemCounts;
+public:
+    const ItemsArrayType &getItems() const
+    {
+        return items;
+    }
+    const Item &getRecipeBlock() const
+    {
+        return recipeBlock;
+    }
+    const linked_map<Item, std::size_t> &getItemCounts() const
+    {
+        return itemCounts;
+    }
+    RecipeInput()
+    {
+    }
+    RecipeInput(const ItemsArrayType &items, Item recipeBlock)
+        : items(items), recipeBlock(recipeBlock)
+    {
+        for(std::size_t x = 0; x < items.size(); x++)
+        {
+            for(std::size_t y = 0; y < items[0].size(); y++)
+            {
+                if(items[x][y].good())
+                {
+                    auto iter = itemCounts.find(items[x][y]);
+                    if(iter == itemCounts.end())
+                    {
+                        itemCounts[items[x][y]] = 1;
+                    }
+                    else
+                    {
+                        std::get<1>(*iter)++;
+                    }
+                }
+            }
+        }
+        if(empty())
+            return;
+        for(std::size_t x = 0; x < items.size(); x++)
+        {
+            bool canShift = true;
+            for(std::size_t y = 0; y < items[0].size(); y++)
+            {
+                if(items[0][y].good())
+                {
+                    canShift = false;
+                    break;
+                }
+            }
+            if(canShift)
+                shiftLeft();
+            else
+                break;
+        }
+        for(std::size_t y = 0; y < items[0].size(); y++)
+        {
+            bool canShift = true;
+            for(std::size_t x = 0; x < items.size(); x++)
+            {
+                if(items[x][0].good())
+                {
+                    canShift = false;
+                    break;
+                }
+            }
+            if(canShift)
+                shiftUp();
+            else
+                break;
+        }
+    }
+private:
+    void shiftLeft()
+    {
+        for(std::size_t x = 0; x < items.size() - 1; x++)
+        {
+            for(std::size_t y = 0; y < items[0].size(); y++)
+            {
+                items[x][y] = std::move(items[x + 1][y]);
+            }
+        }
+        const std::size_t x = items.size() - 1;
+        for(std::size_t y = 0; y < items[0].size(); y++)
+        {
+            items[x][y] = Item();
+        }
+    }
+    void shiftUp()
+    {
+        for(std::size_t x = 0; x < items.size(); x++)
+        {
+            for(std::size_t y = 0; y < items[0].size() - 1; y++)
+            {
+                items[x][y] = std::move(items[x][y + 1]);
+            }
+            const std::size_t y = items[0].size() - 1;
+            items[x][y] = Item();
+        }
+    }
+public:
+    bool empty() const
+    {
+        return itemCounts.empty();
+    }
 };
 
 struct RecipeOutput final
