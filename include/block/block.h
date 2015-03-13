@@ -52,6 +52,8 @@ namespace programmerjake
 {
 namespace voxels
 {
+class Player;
+
 typedef std::list<std::pair<PositionI, Block>> BlockUpdateSet;
 
 class BlockDescriptor
@@ -236,6 +238,10 @@ public:
         return false;
     }
     virtual bool isGroundBlock() const = 0;
+    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    {
+        return false;
+    }
 };
 }
 }

@@ -109,6 +109,7 @@
 		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/block/builtin/cobblestone.h" />
+		<Unit filename="include/block/builtin/crafting_table.h" />
 		<Unit filename="include/block/builtin/dirt.h" />
 		<Unit filename="include/block/builtin/dirt_block.h" />
 		<Unit filename="include/block/builtin/fluid.h" />
@@ -126,6 +127,7 @@
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/items/bucket.h" />
 		<Unit filename="include/entity/builtin/items/cobblestone.h" />
+		<Unit filename="include/entity/builtin/items/crafting_table.h" />
 		<Unit filename="include/entity/builtin/items/dirt.h" />
 		<Unit filename="include/entity/builtin/items/grass.h" />
 		<Unit filename="include/entity/builtin/items/stone.h" />
@@ -150,6 +152,7 @@
 		<Unit filename="include/item/builtin/block.h" />
 		<Unit filename="include/item/builtin/bucket.h" />
 		<Unit filename="include/item/builtin/cobblestone.h" />
+		<Unit filename="include/item/builtin/crafting_table.h" />
 		<Unit filename="include/item/builtin/dirt.h" />
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
@@ -166,6 +169,7 @@
 		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/player/player.h" />
 		<Unit filename="include/ray_casting/ray_casting.h" />
+		<Unit filename="include/recipe/builtin/pattern.h" />
 		<Unit filename="include/recipe/builtin/unordered.h" />
 		<Unit filename="include/recipe/recipe.h" />
 		<Unit filename="include/render/generate.h" />
@@ -260,6 +264,7 @@
 		<Unit filename="src/generate/decorator.cpp" />
 		<Unit filename="src/generate/decorator/builtins.cpp" />
 		<Unit filename="src/item/builtin/bucket.cpp" />
+		<Unit filename="src/item/builtin/crafting_table.cpp" />
 		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />

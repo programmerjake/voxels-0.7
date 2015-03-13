@@ -70,6 +70,37 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     }
     for(int i = player->gameInputMonitoring->retrieveActionCount(); i > 0; i--)
     {
+        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+        if(c.valid())
+        {
+            switch(c.type)
+            {
+            case RayCasting::Collision::Type::None:
+                break;
+            case RayCasting::Collision::Type::Entity:
+            {
+                if(c.entity == nullptr || !c.entity->good())
+                    break;
+                if(c.entity->descriptor->onUse(*c.entity, world, lock_manager, player))
+                    continue;
+            }
+            case RayCasting::Collision::Type::Block:
+            {
+                PositionI pos = c.blockPosition;
+                bool good = true;
+                BlockIterator bi = world.getBlockIterator(pos);
+                Block b = bi.get(lock_manager);
+                good = good && b.good();
+                if(good)
+                {
+                    good = b.descriptor->onUse(world, b, bi, lock_manager, player);
+                }
+                if(good)
+                    continue;
+                break;
+            }
+            }
+        }
         Item item = player->removeSelectedItem();
         if(item.good())
         {

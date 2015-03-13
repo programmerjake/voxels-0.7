@@ -37,7 +37,7 @@ namespace programmerjake
 namespace voxels
 {
 class PhysicsObjectConstructor;
-
+class Player;
 class World;
 
 class EntityDescriptor
@@ -63,6 +63,10 @@ public:
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
     {
         entity.data = nullptr;
+    }
+    virtual bool onUse(Entity &entity, World &world, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    {
+        return false;
     }
 };
 

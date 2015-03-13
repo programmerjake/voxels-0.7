@@ -25,6 +25,8 @@
 #include "item/builtin/wood.h"
 #include "world/world.h"
 #include "recipe/builtin/unordered.h"
+#include "recipe/builtin/pattern.h"
+#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -93,12 +95,33 @@ Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock, boo
 
 linked_map<std::wstring, WoodDescriptorPointer> *WoodDescriptors_t::pNameMap = nullptr;
 
-namespace Woods
+namespace Recipes
 {
 namespace builtin
 {
-namespace
+class CraftingTableRecipe : PatternRecipe<2, 2>
 {
+private:
+    WoodDescriptorPointer woodDescriptor;
+public:
+    CraftingTableRecipe(WoodDescriptorPointer woodDescriptor)
+        : PatternRecipe(checked_array<checked_array<Item, 2>, 2>
+                        {
+                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()),
+                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor())
+                        }), woodDescriptor(woodDescriptor)
+    {
+    }
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::CraftingTable::descriptor()), 1));
+        return true;
+    }
+};
+
 class WoodToPlanksRecipe final : public Recipes::builtin::UnorderedRecipe
 {
 private:
@@ -111,11 +134,19 @@ public:
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
         output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), 4));
         return true;
     }
 };
 }
+}
+
+namespace Woods
+{
+namespace builtin
+{
 SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
     : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, blockedLeaves, trees)
 {
@@ -158,7 +189,8 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
                    planksEntityDescriptor,
                    saplingEntityDescriptor,
                    leavesEntityDescriptor);
-    new WoodToPlanksRecipe(this);
+    new Recipes::builtin::WoodToPlanksRecipe(this);
+    new Recipes::builtin::CraftingTableRecipe(this);
 }
 }
 }

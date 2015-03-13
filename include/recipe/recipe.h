@@ -48,7 +48,8 @@ struct Recipe final
 
 struct RecipeInput final
 {
-    typedef checked_array<checked_array<Item, 3>, 3> ItemsArrayType;
+    static constexpr std::size_t width = 3, height = 3;
+    typedef checked_array<checked_array<Item, height>, width> ItemsArrayType;
 private:
     ItemsArrayType items;
     Item recipeBlock; // ex. crafting table, furnace, or nothing for inventory
@@ -72,9 +73,9 @@ public:
     RecipeInput(const ItemsArrayType &items, Item recipeBlock)
         : items(items), recipeBlock(recipeBlock)
     {
-        for(std::size_t x = 0; x < items.size(); x++)
+        for(std::size_t x = 0; x < width; x++)
         {
-            for(std::size_t y = 0; y < items[0].size(); y++)
+            for(std::size_t y = 0; y < height; y++)
             {
                 if(items[x][y].good())
                 {
@@ -92,10 +93,10 @@ public:
         }
         if(empty())
             return;
-        for(std::size_t x = 0; x < items.size(); x++)
+        for(std::size_t x = 0; x < width; x++)
         {
             bool canShift = true;
-            for(std::size_t y = 0; y < items[0].size(); y++)
+            for(std::size_t y = 0; y < height; y++)
             {
                 if(items[0][y].good())
                 {
@@ -108,10 +109,10 @@ public:
             else
                 break;
         }
-        for(std::size_t y = 0; y < items[0].size(); y++)
+        for(std::size_t y = 0; y < height; y++)
         {
             bool canShift = true;
-            for(std::size_t x = 0; x < items.size(); x++)
+            for(std::size_t x = 0; x < width; x++)
             {
                 if(items[x][0].good())
                 {
@@ -128,28 +129,28 @@ public:
 private:
     void shiftLeft()
     {
-        for(std::size_t x = 0; x < items.size() - 1; x++)
+        for(std::size_t x = 0; x < width - 1; x++)
         {
-            for(std::size_t y = 0; y < items[0].size(); y++)
+            for(std::size_t y = 0; y < height; y++)
             {
                 items[x][y] = std::move(items[x + 1][y]);
             }
         }
-        const std::size_t x = items.size() - 1;
-        for(std::size_t y = 0; y < items[0].size(); y++)
+        const std::size_t x = width - 1;
+        for(std::size_t y = 0; y < height; y++)
         {
             items[x][y] = Item();
         }
     }
     void shiftUp()
     {
-        for(std::size_t x = 0; x < items.size(); x++)
+        for(std::size_t x = 0; x < width; x++)
         {
-            for(std::size_t y = 0; y < items[0].size() - 1; y++)
+            for(std::size_t y = 0; y < height - 1; y++)
             {
                 items[x][y] = std::move(items[x][y + 1]);
             }
-            const std::size_t y = items[0].size() - 1;
+            const std::size_t y = height - 1;
             items[x][y] = Item();
         }
     }
