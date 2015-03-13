@@ -24,6 +24,7 @@
 #include "entity/builtin/items/wood.h"
 #include "item/builtin/wood.h"
 #include "world/world.h"
+#include "recipe/recipe.h"
 
 namespace programmerjake
 {
@@ -96,9 +97,32 @@ namespace Woods
 {
 namespace builtin
 {
+namespace
+{
+class WoodToPlanksRecipe final : public RecipeDescriptor
+{
+private:
+    WoodDescriptorPointer woodDescriptor;
+public:
+    WoodToPlanksRecipe(WoodDescriptorPointer woodDescriptor)
+        : RecipeDescriptor(), woodDescriptor(woodDescriptor)
+    {
+    }
+    virtual bool matches(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        return false;
+        #warning finish WoodToPlanksRecipe
+#if 0
+        unsigned filledCount = 0;
+        for()
+#endif
+    }
+};
+}
 SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
     : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, blockedLeaves, trees)
 {
+    new WoodToPlanksRecipe(this);
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor = nullptr;
     BlockDescriptorPointer saplingBlockDescriptor = nullptr;

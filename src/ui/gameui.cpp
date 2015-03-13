@@ -22,7 +22,7 @@
 #include "render/generate.h"
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
-#include "ui/player_dialog.h"
+#include "ui/inventory.h"
 
 namespace programmerjake
 {
@@ -90,7 +90,7 @@ void GameUi::clear(Renderer &renderer)
 }
 void GameUi::startInventoryDialog()
 {
-    setDialog(std::make_shared<PlayerDialog>(player, TextureAtlas::InventoryUI.td()));
+    setDialog(std::make_shared<PlayerInventory>(player));
 }
 }
 }

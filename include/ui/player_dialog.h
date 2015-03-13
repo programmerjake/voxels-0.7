@@ -86,6 +86,14 @@ protected:
     {
         return item != selectedItem;
     }
+    virtual int removeFromItemStack(std::shared_ptr<ItemStack> itemStack, Item item) const
+    {
+        return itemStack->remove(item);
+    }
+    virtual int addToItemStack(std::shared_ptr<ItemStack> itemStack, Item item) const
+    {
+        return itemStack->insert(item);
+    }
     std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(VectorF position)
     {
         position /= -position.z;
@@ -101,6 +109,9 @@ protected:
             return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(item->getItemStack(), item->getItemStackLock());
         }
         return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(nullptr, nullptr);
+    }
+    virtual void addElements()
+    {
     }
 public:
     virtual void reset() override
@@ -128,6 +139,7 @@ public:
                                                  std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y]), &player->itemsLock));
                 }
             }
+            addElements();
         }
         Ui::reset();
     }
@@ -175,25 +187,27 @@ public:
                 }
                 delete itemStack;
             });
+            unsigned transferCount = 0;
             switch(event.button)
             {
             case MouseButton_Left:
-                *selectedItemItemStack = *std::get<0>(itemStack);
-                *std::get<0>(itemStack) = ItemStack();
+                transferCount = std::get<0>(itemStack)->count;
                 break;
             case MouseButton_Right:
-            {
-                unsigned transferCount = std::get<0>(itemStack)->count;
+                transferCount = std::get<0>(itemStack)->count;
                 transferCount = transferCount / 2 + transferCount % 2;
-                for(unsigned i = 0; i < transferCount; i++)
-                {
-                    selectedItemItemStack->insert(std::get<0>(itemStack)->item);
-                    std::get<0>(itemStack)->remove(std::get<0>(itemStack)->item);
-                }
                 break;
-            }
             default:
                 break;
+            }
+            for(unsigned i = 0; i < transferCount; i++)
+            {
+                selectedItemItemStack->insert(std::get<0>(itemStack)->item);
+                if(removeFromItemStack(std::get<0>(itemStack), std::get<0>(itemStack)->item) == 0)
+                {
+                    selectedItemItemStack->remove(std::get<0>(itemStack)->item);
+                    break;
+                }
             }
             if(selectedItemItemStack->good())
             {
@@ -216,7 +230,7 @@ public:
                         break;
                     if(selectedItemItemStack->remove(item) < 1)
                         break;
-                    if(std::get<0>(itemStack)->insert(item) < 1)
+                    if(addToItemStack(std::get<0>(itemStack), item) < 1)
                     {
                         selectedItemItemStack->insert(item);
                         break;
@@ -230,7 +244,7 @@ public:
                     break;
                 if(selectedItemItemStack->remove(item) < 1)
                     break;
-                if(std::get<0>(itemStack)->insert(item) < 1)
+                if(addToItemStack(std::get<0>(itemStack), item) < 1)
                 {
                     selectedItemItemStack->insert(item);
                     break;
