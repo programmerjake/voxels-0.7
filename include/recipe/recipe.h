@@ -70,8 +70,8 @@ public:
     RecipeInput()
     {
     }
-    RecipeInput(const ItemsArrayType &items, Item recipeBlock)
-        : items(items), recipeBlock(recipeBlock)
+    RecipeInput(const ItemsArrayType &itemsIn, Item recipeBlock)
+        : items(itemsIn), recipeBlock(recipeBlock)
     {
         for(std::size_t x = 0; x < width; x++)
         {
