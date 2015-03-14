@@ -157,6 +157,7 @@
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/stone.h" />
+		<Unit filename="include/item/builtin/tools/tool.h" />
 		<Unit filename="include/item/builtin/wood.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />

@@ -404,7 +404,11 @@ const TextureAtlas
     TextureAtlas::CreativeUI(0, 105, 170, 151, 4),
     TextureAtlas::DispenserDropperUI(0, 105, 170, 151, 5),
     TextureAtlas::FurnaceUI(0, 105, 170, 151, 6),
-    TextureAtlas::HopperUI(0, 105, 170, 151, 7);
+    TextureAtlas::HopperUI(0, 105, 170, 151, 7),
+    TextureAtlas::DamageBarRed(256, 222, 1, 2),
+    TextureAtlas::DamageBarYellow(257, 222, 1, 2),
+    TextureAtlas::DamageBarGreen(258, 222, 1, 2),
+    TextureAtlas::DamageBarGray(259, 222, 1, 2);
 
 const TextureAtlas &TextureAtlas::Fire(int index)
 {

@@ -414,7 +414,11 @@ public:
     CreativeUI,
     DispenserDropperUI,
     FurnaceUI,
-    HopperUI;
+    HopperUI,
+    DamageBarRed,
+    DamageBarYellow,
+    DamageBarGreen,
+    DamageBarGray;
 };
 }
 }

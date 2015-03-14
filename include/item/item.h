@@ -52,7 +52,18 @@ public:
     virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const = 0;
+    virtual unsigned getMaxStackCount() const
+    {
+        return 64;
+    }
 };
+
+inline unsigned Item::getMaxStackCount() const
+{
+    if(descriptor == nullptr)
+        return 1;
+    return descriptor->getMaxStackCount();
+}
 
 inline bool Item::dataEqual(const Item &rt) const
 {

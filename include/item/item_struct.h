@@ -93,6 +93,7 @@ public:
             return rt.descriptor != nullptr;
         return descriptor != rt.descriptor || !dataEqual(rt);
     }
+    unsigned getMaxStackCount() const;
 };
 
 struct ItemStack final
@@ -102,7 +103,10 @@ struct ItemStack final
     /// @brief the Item count
     unsigned count = 0;
     /// @brief the maximum count in a ItemStack
-    static constexpr unsigned MaxCount = 64;
+    unsigned getMaxCount() const
+    {
+        return item.getMaxStackCount();
+    }
     /// @brief construct an empty ItemStack
     ItemStack()
     {

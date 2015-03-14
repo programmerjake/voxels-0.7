@@ -25,6 +25,7 @@
 #include <iostream>
 #include <cassert>
 #include "util/util.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -97,6 +98,46 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
         }
     }
     return std::move(retval);
+}
+
+Mesh itemDamage(float damageValue)
+{
+    damageValue = limit<float>(damageValue, 0, 1);
+    if(damageValue == 0)
+        return Mesh();
+    TextureDescriptor backgroundTexture = TextureAtlas::DamageBarGray.td();
+    TextureDescriptor foregroundTexture = TextureAtlas::DamageBarGreen.td();
+    if(damageValue < 2.0f / 3)
+    {
+        foregroundTexture = TextureAtlas::DamageBarYellow.td();
+    }
+    if(damageValue < 1.0f / 3)
+    {
+        foregroundTexture = TextureAtlas::DamageBarRed.td();
+    }
+    const float minX = 2 / 16.0f;
+    const float maxX = 14 / 16.0f;
+    float splitX = interpolate(damageValue, minX, maxX);
+    const float minY = 12 / 16.0f;
+    const float maxY = 14 / 16.0f;
+    constexpr ColorF c = colorizeIdentity();
+    const VectorF nxny = VectorF(minX, minY, 0);
+    VectorF cxny = VectorF(splitX, minY, 0);
+    const VectorF pxny = VectorF(maxX, minY, 0);
+    const VectorF nxpy = VectorF(minX, maxY, 0);
+    VectorF cxpy = VectorF(splitX, maxY, 0);
+    const VectorF pxpy = VectorF(maxX, maxY, 0);
+    Mesh retval = quadrilateral(foregroundTexture,
+                             nxny, c,
+                             cxny, c,
+                             cxpy, c,
+                             nxpy, c);
+    retval.append(quadrilateral(backgroundTexture,
+                             cxny, c,
+                             pxny, c,
+                             pxpy, c,
+                             cxpy, c));
+    return retval;
 }
 }
 }

@@ -167,6 +167,7 @@ namespace Generate
 	}
 
 	Mesh item3DImage(TextureDescriptor td, float thickness = -1);
+	Mesh itemDamage(float damageValue);
 }
 }
 }
