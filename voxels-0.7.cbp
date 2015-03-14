@@ -258,6 +258,7 @@
 		<Unit filename="src/entity/builtin/grass.cpp" />
 		<Unit filename="src/entity/builtin/item.cpp" />
 		<Unit filename="src/entity/builtin/stone.cpp" />
+		<Unit filename="src/entity/builtin/wood.cpp" />
 		<Unit filename="src/entity/entity.cpp" />
 		<Unit filename="src/generate/biome/biome.cpp" />
 		<Unit filename="src/generate/biome/builtin/builtin.cpp" />

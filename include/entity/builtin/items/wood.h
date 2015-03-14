@@ -24,6 +24,9 @@
 #include "util/wood_descriptor.h"
 #include "player/player.h"
 #include "entity/builtin/block_item.h"
+#include "entity/builtin/image_item.h"
+#include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -35,6 +38,25 @@ namespace builtin
 {
 namespace items
 {
+class Stick final : public ImageItem
+{
+    friend class global_instance_maker<Stick>;
+private:
+    Stick()
+        : ImageItem(L"builtin.items.stick", TextureAtlas::Stick.td())
+    {
+    }
+public:
+    static const Stick *pointer()
+    {
+        return global_instance_maker<Stick>::getInstance();
+    }
+    static EntityDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual void onGiveToPlayer(Player &player) const override;
+};
 class WoodLog final : public BlockItem
 {
 private:

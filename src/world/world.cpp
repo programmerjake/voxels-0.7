@@ -379,15 +379,15 @@ protected:
         {
             for(int i = 0; i < 10; i++)
             {
-                world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                //world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
             }
             for(WoodDescriptorPointer woodDescriptor : WoodDescriptors)
             {
                 for(int i = 0; i < 10; i++)
                 {
-                    world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    //world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
                     //world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
-                    world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
+                    //world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
                 }
             }
         }

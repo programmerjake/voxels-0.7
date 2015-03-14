@@ -122,7 +122,7 @@ protected:
     }
 };
 
-class WoodToPlanksRecipe final : public Recipes::builtin::UnorderedRecipe
+class WoodToPlanksRecipe final : public UnorderedRecipe
 {
 private:
     WoodDescriptorPointer woodDescriptor;
@@ -137,6 +137,29 @@ protected:
         if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
             return false;
         output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), 4));
+        return true;
+    }
+};
+
+class PlanksToSticksRecipe final : public PatternRecipe<1, 2>
+{
+private:
+    WoodDescriptorPointer woodDescriptor;
+public:
+    PlanksToSticksRecipe(WoodDescriptorPointer woodDescriptor)
+        : PatternRecipe(checked_array<checked_array<Item, 2>, 1>
+                        {
+                            Item(woodDescriptor->getPlanksItemDescriptor()),
+                            Item(woodDescriptor->getPlanksItemDescriptor())
+                        }), woodDescriptor(woodDescriptor)
+    {
+    }
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::Stick::descriptor()), 4));
         return true;
     }
 };
@@ -190,6 +213,7 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
                    saplingEntityDescriptor,
                    leavesEntityDescriptor);
     new Recipes::builtin::WoodToPlanksRecipe(this);
+    new Recipes::builtin::PlanksToSticksRecipe(this);
     new Recipes::builtin::CraftingTableRecipe(this);
 }
 }

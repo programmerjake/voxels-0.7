@@ -22,9 +22,12 @@
 #define WOOD_ITEM_H_INCLUDED
 
 #include "item/builtin/block.h"
+#include "item/builtin/image.h"
 #include "util/wood_descriptor.h"
 #include "render/generate.h"
 #include "generate/biome/biome_descriptor.h"
+#include "entity/builtin/items/wood.h"
+#include "util/global_instance_maker.h"
 
 namespace programmerjake
 {
@@ -34,6 +37,24 @@ namespace Items
 {
 namespace builtin
 {
+class Stick final : public ItemImage
+{
+    friend class global_instance_maker<Stick>;
+private:
+    Stick()
+        : ItemImage(L"builtin.stick", TextureAtlas::Stick.td(), nullptr, Entities::builtin::items::Stick::pointer())
+    {
+    }
+public:
+    static const Stick *pointer()
+    {
+        return global_instance_maker<Stick>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
 class WoodLog final : public ItemBlock
 {
 private:
