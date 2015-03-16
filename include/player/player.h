@@ -131,6 +131,9 @@ private:
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
     ui::GameUi *const gameUi;
+    std::atomic<float> &getBlockDestructProgress(); /// the amount that a block is destroyed (ex. 0 means just started, and 0.9 means almost done). negative numbers mean no block is being destroyed
+    float destructingTime = 0, cooldownTimeLeft = 0;
+    PositionI destructingPosition;
 public:
     Entity *getPlayerEntity() const
     {

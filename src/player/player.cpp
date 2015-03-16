@@ -107,10 +107,18 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             player->addItem(item);
         }
     }
-    if(player->gameInputMonitoring->retrieveGotAttack())
+    if(player->gameInputMonitoring->retrieveGotAttack() || player->gameInput->attack.get())
     {
+        player->destructingTime += deltaTime;
+        if(player->cooldownTimeLeft > 0)
+        {
+            player->cooldownTimeLeft -= deltaTime;
+            if(player->cooldownTimeLeft <= 0)
+                player->cooldownTimeLeft = 0;
+            player->destructingTime = 0;
+        }
         RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
-        if(c.valid())
+        if(c.valid() && player->cooldownTimeLeft <= 0)
         {
             Item tool = player->removeSelectedItem();
             Item originalTool = tool;
@@ -123,14 +131,36 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             case RayCasting::Collision::Type::Block:
             {
                 PositionI pos = c.blockPosition;
+                if(pos != player->destructingPosition)
+                {
+                    player->destructingPosition = pos;
+                    player->destructingTime = 0;
+                }
                 bool good = true;
                 BlockIterator bi = world.getBlockIterator(pos);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
                 if(good)
                 {
+                    float totalDestructTime = b.descriptor->getBreakDuration(tool);
+                    if(player->destructingTime < totalDestructTime)
+                    {
+                        good = false;
+                        player->getBlockDestructProgress().store(player->destructingTime / totalDestructTime, std::memory_order_relaxed);
+                    }
+                }
+                else
+                {
+                    player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+                    player->destructingTime = 0;
+                }
+                if(good)
+                {
                     world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
                     b.descriptor->onBreak(world, b, bi, lock_manager, tool);
+                    player->destructingTime = 0;
+                    player->cooldownTimeLeft = 0.25f;
+                    player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
                 }
                 break;
             }
@@ -140,6 +170,17 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 player->addItem(tool);
             }
         }
+        else
+        {
+            player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+            player->destructingTime = 0;
+        }
+    }
+    else
+    {
+        player->destructingTime = 0;
+        player->cooldownTimeLeft = 0;
+        player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
     }
     for(int i = player->gameInputMonitoring->retrieveDropCount(); i > 0; i--)
     {
@@ -194,6 +235,11 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
         return true;
     }
     return false;
+}
+
+std::atomic<float> &Player::getBlockDestructProgress()
+{
+    return gameUi->blockDestructProgress;
 }
 
 bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction)

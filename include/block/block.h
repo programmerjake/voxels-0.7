@@ -232,6 +232,7 @@ public:
     {
         return Matrix::identity();
     }
+    virtual void handleToolDamage(Item &tool) const;
     virtual float getBreakDuration(Item tool) const; /// values less than zero mean that this block won't break
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const = 0;
     virtual float getHardness() const = 0; /// values less than zero mean that this block won't break

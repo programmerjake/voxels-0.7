@@ -66,7 +66,7 @@ private:
                 }
             }
         }
-        recipeInput = RecipeInput(recipeInputItems, Item());
+        recipeInput = RecipeInput(recipeInputItems, Item(Items::builtin::CraftingTable::descriptor()));
         if(recipeInput.empty())
             return;
         if(!RecipeDescriptors.getFirstMatch(recipeInput, recipeOutput))
@@ -180,6 +180,7 @@ namespace builtin
 void CraftingTable::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CraftingTable::descriptor())), bi.position() + VectorF(0.5));
+    handleToolDamage(tool);
 }
 bool CraftingTable::onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
 {

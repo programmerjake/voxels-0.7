@@ -18,36 +18,46 @@
  * MA 02110-1301, USA.
  *
  */
-#include "block/builtin/stone.h"
-#include "item/builtin/stone.h"
-#include "block/builtin/cobblestone.h"
+#ifndef STONE_TOOLSET_H_INCLUDED
+#define STONE_TOOLSET_H_INCLUDED
+
+#include "item/builtin/tools/simple_toolset.h"
+#include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 #include "item/builtin/cobblestone.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
+namespace Items
 {
 namespace builtin
 {
-void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+namespace tools
 {
-    if(isMatchingTool(tool))
-    {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
-    }
-    handleToolDamage(tool);
-}
-void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+class StoneToolset final : public SimpleToolset
 {
-    if(isMatchingTool(tool))
+    friend class global_instance_maker<StoneToolset>;
+private:
+    StoneToolset()
+        : SimpleToolset(L"builtin.stone", ToolLevel_Stone, 1.0f / 4.0f, 132, Item(Items::builtin::Cobblestone::descriptor()), TextureAtlas::StonePickaxe.td(), TextureAtlas::StoneAxe.td(), TextureAtlas::StoneShovel.td(), TextureAtlas::StoneHoe.td())
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
     }
-    handleToolDamage(tool);
+public:
+    static const StoneToolset *pointer()
+    {
+        return global_instance_maker<StoneToolset>::getInstance();
+    }
+    static const SimpleToolset *descriptor()
+    {
+        return pointer();
+    }
+};
 }
 }
 }
 }
 }
+
+#endif // STONE_TOOLSET_H_INCLUDED

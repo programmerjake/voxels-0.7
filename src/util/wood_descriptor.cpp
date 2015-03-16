@@ -104,7 +104,7 @@ private:
     WoodDescriptorPointer woodDescriptor;
 public:
     CraftingTableRecipe(WoodDescriptorPointer woodDescriptor)
-        : PatternRecipe(checked_array<checked_array<Item, 2>, 2>
+        : PatternRecipe(checked_array<Item, 2 * 2>
                         {
                             Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()),
                             Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor())
@@ -146,7 +146,7 @@ private:
     WoodDescriptorPointer woodDescriptor;
 public:
     PlanksToSticksRecipe(WoodDescriptorPointer woodDescriptor)
-        : PatternRecipe(checked_array<checked_array<Item, 2>, 1>
+        : PatternRecipe(checked_array<Item, 1 * 2>
                         {
                             Item(woodDescriptor->getPlanksItemDescriptor()),
                             Item(woodDescriptor->getPlanksItemDescriptor())

@@ -486,5 +486,38 @@ int TextureAtlas::FireFrameCount()
 {
     return 32;
 }
+
+const TextureAtlas &TextureAtlas::Delete(int index)
+{
+    assert(index >= 0 && index < DeleteFrameCount());
+    switch(index)
+    {
+    case 0:
+        return Delete0;
+    case 1:
+        return Delete1;
+    case 2:
+        return Delete2;
+    case 3:
+        return Delete3;
+    case 4:
+        return Delete4;
+    case 5:
+        return Delete5;
+    case 6:
+        return Delete6;
+    case 7:
+        return Delete7;
+    case 8:
+        return Delete8;
+    default:
+        return Delete9;
+    }
+}
+
+int TextureAtlas::DeleteFrameCount()
+{
+    return 10;
+}
 }
 }

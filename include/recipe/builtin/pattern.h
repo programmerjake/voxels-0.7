@@ -39,10 +39,14 @@ class PatternRecipe : public RecipeDescriptor
 {
     static_assert(W <= RecipeInput::width && H <= RecipeInput::height, "Pattern too big");
 protected:
-    checked_array<checked_array<Item, H>, W> pattern;
+    checked_array<Item, W * H> pattern;
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const = 0;
+    virtual bool itemsMatch(const Item &patternItem, const Item &inputItem) const
+    {
+        return patternItem == inputItem;
+    }
 public:
-    PatternRecipe(checked_array<checked_array<Item, H>, W> pattern)
+    PatternRecipe(checked_array<Item, W * H> pattern)
         : RecipeDescriptor(), pattern(pattern)
     {
     }
@@ -52,16 +56,13 @@ public:
         {
             for(std::size_t y = 0; y < RecipeInput::height; y++)
             {
-                if(x >= W || y >= H)
+                Item patternItem = Item();
+                if(x < W && y < H)
                 {
-                    if(input.getItems()[x][y].good())
-                        return false;
+                    patternItem = pattern[x + y * W];
                 }
-                else
-                {
-                    if(input.getItems()[x][y] != pattern[x][y])
-                        return false;
-                }
+                if(!itemsMatch(patternItem, input.getItems()[x][y]))
+                    return false;
             }
         }
         return fillOutput(input, output);

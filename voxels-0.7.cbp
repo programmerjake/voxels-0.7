@@ -149,8 +149,10 @@
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/stone.h" />
 		<Unit filename="include/item/builtin/tools/simple_toolset.h" />
+		<Unit filename="include/item/builtin/tools/stone_toolset.h" />
 		<Unit filename="include/item/builtin/tools/tool.h" />
 		<Unit filename="include/item/builtin/tools/tools.h" />
+		<Unit filename="include/item/builtin/tools/wood_toolset.h" />
 		<Unit filename="include/item/builtin/wood.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />
@@ -259,6 +261,7 @@
 		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />
+		<Unit filename="src/item/builtin/tools/builtin_toolsets.cpp" />
 		<Unit filename="src/item/item.cpp" />
 		<Unit filename="src/lighting/lighting.cpp" />
 		<Unit filename="src/physics/physics.cpp" />

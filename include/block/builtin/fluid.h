@@ -27,6 +27,7 @@
 #include "texture/texture_descriptor.h"
 #include "block/builtin/air.h"
 #include "item/item_struct.h"
+#include "item/builtin/tools/tool.h"
 
 namespace programmerjake
 {
@@ -480,6 +481,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
+        handleToolDamage(tool);
     }
 };
 }

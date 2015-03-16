@@ -170,12 +170,17 @@ float BlockDescriptor::getBreakDuration(Item tool) const
 bool BlockDescriptor::isMatchingTool(Item tool) const
 {
     if(!isHelpingToolKind(tool))
-        return false;
+        return getToolLevel() <= ToolLevel_None;
     ToolLevel toolLevel = ToolLevel_None;
     const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
     if(toolDescriptor != nullptr)
         toolLevel = toolDescriptor->getToolLevel();
     return getToolLevel() <= toolLevel;
+}
+
+void BlockDescriptor::handleToolDamage(Item &tool) const
+{
+    tool = Items::builtin::tools::Tool::incrementDamage(tool, this);
 }
 }
 }

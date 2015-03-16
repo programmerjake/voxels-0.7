@@ -54,6 +54,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
+        handleToolDamage(tool);
     }
     virtual float getHardness() const override
     {

@@ -23,6 +23,7 @@
 
 #include "item/builtin/image.h"
 #include "util/tool_level.h"
+#include "block/block.h"
 
 namespace programmerjake
 {
@@ -97,6 +98,10 @@ public:
     {
         const ToolData *toolData1 = static_cast<const ToolData *>(data1.get());
         const ToolData *toolData2 = static_cast<const ToolData *>(data2.get());
+        if(toolData1 == toolData2)
+            return true;
+        if(toolData1 == nullptr || toolData2 == nullptr)
+            return false;
         return toolData1->damage == toolData2->damage;
     }
     virtual unsigned getMaxStackCount() const
@@ -105,6 +110,18 @@ public:
     }
     virtual float getMineDurationFactor(Item item) const = 0;
     virtual ToolLevel getToolLevel() const = 0;
+protected:
+    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const = 0;
+public:
+    static Item incrementDamage(Item tool, BlockDescriptorPointer blockDescriptor)
+    {
+        if(!tool.good())
+            return tool;
+        const Tool *descriptor = dynamic_cast<const Tool *>(tool.descriptor);
+        if(descriptor == nullptr)
+            return tool;
+        return descriptor->incrementDamage(tool, blockDescriptor->isHelpingToolKind(tool), blockDescriptor->isMatchingTool(tool), blockDescriptor->getBreakDuration(tool) == 0);
+    }
 };
 }
 }

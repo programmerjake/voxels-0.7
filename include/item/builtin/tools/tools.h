@@ -45,6 +45,12 @@ public:
         : Tool(name, td)
     {
     }
+    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    {
+        if(minedInstantly)
+            return tool;
+        return addDamage(tool, 1);
+    }
 };
 
 class Axe : public Tool
@@ -57,6 +63,12 @@ public:
     Axe(std::wstring name, TextureDescriptor td)
         : Tool(name, td)
     {
+    }
+    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    {
+        if(minedInstantly)
+            return tool;
+        return addDamage(tool, 1);
     }
 };
 
@@ -71,6 +83,10 @@ public:
         : Tool(name, td)
     {
     }
+    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    {
+        return tool;
+    }
 };
 
 class Shovel : public Tool
@@ -83,6 +99,12 @@ public:
     Shovel(std::wstring name, TextureDescriptor td)
         : Tool(name, td)
     {
+    }
+    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    {
+        if(minedInstantly)
+            return tool;
+        return addDamage(tool, 1);
     }
 };
 

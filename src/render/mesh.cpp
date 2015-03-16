@@ -53,10 +53,14 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     Image image = td.image;
     unsigned iw = image.width();
     unsigned ih = image.height();
-    int minX = ifloor(1e-5 + iw * td.minU);
-    int maxX = ifloor(-1e-5 + iw * td.maxU);
-    int minY = ifloor(1e-5 + ih * (1 - td.maxV));
-    int maxY = ifloor(-1e-5 + ih * (1 - td.minV));
+    float fMinX = iw * td.minU;
+    float fMaxX = iw * td.maxU;
+    float fMinY = ih * (1 - td.maxV);
+    float fMaxY = ih * (1 - td.minV);
+    int minX = ifloor(1e-5 + fMinX);
+    int maxX = ifloor(-1e-5 + fMaxX);
+    int minY = ifloor(1e-5 + fMinY);
+    int maxY = ifloor(-1e-5 + fMaxY);
     assert(minX <= maxX && minY <= maxY);
     float scale = std::min<float>(1.0f / (1 + maxX - minX), 1.0f / (1 + maxY - minY));
     if(thickness <= 0)
@@ -64,7 +68,11 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     TextureDescriptor backTD = td;
     backTD.maxU = td.minU;
     backTD.minU = td.maxU;
-    Mesh retval = (Mesh)transform(Matrix::translate(0, 0, -0.5f).concat(Matrix::scale(1, 1, thickness)), unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), backTD, td));
+    float faceMinX = scale * (fMinX - minX);
+    float faceMinY = scale * (maxY - fMaxY + 1);
+    float faceMaxX = faceMinX + scale * (fMaxX - fMinX);
+    float faceMaxY = faceMinY + scale * (fMaxY - fMinY);
+    Mesh retval = (Mesh)transform(Matrix::translate(faceMinX, faceMinY, -0.5f).concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)), unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), backTD, td));
     for(int iy = minY; iy <= maxY; iy++)
     {
         for(int ix = minX; ix <= maxX; ix++)

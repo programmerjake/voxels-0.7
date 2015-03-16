@@ -92,6 +92,8 @@ public:
 	}
 	static const TextureAtlas &Fire(int index);
 	static int FireFrameCount();
+	static const TextureAtlas &Delete(int index);
+	static int DeleteFrameCount();
 	static const TextureAtlas
 	ActivatorRailOff,
     ActivatorRailOn,

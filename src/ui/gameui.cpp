@@ -23,6 +23,7 @@
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
 #include "ui/inventory.h"
+#include <vector>
 
 namespace programmerjake
 {
@@ -42,6 +43,24 @@ Mesh getSelectionMesh()
     static thread_local Mesh mesh = makeSelectionMesh();
     return mesh;
 }
+std::vector<Mesh> makeDestructionMeshes()
+{
+    std::vector<Mesh> destructionMeshes;
+    destructionMeshes.reserve((std::size_t)TextureAtlas::DeleteFrameCount());
+    for(int i = 0; i < TextureAtlas::DeleteFrameCount(); i++)
+    {
+        TextureDescriptor td = TextureAtlas::Delete(i).td();
+        destructionMeshes.push_back((Mesh)transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(1.01)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, td, td, td, td, td)));
+    }
+    return std::move(destructionMeshes);
+}
+Mesh getDestructionMesh(float progress)
+{
+    static thread_local std::vector<Mesh> meshes = makeDestructionMeshes();
+    int index = ifloor(progress * (int)(meshes.size() - 1));
+    index = limit<int>(index, 0, meshes.size() - 1);
+    return meshes[index];
+}
 }
 void GameUi::clear(Renderer &renderer)
 {
@@ -55,6 +74,7 @@ void GameUi::clear(Renderer &renderer)
     {
         Matrix selectionBoxTransform;
         bool drawSelectionBox = false;
+        bool drawDestructionBox = false;
         switch(collision.type)
         {
         case RayCasting::Collision::Type::Block:
@@ -65,6 +85,7 @@ void GameUi::clear(Renderer &renderer)
             {
                 selectionBoxTransform = b.descriptor->getSelectionBoxTransform(b).concat(Matrix::translate(collision.blockPosition));
                 drawSelectionBox = true;
+                drawDestructionBox = true;
             }
             break;
         }
@@ -83,6 +104,14 @@ void GameUi::clear(Renderer &renderer)
         if(drawSelectionBox)
         {
             renderer << transform(tform, transform(selectionBoxTransform, getSelectionMesh()));
+        }
+        if(drawDestructionBox)
+        {
+            float progress = blockDestructProgress.load(std::memory_order_relaxed);
+            if(progress >= 0)
+            {
+                renderer << transform(tform, transform(selectionBoxTransform, getDestructionMesh(progress)));
+            }
         }
     }
     viewPoint->render(renderer, tform, lock_manager);

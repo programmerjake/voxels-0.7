@@ -33,6 +33,7 @@ namespace builtin
 void Grass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Dirt::descriptor())), bi.position() + VectorF(0.5));
+    handleToolDamage(tool);
 }
 void Grass::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
 {

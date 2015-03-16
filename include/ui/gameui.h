@@ -75,8 +75,9 @@ private:
     }
     void startInventoryDialog();
 public:
+    std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
-        : world(world), lock_manager(lock_manager), gameInput(std::make_shared<GameInput>())
+        : world(world), lock_manager(lock_manager), gameInput(std::make_shared<GameInput>()), blockDestructProgress{-1.0f}
     {
         if(GameVersion::DEBUG)
             gameInput->paused.set(true);

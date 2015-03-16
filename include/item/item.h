@@ -61,7 +61,7 @@ protected:
     explicit ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform);
     explicit ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform);
 public:
-    ~ItemDescriptor();
+    virtual ~ItemDescriptor();
     static constexpr float minRenderZ = 0.75f, maxRenderZ = 1.0f;
     virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const = 0;
     virtual bool dataEqual(std::shared_ptr<void> data1, std::shared_ptr<void> data2) const = 0;
