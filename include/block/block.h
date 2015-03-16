@@ -48,6 +48,7 @@
 #include <list>
 #include "render/render_settings.h"
 #include "item/item_struct.h"
+#include "util/tool_level.h"
 
 namespace programmerjake
 {
@@ -231,17 +232,12 @@ public:
     {
         return Matrix::identity();
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
-    {
-    }
-    virtual float getBreakDuration(Item tool) const
-    {
-        return 0;
-    }
-    virtual bool isMatchingTool(Item tool) const
-    {
-        return false;
-    }
+    virtual float getBreakDuration(Item tool) const; /// values less than zero mean that this block won't break
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const = 0;
+    virtual float getHardness() const = 0; /// values less than zero mean that this block won't break
+    virtual bool isHelpingToolKind(Item tool) const = 0; /// if there is not a specific tool for this block then return true to avoid the slowdown factor
+    virtual ToolLevel getToolLevel() const = 0;
+    virtual bool isMatchingTool(Item tool) const; /// if there is not a specific tool for this block then return true to avoid the slowdown factor
     virtual bool isReplaceable() const
     {
         return false;

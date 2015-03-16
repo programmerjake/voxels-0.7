@@ -466,6 +466,21 @@ public:
     {
         return false;
     }
+    virtual float getHardness() const override
+    {
+        return 100;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return true;
+    }
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    {
+    }
 };
 }
 }

@@ -19,6 +19,7 @@
  *
  */
 #include "block/block.h"
+#include "item/builtin/tools/tool.h"
 
 using namespace std;
 namespace programmerjake
@@ -148,6 +149,33 @@ BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_
     }
 
     return BlockLighting(blocks, wlp);
+}
+
+float BlockDescriptor::getBreakDuration(Item tool) const
+{
+    float hardness = getHardness();
+    if(hardness < 0)
+        return hardness;
+    if(hardness == 0)
+        return hardness;
+    float baseSpeed = 1.5f * hardness;
+    const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
+    if(!isMatchingTool(tool))
+        return baseSpeed * 10.0f / 3.0f;
+    if(toolDescriptor == nullptr)
+        return baseSpeed;
+    return baseSpeed * toolDescriptor->getMineDurationFactor(tool);
+}
+
+bool BlockDescriptor::isMatchingTool(Item tool) const
+{
+    if(!isHelpingToolKind(tool))
+        return false;
+    ToolLevel toolLevel = ToolLevel_None;
+    const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
+    if(toolDescriptor != nullptr)
+        toolLevel = toolDescriptor->getToolLevel();
+    return getToolLevel() <= toolLevel;
 }
 }
 }

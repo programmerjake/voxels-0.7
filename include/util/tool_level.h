@@ -18,35 +18,20 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef STONE_BLOCK_H_INCLUDED
-#define STONE_BLOCK_H_INCLUDED
-
-#include "block/builtin/full_block.h"
-#include "item/builtin/tools/tools.h"
+#ifndef TOOL_LEVEL_H_INCLUDED
+#define TOOL_LEVEL_H_INCLUDED
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace Blocks
-{
-namespace builtin
-{
-class StoneBlock : public FullBlock
-{
-protected:
-    StoneBlock(std::wstring name, TextureDescriptor td)
-        : FullBlock(name, LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround, true, td)
-    {
-    }
-    virtual bool isHelpingToolKind(Item tool) const override
-    {
-        return dynamic_cast<const Items::builtin::tools::Pickaxe *>(tool.descriptor) != nullptr;
-    }
-};
-}
-}
+typedef unsigned ToolLevel;
+constexpr ToolLevel ToolLevel_None = 0;
+constexpr ToolLevel ToolLevel_Wood = 4;
+constexpr ToolLevel ToolLevel_Stone = 8;
+constexpr ToolLevel ToolLevel_Iron = 12;
+constexpr ToolLevel ToolLevel_Diamond = 16;
 }
 }
 
-#endif // STONE_BLOCK_H_INCLUDED
+#endif // TOOL_LEVEL_H_INCLUDED

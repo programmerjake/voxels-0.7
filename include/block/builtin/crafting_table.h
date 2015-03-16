@@ -24,6 +24,7 @@
 #include "block/builtin/full_block.h"
 #include "texture/texture_atlas.h"
 #include "util/global_instance_maker.h"
+#include "item/builtin/tools/tools.h"
 
 namespace programmerjake
 {
@@ -65,6 +66,18 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
     virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual float getHardness() const override
+    {
+        return 2.5f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
+    }
 };
 }
 }

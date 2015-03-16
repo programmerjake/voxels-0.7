@@ -59,6 +59,10 @@ private:
 public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
     virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override;
+    virtual float getHardness() const override
+    {
+        return 0.6f;
+    }
 };
 }
 }

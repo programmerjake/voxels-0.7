@@ -22,6 +22,7 @@
 #define DIRT_BLOCK_H_INCLUDED
 
 #include "block/builtin/full_block.h"
+#include "item/builtin/tools/tools.h"
 
 namespace programmerjake
 {
@@ -165,6 +166,14 @@ protected:
             return true;
         }
         return false;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
     }
 };
 }

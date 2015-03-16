@@ -52,6 +52,14 @@ private:
     }
 public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual float getHardness() const override
+    {
+        return 1.5f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Wood;
+    }
 };
 }
 }

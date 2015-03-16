@@ -26,6 +26,7 @@
 #include "world/world.h"
 #include "render/render_settings.h"
 #include "item/item.h"
+#include "item/builtin/tools/tools.h"
 
 namespace programmerjake
 {
@@ -156,6 +157,18 @@ public:
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLogItemDescriptor())), bi.position() + VectorF(0.5));
     }
+    virtual float getHardness() const override
+    {
+        return 2.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
+    }
 };
 class WoodPlanks : public FullBlock
 {
@@ -189,6 +202,18 @@ public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getPlanksItemDescriptor())), bi.position() + VectorF(0.5));
+    }
+    virtual float getHardness() const override
+    {
+        return 2.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
 };
 class WoodLeaves : public FullBlock
@@ -320,6 +345,19 @@ public:
         return false;
     }
     #warning add leaves decaying
+    virtual float getHardness() const override
+    {
+        return 0.2f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return false;
+        #warning add check for shears
+    }
 };
 }
 }

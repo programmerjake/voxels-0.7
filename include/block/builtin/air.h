@@ -52,6 +52,21 @@ public:
     {
         return false;
     }
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    {
+    }
+    virtual float getHardness() const override
+    {
+        return -1;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
+    }
+    virtual bool isHelpingToolKind(Item tool) const override
+    {
+        return true;
+    }
 private:
     Air()
         : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), (RayCasting::BlockCollisionMask)0, true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)

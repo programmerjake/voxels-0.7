@@ -22,6 +22,7 @@
 #define ITEM_TOOL_H_INCLUDED
 
 #include "item/builtin/image.h"
+#include "util/tool_level.h"
 
 namespace programmerjake
 {
@@ -36,12 +37,12 @@ namespace tools
 class Tool : public ItemImage
 {
 protected:
-    Tool(std::wstring name, Mesh faceMesh, const Entities::builtin::EntityItem *entity)
-        : ItemImage(name, faceMesh, nullptr, entity)
+    Tool(std::wstring name, Mesh faceMesh, Mesh entityMesh)
+        : ItemImage(name, faceMesh, entityMesh, nullptr)
     {
     }
-    Tool(std::wstring name, TextureDescriptor td, const Entities::builtin::EntityItem *entity)
-        : ItemImage(name, td, nullptr, entity)
+    Tool(std::wstring name, TextureDescriptor td)
+        : ItemImage(name, td, nullptr)
     {
     }
     virtual Item getAfterPlaceItem() const final
@@ -102,6 +103,8 @@ public:
     {
         return 1;
     }
+    virtual float getMineDurationFactor(Item item) const = 0;
+    virtual ToolLevel getToolLevel() const = 0;
 };
 }
 }

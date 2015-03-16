@@ -148,7 +148,9 @@
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/stone.h" />
+		<Unit filename="include/item/builtin/tools/simple_toolset.h" />
 		<Unit filename="include/item/builtin/tools/tool.h" />
+		<Unit filename="include/item/builtin/tools/tools.h" />
 		<Unit filename="include/item/builtin/wood.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />
@@ -228,6 +230,7 @@
 		<Unit filename="include/util/solve.h" />
 		<Unit filename="include/util/spin_lock.h" />
 		<Unit filename="include/util/string_cast.h" />
+		<Unit filename="include/util/tool_level.h" />
 		<Unit filename="include/util/unlock_guard.h" />
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
