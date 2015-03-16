@@ -19,7 +19,7 @@
  *
  */
 #include "block/builtin/dirt.h"
-#include "entity/builtin/items/dirt.h"
+#include "item/builtin/dirt.h"
 #include "block/builtin/grass.h"
 
 namespace programmerjake
@@ -32,7 +32,7 @@ namespace builtin
 {
 void Dirt::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
 {
-    world.addEntity(Entities::builtin::items::Dirt::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Dirt::descriptor())), bi.position() + VectorF(0.5));
 }
 void Dirt::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
 {

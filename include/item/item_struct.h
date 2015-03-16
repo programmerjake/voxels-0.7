@@ -120,7 +120,7 @@ struct ItemStack final
     ItemStack(Item item, int count = 1)
         : item(count > 0 ? item : Item()), count(item.good() ? count : 0)
     {
-        assert(this->count <= MaxCount);
+        assert(!this->item.good() || this->count <= getMaxCount());
     }
     /** @brief check if this ItemStack is non-empty
      * @return true if this ItemStack is non-empty
@@ -165,7 +165,7 @@ struct ItemStack final
         }
         if(item != theItem)
             return 0;
-        if(count >= MaxCount)
+        if(count >= getMaxCount())
             return 0;
         count++;
         return 1;
@@ -191,8 +191,8 @@ struct ItemStack final
     {
         if(transferCount > src.count)
             transferCount = src.count;
-        if(transferCount > MaxCount - count)
-            transferCount = MaxCount - count;
+        if(transferCount > src.getMaxCount() - count)
+            transferCount = src.getMaxCount() - count;
         if(transferCount == 0)
             return 0;
         if(!src.good())

@@ -20,7 +20,6 @@
  */
 #include "item/builtin/grass.h"
 #include "block/builtin/grass.h"
-#include "entity/builtin/items/grass.h"
 #include "texture/texture_atlas.h"
 #include "player/player.h"
 namespace programmerjake
@@ -33,7 +32,7 @@ namespace builtin
 {
 
 Grass::Grass()
-    : ItemBlock(L"builtin.grass", Entities::builtin::items::Grass::makeMesh(), Blocks::builtin::Grass::descriptor(), Entities::builtin::items::Grass::descriptor())
+    : ItemBlock(L"builtin.grass", makeMesh(), Blocks::builtin::Grass::descriptor())
 {
 }
 }

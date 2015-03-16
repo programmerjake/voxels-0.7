@@ -20,17 +20,39 @@
 #
 
 header_string="`printf "/*\n * Copyright (C) 2012-2015 Jacob R. Lifshay"`"
-
-find src include ! -type d | while read filename; [ "$filename" != "" ]; do
-if [ "$filename" != "src/util/game_version.cpp" ]; then
-    if [ "`head -n 2 "$filename"`" != "$header_string" ]; then
-        echo "$filename:"
-        echo "`head -n 2 "$filename"`"
-        echo
-        echo vs.
-        echo
-        echo "$header_string"
-        echo
+IFS='
+'
+project_files="`cat voxels-0.7.cbp | grep '<Unit filename="' | sed '{s/.*filename="\([^"]*\)".*/\1/}'`"
+files="`find src include ! -type d`"
+for filename in $files; do
+    found_in_project=0
+    new_project_files=""
+    for project_filename in $project_files; do
+        if [ "$filename" = "$project_filename" ]; then
+            found_in_project=1
+        elif [ -z "$new_project_files" ]; then
+            new_project_files="$project_filename"
+        else
+            new_project_files="$new_project_files`echo; echo "$project_filename"`"
+        fi
+    done
+    project_files="$new_project_files"
+    if [ "$found_in_project" = 0 ]; then
+        echo "$filename: not in project"
     fi
-fi
+    if [ "$filename" != "src/util/game_version.cpp" ]; then
+        if [ "`head -n 2 "$filename"`" != "$header_string" ]; then
+            echo "$filename:"
+            echo "`head -n 2 "$filename"`"
+            echo
+            echo vs.
+            echo
+            echo "$header_string"
+            echo
+        fi
+    fi
+done
+
+for project_filename in $project_files; do
+    echo "$project_filename: not found"
 done

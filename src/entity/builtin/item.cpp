@@ -34,7 +34,7 @@ namespace builtin
 
 void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
 {
-    std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
+    std::shared_ptr<ItemData> data = getItemData(entity);
     constexpr float angleSpeed = 2 * M_PI / 7.5f;
     constexpr float bobSpeed = 2.1f * angleSpeed;
     data->angle = std::fmod(data->angle + angleSpeed * (float)deltaTime, M_PI * 2);
@@ -77,7 +77,11 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
         VectorF velocity = normalize(displacement) * speed;
         if(abs(displacement) < deltaTime * speed)
         {
-            onGiveToPlayer(*closestPlayer);
+            for(unsigned i = 0; i < data->itemStack.count; i++)
+            {
+                closestPlayer->addItem(data->itemStack.item);
+                #warning check for player not accepting item
+            }
             entity.destroy();
             return;
         }

@@ -27,8 +27,6 @@
 #include "block/builtin/grass.h"
 #include "block/builtin/dirt.h"
 #include "block/builtin/water.h"
-#include "entity/builtin/items/stone.h"
-#include "entity/builtin/items/bucket.h"
 #include <cmath>
 #include <random>
 #include <limits>
@@ -372,22 +370,6 @@ protected:
                     {
                         instance->generateInChunk(chunkBasePosition, lock_manager, world, blocks);
                     }
-                }
-            }
-        }
-        if(chunkBasePosition.x == 0 && chunkBasePosition.z == 0)
-        {
-            for(int i = 0; i < 10; i++)
-            {
-                //world.addEntity(Entities::builtin::items::Bucket::descriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
-            }
-            for(WoodDescriptorPointer woodDescriptor : WoodDescriptors)
-            {
-                for(int i = 0; i < 10; i++)
-                {
-                    //world.addEntity(woodDescriptor->getLogEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
-                    //world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
-                    //world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), PositionF(0, 10 + World::SeaLevel, 0, Dimension::Overworld), VectorF(0), lock_manager);
                 }
             }
         }

@@ -107,19 +107,19 @@ Mesh itemDamage(float damageValue)
         return Mesh();
     TextureDescriptor backgroundTexture = TextureAtlas::DamageBarGray.td();
     TextureDescriptor foregroundTexture = TextureAtlas::DamageBarGreen.td();
-    if(damageValue < 2.0f / 3)
+    if(damageValue > 1.0f / 3)
     {
         foregroundTexture = TextureAtlas::DamageBarYellow.td();
     }
-    if(damageValue < 1.0f / 3)
+    if(damageValue > 2.0f / 3)
     {
         foregroundTexture = TextureAtlas::DamageBarRed.td();
     }
     const float minX = 2 / 16.0f;
     const float maxX = 14 / 16.0f;
-    float splitX = interpolate(damageValue, minX, maxX);
-    const float minY = 12 / 16.0f;
-    const float maxY = 14 / 16.0f;
+    float splitX = interpolate(damageValue, maxX, minX);
+    const float minY = 2 / 16.0f;
+    const float maxY = 4 / 16.0f;
     constexpr ColorF c = colorizeIdentity();
     const VectorF nxny = VectorF(minX, minY, 0);
     VectorF cxny = VectorF(splitX, minY, 0);

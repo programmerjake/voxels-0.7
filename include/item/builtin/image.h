@@ -44,7 +44,7 @@ class ItemImage : public ItemDescriptor
     BlockDescriptorPointer block;
     const Entities::builtin::EntityItem *entity;
 public:
-    static Mesh makeMesh(TextureDescriptor td)
+    static Mesh makeItemMesh(TextureDescriptor td)
     {
         assert(td);
         const ColorF c = colorizeIdentity();
@@ -59,14 +59,29 @@ public:
 									 p6, c
 									 );
     }
-protected:
-    ItemImage(std::wstring name, Mesh faceMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemDescriptor(name), mesh(faceMesh), block(block), entity(entity)
+    static Matrix getPreorientSelectionBoxTransform()
     {
-        assert(entity != nullptr);
+        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.5f)).concat(Matrix::translate(0, 0, 0));
     }
-    ItemImage(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemImage(name, makeMesh(td), block, entity)
+    static enum_array<Mesh, RenderLayer> makeEntityMeshes(TextureDescriptor td)
+    {
+        enum_array<Mesh, RenderLayer> retval;
+        retval[RenderLayer::Opaque].append(transform(Matrix::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()), Generate::item3DImage(td)));
+        return std::move(retval);
+    }
+    static enum_array<Mesh, RenderLayer> makeEntityMeshes(Mesh mesh)
+    {
+        enum_array<Mesh, RenderLayer> retval;
+        retval[RenderLayer::Opaque].append(transform(Matrix::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()), std::move(mesh)));
+        return std::move(retval);
+    }
+protected:
+    ItemImage(std::wstring name, Mesh faceMesh, Mesh entityMesh, BlockDescriptorPointer block)
+        : ItemDescriptor(name, makeEntityMeshes(entityMesh), getPreorientSelectionBoxTransform()), mesh(faceMesh), block(block)
+    {
+    }
+    ItemImage(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block)
+        : ItemDescriptor(name, makeEntityMeshes(td), getPreorientSelectionBoxTransform()), mesh(makeItemMesh(td)), block(block)
     {
     }
     virtual Item getAfterPlaceItem() const
@@ -89,10 +104,6 @@ public:
     {
         return true;
     }
-    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
-    {
-        return player.createDroppedItemEntity(entity, world, lock_manager);
-    }
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
     {
         if(block == nullptr)
@@ -107,7 +118,7 @@ public:
     }
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override
     {
-        world.addEntity(entity, dispensePosition + VectorF(0.5f), dispenseDirection * Entities::builtin::EntityItem::dropSpeed, lock_manager);
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(item), dispensePosition + VectorF(0.5), dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
         return Item();
     }
 };

@@ -61,13 +61,15 @@ public:
     virtual Item setDamage(Item item, unsigned newDamage) const
     {
         if(newDamage == 0)
-        {
             return Item(item.descriptor);
-        }
+        else if(newDamage >= maxDamage())
+            return Item();
         else
-        {
             return Item(item.descriptor, std::static_pointer_cast<void>(std::make_shared<ToolData>(newDamage)));
-        }
+    }
+    virtual Item addDamage(Item item, unsigned additionalDamage) const
+    {
+        return setDamage(item, getDamage(item) + additionalDamage);
     }
     virtual unsigned getDamage(Item item) const
     {
@@ -76,12 +78,19 @@ public:
         const ToolData *toolData = static_cast<const ToolData *>(item.data.get());
         return toolData->damage;
     }
+    virtual float getRelativeDamage(Item item) const
+    {
+        return (float)getDamage(item) / (float)maxDamage();
+    }
     virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
     {
         ItemImage::render(item, dest, minX, maxX, minY, maxY);
-        Matrix damageTransform()
-        #error finish
-        dest.append(transform())
+        float damage = getRelativeDamage(item);
+        if(damage > 0)
+        {
+            Matrix damageTransform = Matrix::scale(maxX - minX, maxY - minY, 1).concat(Matrix::translate(minX, minY, -1)).scale(0.5f * (minRenderZ + maxRenderZ));
+            dest.append(transform(damageTransform, Generate::itemDamage(damage)));
+        }
     }
     virtual bool dataEqual(std::shared_ptr<void> data1, std::shared_ptr<void> data2) const override
     {

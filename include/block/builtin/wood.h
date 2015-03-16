@@ -25,6 +25,7 @@
 #include "util/wood_descriptor.h"
 #include "world/world.h"
 #include "render/render_settings.h"
+#include "item/item.h"
 
 namespace programmerjake
 {
@@ -153,7 +154,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
     {
-        world.addEntity(woodDescriptor->getLogEntityDescriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLogItemDescriptor())), bi.position() + VectorF(0.5));
     }
 };
 class WoodPlanks : public FullBlock
@@ -187,7 +188,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
     {
-        world.addEntity(woodDescriptor->getPlanksEntityDescriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getPlanksItemDescriptor())), bi.position() + VectorF(0.5));
     }
 };
 class WoodLeaves : public FullBlock
@@ -247,7 +248,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
     {
-        world.addEntity(woodDescriptor->getLeavesEntityDescriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLeavesItemDescriptor())), bi.position() + VectorF(0.5));
     }
     virtual ColorF getLeavesShading(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {

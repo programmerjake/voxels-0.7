@@ -19,7 +19,6 @@
  *
  */
 #include "block/builtin/crafting_table.h"
-#include "entity/builtin/items/crafting_table.h"
 #include "item/builtin/crafting_table.h"
 #include "recipe/builtin/pattern.h"
 #include "ui/player_dialog.h"
@@ -51,7 +50,8 @@ private:
         output = ItemStack();
         recipeOutput = RecipeOutput();
         RecipeInput::ItemsArrayType recipeInputItems;
-        unsigned recipeCount = ItemStack::MaxCount;
+        unsigned recipeCount = 0;
+        bool haveRecipeCount = false;
         for(int x = 0; x < (int)inputItemStacks.itemStacks.size(); x++)
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
@@ -60,8 +60,9 @@ private:
                 {
                     recipeInputItems[x][y] = inputItemStacks.itemStacks[x][y].item;
                     unsigned c = inputItemStacks.itemStacks[x][y].count;
-                    if(recipeCount > c)
+                    if(recipeCount > c || !haveRecipeCount)
                         recipeCount = c;
+                    haveRecipeCount = true;
                 }
             }
         }
@@ -74,7 +75,7 @@ private:
         }
         else
         {
-            unsigned maxRecipeCount = ItemStack::MaxCount / recipeOutput.output.count;
+            unsigned maxRecipeCount = recipeOutput.output.getMaxCount() / recipeOutput.output.count;
             if(recipeCount > maxRecipeCount)
                 recipeCount = maxRecipeCount;
             output = ItemStack(recipeOutput.output.item, recipeCount * recipeOutput.output.count);
@@ -100,7 +101,9 @@ protected:
                 }
             }
             unsigned transferRecipeCount = (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
-            unsigned maxRecipeCount = (ItemStack::MaxCount - destItemStack->count) / recipeOutput.output.count;
+            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count)
+                                        ? (recipeOutput.output.getMaxCount() - destItemStack->count) / recipeOutput.output.count
+                                        : 0;
             if(transferRecipeCount > maxRecipeCount)
                 transferRecipeCount = maxRecipeCount;
             transferCount = transferRecipeCount * recipeOutput.output.count;
@@ -176,25 +179,11 @@ namespace builtin
 {
 void CraftingTable::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
 {
-    world.addEntity(Entities::builtin::items::CraftingTable::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CraftingTable::descriptor())), bi.position() + VectorF(0.5));
 }
 bool CraftingTable::onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
 {
     return player->setDialog(std::make_shared<ui::builtin::CraftingTableUi>(player));
-}
-}
-}
-
-namespace Entities
-{
-namespace builtin
-{
-namespace items
-{
-void CraftingTable::onGiveToPlayer(Player &player) const
-{
-    player.addItem(Item(Items::builtin::CraftingTable::descriptor()));
-}
 }
 }
 }
@@ -208,7 +197,7 @@ CraftingTable::CraftingTable()
                 TextureAtlas::WorkBenchSide0.td(), TextureAtlas::WorkBenchSide0.td(),
                 TextureAtlas::OakPlank.td(), TextureAtlas::WorkBenchTop.td(),
                 TextureAtlas::WorkBenchSide1.td(), TextureAtlas::WorkBenchSide1.td(),
-                Blocks::builtin::CraftingTable::descriptor(), Entities::builtin::items::CraftingTable::pointer())
+                Blocks::builtin::CraftingTable::descriptor())
 {
 }
 }

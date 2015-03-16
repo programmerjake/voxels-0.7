@@ -26,8 +26,8 @@
 #include "util/wood_descriptor.h"
 #include "render/generate.h"
 #include "generate/biome/biome_descriptor.h"
-#include "entity/builtin/items/wood.h"
 #include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -42,7 +42,7 @@ class Stick final : public ItemImage
     friend class global_instance_maker<Stick>;
 private:
     Stick()
-        : ItemImage(L"builtin.stick", TextureAtlas::Stick.td(), nullptr, Entities::builtin::items::Stick::pointer())
+        : ItemImage(L"builtin.stick", TextureAtlas::Stick.td(), nullptr)
     {
     }
 public:
@@ -67,12 +67,12 @@ private:
         return retval;
     }
 public:
-    WoodLog(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+    WoodLog(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
         : ItemBlock(makeName(woodDescriptor),
                     woodDescriptor->getLogSideTexture(), woodDescriptor->getLogSideTexture(),
                     woodDescriptor->getLogTopTexture(), woodDescriptor->getLogTopTexture(),
                     woodDescriptor->getLogSideTexture(), woodDescriptor->getLogSideTexture(),
-                    block, entity), woodDescriptor(woodDescriptor)
+                    block), woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
@@ -120,9 +120,9 @@ private:
         return retval;
     }
 public:
-    WoodPlanks(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
+    WoodPlanks(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
         : ItemBlock(makeName(woodDescriptor),
-                    woodDescriptor->getPlanksTexture(), block, entity), woodDescriptor(woodDescriptor)
+                    woodDescriptor->getPlanksTexture(), block), woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
@@ -148,8 +148,8 @@ private:
                                                                                              woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture()));
     }
 public:
-    WoodLeaves(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemBlock(makeName(woodDescriptor), makeMesh(woodDescriptor), block, entity), woodDescriptor(woodDescriptor)
+    WoodLeaves(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
+        : ItemBlock(makeName(woodDescriptor), makeMesh(woodDescriptor), block), woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const

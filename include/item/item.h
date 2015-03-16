@@ -27,6 +27,8 @@
 #include "render/mesh.h"
 #include "util/position.h"
 #include "util/block_face.h"
+#include "entity/entity_struct.h"
+#include "render/render_layer.h"
 
 namespace programmerjake
 {
@@ -34,28 +36,48 @@ namespace voxels
 {
 class World;
 class WorldLockManager;
-class Entity;
 class Player;
+namespace Entities
+{
+namespace builtin
+{
+class EntityItem;
+}
+}
 class ItemDescriptor
 {
     ItemDescriptor(const ItemDescriptor &) = delete;
     void operator =(const ItemDescriptor &) = delete;
 public:
     const std::wstring name;
+private:
+    const Entities::builtin::EntityItem *entity;
+public:
+    const Entities::builtin::EntityItem *getEntity() const
+    {
+        return entity;
+    }
 protected:
-    explicit ItemDescriptor(std::wstring name);
+    explicit ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform);
+    explicit ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform);
 public:
     ~ItemDescriptor();
     static constexpr float minRenderZ = 0.75f, maxRenderZ = 1.0f;
     virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const = 0;
     virtual bool dataEqual(std::shared_ptr<void> data1, std::shared_ptr<void> data2) const = 0;
-    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
+    Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const;
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const = 0;
     virtual unsigned getMaxStackCount() const
     {
         return 64;
     }
+    virtual void entityRender(Item item, Matrix tform, Mesh &mesh, RenderLayer rl) const
+    {
+        assert(false);
+    }
+    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity = VectorF(0.0f));
+    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, const Player *player, double ignoreTime = 1);
 };
 
 inline unsigned Item::getMaxStackCount() const

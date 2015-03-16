@@ -28,6 +28,8 @@
 #include <random>
 #include "util/logging.h"
 #include "util/math_constants.h"
+#include "item/item.h"
+#include "world/world.h"
 
 namespace programmerjake
 {
@@ -38,71 +40,87 @@ namespace Entities
 {
 namespace builtin
 {
-class EntityItem : public EntityDescriptor
+class EntityItem final : public EntityDescriptor
 {
-protected:
-    enum_array<Mesh, RenderLayer> meshes;
-    Matrix preorientSelectionBoxTransform;
+private:
+    const enum_array<Mesh, RenderLayer> meshes;
+    const bool renderDynamic;
+    const Matrix preorientSelectionBoxTransform;
     static constexpr float baseSize = 0.5f, extraHeight = 0.1f;
-    EntityItem(std::wstring name, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
-        : EntityDescriptor(name, PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))), meshes(meshes), preorientSelectionBoxTransform(preorientSelectionBoxTransform)
+    static std::wstring makeName(ItemDescriptorPointer itemDescriptor)
+    {
+        return L"builtin.item(itemDescriptor=" + itemDescriptor->name + L")";
+    }
+public:
+    const ItemDescriptorPointer itemDescriptor;
+    EntityItem(ItemDescriptorPointer itemDescriptor, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
+        : EntityDescriptor(makeName(itemDescriptor), PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))),
+                           meshes(meshes), renderDynamic(false),
+                           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
+                           itemDescriptor(itemDescriptor)
     {
     }
+    EntityItem(ItemDescriptorPointer itemDescriptor, Matrix preorientSelectionBoxTransform)
+        : EntityDescriptor(makeName(itemDescriptor), PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))),
+                           meshes(), renderDynamic(true),
+                           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
+                           itemDescriptor(itemDescriptor)
+    {
+    }
+private:
     struct ItemData final
     {
         float angle = 0, bobPhase = 0;
         double timeLeft = 5 * 60;
         double ignorePlayerTime = 0;
         const Player *ignorePlayer = nullptr;
-        std::int8_t count = 1;
         bool followingPlayer = false;
-        void init()
+        ItemStack itemStack;
+        void init(uint32_t seed)
         {
-            std::minstd_rand generator((int)(std::intptr_t)this);
-            generator.discard(1000);
+            std::minstd_rand generator(seed);
+            generator.discard(10);
             std::uniform_real_distribution<float> distribution(0, 2 * M_PI);
             angle = distribution(generator);
             bobPhase = distribution(generator);
         }
-        ItemData()
+        ItemData(uint32_t seed, ItemStack itemStack)
+            : itemStack(itemStack)
         {
-            init();
+            init(seed);
         }
-        ItemData(const Player *ignorePlayer, double ignorePlayerTime)
-            : ignorePlayerTime(ignorePlayerTime), ignorePlayer(ignorePlayer)
+        ItemData(uint32_t seed, ItemStack itemStack, const Player *ignorePlayer, double ignorePlayerTime)
+            : ignorePlayerTime(ignorePlayerTime), ignorePlayer(ignorePlayer), itemStack(itemStack)
         {
-            init();
+            init(seed);
         }
     };
     static std::shared_ptr<ItemData> getItemData(const Entity &entity)
     {
         std::shared_ptr<ItemData> retval = std::static_pointer_cast<ItemData>(entity.data);
-        if(retval == nullptr)
-        {
-            retval = std::shared_ptr<ItemData>(new ItemData);
-        }
-        return retval;
-    }
-    static std::shared_ptr<ItemData> getOrMakeItemData(Entity &entity)
-    {
-        std::shared_ptr<ItemData> retval = std::static_pointer_cast<ItemData>(entity.data);
-        if(retval == nullptr)
-        {
-            retval = std::shared_ptr<ItemData>(new ItemData);
-            entity.data = std::static_pointer_cast<void>(retval);
-        }
+        assert(retval != nullptr);
         return retval;
     }
     static Matrix getTransform(const std::shared_ptr<ItemData> &data)
     {
         return Matrix::rotateY(data->angle).concat(Matrix::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
     }
-    virtual void onGiveToPlayer(Player &player) const = 0;
+    bool ignorePlayer(Entity &entity, const Player *player) const
+    {
+        std::shared_ptr<ItemData> data = getItemData(entity);
+        if(data->ignorePlayerTime > 0 && data->ignorePlayer == player)
+            return true;
+        return false;
+    }
 public:
     virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override
     {
-        std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
-        dest.append(transform(getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition())), meshes[rl]));
+        std::shared_ptr<ItemData> data = getItemData(entity);
+        Matrix tform = getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        if(renderDynamic)
+            itemDescriptor->entityRender(data->itemStack.item, tform, dest, rl);
+        else
+            dest.append(transform(tform, meshes[rl]));
     }
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
@@ -112,18 +130,15 @@ public:
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {
-        getOrMakeItemData(entity);
+        assert(getItemData(entity) != nullptr);
     }
-    virtual std::shared_ptr<void> makeItemDataIgnorePlayer(const Player *player, double ignoreTime = 1) const
+    static std::shared_ptr<void> makeItemData(ItemStack itemStack, World &world)
     {
-        return std::shared_ptr<void>(new ItemData(player, ignoreTime));
+        return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack));
     }
-    virtual bool ignorePlayer(Entity &entity, const Player *player) const
+    static std::shared_ptr<void> makeItemDataIgnorePlayer(ItemStack itemStack, World &world, const Player *player, double ignoreTime = 1)
     {
-        std::shared_ptr<ItemData> data = getOrMakeItemData(entity);
-        if(data->ignorePlayerTime > 0 && data->ignorePlayer == player)
-            return true;
-        return false;
+        return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
     }
     static constexpr float dropSpeed = 3;
 };

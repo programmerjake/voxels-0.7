@@ -19,7 +19,6 @@
  *
  */
 #include "item/builtin/bucket.h"
-#include "entity/builtin/items/bucket.h"
 #include "texture/texture_atlas.h"
 #include "player/player.h"
 #include "block/builtin/fluid.h"
@@ -34,7 +33,7 @@ namespace builtin
 {
 
 Bucket::Bucket()
-    : ItemImage(L"builtin.bucket", TextureAtlas::Bucket.td(), nullptr, Entities::builtin::items::Bucket::descriptor())
+    : ItemImage(L"builtin.bucket", TextureAtlas::Bucket.td(), nullptr)
 {
 }
 Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
@@ -57,7 +56,7 @@ Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Play
     return item;
 }
 WaterBucket::WaterBucket()
-    : ItemImage(L"builtin.water_bucket", TextureAtlas::WaterBucket.td(), Blocks::builtin::Water::descriptor(), Entities::builtin::items::WaterBucket::descriptor())
+    : ItemImage(L"builtin.water_bucket", TextureAtlas::WaterBucket.td(), Blocks::builtin::Water::descriptor())
 {
 }
 }

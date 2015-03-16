@@ -19,9 +19,9 @@
  *
  */
 #include "block/builtin/stone.h"
-#include "entity/builtin/items/stone.h"
+#include "item/builtin/stone.h"
 #include "block/builtin/cobblestone.h"
-#include "entity/builtin/items/cobblestone.h"
+#include "item/builtin/cobblestone.h"
 
 namespace programmerjake
 {
@@ -33,11 +33,11 @@ namespace builtin
 {
 void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
 }
 void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
 {
-    world.addEntity(Entities::builtin::items::Cobblestone::descriptor(), bi.position() + VectorF(0.5), VectorF(0), lock_manager);
+    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
 }
 }
 }

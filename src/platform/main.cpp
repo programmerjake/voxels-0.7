@@ -20,27 +20,14 @@
  */
 #include "platform/platform.h"
 #include "platform/audio.h"
-#include "ui/ui.h"
-#include "ui/label.h"
-#include "ui/button.h"
-#include "ui/checkbox.h"
-#include "ui/shaded_container.h"
-#include "world/view_point.h"
 #include "world/world.h"
-#include "block/block.h"
-#include "block/builtin/air.h"
-#include "block/builtin/stone.h"
-#include "ui/dynamic_label.h"
-#include <iostream>
-#include <sstream>
-#include <thread>
-#include <cstdlib>
 #include "util/logging.h"
-#include "entity/builtin/items/stone.h"
 #include "ui/gameui.h"
+#include <vector>
+#include <string>
+#include <memory>
+#include "render/renderer.h"
 #include "render/render_settings.h"
-
-using namespace std;
 
 namespace programmerjake
 {
@@ -54,7 +41,7 @@ int main(std::vector<std::wstring> args)
     startGraphics();
     Renderer renderer;
     WorldLockManager lock_manager;
-    auto theUi = make_shared<ui::GameUi>(renderer, *world, lock_manager);
+    auto theUi = std::make_shared<ui::GameUi>(renderer, *world, lock_manager);
     auto playingSound = sound.play(0.3f, true);
     theUi->run(renderer);
     theUi = nullptr;

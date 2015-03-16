@@ -21,7 +21,6 @@
 #include "util/wood_descriptor.h"
 #include "block/builtin/wood.h"
 #include "entity/builtin/item.h"
-#include "entity/builtin/items/wood.h"
 #include "item/builtin/wood.h"
 #include "world/world.h"
 #include "recipe/builtin/unordered.h"
@@ -181,10 +180,6 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
     ItemDescriptorPointer planksItemDescriptor = nullptr;
     ItemDescriptorPointer saplingItemDescriptor = nullptr;
     ItemDescriptorPointer leavesItemDescriptor = nullptr;
-    const Entities::builtin::EntityItem *logEntityDescriptor = nullptr;
-    const Entities::builtin::EntityItem *planksEntityDescriptor = nullptr;
-    const Entities::builtin::EntityItem *saplingEntityDescriptor = nullptr;
-    const Entities::builtin::EntityItem *leavesEntityDescriptor = nullptr;
     for(LogOrientation logOrientation : enum_traits<LogOrientation>())
     {
         logBlockDescriptors[logOrientation] = new Blocks::builtin::WoodLog(this, logOrientation);
@@ -194,12 +189,9 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
     {
         leavesBlockDescriptors[canDecay] = new Blocks::builtin::WoodLeaves(this, canDecay);
     }
-    logEntityDescriptor = new Entities::builtin::items::WoodLog(this);
-    planksEntityDescriptor = new Entities::builtin::items::WoodPlanks(this);
-    leavesEntityDescriptor = new Entities::builtin::items::WoodLeaves(this);
-    logItemDescriptor = new Items::builtin::WoodLog(this, logBlockDescriptors[LogOrientation::Y], logEntityDescriptor);
-    planksItemDescriptor = new Items::builtin::WoodPlanks(this, planksBlockDescriptor, planksEntityDescriptor);
-    leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptors[false], leavesEntityDescriptor);
+    logItemDescriptor = new Items::builtin::WoodLog(this, logBlockDescriptors[LogOrientation::Y]);
+    planksItemDescriptor = new Items::builtin::WoodPlanks(this, planksBlockDescriptor);
+    leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptors[false]);
     setDescriptors(logBlockDescriptors,
                    planksBlockDescriptor,
                    saplingBlockDescriptor,
@@ -207,11 +199,7 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
                    logItemDescriptor,
                    planksItemDescriptor,
                    saplingItemDescriptor,
-                   leavesItemDescriptor,
-                   logEntityDescriptor,
-                   planksEntityDescriptor,
-                   saplingEntityDescriptor,
-                   leavesEntityDescriptor);
+                   leavesItemDescriptor);
     new Recipes::builtin::WoodToPlanksRecipe(this);
     new Recipes::builtin::PlanksToSticksRecipe(this);
     new Recipes::builtin::CraftingTableRecipe(this);

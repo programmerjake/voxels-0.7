@@ -23,7 +23,6 @@
 #include "texture/texture_atlas.h"
 #include "block/builtin/stone.h"
 #include "block/builtin/air.h"
-#include "entity/builtin/items/stone.h"
 #include "item/item.h"
 #include "ui/gameui.h"
 #include "item/builtin/stone.h"

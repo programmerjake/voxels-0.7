@@ -19,21 +19,49 @@
  *
  */
 #include "item/item.h"
+#include "entity/builtin/item.h"
+#include "player/player.h"
 #include <cassert>
 
 namespace programmerjake
 {
 namespace voxels
 {
-ItemDescriptor::ItemDescriptor(std::wstring name)
+ItemDescriptor::ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform)
     : name(name)
 {
+    entity = new Entities::builtin::EntityItem(this, entityPreorientSelectionBoxTransform);
+    ItemDescriptors.add(this);
+}
+
+ItemDescriptor::ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform)
+    : name(name)
+{
+    entity = new Entities::builtin::EntityItem(this, entityMeshes, entityPreorientSelectionBoxTransform);
     ItemDescriptors.add(this);
 }
 
 ItemDescriptor::~ItemDescriptor()
 {
     ItemDescriptors.remove(this);
+    delete entity;
+}
+
+Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity)
+{
+    assert(itemStack.good());
+    return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemData(itemStack, world));
+}
+
+Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, const Player *player, double ignoreTime)
+{
+    assert(itemStack.good());
+    return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemDataIgnorePlayer(itemStack, world, player, ignoreTime));
+}
+
+Entity *ItemDescriptor::dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
+{
+    return player.createDroppedItemEntity(ItemStack(item), world, lock_manager);
 }
 
 linked_map<std::wstring, ItemDescriptorPointer> *ItemDescriptors_t::itemsMap = nullptr;

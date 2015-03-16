@@ -20,7 +20,6 @@
  */
 #include "item/builtin/dirt.h"
 #include "block/builtin/dirt.h"
-#include "entity/builtin/items/dirt.h"
 #include "texture/texture_atlas.h"
 #include "player/player.h"
 namespace programmerjake
@@ -33,7 +32,7 @@ namespace builtin
 {
 
 Dirt::Dirt()
-    : ItemBlock(L"builtin.dirt", TextureAtlas::Dirt.td(), Blocks::builtin::Dirt::descriptor(), Entities::builtin::items::Dirt::descriptor())
+    : ItemBlock(L"builtin.dirt", TextureAtlas::Dirt.td(), Blocks::builtin::Dirt::descriptor())
 {
 }
 }

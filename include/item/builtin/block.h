@@ -43,12 +43,21 @@ class ItemBlock : public ItemDescriptor
     Mesh mesh;
     BlockDescriptorPointer block;
     const Entities::builtin::EntityItem *entity;
+    static Matrix getPreorientSelectionBoxTransform()
+    {
+        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25f)).concat(Matrix::translate(0, -0.125f, 0));
+    }
+    static enum_array<Mesh, RenderLayer> makeMeshes(Mesh mesh)
+    {
+        enum_array<Mesh, RenderLayer> retval;
+        retval[RenderLayer::Opaque].append(transform(getPreorientSelectionBoxTransform(), std::move(mesh)));
+        return std::move(retval);
+    }
 protected:
-    ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemDescriptor(name), block(block), entity(entity)
+    ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block)
+        : ItemDescriptor(name, makeMeshes(boxMesh), getPreorientSelectionBoxTransform()), block(block)
     {
         assert(block != nullptr);
-        assert(entity != nullptr);
         Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
         tform = tform.concat(Matrix::rotateY(-M_PI / 4));
         tform = tform.concat(Matrix::rotateX(M_PI / 6));
@@ -56,12 +65,12 @@ protected:
         tform = tform.concat(Matrix::translate(0.5f, 0.5f, 0.1f));
         mesh = transform(tform, std::move(boxMesh));
     }
-    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz), block, entity)
+    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, BlockDescriptorPointer block)
+        : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz), block)
     {
     }
-    ItemBlock(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block, const Entities::builtin::EntityItem *entity)
-        : ItemBlock(name, td, td, td, td, td, td, block, entity)
+    ItemBlock(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block)
+        : ItemBlock(name, td, td, td, td, td, td, block)
     {
     }
     virtual Item getAfterPlaceItem() const
@@ -71,10 +80,6 @@ protected:
     BlockDescriptorPointer getBlock() const
     {
         return block;
-    }
-    const Entities::builtin::EntityItem *getEntityItem() const
-    {
-        return entity;
     }
 public:
     static void renderMesh(Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
@@ -92,10 +97,6 @@ public:
     {
         return true;
     }
-    virtual Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
-    {
-        return player.createDroppedItemEntity(entity, world, lock_manager);
-    }
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
     {
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
@@ -108,7 +109,7 @@ public:
     }
     virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override
     {
-        world.addEntity(entity, dispensePosition + VectorF(0.5f), dispenseDirection * Entities::builtin::EntityItem::dropSpeed, lock_manager);
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(item), dispensePosition + VectorF(0.5), dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
         return Item();
     }
 };

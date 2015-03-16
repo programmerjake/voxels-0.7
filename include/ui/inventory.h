@@ -49,7 +49,8 @@ private:
         output = ItemStack();
         recipeOutput = RecipeOutput();
         RecipeInput::ItemsArrayType recipeInputItems;
-        unsigned recipeCount = ItemStack::MaxCount;
+        unsigned recipeCount = 0;
+        bool haveRecipeCount = false;
         for(int x = 0; x < (int)inputItemStacks.itemStacks.size(); x++)
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
@@ -58,8 +59,9 @@ private:
                 {
                     recipeInputItems[x][y] = inputItemStacks.itemStacks[x][y].item;
                     unsigned c = inputItemStacks.itemStacks[x][y].count;
-                    if(recipeCount > c)
+                    if(recipeCount > c || !haveRecipeCount)
                         recipeCount = c;
+                    haveRecipeCount = true;
                 }
             }
         }
@@ -72,7 +74,7 @@ private:
         }
         else
         {
-            unsigned maxRecipeCount = ItemStack::MaxCount / recipeOutput.output.count;
+            unsigned maxRecipeCount = recipeOutput.output.getMaxCount() / recipeOutput.output.count;
             if(recipeCount > maxRecipeCount)
                 recipeCount = maxRecipeCount;
             output = ItemStack(recipeOutput.output.item, recipeCount * recipeOutput.output.count);
@@ -98,7 +100,9 @@ protected:
                 }
             }
             unsigned transferRecipeCount = (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
-            unsigned maxRecipeCount = (ItemStack::MaxCount - destItemStack->count) / recipeOutput.output.count;
+            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count)
+                                        ? (recipeOutput.output.getMaxCount() - destItemStack->count) / recipeOutput.output.count
+                                        : 0;
             if(transferRecipeCount > maxRecipeCount)
                 transferRecipeCount = maxRecipeCount;
             transferCount = transferRecipeCount * recipeOutput.output.count;

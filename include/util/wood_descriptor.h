@@ -170,10 +170,6 @@ private:
     ItemDescriptorPointer planksItemDescriptor;
     ItemDescriptorPointer saplingItemDescriptor;
     ItemDescriptorPointer leavesItemDescriptor;
-    EntityDescriptorPointer logEntityDescriptor;
-    EntityDescriptorPointer planksEntityDescriptor;
-    EntityDescriptorPointer saplingEntityDescriptor;
-    EntityDescriptorPointer leavesEntityDescriptor;
 protected:
     WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees);
     void setDescriptors(enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors,
@@ -183,11 +179,7 @@ protected:
                         ItemDescriptorPointer logItemDescriptor,
                         ItemDescriptorPointer planksItemDescriptor,
                         ItemDescriptorPointer saplingItemDescriptor,
-                        ItemDescriptorPointer leavesItemDescriptor,
-                        EntityDescriptorPointer logEntityDescriptor,
-                        EntityDescriptorPointer planksEntityDescriptor,
-                        EntityDescriptorPointer saplingEntityDescriptor,
-                        EntityDescriptorPointer leavesEntityDescriptor)
+                        ItemDescriptorPointer leavesItemDescriptor)
     {
         this->logBlockDescriptors = logBlockDescriptors;
         this->planksBlockDescriptor = planksBlockDescriptor;
@@ -197,10 +189,6 @@ protected:
         this->planksItemDescriptor = planksItemDescriptor;
         this->saplingItemDescriptor = saplingItemDescriptor;
         this->leavesItemDescriptor = leavesItemDescriptor;
-        this->logEntityDescriptor = logEntityDescriptor;
-        this->planksEntityDescriptor = planksEntityDescriptor;
-        this->saplingEntityDescriptor = saplingEntityDescriptor;
-        this->leavesEntityDescriptor = leavesEntityDescriptor;
     }
 public:
     TextureDescriptor getLogTopTexture() const
@@ -258,22 +246,6 @@ public:
     ItemDescriptorPointer getLeavesItemDescriptor() const
     {
         return leavesItemDescriptor;
-    }
-    EntityDescriptorPointer getLogEntityDescriptor() const
-    {
-        return logEntityDescriptor;
-    }
-    EntityDescriptorPointer getPlanksEntityDescriptor() const
-    {
-        return planksEntityDescriptor;
-    }
-    EntityDescriptorPointer getSaplingEntityDescriptor() const
-    {
-        return saplingEntityDescriptor;
-    }
-    EntityDescriptorPointer getLeavesEntityDescriptor() const
-    {
-        return leavesEntityDescriptor;
     }
 };
 

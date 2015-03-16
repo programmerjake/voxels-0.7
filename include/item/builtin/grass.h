@@ -23,6 +23,7 @@
 
 #include "item/builtin/block.h"
 #include "util/global_instance_maker.h"
+#include "texture/texture_atlas.h"
 
 namespace programmerjake
 {
@@ -36,6 +37,16 @@ class Grass final : public ItemBlock
 {
     friend class global_instance_maker<Grass>;
 private:
+    static Mesh makeMesh()
+    {
+        Mesh retval = Generate::unitBox(TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td(),
+                                        TextureAtlas::Dirt.td(), TextureDescriptor(),
+                                        TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td());
+        retval.append(colorize(BiomeDescriptor::makeBiomeGrassColor(0.5f, 0.5f), Generate::unitBox(TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td(),
+                                                                                                    TextureDescriptor(), TextureAtlas::GrassTop.td(),
+                                                                                                    TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td())));
+        return std::move(retval);
+    }
     Grass();
 public:
     static const Grass *pointer()

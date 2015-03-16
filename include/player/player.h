@@ -37,7 +37,6 @@
 #include "item/item_struct.h"
 #include "entity/builtin/item.h"
 #include "block/builtin/air.h"
-#include "entity/builtin/items/stone.h"
 
 namespace programmerjake
 {
@@ -220,12 +219,11 @@ public:
     {
         return world.castRay(getViewRay(), lock_manager, 10, rayBlockCollisionMask, playerEntity);
     }
-    Entity *createDroppedItemEntity(EntityDescriptorPointer descriptor, World &world, WorldLockManager &lock_manager)
+    Entity *createDroppedItemEntity(ItemStack itemStack, World &world, WorldLockManager &lock_manager)
     {
+        assert(itemStack.good());
         RayCasting::Ray ray = getViewRay();
-        const Entities::builtin::EntityItem *itemDescriptor = dynamic_cast<const Entities::builtin::EntityItem *>(descriptor);
-        assert(itemDescriptor != nullptr);
-        return world.addEntity(descriptor, ray.startPosition, normalize(ray.direction) * 6, lock_manager, itemDescriptor->makeItemDataIgnorePlayer(this));
+        return ItemDescriptor::addToWorld(world, lock_manager, itemStack, ray.startPosition, normalize(ray.direction) * 6, this);
     }
     RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
     {
