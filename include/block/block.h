@@ -47,6 +47,7 @@
 #include "util/block_update.h"
 #include <list>
 #include "render/render_settings.h"
+#include "item/item_struct.h"
 
 namespace programmerjake
 {
@@ -230,8 +231,16 @@ public:
     {
         return Matrix::identity();
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
     {
+    }
+    virtual float getBreakDuration(Item tool) const
+    {
+        return 0;
+    }
+    virtual bool isMatchingTool(Item tool) const
+    {
+        return false;
     }
     virtual bool isReplaceable() const
     {

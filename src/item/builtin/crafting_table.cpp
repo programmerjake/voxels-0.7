@@ -177,7 +177,7 @@ namespace Blocks
 {
 namespace builtin
 {
-void CraftingTable::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+void CraftingTable::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CraftingTable::descriptor())), bi.position() + VectorF(0.5));
 }

@@ -112,6 +112,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
         if(c.valid())
         {
+            Item tool = player->removeSelectedItem();
+            Item originalTool = tool;
             switch(c.type)
             {
             case RayCasting::Collision::Type::None:
@@ -128,10 +130,14 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 if(good)
                 {
                     world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
-                    b.descriptor->onBreak(world, b, bi, lock_manager);
+                    b.descriptor->onBreak(world, b, bi, lock_manager, tool);
                 }
                 break;
             }
+            }
+            if(tool.good())
+            {
+                player->addItem(tool);
             }
         }
     }
@@ -201,7 +207,10 @@ bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLoc
     {
         world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
         if(runBreakAction)
-            b.descriptor->onBreak(world, b, bi, lock_manager);
+        {
+            Item tool;
+            b.descriptor->onBreak(world, b, bi, lock_manager, tool);
+        }
         return true;
     }
     return false;

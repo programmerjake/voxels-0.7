@@ -152,7 +152,7 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLogItemDescriptor())), bi.position() + VectorF(0.5));
     }
@@ -186,7 +186,7 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getPlanksItemDescriptor())), bi.position() + VectorF(0.5));
     }
@@ -246,7 +246,7 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLeavesItemDescriptor())), bi.position() + VectorF(0.5));
     }
