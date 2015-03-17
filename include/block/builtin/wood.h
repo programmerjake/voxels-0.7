@@ -361,6 +361,10 @@ public:
         return false;
         #warning add check for shears
     }
+    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    {
+        return false;
+    }
 };
 }
 }

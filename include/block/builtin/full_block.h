@@ -103,6 +103,10 @@ public:
     {
         return true;
     }
+    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    {
+        return true;
+    }
 };
 }
 }

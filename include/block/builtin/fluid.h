@@ -426,6 +426,7 @@ public:
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
+                    b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
@@ -433,6 +434,7 @@ public:
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
+                    b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
@@ -440,6 +442,7 @@ public:
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
+                    b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
@@ -447,6 +450,7 @@ public:
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
                 {
+                    b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
             }
@@ -455,6 +459,7 @@ public:
             b = bi.get(lock_manager);
             if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
             {
+                b.descriptor->onReplace(world, b, bi, lock_manager);
                 setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
             }
         }
@@ -482,6 +487,10 @@ public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
         handleToolDamage(tool);
+    }
+    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    {
+        return false;
     }
 };
 }

@@ -108,6 +108,7 @@
 		<Unit filename="include/block/block.h" />
 		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
+		<Unit filename="include/block/builtin/attached_block.h" />
 		<Unit filename="include/block/builtin/cobblestone.h" />
 		<Unit filename="include/block/builtin/crafting_table.h" />
 		<Unit filename="include/block/builtin/dirt.h" />

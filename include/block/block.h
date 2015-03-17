@@ -235,6 +235,9 @@ public:
     virtual void handleToolDamage(Item &tool) const;
     virtual float getBreakDuration(Item tool) const; /// values less than zero mean that this block won't break
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const = 0;
+    virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+    {
+    }
     virtual float getHardness() const = 0; /// values less than zero mean that this block won't break
     virtual bool isHelpingToolKind(Item tool) const = 0; /// if there is not a specific tool for this block then return true to avoid the slowdown factor
     virtual ToolLevel getToolLevel() const = 0;
@@ -248,6 +251,7 @@ public:
     {
         return false;
     }
+    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const = 0;
 };
 }
 }

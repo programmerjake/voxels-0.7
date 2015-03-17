@@ -227,10 +227,13 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
         return false;
     BlockIterator bi = world.getBlockIterator(collision.blockPosition);
     Block oldBlock = bi.get(lock_manager);
+    if(!oldBlock.good())
+        return false;
     if(oldBlock.descriptor->isReplaceable())
     {
         if(playerEntity->physicsObject->collidesWithBlock(b.descriptor->blockShape, collision.blockPosition))
             return false;
+        oldBlock.descriptor->onReplace(world, oldBlock, bi, lock_manager);
         world.setBlock(bi, lock_manager, b);
         return true;
     }
