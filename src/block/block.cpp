@@ -162,6 +162,8 @@ float BlockDescriptor::getBreakDuration(Item tool) const
     const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
     if(!isMatchingTool(tool))
         return baseSpeed * 10.0f / 3.0f;
+    if(!isHelpingToolKind(tool))
+        return baseSpeed;
     if(toolDescriptor == nullptr)
         return baseSpeed;
     return baseSpeed * toolDescriptor->getMineDurationFactor(tool);

@@ -19,6 +19,7 @@
  *
  */
 #include "generate/decorator/dirt_vein.h"
+#include "generate/decorator/ore_vein.h"
 #include "generate/decorator/cobblestone_spike.h"
 
 namespace programmerjake

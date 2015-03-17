@@ -115,8 +115,10 @@
 		<Unit filename="include/block/builtin/fluid.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
 		<Unit filename="include/block/builtin/grass.h" />
+		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
+		<Unit filename="include/block/builtin/torch.h" />
 		<Unit filename="include/block/builtin/water.h" />
 		<Unit filename="include/block/builtin/wood.h" />
 		<Unit filename="include/block/builtin/woods.h" />
@@ -135,6 +137,7 @@
 		<Unit filename="include/generate/decorator/cobblestone_spike.h" />
 		<Unit filename="include/generate/decorator/dirt_vein.h" />
 		<Unit filename="include/generate/decorator/mineral_vein.h" />
+		<Unit filename="include/generate/decorator/ore_vein.h" />
 		<Unit filename="include/generate/decorator/pregenerated_instance.h" />
 		<Unit filename="include/generate/decorator/tree.h" />
 		<Unit filename="include/generate/decorator_declaration.h" />
@@ -147,6 +150,8 @@
 		<Unit filename="include/item/builtin/dirt.h" />
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
+		<Unit filename="include/item/builtin/minerals.h" />
+		<Unit filename="include/item/builtin/ores.h" />
 		<Unit filename="include/item/builtin/stone.h" />
 		<Unit filename="include/item/builtin/tools/simple_toolset.h" />
 		<Unit filename="include/item/builtin/tools/stone_toolset.h" />
@@ -247,6 +252,7 @@
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
+		<Unit filename="src/block/builtin/ores.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/block/builtin/woods.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />

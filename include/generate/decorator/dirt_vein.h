@@ -38,7 +38,7 @@ class DirtVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<DirtVeinDecorator>;
 private:
     DirtVeinDecorator()
-        : MineralVeinDecorator(L"builtin.dirt_vein", 33, 33, 0, 256, 30)
+        : MineralVeinDecorator(L"builtin.dirt_vein", 1, 33, 0, 256, 10)
     {
     }
 protected:

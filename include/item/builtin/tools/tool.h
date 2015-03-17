@@ -90,7 +90,7 @@ public:
         float damage = getRelativeDamage(item);
         if(damage > 0)
         {
-            Matrix damageTransform = Matrix::scale(maxX - minX, maxY - minY, 1).concat(Matrix::translate(minX, minY, -1)).scale(0.5f * (minRenderZ + maxRenderZ));
+            Matrix damageTransform = Matrix::scale(maxX - minX, maxY - minY, 1).concat(Matrix::translate(minX, minY, -1)).concat(Matrix::scale(0.5f * (minRenderZ + maxRenderZ)));
             dest.append(transform(damageTransform, Generate::itemDamage(damage)));
         }
     }
