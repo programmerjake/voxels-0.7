@@ -475,7 +475,7 @@ constexpr VectorF normalizeNoThrow(const VectorI & v)
     return normalizeNoThrow((VectorF)v);
 }
 
-constexpr VectorF gravityVector = VectorF(0, -9.8, 0);
+constexpr VectorF defaultGravityVector = VectorF(0, -9.8, 0);
 }
 }
 

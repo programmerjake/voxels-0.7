@@ -323,7 +323,7 @@ private:
             }
             return false;
         }
-        return b.descriptor->isReplaceable();
+        return b.descriptor->isReplaceableByFluid();
     }
 public:
     virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
@@ -424,7 +424,7 @@ public:
                 bi = blockIterator;
                 bi.moveTowardNX();
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
@@ -432,7 +432,7 @@ public:
                 bi = blockIterator;
                 bi.moveTowardPX();
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
@@ -440,7 +440,7 @@ public:
                 bi = blockIterator;
                 bi.moveTowardNZ();
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
@@ -448,7 +448,7 @@ public:
                 bi = blockIterator;
                 bi.moveTowardPZ();
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
                     setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
@@ -457,7 +457,7 @@ public:
             bi = blockIterator;
             bi.moveTowardNY();
             b = bi.get(lock_manager);
-            if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceable())
+            if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
             {
                 b.descriptor->onReplace(world, b, bi, lock_manager);
                 setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));

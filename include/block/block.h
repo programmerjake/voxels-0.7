@@ -246,12 +246,20 @@ public:
     {
         return false;
     }
+    virtual bool isReplaceableByFluid() const
+    {
+        return false;
+    }
     virtual bool isGroundBlock() const = 0;
     virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
     {
         return false;
     }
     virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const = 0;
+    virtual bool canPlace(Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+    {
+        return true;
+    }
 };
 }
 }

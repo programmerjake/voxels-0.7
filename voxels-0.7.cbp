@@ -126,6 +126,7 @@
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/entity/builtin/item.h" />
+		<Unit filename="include/entity/builtin/particle.h" />
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/entity/entity_struct.h" />
 		<Unit filename="include/generate/biome/biome.h" />
@@ -159,6 +160,7 @@
 		<Unit filename="include/item/builtin/tools/tool.h" />
 		<Unit filename="include/item/builtin/tools/tools.h" />
 		<Unit filename="include/item/builtin/tools/wood_toolset.h" />
+		<Unit filename="include/item/builtin/torch.h" />
 		<Unit filename="include/item/builtin/wood.h" />
 		<Unit filename="include/item/item.h" />
 		<Unit filename="include/item/item_struct.h" />
@@ -238,6 +240,7 @@
 		<Unit filename="include/util/solve.h" />
 		<Unit filename="include/util/spin_lock.h" />
 		<Unit filename="include/util/string_cast.h" />
+		<Unit filename="include/util/three_state_bool.h" />
 		<Unit filename="include/util/tool_level.h" />
 		<Unit filename="include/util/unlock_guard.h" />
 		<Unit filename="include/util/util.h" />
@@ -255,6 +258,7 @@
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/ores.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
+		<Unit filename="src/block/builtin/torch.cpp" />
 		<Unit filename="src/block/builtin/woods.cpp" />
 		<Unit filename="src/decoder/png_decoder.cpp" />
 		<Unit filename="src/entity/builtin/item.cpp" />
@@ -269,6 +273,7 @@
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />
 		<Unit filename="src/item/builtin/tools/builtin_toolsets.cpp" />
+		<Unit filename="src/item/builtin/torch.cpp" />
 		<Unit filename="src/item/item.cpp" />
 		<Unit filename="src/lighting/lighting.cpp" />
 		<Unit filename="src/physics/physics.cpp" />

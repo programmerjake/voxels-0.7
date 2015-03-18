@@ -88,6 +88,10 @@ protected:
     {
         return Item();
     }
+    BlockDescriptorPointer getBlock() const
+    {
+        return block;
+    }
 public:
     static void renderMesh(Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
     {

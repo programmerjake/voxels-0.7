@@ -61,8 +61,9 @@ struct PhysicsProperties final
     static constexpr CollisionMaskType itemCollisionMask = 1 << 1;
     static constexpr CollisionMaskType playerCollisionMask = 1 << 2;
     static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF & ~itemCollisionMask;
-    explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask, CollisionMaskType othersCollisionMask = defaultCollisionMask, float bounceFactor = std::sqrt(0.5f), float slideFactor = 1 - std::sqrt(0.5f))
-        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), myCollisionMask(myCollisionMask), othersCollisionMask(othersCollisionMask)
+    VectorF gravity;
+    explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask, CollisionMaskType othersCollisionMask = defaultCollisionMask, float bounceFactor = std::sqrt(0.5f), float slideFactor = 1 - std::sqrt(0.5f), VectorF gravity = defaultGravityVector)
+        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), myCollisionMask(myCollisionMask), othersCollisionMask(othersCollisionMask), gravity(gravity)
     {
     }
     static PhysicsProperties read(stream::Reader & reader)
@@ -72,6 +73,7 @@ struct PhysicsProperties final
         retval.slideFactor = stream::read_limited<float32_t>(reader, 0, 1);
         retval.myCollisionMask = stream::read<CollisionMaskType>(reader);
         retval.othersCollisionMask = stream::read<CollisionMaskType>(reader);
+        retval.gravity = stream::read<VectorF>(reader);
         return retval;
     }
     void write(stream::Writer & writer) const
@@ -80,6 +82,7 @@ struct PhysicsProperties final
         stream::write<float32_t>(writer, slideFactor);
         stream::write<CollisionMaskType>(writer, myCollisionMask);
         stream::write<CollisionMaskType>(writer, othersCollisionMask);
+        stream::write<VectorF>(writer, gravity);
     }
     bool canCollideWith(const PhysicsProperties &r) const
     {
@@ -644,6 +647,7 @@ inline PositionF PhysicsObject::getPosition() const
     std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];
+    VectorF gravityVector = getProperties().gravity;
     if(affectedByGravity && !isSupported())
         return position[variableSetIndex] + deltaTime * velocity[variableSetIndex] + 0.5f * deltaTime * deltaTime * gravityVector;
     return position[variableSetIndex] + deltaTime * velocity[variableSetIndex];
@@ -654,6 +658,7 @@ inline VectorF PhysicsObject::getVelocity() const
     auto world = getWorld();
     std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
+    VectorF gravityVector = getProperties().gravity;
     if(!affectedByGravity || isSupported())
         return velocity[variableSetIndex];
     float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];

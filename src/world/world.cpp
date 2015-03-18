@@ -43,6 +43,7 @@
 #include "util/decorator_cache.h"
 #include "util/wood_descriptor.h"
 #include "item/builtin/tools/stone_toolset.h"
+#include "item/builtin/minerals.h"
 
 using namespace std;
 
@@ -383,6 +384,7 @@ protected:
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getPickaxe())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getShovel())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Coal::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
             }
         }
 #endif
