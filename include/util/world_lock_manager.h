@@ -66,8 +66,8 @@ struct WorldLockManager final
             if(the_lock != &new_lock)
             {
                 clear();
-                auto range = join_ranges(unit_range(new_lock), range<U>(restBegin, restEnd));
-                lock_all(range.begin(), range.end());
+                auto rest = join_ranges(unit_range(new_lock), range<U>(restBegin, restEnd));
+                lock_all(rest.begin(), rest.end());
                 the_lock = &new_lock;
             }
         }
