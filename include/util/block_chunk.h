@@ -41,6 +41,8 @@
 #include "generate/biome/biome.h"
 #include "block/block_struct.h"
 #include <condition_variable>
+#include "util/linked_map.h"
+#include <vector>
 
 namespace programmerjake
 {
@@ -177,6 +179,25 @@ struct BlockChunkSubchunk final
     std::atomic_bool cachedMeshesUpToDate;
     WrappedEntity::SubchunkListType entityList;
     BlockChunkInvalidateCountType invalidateCount = 0;
+    linked_map<PositionI, char> particleGeneratingSet; /// holds positions of blocks in this subchunk that generate particles
+    void addParticleGeneratingBlock(PositionI position) /// must be locked first
+    {
+        particleGeneratingSet[position] = '\0';
+    }
+    void removeParticleGeneratingBlock(PositionI position) /// must be locked first
+    {
+        particleGeneratingSet.erase(position);
+        if(particleGeneratingSet.empty())
+            particleGeneratingSet.clear(); // frees more memory
+    }
+    void addToParticleGeneratingBlockList(std::vector<PositionI> &dest) const /// must be locked first
+    {
+        dest.reserve(dest.size() + particleGeneratingSet.size());
+        for(auto v : particleGeneratingSet)
+        {
+            dest.push_back(std::get<0>(v));
+        }
+    }
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
         : BlockChunkSubchunk()
     {

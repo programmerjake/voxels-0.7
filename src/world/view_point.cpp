@@ -325,6 +325,7 @@ ViewPoint::~ViewPoint()
 }
 void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager)
 {
+    Matrix cameraToWorld = inverse(worldToCamera);
     std::unique_lock<std::recursive_mutex> lockViewPoint(theLock);
     typedef std::unordered_map<std::thread::id, std::shared_ptr<BlockLightingCache>> LightingCacheMapType;
     std::shared_ptr<LightingCacheMapType> pLightingCacheMap = std::static_pointer_cast<LightingCacheMapType>(pLightingCache);
@@ -361,7 +362,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
                         continue;
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
-                        entity.entity.descriptor->render(entity.entity, entityMeshes.at(rl), rl);
+                        entity.entity.descriptor->render(entity.entity, entityMeshes.at(rl), rl, cameraToWorld);
                     }
                 }
             }

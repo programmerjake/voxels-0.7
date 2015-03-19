@@ -23,6 +23,8 @@
 
 #include <utility>
 #include <type_traits>
+#include <memory>
+#include <cassert>
 
 namespace programmerjake
 {
@@ -69,6 +71,78 @@ retry:
         }
     }
 }
+
+template <typename T>
+bool try_lock_all(T begin, T end)
+{
+    struct failure_t
+    {
+    };
+    for(auto i = begin; i != end; i++)
+    {
+        try
+        {
+            try
+            {
+                if(!i->try_lock())
+                    throw failure_t();
+            }
+            catch(...)
+            {
+                for(auto j = begin; j != i; j++)
+                {
+                    j->unlock();
+                }
+                throw;
+            }
+        }
+        catch(failure_t &)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+class generic_lock_wrapper final
+{
+private:
+    void *pLock;
+    void (*lockFn)(void *pLock);
+    bool (*try_lockFn)(void *pLock);
+    void (*unlockFn)(void *pLock);
+public:
+    template <typename T>
+    explicit generic_lock_wrapper(T &theLock)
+        : pLock(static_cast<void *>(std::addressof(theLock)))
+    {
+        lockFn = [](void *pLock)->void
+        {
+            static_cast<T *>(pLock)->lock();
+        };
+        try_lockFn = [](void *pLock)->bool
+        {
+            return static_cast<T *>(pLock)->try_lock();
+        };
+        unlockFn = [](void *pLock)->void
+        {
+            static_cast<T *>(pLock)->unlock();
+        };
+    }
+    void lock()
+    {
+        lockFn(pLock);
+    }
+    bool try_lock()
+    {
+        return try_lockFn(pLock);
+    }
+    void unlock()
+    {
+        unlockFn(pLock);
+    }
+};
+
 }
 }
 

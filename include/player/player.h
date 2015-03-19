@@ -78,7 +78,7 @@ public:
     {
         return global_instance_maker<PlayerEntity>::getInstance();
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override;
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override;
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
     {

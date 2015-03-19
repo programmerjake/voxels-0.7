@@ -94,6 +94,8 @@ public:
 	static int FireFrameCount();
 	static const TextureAtlas &Delete(int index);
 	static int DeleteFrameCount();
+	static const TextureAtlas &ParticleSmoke(int index);
+	static int ParticleSmokeFrameCount();
 	static const TextureAtlas
 	ActivatorRailOff,
     ActivatorRailOn,

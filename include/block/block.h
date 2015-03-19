@@ -260,6 +260,13 @@ public:
     {
         return true;
     }
+    virtual bool generatesParticles() const
+    {
+        return false;
+    }
+    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+    {
+    }
 };
 }
 }

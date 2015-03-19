@@ -113,7 +113,7 @@ private:
         return false;
     }
 public:
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl) const override
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override
     {
         std::shared_ptr<ItemData> data = getItemData(entity);
         Matrix tform = getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition()));

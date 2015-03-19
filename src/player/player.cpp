@@ -26,6 +26,7 @@
 #include "item/item.h"
 #include "ui/gameui.h"
 #include "item/builtin/stone.h"
+#include "entity/builtin/particles/smoke.h"
 
 namespace programmerjake
 {
@@ -40,7 +41,7 @@ void PlayerEntity::generateMeshes()
     head = (Mesh)transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
     #warning add rest of player
 }
-void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl) const
+void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const
 {
     #warning implement
 }
@@ -158,6 +159,13 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 {
                     world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
                     b.descriptor->onBreak(world, b, bi, lock_manager, tool);
+                    for(int i = 0; i < 5; i++)
+                    {
+                        VectorF p = VectorF(std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
+                                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
+                                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()));
+                        Entities::builtin::particles::Smoke::addToWorld(world, lock_manager, bi.position() + p);
+                    }
                     player->destructingTime = 0;
                     player->cooldownTimeLeft = 0.25f;
                     player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);

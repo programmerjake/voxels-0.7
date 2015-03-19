@@ -42,6 +42,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-O2" />
 					<Add option="-g" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
@@ -127,6 +128,7 @@
 		<Unit filename="include/decoder/png_decoder.h" />
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/particle.h" />
+		<Unit filename="include/entity/builtin/particles/smoke.h" />
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/entity/entity_struct.h" />
 		<Unit filename="include/generate/biome/biome.h" />
@@ -226,6 +228,7 @@
 		<Unit filename="include/util/game_version.h" />
 		<Unit filename="include/util/global_instance_maker.h" />
 		<Unit filename="include/util/intrusive_list.h" />
+		<Unit filename="include/util/iterator.h" />
 		<Unit filename="include/util/linked_map.h" />
 		<Unit filename="include/util/lock.h" />
 		<Unit filename="include/util/logging.h" />

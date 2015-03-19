@@ -83,6 +83,14 @@ public:
             return Matrix::translate(0.5f, 0, 0.5f);
         }
     }
+    static VectorF makeTorchHeadPosition(float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    {
+        return VectorF(0, torchHeight, 0);
+    }
+    static VectorF makeTorchBlockHeadPosition(BlockFace attachedToFace, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    {
+        return transform(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth), makeTorchHeadPosition(torchHeight, torchWidth));
+    }
     static Mesh makeBlockMesh(TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture, BlockFace attachedToFace, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
     {
         Mesh mesh = makeMesh(bottomTexture, sideTexture, topTexture, torchHeight, torchWidth);
@@ -154,6 +162,7 @@ protected:
         }
         return retval;
     }
+    const VectorF headPosition;
 public:
     GenericTorch(std::wstring name,
                  TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture,
@@ -171,7 +180,8 @@ public:
                         Mesh(), Mesh(),
                         RenderLayer::Opaque),
                         torchHeight(torchHeight), torchWidth(torchWidth),
-                        rayCollisionBox(makeRayCollisionBox(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth), torchHeight, torchWidth))
+                        rayCollisionBox(makeRayCollisionBox(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth), torchHeight, torchWidth)),
+                        headPosition(makeTorchBlockHeadPosition(attachedToFace, torchHeight, torchWidth))
     {
     }
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
@@ -186,7 +196,6 @@ public:
             collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
-            #warning fix getRayCollision code for all blocks
             collision = ray.getAABoxExitFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
                 return RayCasting::Collision(world);
@@ -276,6 +285,12 @@ public:
     virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
 protected:
     virtual void onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+public:
+    virtual bool generatesParticles() const override
+    {
+        return true;
+    }
+    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const override;
 };
 
 }

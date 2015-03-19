@@ -213,7 +213,7 @@ private:
 public:
     static std::shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world);
     static std::shared_ptr<PhysicsObject> makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world);
-    static std::shared_ptr<PhysicsObject> makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world);
+    static std::shared_ptr<PhysicsObject> makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world, VectorF gravity = VectorF(0));
     ~PhysicsObject();
     PositionF getPosition() const;
     VectorF getVelocity() const;
@@ -449,7 +449,7 @@ protected:
 public:
     static std::shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::vector<PhysicsConstraint> constraints = {});
     static std::shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::vector<PhysicsConstraint> constraints = {});
-    static std::shared_ptr<const PhysicsObjectConstructor> empty();
+    static std::shared_ptr<const PhysicsObjectConstructor> empty(VectorF gravity = VectorF(0));
     static std::shared_ptr<const PhysicsObjectConstructor> read(stream::Reader & reader, VariableSet &variableSet)
     {
         Shape shape = stream::read<Shape>(reader);
@@ -490,7 +490,10 @@ public:
             return cylinderMaker(radius, yExtent, affectedByGravity, isStatic, properties, constraints);
         }
         case Shape::Empty:
-            return empty();
+        {
+            VectorF gravity = stream::read<VectorF>(reader);
+            return empty(gravity);
+        }
         }
         assert(false);
         return nullptr;
@@ -579,21 +582,29 @@ inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor:
     return std::shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorBox(extents, affectedByGravity, isStatic, properties, constraints));
 }
 
-struct PhysicsObjectConstructorEmpty final : public PhysicsObjectConstructor
+class PhysicsObjectConstructorEmpty final : public PhysicsObjectConstructor
 {
+private:
+    VectorF gravity;
+public:
+    PhysicsObjectConstructorEmpty(VectorF gravity)
+        : gravity(gravity)
+    {
+    }
     virtual void write(stream::Writer & writer, VariableSet &) const override
     {
         stream::write<Shape>(writer, Shape::Empty);
+        stream::write<VectorF>(writer, gravity);
     }
     virtual std::shared_ptr<PhysicsObject> make(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world) const override
     {
-        return PhysicsObject::makeEmpty(position, velocity, world);
+        return PhysicsObject::makeEmpty(position, velocity, world, gravity);
     }
 };
 
-inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::empty()
+inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::empty(VectorF gravity)
 {
-    return std::shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorEmpty);
+    return std::shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorEmpty(gravity));
 }
 
 inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type)
@@ -625,9 +636,9 @@ inline std::shared_ptr<PhysicsObject> PhysicsObject::makeCylinder(PositionF posi
     return retval;
 }
 
-inline std::shared_ptr<PhysicsObject> PhysicsObject::makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world)
+inline std::shared_ptr<PhysicsObject> PhysicsObject::makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world, VectorF gravity)
 {
-    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, false, true, VectorF(), world, PhysicsProperties(), Type::Empty));
+    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, gravity != VectorF(0), true, VectorF(), world, PhysicsProperties(PhysicsProperties::defaultCollisionMask, PhysicsProperties::defaultCollisionMask, std::sqrt(0.5f), 1 - std::sqrt(0.5f), gravity), Type::Empty));
     world->objects.insert(retval);
     return retval;
 }

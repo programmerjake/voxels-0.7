@@ -562,6 +562,10 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
             chunkGeneratingThreadFn();
         });
     }
+    particleGeneratingThread = thread([this]()
+    {
+        particleGeneratingThreadFn();
+    });
 }
 
 World::~World()
@@ -575,6 +579,8 @@ World::~World()
     for(auto &t : chunkGeneratingThreads)
         if(t.joinable())
             t.join();
+    if(particleGeneratingThread.joinable())
+        particleGeneratingThread.join();
 }
 
 Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)
@@ -880,7 +886,7 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     if(bi.position().y != 0)
         return NAN;
     std::unique_lock<std::mutex> lockIt(viewPointsLock);
-    float retval;
+    float retval = 0;
     bool retvalSet = false;
     PositionF chunkMinCorner = bi.position();
     PositionF chunkMaxCorner = chunkMinCorner + VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
@@ -913,11 +919,13 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 {
     assert(descriptor != nullptr);
     BlockIterator bi = getBlockIterator((PositionI)position);
+    lock_manager.block_biome_lock.clear();
     WrappedEntity *entity = new WrappedEntity(Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData));
     descriptor->makeData(entity->entity, *this, lock_manager);
+    lock_manager.block_biome_lock.clear();
     std::unique_lock<std::recursive_mutex> lockChunk(bi.chunk->chunkVariables.entityListLock);
-    WrappedEntity::ChunkListType &chunkList = bi.chunk->chunkVariables.entityList;
     bi.updateLock(lock_manager);
+    WrappedEntity::ChunkListType &chunkList = bi.chunk->chunkVariables.entityList;
     WrappedEntity::SubchunkListType &subchunkList = bi.getSubchunk().entityList;
     entity->currentChunk = bi.chunk;
     entity->currentSubchunk = &bi.getSubchunk();
@@ -1070,5 +1078,93 @@ RayCasting::Collision World::castRay(RayCasting::Ray ray, WorldLockManager &lock
         return retval;
     return RayCasting::Collision(*this);
 }
+
+void World::generateParticlesInSubchunk(BlockIterator sbi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions)
+{
+    positions.clear();
+    BlockChunkSubchunk &subchunk = sbi.getSubchunk();
+    sbi.updateLock(lock_manager);
+    subchunk.addToParticleGeneratingBlockList(positions);
+    for(PositionI pos : positions)
+    {
+        BlockIterator bi = sbi;
+        bi.moveTo(pos);
+        Block b = bi.get(lock_manager);
+        if(b.good())
+            b.descriptor->generateParticles(*this, b, bi, lock_manager, currentTime, deltaTime);
+    }
+}
+
+void World::particleGeneratingThreadFn()
+{
+    double currentTime = 0;
+    auto lastTimePoint = std::chrono::steady_clock::now();
+    std::vector<PositionI> positionsBuffer;
+    WorldLockManager lock_manager;
+    while(!destructing)
+    {
+        lock_manager.clear();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        auto currentTimePoint = std::chrono::steady_clock::now();
+        double deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTimePoint - lastTimePoint).count();
+        lastTimePoint = currentTimePoint;
+        std::vector<std::pair<PositionF, float>> viewPointsVector;
+        {
+            std::unique_lock<std::mutex> lockIt(viewPointsLock);
+            for(ViewPoint *viewPoint : viewPoints)
+            {
+                PositionF position;
+                std::int32_t viewDistance;
+                viewPoint->getPositionAndViewDistance(position, viewDistance);
+                float generateDistance = 30.0f;
+                viewPointsVector.emplace_back(position, generateDistance);
+            }
+        }
+        for(std::size_t viewPointIndex = 0; viewPointIndex < viewPointsVector.size(); viewPointIndex++)
+        {
+            PositionF centerPosition = std::get<0>(viewPointsVector[viewPointIndex]);
+            float generateDistance = std::get<1>(viewPointsVector[viewPointIndex]);
+            BlockIterator gbi = getBlockIterator((PositionI)centerPosition);
+            PositionF minPositionF = centerPosition - VectorF(generateDistance);
+            PositionF maxPositionF = centerPosition + VectorF(generateDistance);
+            PositionI minP = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)minPositionF);
+            PositionI maxP = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)maxPositionF);
+            for(PositionI pos = minP; pos.x <= maxP.x; pos.x += BlockChunk::subchunkSizeXYZ)
+            {
+                for(pos.y = minP.y; pos.y <= maxP.y; pos.y += BlockChunk::subchunkSizeXYZ)
+                {
+                    for(pos.z = minP.z; pos.z <= maxP.z; pos.z += BlockChunk::subchunkSizeXYZ)
+                    {
+                        bool generatedBefore = false;
+                        for(std::size_t i = 0; i < viewPointIndex; i++)
+                        {
+                            PositionF centerPosition2 = std::get<0>(viewPointsVector[i]);
+                            float generateDistance2 = std::get<1>(viewPointsVector[i]);
+                            PositionF minPositionF2 = centerPosition2 - VectorF(generateDistance2);
+                            PositionF maxPositionF2 = centerPosition2 + VectorF(generateDistance2);
+                            PositionI minP2 = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)minPositionF2);
+                            PositionI maxP2 = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)maxPositionF2);
+                            if(pos.x >= minP2.x && pos.x <= maxP2.x &&
+                               pos.y >= minP2.y && pos.y <= maxP2.y &&
+                               pos.z >= minP2.z && pos.z <= maxP2.z)
+                            {
+                                generatedBefore = true;
+                                break;
+                            }
+                        }
+                        if(generatedBefore)
+                            continue;
+                        BlockIterator sbi = gbi;
+                        sbi.moveTo(pos);
+                        generateParticlesInSubchunk(sbi, lock_manager, currentTime, deltaTime, positionsBuffer);
+                    }
+                }
+            }
+        }
+
+        currentTime += deltaTime;
+    }
+}
+
 }
 }

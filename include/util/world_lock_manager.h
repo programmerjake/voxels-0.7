@@ -20,6 +20,10 @@
  */
 #ifndef WORLD_LOCK_MANAGER_H_INCLUDED
 #define WORLD_LOCK_MANAGER_H_INCLUDED
+
+#include "util/lock.h"
+#include "util/iterator.h"
+
 namespace programmerjake
 {
 namespace voxels
@@ -56,15 +60,25 @@ struct WorldLockManager final
                 the_lock = &new_lock;
             }
         }
+        template <typename U>
+        void set(T &new_lock, U restBegin, U restEnd)
+        {
+            if(the_lock != &new_lock)
+            {
+                clear();
+                auto range = join_ranges(unit_range(new_lock), range<U>(restBegin, restEnd));
+                lock_all(range.begin(), range.end());
+                the_lock = &new_lock;
+            }
+        }
     };
     LockManager<std::mutex> block_biome_lock;
-    //LockManager<std::mutex> biome_lock;
     void clear()
     {
         block_biome_lock.clear();
-        //biome_lock.clear();
     }
 };
 }
 }
+
 #endif // WORLD_LOCK_MANAGER_H_INCLUDED

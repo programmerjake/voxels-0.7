@@ -519,5 +519,35 @@ int TextureAtlas::DeleteFrameCount()
 {
     return 10;
 }
+
+const TextureAtlas &TextureAtlas::ParticleSmoke(int index)
+{
+    assert(index >= 0 && index < ParticleSmokeFrameCount());
+    switch(index)
+    {
+    case 0:
+        return ParticleSmoke0;
+    case 1:
+        return ParticleSmoke1;
+    case 2:
+        return ParticleSmoke2;
+    case 3:
+        return ParticleSmoke3;
+    case 4:
+        return ParticleSmoke4;
+    case 5:
+        return ParticleSmoke5;
+    case 6:
+        return ParticleSmoke6;
+    default:
+        return ParticleSmoke7;
+    }
+}
+
+int TextureAtlas::ParticleSmokeFrameCount()
+{
+    return 8;
+}
+
 }
 }

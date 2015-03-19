@@ -285,9 +285,7 @@ public:
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
         std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
-        if(!std::get<0>(collision))
-            return RayCasting::Collision(world);
-        if(std::get<1>(collision) < RayCasting::Ray::eps)
+        if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
             collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)

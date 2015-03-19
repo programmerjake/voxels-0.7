@@ -266,7 +266,17 @@ public:
     void setBlock(BlockIterator bi, WorldLockManager &lock_manager, Block newBlock)
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);
+        Block block = (Block)b.block;
+        if(block.good() && block.descriptor->generatesParticles())
+        {
+            bi.getSubchunk().removeParticleGeneratingBlock(bi.position());
+        }
         b.block = (PackedBlock)newBlock;
+        block = newBlock;
+        if(block.good() && block.descriptor->generatesParticles())
+        {
+            bi.getSubchunk().addParticleGeneratingBlock(bi.position());
+        }
         lightingStable = false;
         for(int dx = -1; dx <= 1; dx++)
         {
@@ -379,7 +389,17 @@ public:
                                 VectorI newBlocksPosition = subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
                                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
                                 BlockChunkBlock &b = bi.getBlock(lock_manager);
+                                Block block = (Block)b.block;
+                                if(block.good() && block.descriptor->generatesParticles())
+                                {
+                                    bi.getSubchunk().removeParticleGeneratingBlock(bi.position());
+                                }
                                 b.block = (PackedBlock)newBlock;
+                                block = newBlock;
+                                if(block.good() && block.descriptor->generatesParticles())
+                                {
+                                    bi.getSubchunk().addParticleGeneratingBlock(bi.position());
+                                }
                                 invalidateBlock(bi, lock_manager);
                                 for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
                                 {
@@ -465,6 +485,7 @@ private:
     WorldLightingProperties lighting;
     std::thread lightingThread;
     std::thread blockUpdateThread;
+    std::thread particleGeneratingThread;
     std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
     std::mutex viewPointsLock;
@@ -473,11 +494,13 @@ private:
     void blockUpdateThreadFn();
     void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
     void chunkGeneratingThreadFn();
+    void particleGeneratingThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static BlockUpdate *removeAllReadyBlockUpdatesInChunk(float deltaTime, BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
-    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator bi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
+    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
+    void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
 public:
     WorldLightingProperties getLighting() const
     {

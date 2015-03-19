@@ -21,6 +21,8 @@
 #include "block/builtin/torch.h"
 #include "item/builtin/torch.h"
 #include "block/builtin/air.h"
+#include "entity/builtin/particles/smoke.h"
+#include <cmath>
 
 namespace programmerjake
 {
@@ -46,6 +48,19 @@ void Torch::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Bloc
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), blockIterator.position() + VectorF(0.5));
     blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor()));
+}
+
+void Torch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+{
+    const double generateSmokePerSecond = 1.0;
+    double nextTime = currentTime + deltaTime;
+    double currentSmokeCount = std::floor(currentTime * generateSmokePerSecond);
+    double nextSmokeCount = std::floor(nextTime * generateSmokePerSecond);
+    int generateSmokeCount = limit<int>((int)(nextSmokeCount - currentSmokeCount), 0, 10);
+    for(int i = 0; i < generateSmokeCount; i++)
+    {
+        Entities::builtin::particles::Smoke::addToWorld(world, lock_manager, bi.position() + headPosition);
+    }
 }
 
 }
