@@ -23,6 +23,9 @@
 #include "player/player.h"
 #include "block/builtin/fluid.h"
 #include "block/builtin/water.h"
+#include "recipe/builtin/pattern.h"
+#include "item/builtin/minerals.h" // iron ingot
+
 namespace programmerjake
 {
 namespace voxels
@@ -61,5 +64,43 @@ WaterBucket::WaterBucket()
 }
 }
 }
+
+namespace Recipes
+{
+namespace builtin
+{
+class BucketRecipe final : public PatternRecipe<3, 2>
+{
+    friend class global_instance_maker<BucketRecipe>;
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::Bucket::descriptor()), 1));
+        return true;
+    }
+private:
+    BucketRecipe()
+        : PatternRecipe(checked_array<Item, 3 * 2>
+        {
+            Item(Items::builtin::IronIngot::descriptor()), Item(), Item(Items::builtin::IronIngot::descriptor()),
+            Item(), Item(Items::builtin::IronIngot::descriptor()), Item(),
+        })
+    {
+    }
+public:
+    static const BucketRecipe *pointer()
+    {
+        return global_instance_maker<BucketRecipe>::getInstance();
+    }
+    static RecipeDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+}
+}
+
 }
 }
