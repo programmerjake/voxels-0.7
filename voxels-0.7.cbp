@@ -17,6 +17,7 @@
 					<Add option="-pie" />
 					<Add option="-DDEBUG_VERSION" />
 					<Add option="-D_GLIBCXX_DEBUG" />
+					<Add option="-DDEBUG_LOCKS" />
 				</Compiler>
 				<Linker>
 					<Add option="-fPIC" />
@@ -303,6 +304,7 @@
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/block_chunk.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
+		<Unit filename="src/util/lock.cpp" />
 		<Unit filename="src/util/logging.cpp" />
 		<Unit filename="src/util/matrix.cpp" />
 		<Unit filename="src/util/util.cpp" />

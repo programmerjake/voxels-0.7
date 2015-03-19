@@ -44,6 +44,7 @@
 #include "util/logging.h"
 #include "util/object_counter.h"
 #include "util/ordered_weak_ptr.h"
+#include "util/lock.h"
 
 namespace programmerjake
 {
@@ -292,7 +293,8 @@ class PhysicsWorld final : public std::enable_shared_from_this<PhysicsWorld>
 {
     friend class PhysicsObject;
 private:
-    mutable std::recursive_mutex theLock; // lock for all state except for this->chunks
+    mutable checked_recursive_lock<200> theLockImp;
+    mutable generic_lock_wrapper theLock; // lock for all state except for this->chunks
     double currentTime = 0;
     int variableSetIndex = 0;
 private:
@@ -303,6 +305,10 @@ private:
         return b.descriptor->blockShape;
     }
 public:
+    PhysicsWorld()
+        : theLock(theLockImp)
+    {
+    }
     BlockChunkMap chunks; // not locked by theLock
     BlockIterator getBlockIterator(PositionI pos)
     {
@@ -335,29 +341,29 @@ public:
     static constexpr float timeEPS = eps;
     inline double getCurrentTime() const
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<generic_lock_wrapper> lockIt(theLock);
         return currentTime;
     }
     inline int getOldVariableSetIndex() const
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<generic_lock_wrapper> lockIt(theLock);
         return variableSetIndex;
     }
     inline int getNewVariableSetIndex() const
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<generic_lock_wrapper> lockIt(theLock);
         return 1 - variableSetIndex;
     }
 private:
     std::unordered_set<ordered_weak_ptr<PhysicsObject>> objects;
     void addObject(std::shared_ptr<PhysicsObject> o)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<generic_lock_wrapper> lockIt(theLock);
         objects.insert(o);
     }
     void removeObject(std::shared_ptr<PhysicsObject> o)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<generic_lock_wrapper> lockIt(theLock);
         objects.erase(o);
     }
     struct CollisionEvent final
@@ -419,8 +425,8 @@ inline void PhysicsObject::transferToNewWorld(std::shared_ptr<PhysicsWorld> newW
     std::shared_ptr<PhysicsWorld> world = getWorld();
     if(world == newWorld)
         return;
-    std::unique_lock<std::recursive_mutex> worldLock(world->theLock, std::defer_lock);
-    std::unique_lock<std::recursive_mutex> newWorldLock(newWorld->theLock, std::defer_lock);
+    std::unique_lock<generic_lock_wrapper> worldLock(world->theLock, std::defer_lock);
+    std::unique_lock<generic_lock_wrapper> newWorldLock(newWorld->theLock, std::defer_lock);
     std::lock(worldLock, newWorldLock);
     double deltaTime = newWorld->getCurrentTime() - world->getCurrentTime();
     for(double &v : objectTime)
@@ -655,7 +661,7 @@ inline PhysicsObject::~PhysicsObject()
 inline PositionF PhysicsObject::getPosition() const
 {
     auto world = getWorld();
-    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
+    std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];
     VectorF gravityVector = getProperties().gravity;
@@ -667,7 +673,7 @@ inline PositionF PhysicsObject::getPosition() const
 inline VectorF PhysicsObject::getVelocity() const
 {
     auto world = getWorld();
-    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
+    std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     VectorF gravityVector = getProperties().gravity;
     if(!affectedByGravity || isSupported())
@@ -679,7 +685,7 @@ inline VectorF PhysicsObject::getVelocity() const
 inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocity)
 {
     auto world = getWorld();
-    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
+    std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getNewVariableSetIndex();
     objectTime[variableSetIndex] = world->getCurrentTime();
     newPosition += position[variableSetIndex] * newStateCount;
@@ -696,7 +702,7 @@ inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocit
 inline void PhysicsObject::setupNewState()
 {
     auto world = getWorld();
-    std::unique_lock<std::recursive_mutex> lockIt(world->theLock);
+    std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int oldVariableSetIndex = world->getOldVariableSetIndex();
     int newVariableSetIndex = world->getNewVariableSetIndex();
     objectTime[newVariableSetIndex] = objectTime[oldVariableSetIndex];

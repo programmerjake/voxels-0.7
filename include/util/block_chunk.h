@@ -173,8 +173,8 @@ typedef std::uint64_t BlockChunkInvalidateCountType;
 
 struct BlockChunkSubchunk final
 {
-    std::mutex lock;
-    std::mutex biome_lock;
+    checked_lock<150> lockImp;
+    generic_lock_wrapper lock;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     std::atomic_bool cachedMeshesUpToDate;
     WrappedEntity::SubchunkListType entityList;
@@ -203,7 +203,7 @@ struct BlockChunkSubchunk final
     {
     }
     BlockChunkSubchunk()
-        : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *)
+        : lock(lockImp), cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *)
         {
         })
     {
@@ -263,11 +263,11 @@ class BlockChunkFullLock final
     {
         VectorI pos;
         BlockChunk *chunk;
-        std::mutex &operator *() const
+        generic_lock_wrapper &operator *() const
         {
             return chunk->subchunks[pos.x][pos.y][pos.z].lock;
         }
-        std::mutex *operator ->() const
+        generic_lock_wrapper *operator ->() const
         {
             return &operator *();
         }
@@ -331,11 +331,11 @@ class BlockChunkColumnLock final
     {
         VectorI pos;
         BlockChunk *chunk;
-        std::mutex &operator *() const
+        generic_lock_wrapper &operator *() const
         {
             return chunk->subchunks[pos.x][0][pos.z].lock;
         }
-        std::mutex *operator ->() const
+        generic_lock_wrapper *operator ->() const
         {
             return &operator *();
         }

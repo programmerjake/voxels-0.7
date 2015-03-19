@@ -730,6 +730,7 @@ void World::blockUpdateThreadFn()
 
 void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
 {
+    lock_manager.clear();
     WorldLockManager new_lock_manager;
     World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
     worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
@@ -761,7 +762,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
         {
             BlockIterator bi = gcbi;
             bi.moveBy(VectorI(dx, 0, dz));
-            bi.updateBiomeLock(new_lock_manager);
+            bi.updateLock(new_lock_manager);
             biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
         }
     }
@@ -794,7 +795,13 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
             ++nextSrcIter;
             BlockIterator destBi = cbi;
             destBi.moveTo((PositionI)position);
-            destBi.updateLock(lock_manager);
+            if(!destBi.tryUpdateLock(lock_manager))
+            {
+                new_lock_manager.block_biome_lock.clear();
+                auto lock_range = unit_range(srcSubchunk->lock);
+                destBi.updateLock(lock_manager, lock_range.begin(), lock_range.end());
+                new_lock_manager.block_biome_lock.adopt(srcSubchunk->lock);
+            }
             WrappedEntity::SubchunkListType &destSubchunkList = destBi.getSubchunk().entityList;
             srcChunkIter->currentChunk = destBi.chunk;
             srcChunkIter->currentSubchunk = &destBi.getSubchunk();
@@ -810,7 +817,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
         {
             BlockIterator bi = cbi;
             bi.moveBy(VectorI(dx, 0, dz));
-            bi.updateBiomeLock(lock_manager);
+            bi.updateLock(lock_manager);
             biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
         }
     }

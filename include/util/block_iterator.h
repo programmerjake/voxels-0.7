@@ -63,9 +63,14 @@ class BlockIterator final
     {
         lock_manager.block_biome_lock.set(getSubchunk().lock);
     }
-    void updateBiomeLock(WorldLockManager &lock_manager) const
+    template <typename T>
+    void updateLock(WorldLockManager &lock_manager, T beginV, T endV) const
     {
-        lock_manager.block_biome_lock.set(getBiomeSubchunk().biome_lock);
+        lock_manager.block_biome_lock.set(getSubchunk().lock, beginV, endV);
+    }
+    bool tryUpdateLock(WorldLockManager &lock_manager) const
+    {
+        return lock_manager.block_biome_lock.try_set(getSubchunk().lock);
     }
     BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
@@ -245,7 +250,7 @@ public:
     }
     const BiomeProperties &getBiomeProperties(WorldLockManager &lock_manager) const
     {
-        updateBiomeLock(lock_manager);
+        updateLock(lock_manager);
         return getBiome().biomeProperties;
     }
     BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const

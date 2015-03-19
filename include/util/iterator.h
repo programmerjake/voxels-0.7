@@ -31,10 +31,11 @@ namespace programmerjake
 namespace voxels
 {
 
-template <typename IT1, typename IT2, typename = typename std::enable_if<std::is_same<typename std::remove_const<typename IT1::value_type>::type, typename std::remove_const<typename IT2::value_type>::type>::value>::type>
+template <typename IT1, typename IT2>
 struct joined_iterator_value_type_helper final
 {
-    typedef typename std::common_type<typename IT1::value_type, typename IT2::value_type>::type value_type;
+    static_assert(std::is_same<typename std::remove_const<typename std::iterator_traits<IT1>::value_type>::type, typename std::remove_const<typename std::iterator_traits<IT1>::value_type>::type>::value, "can't join incompatible iterators");
+    typedef typename std::conditional<std::is_const<typename std::iterator_traits<IT1>::value_type>::value || std::is_const<typename std::iterator_traits<IT1>::value_type>::value, typename std::add_const<typename std::iterator_traits<IT1>::value_type>::type, typename std::iterator_traits<IT1>::value_type>::type type;
 };
 
 template <typename TT1, typename TT2>
@@ -224,11 +225,11 @@ template <typename T, typename = void>
 struct iterator_type final
 {
     typedef typename iterator_type_helper<T>::type type;
-    static type begin(T &c)
+    static type begin(T &&c)
     {
         return iterator_type_helper<T>::beginImp(c);
     }
-    static type end(T &c)
+    static type end(T &&c)
     {
         return iterator_type_helper<T>::endImp(c);
     }
@@ -237,7 +238,7 @@ struct iterator_type final
 template <typename T, std::size_t N>
 struct iterator_type<T[N], void> final
 {
-    typedef T *type;
+    typedef typename std::decay<T[N]>::type type;
     static type begin(T (&c)[N])
     {
         return c;
@@ -252,24 +253,24 @@ template <typename CT>
 struct iterator_type<CT, typename std::enable_if<std::is_same<decltype(std::declval<CT>().begin()), decltype(std::declval<CT>().begin())>::value>::type> final
 {
     typedef typename std::decay<decltype(std::declval<CT>().begin())>::type type;
-    static type begin(CT &c)
+    static type begin(CT &&c)
     {
         return c.begin();
     }
-    static type end(CT &c)
+    static type end(CT &&c)
     {
         return c.end();
     }
 };
 
 template <typename CT>
-range<typename iterator_type<CT>::type> to_range(CT &container)
+range<typename iterator_type<CT>::type> to_range(CT &&container)
 {
     return range<typename iterator_type<CT>::type>(iterator_type<CT>::begin(container), iterator_type<CT>::end(container));
 }
 
 template <typename CT1, typename CT2>
-range<joined_iterator<typename iterator_type<CT1>::type, typename iterator_type<CT2>::type>> join_ranges(CT1 &c1, CT2 &c2)
+range<joined_iterator<typename iterator_type<CT1>::type, typename iterator_type<CT2>::type>> join_ranges(CT1 &&c1, CT2 &&c2)
 {
     typedef joined_iterator<typename iterator_type<CT1>::type, typename iterator_type<CT2>::type> joined_iterator_type;
     range<typename iterator_type<CT1>::type> r1 = to_range(c1);
@@ -283,6 +284,7 @@ template <typename T>
 struct empty_range_iterator final : public std::iterator<std::random_access_iterator_tag, T>
 {
 public:
+    typedef T value_type;
     bool operator ==(const empty_range_iterator &rt) const
     {
         return true;
@@ -373,6 +375,7 @@ struct unit_range_iterator final : public std::iterator<std::forward_iterator_ta
 private:
     T *value;
 public:
+    typedef T value_type;
     explicit unit_range_iterator(T &value)
         : value(std::addressof(value))
     {

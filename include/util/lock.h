@@ -25,6 +25,10 @@
 #include <type_traits>
 #include <memory>
 #include <cassert>
+#include <set>
+#include <unordered_map>
+#include <exception>
+#include <mutex>
 
 namespace programmerjake
 {
@@ -140,6 +144,164 @@ public:
     void unlock()
     {
         unlockFn(pLock);
+    }
+};
+
+class lock_hierarchy final
+{
+private:
+    struct variables_t final
+    {
+        std::multiset<std::size_t> lock_levels;
+        std::unordered_map<const void *, std::size_t> locks;
+    };
+    static variables_t &get_variables()
+    {
+        static thread_local variables_t retval;
+        return retval;
+    }
+    static void handleError(const char *what, std::size_t lock_level, const void *theLock);
+public:
+    static void check_lock(std::size_t lock_level, const void *theLock)
+    {
+        variables_t &variables = get_variables();
+        if(variables.locks[theLock] != 0)
+        {
+            handleError("check_lock: already locked", lock_level, theLock);
+        }
+        auto iter = variables.lock_levels.lower_bound(lock_level);
+        if(iter != variables.lock_levels.end())
+        {
+            handleError("check_lock: hierarchy violation", lock_level, theLock);
+        }
+    }
+    static void check_recursive_lock(std::size_t lock_level, const void *theLock)
+    {
+        variables_t &variables = get_variables();
+        if(variables.locks[theLock] != 0)
+        {
+            return; // already locked
+        }
+        auto iter = variables.lock_levels.lower_bound(lock_level);
+        if(iter != variables.lock_levels.end())
+        {
+            handleError("check_recursive_lock: hierarchy violation", lock_level, theLock);
+        }
+    }
+    static void add_lock(std::size_t lock_level, const void *theLock)
+    {
+        variables_t &variables = get_variables();
+        if(variables.locks[theLock]++ == 0)
+            variables.lock_levels.insert(lock_level);
+    }
+    static void remove_lock(std::size_t lock_level, const void *theLock)
+    {
+        variables_t &variables = get_variables();
+        auto iter = variables.lock_levels.find(lock_level);
+        if(iter == variables.lock_levels.end())
+        {
+            handleError("remove_lock: unlock of unlocked lock", lock_level, theLock);
+        }
+        if(--variables.locks[theLock] == 0)
+        {
+            variables.lock_levels.erase(iter);
+        }
+    }
+};
+
+template <std::size_t level>
+class checked_lock final
+{
+    std::mutex theLock;
+public:
+    static constexpr std::size_t lock_level = level;
+#ifdef DEBUG_LOCKS
+    static constexpr bool DoCheck = true;
+#else
+    static constexpr bool DoCheck = false;
+#endif
+    void lock()
+    {
+        if(DoCheck)
+        {
+            lock_hierarchy::check_lock(lock_level, this);
+            theLock.lock();
+            lock_hierarchy::add_lock(lock_level, this);
+        }
+        else
+            theLock.lock();
+    }
+    bool try_lock()
+    {
+        if(DoCheck)
+        {
+            if(theLock.try_lock())
+            {
+                lock_hierarchy::add_lock(lock_level, this);
+                return true;
+            }
+            return false;
+        }
+        else
+            return theLock.try_lock();
+    }
+    void unlock()
+    {
+        if(DoCheck)
+        {
+            theLock.unlock();
+            lock_hierarchy::remove_lock(lock_level, this);
+        }
+        else
+            theLock.unlock();
+    }
+};
+
+template <std::size_t level>
+class checked_recursive_lock final
+{
+    std::recursive_mutex theLock;
+public:
+    static constexpr std::size_t lock_level = level;
+#ifdef DEBUG_LOCKS
+    static constexpr bool DoCheck = true;
+#else
+    static constexpr bool DoCheck = false;
+#endif
+    void lock()
+    {
+        if(DoCheck)
+        {
+            lock_hierarchy::check_recursive_lock(lock_level, this);
+            theLock.lock();
+            lock_hierarchy::add_lock(lock_level, this);
+        }
+        else
+            theLock.lock();
+    }
+    bool try_lock()
+    {
+        if(DoCheck)
+        {
+            if(theLock.try_lock())
+            {
+                lock_hierarchy::add_lock(lock_level, this);
+                return true;
+            }
+            return false;
+        }
+        else
+            return theLock.try_lock();
+    }
+    void unlock()
+    {
+        if(DoCheck)
+        {
+            theLock.unlock();
+            lock_hierarchy::remove_lock(lock_level, this);
+        }
+        else
+            theLock.unlock();
     }
 };
 

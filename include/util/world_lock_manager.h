@@ -60,19 +60,35 @@ struct WorldLockManager final
                 the_lock = &new_lock;
             }
         }
+        void adopt(T &new_lock)
+        {
+            assert(the_lock == nullptr);
+            the_lock = &new_lock;
+        }
+        bool try_set(T &new_lock)
+        {
+            if(the_lock != &new_lock)
+            {
+                clear();
+                if(!new_lock.try_lock())
+                    return false;
+                the_lock = &new_lock;
+            }
+            return true;
+        }
         template <typename U>
         void set(T &new_lock, U restBegin, U restEnd)
         {
             if(the_lock != &new_lock)
             {
                 clear();
-                auto rest = join_ranges(unit_range(new_lock), range<U>(restBegin, restEnd));
+                auto rest = join_ranges(unit_range(new_lock), range<typename std::decay<U>::type>(restBegin, restEnd));
                 lock_all(rest.begin(), rest.end());
                 the_lock = &new_lock;
             }
         }
     };
-    LockManager<std::mutex> block_biome_lock;
+    LockManager<generic_lock_wrapper> block_biome_lock;
     void clear()
     {
         block_biome_lock.clear();

@@ -27,33 +27,35 @@ namespace voxels
 void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
     //getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
-    std::unique_lock<std::recursive_mutex> lockIt(theLock);
+    std::unique_lock<generic_lock_wrapper> lockIt(theLock);
     float stepDuration = 1 / 60.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
     constexpr float searchEps = 0.1f;
+    std::vector<std::shared_ptr<PhysicsObject>> objects;
+    objects.reserve(this->objects.size());
+    for(auto i = this->objects.begin(); i != this->objects.end();)
+    {
+        objects.push_back(i->lock());
+        if(objects.back() == nullptr)
+        {
+            objects.pop_back();
+            i = this->objects.erase(i);
+        }
+        else
+            i++;
+    }
     for(std::size_t step = 1; step <= stepCount; step++)
     {
         if(step >= stepCount)
             currentTime = stopTime;
         else
             currentTime += stepDuration;
+        lockIt.unlock();
         bool anyCollisions = true;
         for(std::size_t i = 0; i < 10 && anyCollisions; i++)
         {
             anyCollisions = false;
-            std::vector<std::shared_ptr<PhysicsObject>> objectsVector;
-            objectsVector.reserve(objects.size());
-            for(auto i = objects.begin(); i != objects.end();)
-            {
-                std::shared_ptr<PhysicsObject> v = i->lock();
-                if(v == nullptr)
-                    i = objects.erase(i);
-                else
-                {
-                    objectsVector.push_back(v);
-                    ++i;
-                }
-            }
+            std::vector<std::shared_ptr<PhysicsObject>> objectsVector(objects);
             std::vector<std::pair<float, std::shared_ptr<PhysicsObject>>> temporaryObjectsVector;
             temporaryObjectsVector.resize(objectsVector.size());
             for(std::size_t i = 0; i < temporaryObjectsVector.size(); i++)
@@ -139,13 +141,15 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             collideObjectsList.reserve(objects.size());
             for(auto i = objects.begin(); i != objects.end();)
             {
-                std::shared_ptr<PhysicsObject> o = i->lock();
+                std::shared_ptr<PhysicsObject> o = *i;
                 if(!o || o->isDestroyed())
                 {
                     i = objects.erase(i);
                     continue;
                 }
+                lockIt.lock();
                 o->setupNewState();
+                lockIt.unlock();
                 if(o->isEmpty())
                 {
                     i++;
@@ -190,7 +194,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             std::size_t startCollideObjectsListSize = collideObjectsList.size();
             for(auto i = objects.begin(); i != objects.end(); i++)
             {
-                std::shared_ptr<PhysicsObject> objectA = i->lock();
+                std::shared_ptr<PhysicsObject> objectA = *i;
                 if(objectA->isStatic())
                     continue;
                 collideObjectsList.resize(startCollideObjectsListSize);
@@ -259,6 +263,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         node = nextNode;
                     }
                 }
+                lockIt.lock();
                 for(auto objectB : collideObjectsList)
                 {
                     if(objectA != objectB && objectA->collides(*objectB))
@@ -268,6 +273,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         //debugLog << "collision" << std::endl;
                     }
                 }
+                lockIt.unlock();
                 minX = ifloor(fMinX);
                 maxX = iceil(fMaxX);
                 float fMinY = position.y - extents.y - searchEps;
@@ -287,11 +293,13 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
                             setObjectToBlock(objectB, bi, lock_manager);
+                            lockIt.lock();
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;
                                 objectA->adjustPosition(*objectB);
                             }
+                            lockIt.unlock();
                         }
                     }
                 }
@@ -313,8 +321,11 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                     node = nextNode;
                 }
             }
+            lockIt.lock();
             swapVariableSetIndex();
+            lockIt.unlock();
         }
+        lockIt.lock();
     }
 }
 }

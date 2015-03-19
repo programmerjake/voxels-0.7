@@ -306,7 +306,7 @@ public:
      */
     void setBiomeProperties(BlockIterator bi, WorldLockManager &lock_manager, BiomeProperties newBiomeProperties)
     {
-        bi.updateBiomeLock(lock_manager);
+        bi.updateLock(lock_manager);
         BlockChunkBiome &b = bi.getBiome();
         b.biomeProperties = std::move(newBiomeProperties);
         lightingStable = false;
