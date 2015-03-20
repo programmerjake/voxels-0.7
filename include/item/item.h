@@ -72,6 +72,32 @@ public:
     {
         return 64;
     }
+    virtual unsigned getMaxFurnaceFuelStackCount() const
+    {
+        if(getItemAfterBurnInFurnace().good())
+            return 1;
+        return getMaxStackCount();
+    }
+    virtual ItemStack afterSmeltTransformFuel(ItemStack fuel) const
+    {
+        return fuel;
+    }
+    virtual float getFurnaceBurnTime() const
+    {
+        return 0.0f;
+    }
+    virtual ItemStack getItemAfterBurnInFurnace() const
+    {
+        return ItemStack();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item();
+    }
+    virtual float getSmeltTime() const
+    {
+        return 10.0f;
+    }
     virtual void entityRender(Item item, Matrix tform, Mesh &mesh, RenderLayer rl) const
     {
         assert(false);

@@ -54,6 +54,10 @@ public:
     {
         return pointer();
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 5.0f;
+    }
 };
 class WoodLog final : public ItemBlock
 {
@@ -107,6 +111,10 @@ public:
         }
         return item;
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 15.0f;
+    }
 };
 class WoodPlanks final : public ItemBlock
 {
@@ -128,6 +136,10 @@ public:
     WoodDescriptorPointer getWoodDescriptor() const
     {
         return woodDescriptor;
+    }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 15.0f;
     }
 };
 class WoodLeaves final : public ItemBlock

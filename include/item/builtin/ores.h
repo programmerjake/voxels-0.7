@@ -24,6 +24,7 @@
 #include "block/builtin/ores.h"
 #include "texture/texture_atlas.h"
 #include "item/builtin/block.h"
+#include "item/builtin/minerals.h"
 
 namespace programmerjake
 {
@@ -51,6 +52,10 @@ public:
     {
         return pointer();
     }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(Coal::descriptor());
+    }
 };
 
 class IronOre final : public ItemBlock
@@ -70,6 +75,10 @@ public:
     {
         return pointer();
     }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(IronIngot::descriptor());
+    }
 };
 
 class GoldOre final : public ItemBlock
@@ -88,6 +97,10 @@ public:
     static ItemDescriptorPointer descriptor()
     {
         return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(GoldIngot::descriptor());
     }
 };
 

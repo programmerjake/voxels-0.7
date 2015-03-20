@@ -46,6 +46,10 @@ public:
     {
         return pointer();
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 15.0f;
+    }
 };
 }
 }

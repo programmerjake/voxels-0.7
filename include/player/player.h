@@ -214,6 +214,30 @@ public:
     {
         return lastPosition;
     }
+    VectorF getViewDirectionXZ() const
+    {
+        return transform(getWorldOrientationXZTransform(), VectorF(0, 0, -1));
+    }
+    VectorF getViewDirection() const
+    {
+        return transform(getWorldOrientationTransform(), VectorF(0, 0, -1));
+    }
+    BlockFace getViewDirectionXZBlockFaceOut() const
+    {
+        return getBlockFaceFromOutVector(getViewDirectionXZ());
+    }
+    BlockFace getViewDirectionBlockFaceOut() const
+    {
+        return getBlockFaceFromOutVector(getViewDirection());
+    }
+    BlockFace getViewDirectionXZBlockFaceIn() const
+    {
+        return getBlockFaceFromInVector(getViewDirectionXZ());
+    }
+    BlockFace getViewDirectionBlockFaceIn() const
+    {
+        return getBlockFaceFromInVector(getViewDirection());
+    }
     RayCasting::Ray getViewRay() const
     {
         return transform(inverse(getViewTransform()), RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));

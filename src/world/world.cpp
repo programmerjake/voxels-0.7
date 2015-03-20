@@ -44,6 +44,9 @@
 #include "util/wood_descriptor.h"
 #include "item/builtin/tools/stone_toolset.h"
 #include "item/builtin/minerals.h"
+#include "item/builtin/ores.h"
+#include "item/builtin/cobblestone.h"
+#include "item/builtin/furnace.h"
 
 using namespace std;
 
@@ -378,13 +381,17 @@ protected:
 #ifdef DEBUG_VERSION
         if(chunkBasePosition == PositionI(0, 0, 0, Dimension::Overworld))
         {
-            for(int i = 0; i < 2; i++)
+            for(int i = 0; i < 5; i++)
             {
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getAxe())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
+                //ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getPickaxe())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getShovel())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Coal::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::IronOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CoalOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::GoldOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Furnace::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
             }
         }
 #endif

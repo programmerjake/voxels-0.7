@@ -50,6 +50,10 @@ public:
     {
         return pointer();
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 80.0f;
+    }
 };
 
 class IronIngot final : public ItemImage

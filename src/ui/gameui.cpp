@@ -23,6 +23,7 @@
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
 #include "ui/inventory.h"
+#include "ui/player_dialog.h"
 #include <vector>
 
 namespace programmerjake
@@ -120,6 +121,12 @@ void GameUi::clear(Renderer &renderer)
 void GameUi::startInventoryDialog()
 {
     setDialog(std::make_shared<PlayerInventory>(player));
+}
+void GameUi::setDialogWorldAndLockManager()
+{
+    std::shared_ptr<PlayerDialog> playerDialog = std::dynamic_pointer_cast<PlayerDialog>(dialog);
+    if(playerDialog != nullptr)
+        playerDialog->setWorldAndLockManager(world, lock_manager);
 }
 }
 }

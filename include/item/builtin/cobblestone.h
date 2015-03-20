@@ -23,6 +23,7 @@
 
 #include "item/builtin/block.h"
 #include "util/global_instance_maker.h"
+#include "item/builtin/stone.h"
 
 namespace programmerjake
 {
@@ -45,6 +46,10 @@ public:
     static ItemDescriptorPointer descriptor()
     {
         return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(Stone::descriptor());
     }
 };
 }

@@ -117,6 +117,7 @@
 		<Unit filename="include/block/builtin/dirt_block.h" />
 		<Unit filename="include/block/builtin/fluid.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
+		<Unit filename="include/block/builtin/furnace.h" />
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/stone.h" />
@@ -130,6 +131,7 @@
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/particle.h" />
 		<Unit filename="include/entity/builtin/particles/smoke.h" />
+		<Unit filename="include/entity/builtin/tile.h" />
 		<Unit filename="include/entity/entity.h" />
 		<Unit filename="include/entity/entity_struct.h" />
 		<Unit filename="include/generate/biome/biome.h" />
@@ -153,13 +155,14 @@
 		<Unit filename="include/item/builtin/cobblestone.h" />
 		<Unit filename="include/item/builtin/crafting_table.h" />
 		<Unit filename="include/item/builtin/dirt.h" />
+		<Unit filename="include/item/builtin/furnace.h" />
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/minerals.h" />
 		<Unit filename="include/item/builtin/ores.h" />
 		<Unit filename="include/item/builtin/stone.h" />
+		<Unit filename="include/item/builtin/tools/mineral_toolsets.h" />
 		<Unit filename="include/item/builtin/tools/simple_toolset.h" />
-		<Unit filename="include/item/builtin/tools/stone_toolset.h" />
 		<Unit filename="include/item/builtin/tools/tool.h" />
 		<Unit filename="include/item/builtin/tools/tools.h" />
 		<Unit filename="include/item/builtin/tools/wood_toolset.h" />
@@ -259,6 +262,7 @@
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
+		<Unit filename="src/block/builtin/furnace.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/ores.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />

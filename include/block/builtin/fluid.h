@@ -324,7 +324,7 @@ private:
         return b.descriptor->isReplaceableByFluid();
     }
 public:
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
     {
         if(kind == BlockUpdateKind::FluidUpdateNotify)
         {

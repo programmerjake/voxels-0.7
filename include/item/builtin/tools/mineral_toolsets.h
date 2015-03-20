@@ -18,13 +18,14 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef STONE_TOOLSET_H_INCLUDED
-#define STONE_TOOLSET_H_INCLUDED
+#ifndef MINERAL_TOOLSETS_H_INCLUDED
+#define MINERAL_TOOLSETS_H_INCLUDED
 
 #include "item/builtin/tools/simple_toolset.h"
 #include "util/global_instance_maker.h"
 #include "texture/texture_atlas.h"
 #include "item/builtin/cobblestone.h"
+#include "item/builtin/minerals.h"
 
 namespace programmerjake
 {
@@ -36,6 +37,7 @@ namespace builtin
 {
 namespace tools
 {
+
 class StoneToolset final : public SimpleToolset
 {
     friend class global_instance_maker<StoneToolset>;
@@ -54,10 +56,50 @@ public:
         return pointer();
     }
 };
+
+class IronToolset final : public SimpleToolset
+{
+    friend class global_instance_maker<IronToolset>;
+private:
+    IronToolset()
+        : SimpleToolset(L"builtin.iron", ToolLevel_Iron, 1.0f / 6.0f, 251, Item(Items::builtin::IronIngot::descriptor()), TextureAtlas::IronPickaxe.td(), TextureAtlas::IronAxe.td(), TextureAtlas::IronShovel.td(), TextureAtlas::IronHoe.td())
+    {
+    }
+public:
+    static const IronToolset *pointer()
+    {
+        return global_instance_maker<IronToolset>::getInstance();
+    }
+    static const SimpleToolset *descriptor()
+    {
+        return pointer();
+    }
+};
+
+class GoldToolset final : public SimpleToolset
+{
+    friend class global_instance_maker<GoldToolset>;
+private:
+    GoldToolset()
+        : SimpleToolset(L"builtin.gold", ToolLevel_Wood, 1.0f / 12.0f, 33, Item(Items::builtin::GoldIngot::descriptor()), TextureAtlas::GoldPickaxe.td(), TextureAtlas::GoldAxe.td(), TextureAtlas::GoldShovel.td(), TextureAtlas::GoldHoe.td())
+    {
+    }
+public:
+    static const GoldToolset *pointer()
+    {
+        return global_instance_maker<GoldToolset>::getInstance();
+    }
+    static const SimpleToolset *descriptor()
+    {
+        return pointer();
+    }
+};
+
+
 }
 }
 }
 }
 }
 
-#endif // STONE_TOOLSET_H_INCLUDED
+#endif // MINERAL_TOOLSETS_H_INCLUDED

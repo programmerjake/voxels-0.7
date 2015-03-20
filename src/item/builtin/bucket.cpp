@@ -25,6 +25,7 @@
 #include "block/builtin/water.h"
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/minerals.h" // iron ingot
+#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {

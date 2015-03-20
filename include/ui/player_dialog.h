@@ -238,6 +238,9 @@ public:
         }
         return Ui::handleMouseMove(event);
     }
+    virtual void setWorldAndLockManager(World &world, WorldLockManager &lock_manager)
+    {
+    }
 };
 }
 }

@@ -74,6 +74,7 @@ private:
         gameInput->moveDirectionPlayerRelative.set(v * 3.5f);
     }
     void startInventoryDialog();
+    void setDialogWorldAndLockManager();
 public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
@@ -95,6 +96,7 @@ public:
             {
                 dialog = newDialog;
                 lockIt.unlock();
+                setDialogWorldAndLockManager();
                 add(dialog);
                 dialog->reset();
             }

@@ -18,5 +18,5 @@
  * MA 02110-1301, USA.
  *
  */
-#include "item/builtin/tools/stone_toolset.h"
+#include "item/builtin/tools/mineral_toolsets.h"
 #include "item/builtin/tools/wood_toolset.h"

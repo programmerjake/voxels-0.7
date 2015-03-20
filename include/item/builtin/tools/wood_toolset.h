@@ -59,6 +59,10 @@ private:
     {
         recipe = new WoodPickaxeRecipe(this, recipeMaterial, 1);
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 10.0f;
+    }
 };
 class WoodAxe final : public SimpleAxe
 {
@@ -80,6 +84,10 @@ private:
         : SimpleAxe(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodAxeRecipe(this, recipeMaterial, 1);
+    }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 10.0f;
     }
 };
 class WoodShovel final : public SimpleShovel
@@ -103,6 +111,10 @@ private:
     {
         recipe = new WoodShovelRecipe(this, recipeMaterial, 1);
     }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 10.0f;
+    }
 };
 class WoodHoe final : public SimpleHoe
 {
@@ -124,6 +136,10 @@ private:
         : SimpleHoe(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodHoeRecipe(this, recipeMaterial, 1);
+    }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 10.0f;
     }
 };
 class WoodToolset final : public SimpleToolset

@@ -25,6 +25,7 @@
 #include "util/vector.h"
 #include "util/util.h"
 #include <cassert>
+#include <cmath>
 
 namespace programmerjake
 {
@@ -157,6 +158,31 @@ inline BlockFace getOppositeBlockFace(BlockFace f)
     }
     assert(false);
     return BlockFace::NX;
+}
+
+inline BlockFace getBlockFaceFromOutVector(VectorF v)
+{
+    VectorF absV = VectorF(std::fabs(v.x), std::fabs(v.y), std::fabs(v.z));
+    if(absV.x > absV.y && absV.x > absV.z)
+    {
+        if(v.x < 0)
+            return BlockFace::NX;
+        return BlockFace::PX;
+    }
+    if(absV.y > absV.z)
+    {
+        if(v.y < 0)
+            return BlockFace::NY;
+        return BlockFace::PY;
+    }
+    if(v.z < 0)
+        return BlockFace::NZ;
+    return BlockFace::PZ;
+}
+
+inline BlockFace getBlockFaceFromInVector(VectorF v)
+{
+    return getBlockFaceFromOutVector(-v);
 }
 }
 }
