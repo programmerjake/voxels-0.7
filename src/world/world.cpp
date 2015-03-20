@@ -42,7 +42,7 @@
 #include "generate/decorator.h"
 #include "util/decorator_cache.h"
 #include "util/wood_descriptor.h"
-#include "item/builtin/tools/stone_toolset.h"
+#include "item/builtin/tools/mineral_toolsets.h"
 #include "item/builtin/minerals.h"
 #include "item/builtin/ores.h"
 #include "item/builtin/cobblestone.h"

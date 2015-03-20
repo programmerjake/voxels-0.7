@@ -355,6 +355,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             for(chunkPosition.z = minChunkPosition.z; chunkPosition.z <= maxChunkPosition.z; chunkPosition.z += BlockChunk::chunkSizeZ)
             {
                 BlockIterator cbi = world.getBlockIterator(chunkPosition);
+                lock_manager.clear();
                 std::unique_lock<std::recursive_mutex> lockChunk(cbi.chunk->chunkVariables.entityListLock);
                 for(WrappedEntity &entity : cbi.chunk->chunkVariables.entityList)
                 {
