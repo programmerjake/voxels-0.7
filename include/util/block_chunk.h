@@ -43,6 +43,7 @@
 #include <condition_variable>
 #include "util/linked_map.h"
 #include <vector>
+#include <chrono>
 
 namespace programmerjake
 {
@@ -236,6 +237,8 @@ struct BlockChunkChunkVariables final
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
+    std::chrono::steady_clock::time_point lastBlockUpdateTime;
+    bool lastBlockUpdateTimeValid = false;
     std::recursive_mutex entityListLock;
     WrappedEntity::ChunkListType entityList;
     std::atomic_bool generated, generateStarted;

@@ -93,7 +93,7 @@ private:
             {
                 fuelStack = temp.item.descriptor->getItemAfterBurnInFurnace();
             }
-            getDebugLog() << L"consumeFuel" << postnl;
+            //getDebugLog() << L"consumeFuel" << postnl;
             return true;
         }
         bool canProgressSmeltIgnoringFuel()
@@ -129,7 +129,7 @@ private:
             inputStack.remove(inputStack.item);
             if(!inputStack.good())
                 currentElapsedSmeltTime = 0;
-            getDebugLog() << L"smeltItem" << postnl;
+            //getDebugLog() << L"smeltItem" << postnl;
         }
     };
     struct FurnaceBlockData final : BlockData
@@ -211,7 +211,7 @@ private:
             data->currentElapsedSmeltTime = 0;
             return;
         }
-        getDebugLog() << L"currentElapsedSmeltTime = " << data->currentElapsedSmeltTime << L", burnTimeLeft = " << data->burnTimeLeft << postnl;
+        //getDebugLog() << L"currentElapsedSmeltTime = " << data->currentElapsedSmeltTime << L", burnTimeLeft = " << data->burnTimeLeft << postnl;
         if(!hasFuel)
         {
             data->currentElapsedSmeltTime -= 2 * deltaTime;

@@ -483,8 +483,8 @@ private:
     const WorldGenerator *worldGenerator;
     SeedType worldGeneratorSeed;
     WorldLightingProperties lighting;
-    std::thread lightingThread;
-    std::thread blockUpdateThread;
+    std::list<std::thread> lightingThreads;
+    std::list<std::thread> blockUpdateThreads;
     std::thread particleGeneratingThread;
     std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
@@ -496,7 +496,7 @@ private:
     void chunkGeneratingThreadFn();
     void particleGeneratingThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
-    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(float deltaTime, BlockIterator bi, WorldLockManager &lock_manager);
+    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
     RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);

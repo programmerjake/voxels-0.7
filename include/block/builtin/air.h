@@ -48,6 +48,10 @@ public:
     {
         return true;
     }
+    virtual bool isReplaceableByFluid() const override
+    {
+        return true;
+    }
     virtual bool isGroundBlock() const override
     {
         return false;

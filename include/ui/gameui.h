@@ -83,7 +83,7 @@ public:
         if(GameVersion::DEBUG)
             gameInput->paused.set(true);
         PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-        viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 48 : 64);
+        viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 32 : 48);
         player = std::make_shared<Player>(L"default-player-name", gameInput, this);
         playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
     }

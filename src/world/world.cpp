@@ -47,6 +47,7 @@
 #include "item/builtin/ores.h"
 #include "item/builtin/cobblestone.h"
 #include "item/builtin/furnace.h"
+#include "item/builtin/bucket.h"
 
 using namespace std;
 
@@ -392,6 +393,7 @@ protected:
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CoalOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::GoldOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Furnace::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::WaterBucket::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
             }
         }
 #endif
@@ -466,12 +468,18 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
     return retval;
 }
 
-BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(float deltaTime, BlockIterator bi, WorldLockManager &lock_manager)
+BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager)
 {
     BlockChunk *chunk = bi.chunk;
     lock_manager.clear();
     BlockChunkFullLock lockChunk(*chunk);
     auto lockIt = std::unique_lock<decltype(chunk->chunkVariables.blockUpdateListLock)>(chunk->chunkVariables.blockUpdateListLock);
+    float deltaTime = 0;
+    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    if(chunk->chunkVariables.lastBlockUpdateTimeValid)
+        deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(now - chunk->chunkVariables.lastBlockUpdateTime).count();
+    chunk->chunkVariables.lastBlockUpdateTimeValid = true;
+    chunk->chunkVariables.lastBlockUpdateTime = now;
     BlockUpdate *retval = nullptr;
     for(BlockUpdate *node = chunk->chunkVariables.blockUpdateListHead; node != nullptr;)
     {
@@ -532,10 +540,13 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
         }
         break;
     }
-    lightingThread = thread([this]()
+    for(int i = 0; i < 2; i++)
     {
-        lightingThreadFn();
-    });
+        lightingThreads.emplace_back([this]()
+        {
+            lightingThreadFn();
+        });
+    }
     for(int dx = 0; dx >= -1; dx--)
     {
         for(int dz = 0; dz >= -1; dz--)
@@ -547,10 +558,13 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
             initialChunk->chunkVariables.generated = true;
         }
     }
-    blockUpdateThread = thread([this]()
+    for(int i = 0; i < 3; i++)
     {
-        blockUpdateThreadFn();
-    });
+        blockUpdateThreads.emplace_back([this]()
+        {
+            blockUpdateThreadFn();
+        });
+    }
     lock_manager.clear();
     getDebugLog() << L"lighting initial world..." << postnl;
     for(int i = 0; i < 500 && !isLightingStable(); i++)
@@ -579,10 +593,12 @@ World::~World()
 {
     assert(viewPoints.empty());
     destructing = true;
-    if(lightingThread.joinable())
-        lightingThread.join();
-    if(blockUpdateThread.joinable())
-        blockUpdateThread.join();
+    for(auto &t : lightingThreads)
+        if(t.joinable())
+            t.join();
+    for(auto &t : blockUpdateThreads)
+        if(t.joinable())
+            t.join();
     for(auto &t : chunkGeneratingThreads)
         if(t.joinable())
             t.join();
@@ -682,13 +698,9 @@ void World::blockUpdateThreadFn()
     setThreadPriority(ThreadPriority::Low);
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
-    auto lastUpdateTime = std::chrono::steady_clock::now();
     while(!destructing)
     {
         bool didAnything = false;
-        auto currentUpdateTime = std::chrono::steady_clock::now();
-        float deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentUpdateTime - lastUpdateTime).count();
-        lastUpdateTime = currentUpdateTime;
         for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
         {
             if(destructing)
@@ -697,7 +709,7 @@ void World::blockUpdateThreadFn()
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
-            for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(deltaTime, cbi, lock_manager); node != nullptr; node = removeAllReadyBlockUpdatesInChunk(0, cbi, lock_manager))
+            for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager); node != nullptr; node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager))
             {
                 didAnything = true;
                 while(node != nullptr)
@@ -729,7 +741,6 @@ void World::blockUpdateThreadFn()
         }
         if(!didAnything)
         {
-            lightingStable = true;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
