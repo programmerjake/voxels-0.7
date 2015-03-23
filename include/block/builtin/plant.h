@@ -68,7 +68,7 @@ protected:
     }
     virtual const Plant *getPlantFrame(unsigned frame) const = 0;
     virtual void dropItems(BlockIterator bi, Block b, World &world, WorldLockManager &lock_manager, Item tool) const = 0;
-    virtual bool isPositionValid(BlockIterator bi, Block b, WorldLockManager &lock_manager) const = 0;
+    virtual bool isPositionValid(BlockIterator blockIterator, Block block, WorldLockManager &lock_manager) const = 0;
 public:
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
     {

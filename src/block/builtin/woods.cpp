@@ -98,6 +98,7 @@ public:
                 }
             }
         }
+        retval.setBlock(VectorI(0, 0, 0), saplingReplace);
         return std::move(retval);
     }
     /** @brief select the block to use when a tree overlaps blocks in the world

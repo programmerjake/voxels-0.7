@@ -481,9 +481,14 @@ protected:
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getSaplingItemDescriptor())), bi.position() + VectorF(0.5));
     }
-    virtual bool isPositionValid(BlockIterator bi, Block b, WorldLockManager &lock_manager) const override
+    virtual bool isPositionValid(BlockIterator blockIterator, Block block, WorldLockManager &lock_manager) const override
     {
-        return true;
+        BlockIterator bi = blockIterator;
+        bi.moveTowardNY();
+        Block b = bi.get(lock_manager);
+        if(!b.good())
+            return true;
+        return b.descriptor->canAttachBlock(b, BlockFace::PY, block);
     }
     int getTreeBaseSize(int maxTreeBaseSize, BlockIterator &blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
     {
@@ -538,7 +543,7 @@ protected:
         assert(hasSapling[1][1]);
         return 1;
     }
-    void tryGrowTree(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
+    bool tryGrowTree(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
     {
         int maxTreeBaseSize = 0;
         for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
@@ -551,10 +556,20 @@ protected:
         }
         int treeBaseSize = getTreeBaseSize(maxTreeBaseSize, blockIterator, lock_manager, adjustSaplingPosition);
         if(treeBaseSize == 0)
-            return;
+            return false;
         Block block = blockIterator.get(lock_manager);
         if(block.lighting.toFloat(world.getLighting()) < 9 / 16.0f)
-            return;
+            return false;
+        BlockIterator bi = blockIterator;
+        bi.moveTowardNY();
+        Block b = bi.get(lock_manager);
+        if(!b.good())
+            return false;
+        const DirtBlock *dirtDescriptor = dynamic_cast<const DirtBlock *>(b.descriptor);
+        if(dirtDescriptor == nullptr)
+            return false;
+        if(!dirtDescriptor->canGrowTreeOn())
+            return false;
         std::size_t treeCount = 0;
         for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
         {
@@ -565,7 +580,7 @@ protected:
             treeCount++;
         }
         if(treeCount == 0)
-            return;
+            return false;
         std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(0, treeCount - 1)(world.getRandomGenerator());
         TreeDescriptorPointer treeDescriptor = nullptr;
         for(TreeDescriptorPointer td : woodDescriptor->trees)
@@ -583,7 +598,14 @@ protected:
         }
         assert(treeDescriptor);
         Tree tree = treeDescriptor->generateTree(std::uniform_int_distribution<std::uint32_t>()(world.getRandomGenerator()));
-        tree.placeInWorld(blockIterator.position(), world, lock_manager);
+        if(!tree.placeInWorld(blockIterator.position(), world, lock_manager))
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
     }
 public:
     Sapling(WoodDescriptorPointer woodDescriptor, unsigned frame)

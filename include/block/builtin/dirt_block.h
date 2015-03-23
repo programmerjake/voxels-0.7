@@ -176,7 +176,7 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
     }
-    virtual bool canPlantSaplingOn() const
+    virtual bool canGrowTreeOn() const
     {
         return true;
     }
