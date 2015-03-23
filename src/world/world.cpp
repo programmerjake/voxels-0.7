@@ -289,7 +289,7 @@ private:
         static thread_local checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
         std::vector<std::shared_ptr<const DecoratorInstance>> retval;
-        std::size_t decoratorGenerateNumber = std::hash<DecoratorDescriptorPointer>()(descriptor) + std::hash<PositionI>()(chunkBasePosition);
+        std::uint32_t decoratorGenerateNumber = descriptor->getInitialDecoratorGenerateNumber() + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
         std::minstd_rand rg(decoratorGenerateNumber);
         rg.discard(30);
         BlockIterator chunkBaseIterator = world.getBlockIterator(chunkBasePosition);
@@ -973,6 +973,7 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
         if(chunk->chunkVariables.generated)
         {
             float fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
+            //fRandomTickCount *= 5;
             int randomTickCount = ifloor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator()));
             for(int i = 0; i < randomTickCount; i++)
             {

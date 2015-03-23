@@ -56,6 +56,7 @@ public:
         Block leaves = Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
         Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder for clearance block that is empty
         Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder for clearance block that is leaves
+        Block saplingReplace = Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block that can break saplings
         const int xzSize = 5;
         const int ySize = 10;
         Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
@@ -117,6 +118,23 @@ public:
         }
         if(!treeBlock.good())
             return Block();
+        if(dynamic_cast<const Blocks::builtin::Cobblestone *>(treeBlock.descriptor) != 0)
+        {
+            if(!canThrow)
+                return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
+            const Blocks::builtin::Sapling *saplingDescriptor = dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
+            if(saplingDescriptor != nullptr)
+            {
+                if(saplingDescriptor->getWoodDescriptor() == Oak::pointer())
+                    return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
+                throw TreeDoesNotFitException();
+            }
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+                return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
+            if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
+                throw TreeDoesNotFitException();
+            return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
+        }
         if(dynamic_cast<const Blocks::builtin::DirtBlock *>(treeBlock.descriptor) != 0)
         {
             if(!canThrow)

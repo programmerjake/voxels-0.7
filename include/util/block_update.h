@@ -28,7 +28,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-enum class BlockUpdateKind
+enum class BlockUpdateKind : std::uint8_t
 {
     Lighting,
     General,

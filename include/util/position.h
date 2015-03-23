@@ -170,7 +170,7 @@ struct hash<programmerjake::voxels::PositionI>
 {
     constexpr std::size_t operator ()(const programmerjake::voxels::PositionI & v) const
     {
-        return (std::size_t)v.x + (std::size_t)v.y * 97 + (std::size_t)v.z * 8191 + (std::size_t)v.d * 65537;
+        return (std::uint32_t)v.x + (std::uint32_t)v.y * (std::uint32_t)97 + (std::uint32_t)v.z * (std::uint32_t)8191 + (std::uint32_t)v.d * (std::uint32_t)65537;
     }
 };
 }

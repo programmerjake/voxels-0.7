@@ -167,6 +167,7 @@ protected:
         }
         return false;
     }
+public:
     virtual ToolLevel getToolLevel() const override
     {
         return ToolLevel_None;
@@ -174,6 +175,10 @@ protected:
     virtual bool isHelpingToolKind(Item tool) const override
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
+    }
+    virtual bool canPlantSaplingOn() const
+    {
+        return true;
     }
 };
 }

@@ -94,7 +94,7 @@ struct Parser
         curChar = ch;
         hasPushedChar = true;
     }
-    enum class TokenType
+    enum class TokenType : std::uint8_t
     {
         EndOfFile,
         IntegerLit,

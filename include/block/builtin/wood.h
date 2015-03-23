@@ -27,6 +27,8 @@
 #include "render/render_settings.h"
 #include "item/item.h"
 #include "item/builtin/tools/tools.h"
+#include "block/builtin/plant.h"
+#include <cassert>
 
 namespace programmerjake
 {
@@ -38,7 +40,7 @@ namespace builtin
 {
 class WoodLog : public FullBlock
 {
-private:
+protected:
     const WoodDescriptorPointer woodDescriptor;
     const LogOrientation logOrientation;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor, LogOrientation logOrientation)
@@ -83,31 +85,13 @@ private:
             return woodDescriptor->getLogSideTexture();
         return woodDescriptor->getLogTopTexture();
     }
-    static BlockFace vectorToBlockFace(VectorF v)
-    {
-        if(std::fabs(v.x) > std::fabs(v.y) && std::fabs(v.x) > std::fabs(v.z))
-        {
-            if(v.x < 0)
-                return BlockFace::NX;
-            return BlockFace::PX;
-        }
-        if(std::fabs(v.y) > std::fabs(v.z))
-        {
-            if(v.y < 0)
-                return BlockFace::NY;
-            return BlockFace::PY;
-        }
-        if(v.z < 0)
-            return BlockFace::NZ;
-        return BlockFace::PZ;
-    }
     void transformBlock(Matrix tform)
     {
         tform = Matrix::translate(-0.5f, -0.5f, -0.5f).concat(tform).concat(Matrix::translate(0.5f, 0.5f, 0.5f));
         enum_array<Mesh, BlockFace> newMeshFaces;
         for(BlockFace srcBF : enum_traits<BlockFace>())
         {
-            BlockFace destBF = vectorToBlockFace(tform.applyNoTranslate(getBlockFaceOutDirection(srcBF)));
+            BlockFace destBF = getBlockFaceFromOutVector(tform.applyNoTranslate(getBlockFaceOutDirection(srcBF)));
             newMeshFaces[destBF] = transform(tform, std::move(meshFace[srcBF]));
         }
         meshFace = std::move(newMeshFaces);
@@ -171,9 +155,10 @@ public:
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
 };
+
 class WoodPlanks : public FullBlock
 {
-private:
+protected:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
     {
@@ -218,12 +203,12 @@ public:
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
 };
+
 class WoodLeaves : public FullBlock
 {
-private:
+protected:
     const WoodDescriptorPointer woodDescriptor;
     const bool canDecay;
-protected:
     enum_array<Mesh, BlockFace> meshBlockedFace;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor, bool canDecay)
     {
@@ -236,6 +221,104 @@ protected:
             retval += L"false";
         retval += L")";
         return retval;
+    }
+    virtual bool isConnectedToTree(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    {
+        const int checkDistance = 4;
+        checked_array<checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2> supportedArrays;
+        for(auto &i : supportedArrays)
+        {
+            for(auto &j : i)
+            {
+                for(auto &k : j)
+                {
+                    for(auto &v : k)
+                    {
+                        v = -1;
+                    }
+                }
+            }
+        }
+        checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2 * checkDistance + 1> propagates;
+        for(auto &i : propagates)
+        {
+            for(auto &j : i)
+            {
+                for(auto &v : j)
+                {
+                    v = -1;
+                }
+            }
+        }
+        int currentSupportedArrayIndex = 0;
+        for(int dx = -checkDistance; dx <= checkDistance; dx++)
+        {
+            for(int dy = -checkDistance; dy <= checkDistance; dy++)
+            {
+                for(int dz = -checkDistance; dz <= checkDistance; dz++)
+                {
+                    BlockIterator bi = blockIterator;
+                    bi.moveBy(VectorI(dx, dy, dz));
+                    Block b = bi.get(lock_manager);
+                    int &currentSupported = supportedArrays[currentSupportedArrayIndex][dx + checkDistance][dy + checkDistance][dz + checkDistance];
+                    int &currentPropagates = propagates[dx + checkDistance][dy + checkDistance][dz + checkDistance];
+                    currentSupported = 0;
+                    currentPropagates = 0;
+                    if(!b.good()) // might be log
+                    {
+                        currentSupported = 1;
+                        currentPropagates = 1;
+                    }
+                    else if(dynamic_cast<const WoodLeaves *>(b.descriptor) != nullptr)
+                    {
+                        currentPropagates = 1;
+                    }
+                    else if(dynamic_cast<const WoodLog *>(b.descriptor) != nullptr)
+                    {
+                        currentPropagates = 1;
+                        currentSupported = 1;
+                    }
+                }
+            }
+        }
+        for(int i = 0; i < checkDistance; i++)
+        {
+            currentSupportedArrayIndex = 1 - currentSupportedArrayIndex;
+            int currentCheckDistance = checkDistance - i - 1;
+            for(int x = -currentCheckDistance; x <= currentCheckDistance; x++)
+            {
+                for(int y = -currentCheckDistance; y <= currentCheckDistance; y++)
+                {
+                    for(int z = -currentCheckDistance; z <= currentCheckDistance; z++)
+                    {
+                        int &currentSupported = supportedArrays[currentSupportedArrayIndex][x + checkDistance][y + checkDistance][z + checkDistance];
+                        currentSupported = supportedArrays[1 - currentSupportedArrayIndex][x + checkDistance][y + checkDistance][z + checkDistance];
+                        assert(currentSupported != -1);
+                        int currentPropagetes = propagates[x + checkDistance][y + checkDistance][z + checkDistance];
+                        assert(currentPropagetes != -1);
+                        if(!currentPropagetes)
+                            continue;
+                        if(currentSupported)
+                            continue;
+                        for(BlockFace bf : enum_traits<BlockFace>())
+                        {
+                            VectorI delta = getBlockFaceOutDirection(bf);
+                            VectorI p = VectorI(x, y, z) + delta;
+                            int lastSupported = supportedArrays[1 - currentSupportedArrayIndex][p.x + checkDistance][p.y + checkDistance][p.z + checkDistance];
+                            assert(lastSupported != -1);
+                            if(lastSupported)
+                            {
+                                currentSupported = 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        int currentSupported = supportedArrays[currentSupportedArrayIndex][checkDistance][checkDistance][checkDistance];
+        assert(currentSupported != -1);
+        return currentSupported != 0;
     }
 public:
     WoodLeaves(WoodDescriptorPointer woodDescriptor, bool canDecay)
@@ -275,7 +358,7 @@ public:
     }
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLeavesItemDescriptor())), bi.position() + VectorF(0.5));
+        woodDescriptor->makeLeavesDrops(world, bi, lock_manager, tool);
         handleToolDamage(tool);
     }
     virtual ColorF getLeavesShading(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
@@ -347,7 +430,15 @@ public:
         }
         return false;
     }
-    #warning add leaves decaying
+    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    {
+        if(!canDecay)
+            return;
+        if(isConnectedToTree(blockIterator, lock_manager))
+            return;
+        woodDescriptor->makeLeavesDrops(world, blockIterator, lock_manager, Item());
+        world.setBlock(blockIterator, lock_manager, Block(Air::descriptor()));
+    }
     virtual float getHardness() const override
     {
         return 0.2f;
@@ -366,6 +457,154 @@ public:
         return false;
     }
 };
+
+class Sapling : public Plant
+{
+protected:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor, unsigned frame)
+    {
+        std::wstring retval = L"builtin.sapling(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L",growthStage=";
+        retval += (frame != 0 ? L"1" : L"0");
+        retval += L")";
+        return retval;
+    }
+    virtual const Plant *getPlantFrame(unsigned frame) const override
+    {
+        BlockDescriptorPointer retval = woodDescriptor->getSaplingBlockDescriptor(frame);
+        assert(dynamic_cast<const Plant *>(retval) != nullptr);
+        return static_cast<const Plant *>(retval);
+    }
+    virtual void dropItems(BlockIterator bi, Block b, World &world, WorldLockManager &lock_manager, Item tool) const override
+    {
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getSaplingItemDescriptor())), bi.position() + VectorF(0.5));
+    }
+    virtual bool isPositionValid(BlockIterator bi, Block b, WorldLockManager &lock_manager) const override
+    {
+        return true;
+    }
+    int getTreeBaseSize(int maxTreeBaseSize, BlockIterator &blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
+    {
+        if(maxTreeBaseSize < 2)
+            return maxTreeBaseSize;
+        assert(maxTreeBaseSize == 2);
+        checked_array<checked_array<bool, 3>, 3> hasSapling;
+        for(int dx = -1; dx <= 1; dx++)
+        {
+            for(int dz = -1; dz <= 1; dz++)
+            {
+                BlockIterator bi = blockIterator;
+                bi.moveBy(VectorI(dx, 0, dz));
+                Block b = bi.get(lock_manager);
+                hasSapling[dx + 1][dz + 1] = false;
+                if(!b.good())
+                    continue;
+                const Sapling *sapling = dynamic_cast<const Sapling *>(b.descriptor);
+                if(sapling == nullptr)
+                    continue;
+                if(sapling->woodDescriptor == woodDescriptor)
+                    hasSapling[dx + 1][dz + 1] = true;
+            }
+        }
+        for(int growDX = 0; growDX >= -1; growDX--)
+        {
+            for(int growDZ = 0; growDZ >= -1; growDZ--)
+            {
+                bool good = true;
+                for(int x = 1; x <= 2; x++)
+                {
+                    for(int z = 1; z <= 2; z++)
+                    {
+                        if(!hasSapling[growDX + x][growDZ + z])
+                        {
+                            good = false;
+                            break;
+                        }
+                    }
+                    if(!good)
+                        break;
+                }
+                if(good)
+                {
+                    if(!adjustSaplingPosition && growDX != 0 && growDZ != 0)
+                        return 0;
+                    blockIterator.moveBy(VectorI(growDX, 0, growDZ));
+                    return 2;
+                }
+            }
+        }
+        assert(hasSapling[1][1]);
+        return 1;
+    }
+    void tryGrowTree(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
+    {
+        int maxTreeBaseSize = 0;
+        for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
+        {
+            assert(treeDescriptor);
+            if(!treeDescriptor->canGenerateFromSapling)
+                continue;
+            if(maxTreeBaseSize < treeDescriptor->baseSize)
+                maxTreeBaseSize = treeDescriptor->baseSize;
+        }
+        int treeBaseSize = getTreeBaseSize(maxTreeBaseSize, blockIterator, lock_manager, adjustSaplingPosition);
+        if(treeBaseSize == 0)
+            return;
+        Block block = blockIterator.get(lock_manager);
+        if(block.lighting.toFloat(world.getLighting()) < 9 / 16.0f)
+            return;
+        std::size_t treeCount = 0;
+        for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
+        {
+            if(!treeDescriptor->canGenerateFromSapling)
+                continue;
+            if(treeDescriptor->baseSize != treeBaseSize)
+                continue;
+            treeCount++;
+        }
+        if(treeCount == 0)
+            return;
+        std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(0, treeCount - 1)(world.getRandomGenerator());
+        TreeDescriptorPointer treeDescriptor = nullptr;
+        for(TreeDescriptorPointer td : woodDescriptor->trees)
+        {
+            if(!td->canGenerateFromSapling)
+                continue;
+            if(td->baseSize != treeBaseSize)
+                continue;
+            if(treeIndex == 0)
+            {
+                treeDescriptor = td;
+                break;
+            }
+            treeIndex--;
+        }
+        assert(treeDescriptor);
+        Tree tree = treeDescriptor->generateTree(std::uniform_int_distribution<std::uint32_t>()(world.getRandomGenerator()));
+        tree.placeInWorld(blockIterator.position(), world, lock_manager);
+    }
+public:
+    Sapling(WoodDescriptorPointer woodDescriptor, unsigned frame)
+        : Plant(makeName(woodDescriptor, frame), makeDiagonalCrossMesh(woodDescriptor->getSaplingTexture()), frame, 2, 1.0f), woodDescriptor(woodDescriptor)
+    {
+    }
+    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    {
+        if(animationFrame + 1 < animationFrameCount)
+        {
+            Plant::randomTick(block, world, blockIterator, lock_manager);
+            return;
+        }
+        tryGrowTree(world, blockIterator, lock_manager, false);
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
+    }
+};
+
 }
 }
 }

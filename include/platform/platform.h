@@ -45,7 +45,7 @@ const float defaultFPS = 60;
 
 std::shared_ptr<stream::Reader> getResourceReader(std::wstring resource);
 
-enum class KeyboardKey
+enum class KeyboardKey : std::uint8_t
 {
     Unknown,
     A, // alphabet must be in order

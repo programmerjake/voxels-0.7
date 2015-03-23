@@ -28,7 +28,7 @@ namespace programmerjake
 namespace voxels
 {
 
-enum class ThreeStateBool
+enum class ThreeStateBool : std::uint8_t
 {
     False = 0, // must be 0 so casting to and from bool is false
     True = 1, // must be 1 so casting to and from bool is true

@@ -41,7 +41,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-enum class LogOrientation
+enum class LogOrientation : std::uint8_t
 {
     AllBark,
     X,
@@ -164,7 +164,7 @@ private:
     TextureDescriptor logTop, logSide, planks, sapling, leaves, blockedLeaves;
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor;
-    BlockDescriptorPointer saplingBlockDescriptor;
+    checked_array<BlockDescriptorPointer, 2> saplingBlockDescriptors;
     enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors; // index is if the block can decay
     ItemDescriptorPointer logItemDescriptor;
     ItemDescriptorPointer planksItemDescriptor;
@@ -174,7 +174,7 @@ protected:
     WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees);
     void setDescriptors(enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors,
                         BlockDescriptorPointer planksBlockDescriptor,
-                        BlockDescriptorPointer saplingBlockDescriptor,
+                        checked_array<BlockDescriptorPointer, 2> saplingBlockDescriptors,
                         enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors, // index is if the block can decay
                         ItemDescriptorPointer logItemDescriptor,
                         ItemDescriptorPointer planksItemDescriptor,
@@ -183,7 +183,7 @@ protected:
     {
         this->logBlockDescriptors = logBlockDescriptors;
         this->planksBlockDescriptor = planksBlockDescriptor;
-        this->saplingBlockDescriptor = saplingBlockDescriptor;
+        this->saplingBlockDescriptors = saplingBlockDescriptors;
         this->leavesBlockDescriptors = leavesBlockDescriptors;
         this->logItemDescriptor = logItemDescriptor;
         this->planksItemDescriptor = planksItemDescriptor;
@@ -223,9 +223,9 @@ public:
     {
         return planksBlockDescriptor;
     }
-    BlockDescriptorPointer getSaplingBlockDescriptor() const
+    BlockDescriptorPointer getSaplingBlockDescriptor(unsigned growthStage) const
     {
-        return saplingBlockDescriptor;
+        return saplingBlockDescriptors[growthStage];
     }
     BlockDescriptorPointer getLeavesBlockDescriptor(bool canDecay) const
     {
@@ -247,6 +247,7 @@ public:
     {
         return leavesItemDescriptor;
     }
+    virtual void makeLeavesDrops(World &world, BlockIterator bi, WorldLockManager &lock_manager, Item tool) const;
 };
 
 class WoodDescriptors_t final

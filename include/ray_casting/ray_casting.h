@@ -194,7 +194,7 @@ inline RayBlockIterator makeRayBlockIterator(Ray ray)
 struct Collision final
 {
     float t;
-    enum class Type
+    enum class Type : std::uint8_t
     {
         None,
         Block,

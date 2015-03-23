@@ -60,7 +60,7 @@ protected:
     const std::size_t maxBlockCount;
     const std::int32_t minGenerateHeight;
     const std::int32_t maxGenerateHeight;
-    virtual std::size_t getGeneratePositionAndCount(PositionI &result, PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition, RandomSource &randomSource, std::size_t generateNumber) const
+    virtual std::size_t getGeneratePositionAndCount(PositionI &result, PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition, RandomSource &randomSource, std::uint32_t generateNumber) const
     {
         std::minstd_rand rg(randomSource.getValueI(columnBasePosition, RandomSource::oreGeneratePositionStart) + generateNumber);
         auto minGenerateHeight = this->minGenerateHeight;
@@ -93,7 +93,7 @@ public:
     virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
                                  WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
                                  const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
-                                 RandomSource &randomSource, std::size_t generateNumber) const override
+                                 RandomSource &randomSource, std::uint32_t generateNumber) const override
     {
         PositionI generatePosition;
         std::size_t generateCount = getGeneratePositionAndCount(generatePosition, chunkBasePosition, columnBasePosition, surfacePosition, randomSource, generateNumber);

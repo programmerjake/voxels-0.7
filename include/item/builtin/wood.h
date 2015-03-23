@@ -169,6 +169,31 @@ public:
         return woodDescriptor;
     }
 };
+class Sapling final : public ItemImage
+{
+private:
+    const WoodDescriptorPointer woodDescriptor;
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
+    {
+        std::wstring retval = L"builtin.sapling(woodDescriptor=";
+        retval += woodDescriptor->name;
+        retval += L")";
+        return retval;
+    }
+public:
+    Sapling(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
+        : ItemImage(makeName(woodDescriptor), woodDescriptor->getSaplingTexture(), block), woodDescriptor(woodDescriptor)
+    {
+    }
+    WoodDescriptorPointer getWoodDescriptor() const
+    {
+        return woodDescriptor;
+    }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 5.0f;
+    }
+};
 }
 }
 }

@@ -74,7 +74,7 @@ private:
     {
         std::size_t operator ()(const RandomChunkKey &v) const
         {
-            return std::hash<PositionI>()(v.basePosition) + 65537 * v.randomClass;
+            return (std::uint32_t)std::hash<PositionI>()(v.basePosition) + (std::uint32_t)65537 * (std::uint32_t)v.randomClass;
         }
     };
     struct RandomCacheChunk
@@ -84,7 +84,7 @@ private:
         typedef std::minstd_rand random_generator;
         static random_generator makeRandomGenerator(World::SeedType seed, RandomChunkKey key)
         {
-            seed += RandomChunkKeyHasher()(key);
+            seed += (std::uint32_t)RandomChunkKeyHasher()(key);
             return random_generator(seed);
         }
         RandomCacheChunk(World::SeedType seed, RandomChunkKey key)

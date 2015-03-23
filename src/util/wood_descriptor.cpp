@@ -91,6 +91,14 @@ Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock, boo
     return treeBlock;
 }
 
+void WoodDescriptor::makeLeavesDrops(World &world, BlockIterator bi, WorldLockManager &lock_manager, Item tool) const
+{
+    #warning check for shears
+    if(std::uniform_int_distribution<>(0, 19)(world.getRandomGenerator()) == 0)
+    {
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(getSaplingItemDescriptor())), bi.position() + VectorF(0.5));
+    }
+}
 
 linked_map<std::wstring, WoodDescriptorPointer> *WoodDescriptors_t::pNameMap = nullptr;
 
@@ -174,7 +182,7 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
 {
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;
     BlockDescriptorPointer planksBlockDescriptor = nullptr;
-    BlockDescriptorPointer saplingBlockDescriptor = nullptr;
+    checked_array<BlockDescriptorPointer, 2> saplingBlockDescriptors;
     enum_array<BlockDescriptorPointer, bool> leavesBlockDescriptors;
     ItemDescriptorPointer logItemDescriptor = nullptr;
     ItemDescriptorPointer planksItemDescriptor = nullptr;
@@ -189,12 +197,17 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
     {
         leavesBlockDescriptors[canDecay] = new Blocks::builtin::WoodLeaves(this, canDecay);
     }
+    for(unsigned i = 0; i < saplingBlockDescriptors.size(); i++)
+    {
+        saplingBlockDescriptors[i] = new Blocks::builtin::Sapling(this, i);
+    }
     logItemDescriptor = new Items::builtin::WoodLog(this, logBlockDescriptors[LogOrientation::Y]);
     planksItemDescriptor = new Items::builtin::WoodPlanks(this, planksBlockDescriptor);
     leavesItemDescriptor = new Items::builtin::WoodLeaves(this, leavesBlockDescriptors[false]);
+    saplingItemDescriptor = new Items::builtin::Sapling(this, saplingBlockDescriptors[0]);
     setDescriptors(logBlockDescriptors,
                    planksBlockDescriptor,
-                   saplingBlockDescriptor,
+                   saplingBlockDescriptors,
                    leavesBlockDescriptors,
                    logItemDescriptor,
                    planksItemDescriptor,

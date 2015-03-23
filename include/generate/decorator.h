@@ -79,6 +79,16 @@ public:
         return index;
     }
     virtual ~DecoratorDescriptor() = default;
+    std::uint32_t getInitialDecoratorGenerateNumber() const
+    {
+        std::uint32_t retval = 0;
+        for(wchar_t ch : name)
+        {
+            retval *= 8191;
+            retval += ch;
+        }
+        return retval;
+    }
 protected:
     DecoratorDescriptor(std::wstring name, int chunkSearchDistance);
 public:
@@ -98,7 +108,7 @@ public:
     virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
                                  WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
                                  const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
-                                 RandomSource &randomSource, std::size_t generateNumber) const = 0;
+                                 RandomSource &randomSource, std::uint32_t generateNumber) const = 0;
 };
 }
 }

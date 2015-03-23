@@ -65,11 +65,9 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-O3" />
+					<Add option="-g" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
-				<Linker>
-					<Add option="-s" />
-				</Linker>
 			</Target>
 			<Target title="Profile">
 				<Option output="voxels-profile" prefix_auto="1" extension_auto="1" />
@@ -120,6 +118,7 @@
 		<Unit filename="include/block/builtin/furnace.h" />
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/ores.h" />
+		<Unit filename="include/block/builtin/plant.h" />
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/block/builtin/torch.h" />

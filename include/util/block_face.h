@@ -31,7 +31,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-enum class BlockFace
+enum class BlockFace : std::uint8_t
 {
     NX,
     PX,
@@ -42,7 +42,7 @@ enum class BlockFace
     DEFINE_ENUM_LIMITS(NX, PZ)
 };
 
-enum class BlockFaceOrNone
+enum class BlockFaceOrNone : std::uint8_t
 {
     None,
     NX,
