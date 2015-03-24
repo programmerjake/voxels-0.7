@@ -31,6 +31,7 @@
 #include "block/builtin/dirt.h"
 #include "block/builtin/water.h"
 #include "generate/decorator/tree.h"
+#include "block/builtin/bedrock.h"
 
 namespace programmerjake
 {
@@ -100,6 +101,8 @@ public:
                 block = Block(Blocks::builtin::Air::descriptor());
                 block.lighting = Lighting::makeSkyLighting();
             }
+            if(randomSource.positionHasBedrock(position))
+                block = Block(Blocks::builtin::Bedrock::descriptor());
             blocks[relativePosition.x][relativePosition.y][relativePosition.z] = block;
         }
     }

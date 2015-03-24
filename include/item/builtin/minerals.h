@@ -94,6 +94,82 @@ public:
     }
 };
 
+class Diamond final : public ItemImage
+{
+    friend class global_instance_maker<Diamond>;
+private:
+    Diamond()
+        : ItemImage(L"builtin.diamond", TextureAtlas::Diamond.td(), nullptr)
+    {
+    }
+public:
+    static const Diamond *pointer()
+    {
+        return global_instance_maker<Diamond>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class RedstoneDust final : public ItemImage
+{
+    friend class global_instance_maker<RedstoneDust>;
+private:
+    RedstoneDust()
+        : ItemImage(L"builtin.redstone_dust", TextureAtlas::RedstoneDustItem.td(), nullptr)
+    {
+    }
+public:
+    static const RedstoneDust *pointer()
+    {
+        return global_instance_maker<RedstoneDust>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class Emerald final : public ItemImage
+{
+    friend class global_instance_maker<Emerald>;
+private:
+    Emerald()
+        : ItemImage(L"builtin.emerald", TextureAtlas::Emerald.td(), nullptr)
+    {
+    }
+public:
+    static const Emerald *pointer()
+    {
+        return global_instance_maker<Emerald>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class LapisLazuli final : public ItemImage
+{
+    friend class global_instance_maker<LapisLazuli>;
+private:
+    LapisLazuli()
+        : ItemImage(L"builtin.lapis_lazuli", TextureAtlas::LapisLazuli.td(), nullptr)
+    {
+    }
+public:
+    static const LapisLazuli *pointer()
+    {
+        return global_instance_maker<LapisLazuli>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
 }
 }
 }

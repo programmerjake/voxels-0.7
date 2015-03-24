@@ -46,9 +46,11 @@ public:
     static constexpr RandomClass biomeHumiditySize = 5;
     static constexpr RandomClass oreGeneratePositionStart = biomeHumidityStart + biomeHumiditySize;
     static constexpr RandomClass oreGeneratePositionSize = 1;
+    static constexpr RandomClass bedrockGeneratePositionStart = oreGeneratePositionStart + oreGeneratePositionSize;
+    static constexpr RandomClass bedrockGeneratePositionSize = 1;
     static RandomClass allocateRandomClasses(std::size_t count)
     {
-        static std::atomic_size_t nextRandomClass(oreGeneratePositionStart + oreGeneratePositionSize);
+        static std::atomic_size_t nextRandomClass(bedrockGeneratePositionStart + bedrockGeneratePositionSize);
         return nextRandomClass.fetch_add(count, std::memory_order_relaxed);
     }
 private:
@@ -222,6 +224,18 @@ public:
         float temperature = limit<float>(getFBMValue(fpos, RandomSource::biomeTemperatureStart, RandomSource::biomeTemperatureSize) * 0.4f + 0.5f, 0, 1);
         float humidity = limit<float>(getFBMValue(fpos, RandomSource::biomeHumidityStart, RandomSource::biomeHumiditySize) * 0.4f + 0.5f, 0, 1);
         return BiomeProperties(BiomeDescriptors.getBiomeWeights(temperature, humidity, pos, *this));
+    }
+    bool positionHasBedrock(PositionI pos)
+    {
+        const int bedrockMaxHeight = 3;
+        if(pos.y >= bedrockMaxHeight)
+            return false;
+        if(pos.y <= 0)
+            return true;
+        float probability = 1.0f - (float)pos.y / bedrockMaxHeight;
+        if(getValueCanonicalF(pos, RandomSource::bedrockGeneratePositionStart) < probability)
+            return true;
+        return false;
     }
 };
 

@@ -20,6 +20,7 @@
  */
 #include "block/block.h"
 #include "item/builtin/tools/tool.h"
+#include <initializer_list>
 
 using namespace std;
 namespace programmerjake
@@ -183,6 +184,50 @@ bool BlockDescriptor::isMatchingTool(Item tool) const
 void BlockDescriptor::handleToolDamage(Item &tool) const
 {
     tool = Items::builtin::tools::Tool::incrementDamage(tool, this);
+}
+
+RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager)
+{
+    blockIterator.moveToward(inputThroughBlockFace);
+    Block b = blockIterator.get(lock_manager);
+    if(!b.good())
+        return RedstoneSignal();
+    RedstoneSignal retval = b.descriptor->getRedstoneSignal(getOppositeBlockFace(inputThroughBlockFace));
+    if(b.descriptor->canTransmitRedstoneSignal())
+    {
+        for(BlockFace bf : enum_traits<BlockFace>())
+        {
+            if(bf == inputThroughBlockFace)
+                continue;
+            BlockIterator bi = blockIterator;
+            bi.moveFrom(bf);
+            b = bi.get(lock_manager);
+            if(b.good())
+            {
+                retval = retval.combine(b.descriptor->getRedstoneSignal(bf).transmitThroughSolidBlock());
+            }
+        }
+    }
+    return retval;
+}
+
+void BlockDescriptor::addRedstoneBlockUpdates(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned distance)
+{
+    int distanceI = distance;
+    for(VectorI delta = VectorI(-distanceI); delta.x <= distanceI; delta.x++)
+    {
+        int yDistance = distanceI - std::abs(delta.x);
+        for(delta.y = -yDistance; delta.y <= yDistance; delta.y++)
+        {
+            int zDistance = yDistance - std::abs(delta.y);
+            for(delta.z = -zDistance; delta.z <= zDistance; delta.z++)
+            {
+                BlockIterator bi = blockIterator;
+                bi.moveBy(delta);
+                world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::Redstone, BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
+            }
+        }
+    }
 }
 }
 }

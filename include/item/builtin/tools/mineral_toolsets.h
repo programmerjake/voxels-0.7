@@ -95,6 +95,24 @@ public:
     }
 };
 
+class DiamondToolset final : public SimpleToolset
+{
+    friend class global_instance_maker<DiamondToolset>;
+private:
+    DiamondToolset()
+        : SimpleToolset(L"builtin.diamond", ToolLevel_Diamond, 1.0f / 8.0f, 1562, Item(Items::builtin::Diamond::descriptor()), TextureAtlas::DiamondPickaxe.td(), TextureAtlas::DiamondAxe.td(), TextureAtlas::DiamondShovel.td(), TextureAtlas::DiamondHoe.td())
+    {
+    }
+public:
+    static const DiamondToolset *pointer()
+    {
+        return global_instance_maker<DiamondToolset>::getInstance();
+    }
+    static const SimpleToolset *descriptor()
+    {
+        return pointer();
+    }
+};
 
 }
 }

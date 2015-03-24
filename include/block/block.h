@@ -49,6 +49,7 @@
 #include "render/render_settings.h"
 #include "item/item_struct.h"
 #include "util/tool_level.h"
+#include "util/redstone_signal.h"
 
 namespace programmerjake
 {
@@ -255,6 +256,10 @@ public:
     {
         return false;
     }
+    virtual bool onStartAttack(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    {
+        return true;
+    }
     virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const = 0;
     virtual bool canPlace(Block b, BlockIterator bi, WorldLockManager &lock_manager) const
     {
@@ -267,6 +272,16 @@ public:
     virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
     {
     }
+    virtual bool canTransmitRedstoneSignal() const
+    {
+        return lightProperties.reduceValue == Lighting::makeMaxLight();
+    }
+    virtual RedstoneSignal getRedstoneSignal(BlockFace outputThroughBlockFace) const
+    {
+        return RedstoneSignal();
+    }
+    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager);
+    static void addRedstoneBlockUpdates(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned distance = 1);
 };
 }
 }

@@ -109,6 +109,7 @@
 		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/block/builtin/attached_block.h" />
+		<Unit filename="include/block/builtin/bedrock.h" />
 		<Unit filename="include/block/builtin/cobblestone.h" />
 		<Unit filename="include/block/builtin/crafting_table.h" />
 		<Unit filename="include/block/builtin/dirt.h" />
@@ -149,6 +150,7 @@
 		<Unit filename="include/generate/decorator_declaration.h" />
 		<Unit filename="include/generate/random_world_generator.h" />
 		<Unit filename="include/input/input.h" />
+		<Unit filename="include/item/builtin/bedrock.h" />
 		<Unit filename="include/item/builtin/block.h" />
 		<Unit filename="include/item/builtin/bucket.h" />
 		<Unit filename="include/item/builtin/cobblestone.h" />
@@ -242,6 +244,7 @@
 		<Unit filename="include/util/ordered_weak_ptr.h" />
 		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
+		<Unit filename="include/util/redstone_signal.h" />
 		<Unit filename="include/util/rw_lock.h" />
 		<Unit filename="include/util/solve.h" />
 		<Unit filename="include/util/spin_lock.h" />

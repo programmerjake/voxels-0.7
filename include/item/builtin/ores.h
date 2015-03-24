@@ -104,6 +104,98 @@ public:
     }
 };
 
+class LapisLazuliOre final : public ItemBlock
+{
+    friend class global_instance_maker<LapisLazuliOre>;
+private:
+    LapisLazuliOre()
+        : ItemBlock(L"builtin.lapis_lazuli_ore", TextureAtlas::LapisLazuliOre.td(), Blocks::builtin::LapisLazuliOre::descriptor())
+    {
+    }
+public:
+    static const LapisLazuliOre *pointer()
+    {
+        return global_instance_maker<LapisLazuliOre>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(LapisLazuli::descriptor());
+    }
+};
+
+class DiamondOre final : public ItemBlock
+{
+    friend class global_instance_maker<DiamondOre>;
+private:
+    DiamondOre()
+        : ItemBlock(L"builtin.diamond_ore", TextureAtlas::DiamondOre.td(), Blocks::builtin::DiamondOre::descriptor())
+    {
+    }
+public:
+    static const DiamondOre *pointer()
+    {
+        return global_instance_maker<DiamondOre>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(Diamond::descriptor());
+    }
+};
+
+class RedstoneOre final : public ItemBlock
+{
+    friend class global_instance_maker<RedstoneOre>;
+private:
+    RedstoneOre()
+        : ItemBlock(L"builtin.redstone_ore", TextureAtlas::RedstoneOre.td(), Blocks::builtin::RedstoneOre::descriptor())
+    {
+    }
+public:
+    static const RedstoneOre *pointer()
+    {
+        return global_instance_maker<RedstoneOre>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(RedstoneDust::descriptor());
+    }
+};
+
+class EmeraldOre final : public ItemBlock
+{
+    friend class global_instance_maker<EmeraldOre>;
+private:
+    EmeraldOre()
+        : ItemBlock(L"builtin.emerald_ore", TextureAtlas::EmeraldOre.td(), Blocks::builtin::EmeraldOre::descriptor())
+    {
+    }
+public:
+    static const EmeraldOre *pointer()
+    {
+        return global_instance_maker<EmeraldOre>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(Emerald::descriptor());
+    }
+};
+
 
 }
 }

@@ -228,6 +228,44 @@ public:
         }
         return retval;
     }
+    /** @brief add a block update
+     *
+     * @param bi a <code>BlockIterator</code> to the block to add the block update for
+     * @param lock_manager this thread's <code>WorldLockManager</code>
+     * @param kind the kind of block update
+     * @param updateTimeFromNow how far in the future to schedule the block update
+     * @return if there is a previous block update
+     *
+     */
+    bool addBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
+    {
+        assert(updateTimeFromNow >= 0);
+        BlockChunkBlock &b = bi.getBlock(lock_manager);
+        BlockUpdate **ppnode = &b.updateListHead;
+        BlockUpdate *pnode = b.updateListHead;
+        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
+        while(pnode != nullptr)
+        {
+            if(pnode->kind == kind)
+            {
+                if(pnode->time_left > updateTimeFromNow)
+                    pnode->time_left = updateTimeFromNow;
+                return true;
+            }
+            ppnode = &pnode->block_next;
+            pnode = *ppnode;
+        }
+        pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
+        b.updateListHead = pnode;
+        pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
+        pnode->chunk_prev = nullptr;
+        if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)
+            bi.chunk->chunkVariables.blockUpdateListHead->chunk_prev = pnode;
+        else
+            bi.chunk->chunkVariables.blockUpdateListTail = pnode;
+        bi.chunk->chunkVariables.blockUpdateListHead = pnode;
+        return false;
+    }
     /** @brief delete a block update
      *
      * @param bi a <code>BlockIterator</code> to the block to delete the block update for
@@ -251,7 +289,7 @@ private:
         {
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod == 0)
-                rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+                addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
 public:
@@ -294,7 +332,7 @@ public:
         {
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod > 0)
-                rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+                addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
     /** @brief set a block column's biome properties
@@ -486,15 +524,21 @@ private:
     std::list<std::thread> lightingThreads;
     std::list<std::thread> blockUpdateThreads;
     std::thread particleGeneratingThread;
+    std::thread moveEntitiesThread;
     std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
     std::mutex viewPointsLock;
     std::list<ViewPoint *> viewPoints;
+    std::condition_variable moveEntitiesThreadCond;
+    std::mutex moveEntitiesThreadLock;
+    bool waitingForMoveEntities = false;
+    double moveEntitiesDeltaTime = 1 / 60.0;
     void lightingThreadFn();
     void blockUpdateThreadFn();
     void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
     void chunkGeneratingThreadFn();
     void particleGeneratingThreadFn();
+    void moveEntitiesThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);

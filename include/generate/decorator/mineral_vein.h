@@ -28,7 +28,8 @@
 #include "generate/decorator/pregenerated_instance.h"
 #include <random>
 #include <algorithm>
-#include <queue>
+#include "util/math_constants.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -41,38 +42,83 @@ namespace builtin
 class MineralVeinDecorator : public DecoratorDescriptor
 {
 protected:
-    class MineralVeinDecoratorInstance : public PregeneratedDecoratorInstance
+    class MineralVeinDecoratorInstance : public DecoratorInstance
     {
+    private:
+        const std::uint32_t seed;
+        const Block oreBlock;
+        const std::size_t maxBlockCount;
     public:
-        MineralVeinDecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor, VectorI baseOffset, VectorI theSize)
-            : PregeneratedDecoratorInstance(position, descriptor, baseOffset, theSize)
+        MineralVeinDecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor, std::uint32_t seed, Block oreBlock, std::size_t maxBlockCount)
+            : DecoratorInstance(position, descriptor), seed(seed), oreBlock(oreBlock), maxBlockCount(maxBlockCount)
         {
         }
-        virtual bool canReplace(Block oldBlock, Block newBlock) const override
+        virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
+                                     checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks) const override
         {
-            if(oldBlock.descriptor != Blocks::builtin::Stone::descriptor())
-                return false;
-            return newBlock.good();
+            if(maxBlockCount == 0)
+                return;
+            VectorI chunkLimitPosition = chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1);
+            std::minstd_rand rg(seed);
+            rg.discard(3);
+            std::size_t blockCount = std::uniform_int_distribution<std::size_t>((maxBlockCount + 1) / 2, maxBlockCount)(rg);
+            float sizeF = std::cbrt((float)blockCount * (float)(0.75f / M_PI));
+            int size = iceil(sizeF * 2);
+            VectorI minP = (position - VectorI(size));
+            VectorI maxP = (position + VectorI(size));
+            if(minP.x < chunkBasePosition.x)
+                minP.x = chunkBasePosition.x;
+            if(minP.y < chunkBasePosition.y)
+                minP.y = chunkBasePosition.y;
+            if(minP.z < chunkBasePosition.z)
+                minP.z = chunkBasePosition.z;
+            if(maxP.x > chunkLimitPosition.x)
+                maxP.x = chunkLimitPosition.x;
+            if(maxP.y > chunkLimitPosition.y)
+                maxP.y = chunkLimitPosition.y;
+            if(maxP.z > chunkLimitPosition.z)
+                maxP.z = chunkLimitPosition.z;
+            std::size_t count = 0;
+            for(VectorI p = minP; p.x <= maxP.x; p.x++)
+            {
+                for(p.y = minP.y; p.y <= maxP.y; p.y++)
+                {
+                    for(p.z = minP.z; p.z <= maxP.z; p.z++)
+                    {
+                        float curSize = sizeF + std::uniform_real_distribution<float>(-0.5f, 0.5f)(rg);
+                        if(absSquared(p - position) < curSize * curSize)
+                        {
+                            if(++count >= blockCount)
+                                return;
+                            VectorI rp = p - chunkBasePosition;
+                            Block &b = blocks[rp.x][rp.y][rp.z];
+                            if(b.descriptor == Blocks::builtin::Stone::descriptor())
+                            {
+                                b = oreBlock;
+                            }
+                        }
+                    }
+                }
+            }
         }
     };
     virtual Block getOreBlock() const = 0;
-    const std::size_t minBlockCount;
     const std::size_t maxBlockCount;
     const std::int32_t minGenerateHeight;
     const std::int32_t maxGenerateHeight;
-    virtual std::size_t getGeneratePositionAndCount(PositionI &result, PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition, RandomSource &randomSource, std::uint32_t generateNumber) const
+    virtual bool getGeneratePosition(PositionI &result, PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition, RandomSource &randomSource, std::uint32_t generateNumber) const
     {
         std::minstd_rand rg(randomSource.getValueI(columnBasePosition, RandomSource::oreGeneratePositionStart) + generateNumber);
         auto minGenerateHeight = this->minGenerateHeight;
         auto maxGenerateHeight = this->maxGenerateHeight;
         maxGenerateHeight = std::min<decltype(maxGenerateHeight)>(maxGenerateHeight, surfacePosition.y);
         if(maxGenerateHeight < minGenerateHeight)
-            return 0;
+            return false;
         result = columnBasePosition + VectorI(0, std::uniform_int_distribution<decltype(maxGenerateHeight)>(minGenerateHeight, maxGenerateHeight)(rg), 0);
-        return std::uniform_int_distribution<std::size_t>(minBlockCount, maxBlockCount)(rg);
+        return true;
     }
-    MineralVeinDecorator(std::wstring name, std::size_t minBlockCount, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight, float defaultPreChunkGenerateCount)
-        : DecoratorDescriptor(name, 0), minBlockCount(minBlockCount), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight), defaultPreChunkGenerateCount(defaultPreChunkGenerateCount)
+    MineralVeinDecorator(std::wstring name, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight, float defaultPreChunkGenerateCount)
+        : DecoratorDescriptor(name, 0), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight), defaultPreChunkGenerateCount(defaultPreChunkGenerateCount)
     {
     }
 public:
@@ -96,73 +142,10 @@ public:
                                  RandomSource &randomSource, std::uint32_t generateNumber) const override
     {
         PositionI generatePosition;
-        std::size_t generateCount = getGeneratePositionAndCount(generatePosition, chunkBasePosition, columnBasePosition, surfacePosition, randomSource, generateNumber);
-        if(generateCount == 0)
+        if(!getGeneratePosition(generatePosition, chunkBasePosition, columnBasePosition, surfacePosition, randomSource, generateNumber))
             return nullptr;
-        assert(generateCount < 10000);
         assert(chunkBasePosition == BlockChunk::getChunkBasePosition(chunkBasePosition));
-        int generateCubeSize = (int)std::cbrt(generateCount);
-        struct GeneratePosition
-        {
-            VectorI rpos;
-            float distSquared;
-            bool operator ==(const GeneratePosition &rt) const
-            {
-                return distSquared == rt.distSquared;
-            }
-            bool operator !=(const GeneratePosition &rt) const
-            {
-                return distSquared != rt.distSquared;
-            }
-            bool operator <(const GeneratePosition &rt) const
-            {
-                return distSquared < rt.distSquared;
-            }
-            bool operator <=(const GeneratePosition &rt) const
-            {
-                return distSquared <= rt.distSquared;
-            }
-            bool operator >=(const GeneratePosition &rt) const
-            {
-                return distSquared >= rt.distSquared;
-            }
-            bool operator >(const GeneratePosition &rt) const
-            {
-                return distSquared > rt.distSquared;
-            }
-            GeneratePosition()
-            {
-            }
-            GeneratePosition(VectorI rpos)
-                : rpos(rpos), distSquared(absSquared((VectorF)rpos))
-            {
-            }
-        };
-        std::vector<GeneratePosition> generatePositionsVector;
-        generatePositionsVector.reserve(generateCount);
-        std::priority_queue<GeneratePosition> generatePositions(std::less<GeneratePosition>(), std::move(generatePositionsVector));
-        for(VectorI rpos = VectorI(-generateCubeSize); rpos.x <= generateCubeSize; rpos.x++)
-        {
-            for(rpos.y = -generateCubeSize; rpos.y <= generateCubeSize; rpos.y++)
-            {
-                for(rpos.z = -generateCubeSize; rpos.z <= generateCubeSize; rpos.z++)
-                {
-                    if(generatePositions.size() >= generateCount)
-                        generatePositions.pop();
-                    generatePositions.push(GeneratePosition(rpos));
-                }
-            }
-        }
-        std::shared_ptr<MineralVeinDecoratorInstance> retval = std::make_shared<MineralVeinDecoratorInstance>(generatePosition, this, VectorI(-generateCubeSize), VectorI(2 * generateCubeSize + 1));
-        Block newBlock = getOreBlock();
-        for(; !generatePositions.empty(); generatePositions.pop())
-        {
-            PositionI pos = generatePositions.top().rpos + generatePosition;
-            if(chunkBasePosition != BlockChunk::getChunkBasePosition(pos))
-                continue;
-            retval->setBlock(generatePositions.top().rpos, newBlock);
-        }
-        return retval;
+        return std::make_shared<MineralVeinDecoratorInstance>(generatePosition, this, generateNumber, getOreBlock(), maxBlockCount);
     }
 };
 }

@@ -121,6 +121,154 @@ public:
     }
 };
 
+class RedstoneOre final : public StoneBlock
+{
+    friend class global_instance_maker<RedstoneOre>;
+public:
+    static const RedstoneOre *pointer()
+    {
+        return global_instance_maker<RedstoneOre>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    RedstoneOre()
+        : StoneBlock(L"builtin.redstone_ore", TextureAtlas::RedstoneOre.td())
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual bool onStartAttack(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual float getHardness() const override
+    {
+        return 3.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Iron;
+    }
+};
+
+class LitRedstoneOre final : public StoneBlock
+{
+    friend class global_instance_maker<LitRedstoneOre>;
+public:
+    static const LitRedstoneOre *pointer()
+    {
+        return global_instance_maker<LitRedstoneOre>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    LitRedstoneOre()
+        : StoneBlock(L"builtin.lit_redstone_ore", TextureAtlas::ActiveRedstoneOre.td(), LightProperties(Lighting::makeArtificialLighting(9), Lighting::makeMaxLight()))
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override;
+    virtual float getHardness() const override
+    {
+        return 3.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Iron;
+    }
+};
+
+class DiamondOre final : public StoneBlock
+{
+    friend class global_instance_maker<DiamondOre>;
+public:
+    static const DiamondOre *pointer()
+    {
+        return global_instance_maker<DiamondOre>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    DiamondOre()
+        : StoneBlock(L"builtin.diamond_ore", TextureAtlas::DiamondOre.td())
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual float getHardness() const override
+    {
+        return 3.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Iron;
+    }
+};
+
+class EmeraldOre final : public StoneBlock
+{
+    friend class global_instance_maker<EmeraldOre>;
+public:
+    static const EmeraldOre *pointer()
+    {
+        return global_instance_maker<EmeraldOre>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    EmeraldOre()
+        : StoneBlock(L"builtin.emerald_ore", TextureAtlas::EmeraldOre.td())
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual float getHardness() const override
+    {
+        return 3.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Iron;
+    }
+};
+
+class LapisLazuliOre final : public StoneBlock
+{
+    friend class global_instance_maker<LapisLazuliOre>;
+public:
+    static const LapisLazuliOre *pointer()
+    {
+        return global_instance_maker<LapisLazuliOre>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    LapisLazuliOre()
+        : StoneBlock(L"builtin.lapis_lazuli_ore", TextureAtlas::LapisLazuliOre.td())
+    {
+    }
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual float getHardness() const override
+    {
+        return 3.0f;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_Iron;
+    }
+};
+
 }
 }
 }

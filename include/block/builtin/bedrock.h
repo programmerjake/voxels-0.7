@@ -18,11 +18,10 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef STONE_BLOCK_H_INCLUDED
-#define STONE_BLOCK_H_INCLUDED
+#ifndef BLOCK_BEDROCK_H_INCLUDED
+#define BLOCK_BEDROCK_H_INCLUDED
 
-#include "block/builtin/full_block.h"
-#include "item/builtin/tools/tools.h"
+#include "block/builtin/stone_block.h"
 
 namespace programmerjake
 {
@@ -32,16 +31,32 @@ namespace Blocks
 {
 namespace builtin
 {
-class StoneBlock : public FullBlock
+class Bedrock final : public StoneBlock
 {
-protected:
-    StoneBlock(std::wstring name, TextureDescriptor td, LightProperties lightProperties = LightProperties(Lighting(), Lighting::makeMaxLight()))
-        : FullBlock(name, lightProperties, RayCasting::BlockCollisionMaskGround, true, td)
+    friend class global_instance_maker<Bedrock>;
+public:
+    static const Bedrock *pointer()
+    {
+        return global_instance_maker<Bedrock>::getInstance();
+    }
+    static BlockDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+private:
+    Bedrock()
+        : StoneBlock(L"builtin.bedrock", TextureAtlas::Bedrock.td())
     {
     }
-    virtual bool isHelpingToolKind(Item tool) const override
+public:
+    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual float getHardness() const override
     {
-        return dynamic_cast<const Items::builtin::tools::Pickaxe *>(tool.descriptor) != nullptr;
+        return -1;
+    }
+    virtual ToolLevel getToolLevel() const override
+    {
+        return ToolLevel_None;
     }
 };
 }
@@ -49,4 +64,4 @@ protected:
 }
 }
 
-#endif // STONE_BLOCK_H_INCLUDED
+#endif // BLOCK_BEDROCK_H_INCLUDED

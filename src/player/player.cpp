@@ -108,7 +108,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             player->addItem(item);
         }
     }
-    if(player->gameInputMonitoring->retrieveGotAttack() || player->gameInput->attack.get())
+    bool gotAttackDown = player->gameInputMonitoring->retrieveGotAttack();
+    if(gotAttackDown || player->gameInput->attack.get())
     {
         player->destructingTime += deltaTime;
         if(player->cooldownTimeLeft > 0)
@@ -141,10 +142,20 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 BlockIterator bi = world.getBlockIterator(pos);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
+                if(good && gotAttackDown)
+                {
+                    good = b.descriptor->onStartAttack(world, b, bi, lock_manager, player);
+                }
                 if(good)
                 {
                     float totalDestructTime = b.descriptor->getBreakDuration(tool);
-                    if(player->destructingTime < totalDestructTime)
+                    if(totalDestructTime < 0)
+                    {
+                        good = false;
+                        player->destructingTime = 0;
+                        player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+                    }
+                    else if(player->destructingTime < totalDestructTime)
                     {
                         good = false;
                         player->getBlockDestructProgress().store(player->destructingTime / totalDestructTime, std::memory_order_relaxed);

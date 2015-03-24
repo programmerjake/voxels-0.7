@@ -384,18 +384,26 @@ protected:
         {
             for(int i = 0; i < 5; i++)
             {
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getAxe())), PositionF(0, 80, 0, Dimension::Overworld));
-                //ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getPickaxe())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::StoneToolset::pointer()->getShovel())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getAxe())), PositionF(0, 80, 0, Dimension::Overworld));
+                //ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getPickaxe())), PositionF(0, 80, 0, Dimension::Overworld));
+                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getShovel())), PositionF(0, 80, 0, Dimension::Overworld));
                 ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Coal::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::IronOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CoalOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::GoldOre::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Furnace::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::WaterBucket::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
             }
         }
+#if 1
+        for(auto &i : blocks)
+        {
+            for(auto &j : i)
+            {
+                for(Block &b : j)
+                {
+                    if(b.descriptor == Blocks::builtin::Stone::descriptor())
+                        b = Block(Blocks::builtin::Air::descriptor());
+                }
+            }
+        }
+#endif
 #endif
     }
 };
@@ -587,12 +595,19 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
     {
         particleGeneratingThreadFn();
     });
+    moveEntitiesThread = thread([this]()
+    {
+        moveEntitiesThreadFn();
+    });
 }
 
 World::~World()
 {
     assert(viewPoints.empty());
     destructing = true;
+    std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
+    moveEntitiesThreadCond.notify_all();
+    lockMoveEntitiesThread.unlock();
     for(auto &t : lightingThreads)
         if(t.joinable())
             t.join();
@@ -604,6 +619,8 @@ World::~World()
             t.join();
     if(particleGeneratingThread.joinable())
         particleGeneratingThread.join();
+    if(moveEntitiesThread.joinable())
+        moveEntitiesThread.join();
 }
 
 Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)
@@ -961,81 +978,109 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
-    entityRunCount++;
-    physicsWorld->stepTime(deltaTime, lock_manager);
-    BlockChunkMap *chunks = &physicsWorld->chunks;
-    for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
+    lock_manager.clear();
+    std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
+    while(waitingForMoveEntities)
     {
-        BlockChunk *chunk = &(*chunkIter);
-        if(chunkIter.is_locked())
-            chunkIter.unlock();
-        BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
-        if(chunk->chunkVariables.generated)
+        moveEntitiesThreadCond.wait(lockMoveEntitiesThread);
+    }
+    waitingForMoveEntities = true;
+    moveEntitiesDeltaTime = deltaTime;
+    moveEntitiesThreadCond.notify_all();
+}
+
+void World::moveEntitiesThreadFn()
+{
+    while(!destructing)
+    {
+        std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
+        waitingForMoveEntities = false;
+        moveEntitiesThreadCond.notify_all();
+        while(!destructing && !waitingForMoveEntities)
         {
-            float fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
-            //fRandomTickCount *= 5;
-            int randomTickCount = ifloor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator()));
-            for(int i = 0; i < randomTickCount; i++)
+            moveEntitiesThreadCond.wait(lockMoveEntitiesThread);
+        }
+        if(destructing)
+            break;
+        double deltaTime = moveEntitiesDeltaTime;
+        lockMoveEntitiesThread.unlock();
+        WorldLockManager lock_manager;
+        entityRunCount++;
+        physicsWorld->stepTime(deltaTime, lock_manager);
+        BlockChunkMap *chunks = &physicsWorld->chunks;
+        for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
+        {
+            BlockChunk *chunk = &(*chunkIter);
+            if(chunkIter.is_locked())
+                chunkIter.unlock();
+            BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
+            if(chunk->chunkVariables.generated)
             {
-                VectorI relativePosition = VectorI(std::uniform_int_distribution<>(0, BlockChunk::chunkSizeX - 1)(getRandomGenerator()),
-                                                   std::uniform_int_distribution<>(0, BlockChunk::chunkSizeY - 1)(getRandomGenerator()),
-                                                   std::uniform_int_distribution<>(0, BlockChunk::chunkSizeZ - 1)(getRandomGenerator()));
-                BlockIterator bi = cbi;
-                bi.moveBy(relativePosition);
-                Block b = bi.get(lock_manager);
-                if(b.good())
+                float fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
+                //fRandomTickCount *= 5;
+                int randomTickCount = ifloor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator()));
+                for(int i = 0; i < randomTickCount; i++)
                 {
-                    b.descriptor->randomTick(b, *this, bi, lock_manager);
+                    VectorI relativePosition = VectorI(std::uniform_int_distribution<>(0, BlockChunk::chunkSizeX - 1)(getRandomGenerator()),
+                                                       std::uniform_int_distribution<>(0, BlockChunk::chunkSizeY - 1)(getRandomGenerator()),
+                                                       std::uniform_int_distribution<>(0, BlockChunk::chunkSizeZ - 1)(getRandomGenerator()));
+                    BlockIterator bi = cbi;
+                    bi.moveBy(relativePosition);
+                    Block b = bi.get(lock_manager);
+                    if(b.good())
+                    {
+                        b.descriptor->randomTick(b, *this, bi, lock_manager);
+                    }
                 }
             }
-        }
-        std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
-        WrappedEntity::ChunkListType &chunkEntityList = chunk->chunkVariables.entityList;
-        auto i = chunkEntityList.begin();
-        while(i != chunkEntityList.end())
-        {
-            WrappedEntity &entity = *i;
-            if(!entity.entity.good())
+            std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
+            WrappedEntity::ChunkListType &chunkEntityList = chunk->chunkVariables.entityList;
+            auto i = chunkEntityList.begin();
+            while(i != chunkEntityList.end())
             {
+                WrappedEntity &entity = *i;
+                if(!entity.entity.good())
+                {
+                    lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
+                    WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
+                    subchunkEntityList.erase(subchunkEntityList.to_iterator(&entity));
+                    i = chunkEntityList.erase(i);
+                    continue;
+                }
+                if(entity.lastEntityRunCount >= entityRunCount)
+                {
+                    ++i;
+                    continue;
+                }
+                entity.lastEntityRunCount = entityRunCount;
+                BlockIterator destBi = cbi;
+                destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
+                entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
+                if(entity.currentChunk == destBi.chunk && entity.currentSubchunk == &destBi.getSubchunk())
+                {
+                    ++i;
+                    continue;
+                }
                 lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
                 WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
-                subchunkEntityList.erase(subchunkEntityList.to_iterator(&entity));
-                i = chunkEntityList.erase(i);
-                continue;
+                subchunkEntityList.detach(subchunkEntityList.to_iterator(&entity));
+                destBi.updateLock(lock_manager);
+                entity.currentSubchunk = &destBi.getSubchunk();
+                WrappedEntity::SubchunkListType &subchunkDestEntityList = entity.currentSubchunk->entityList;
+                subchunkDestEntityList.push_back(&entity);
+                if(entity.currentChunk == destBi.chunk)
+                {
+                    ++i;
+                    continue;
+                }
+                auto nextI = i;
+                ++nextI;
+                std::unique_lock<std::recursive_mutex> lockChunk(destBi.chunk->chunkVariables.entityListLock);
+                WrappedEntity::ChunkListType &chunkDestEntityList = chunk->chunkVariables.entityList;
+                chunkDestEntityList.splice(chunkDestEntityList.end(), chunkEntityList, i);
+                entity.currentChunk = destBi.chunk;
+                i = nextI;
             }
-            if(entity.lastEntityRunCount >= entityRunCount)
-            {
-                ++i;
-                continue;
-            }
-            entity.lastEntityRunCount = entityRunCount;
-            BlockIterator destBi = cbi;
-            destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
-            entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
-            if(entity.currentChunk == destBi.chunk && entity.currentSubchunk == &destBi.getSubchunk())
-            {
-                ++i;
-                continue;
-            }
-            lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
-            WrappedEntity::SubchunkListType &subchunkEntityList = entity.currentSubchunk->entityList;
-            subchunkEntityList.detach(subchunkEntityList.to_iterator(&entity));
-            destBi.updateLock(lock_manager);
-            entity.currentSubchunk = &destBi.getSubchunk();
-            WrappedEntity::SubchunkListType &subchunkDestEntityList = entity.currentSubchunk->entityList;
-            subchunkDestEntityList.push_back(&entity);
-            if(entity.currentChunk == destBi.chunk)
-            {
-                ++i;
-                continue;
-            }
-            auto nextI = i;
-            ++nextI;
-            std::unique_lock<std::recursive_mutex> lockChunk(destBi.chunk->chunkVariables.entityListLock);
-            WrappedEntity::ChunkListType &chunkDestEntityList = chunk->chunkVariables.entityList;
-            chunkDestEntityList.splice(chunkDestEntityList.end(), chunkEntityList, i);
-            entity.currentChunk = destBi.chunk;
-            i = nextI;
         }
     }
 }

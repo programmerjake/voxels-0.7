@@ -22,6 +22,8 @@
 #include "item/builtin/stone.h"
 #include "block/builtin/cobblestone.h"
 #include "item/builtin/cobblestone.h"
+#include "block/builtin/bedrock.h"
+#include "item/builtin/bedrock.h"
 
 namespace programmerjake
 {
@@ -44,6 +46,14 @@ void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockMana
     if(isMatchingTool(tool))
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
+    }
+    handleToolDamage(tool);
+}
+void Bedrock::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+{
+    if(isMatchingTool(tool))
+    {
+        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Bedrock::descriptor())), bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }

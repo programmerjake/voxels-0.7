@@ -326,7 +326,7 @@ private:
 public:
     virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
     {
-        if(kind == BlockUpdateKind::FluidUpdateNotify)
+        if(kind == BlockUpdateKind::UpdateNotify)
         {
             for(BlockUpdateIterator i = blockIterator.updatesBegin(lock_manager); i != blockIterator.updatesEnd(lock_manager); i++)
             {

@@ -32,9 +32,10 @@ enum class BlockUpdateKind : std::uint8_t
 {
     Lighting,
     General,
-    FluidUpdateNotify,
+    UpdateNotify,
     Water,
-    DEFINE_ENUM_LIMITS(Lighting, Water)
+    Redstone,
+    DEFINE_ENUM_LIMITS(Lighting, Redstone)
 };
 
 inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
@@ -45,10 +46,12 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
         return 0;
     case BlockUpdateKind::General:
         return 0.05f;
-    case BlockUpdateKind::FluidUpdateNotify:
+    case BlockUpdateKind::UpdateNotify:
         return 0;
     case BlockUpdateKind::Water:
         return 0.25f;
+    case BlockUpdateKind::Redstone:
+        return 0.1f;
     }
     assert(false);
     return 0;

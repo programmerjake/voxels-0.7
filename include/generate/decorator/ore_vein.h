@@ -39,7 +39,7 @@ class CoalOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<CoalOreVeinDecorator>;
 private:
     CoalOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.coal_ore_vein", 1, 17, 0, 128, 20)
+        : MineralVeinDecorator(L"builtin.coal_ore_vein", 17, 0, 128, 20)
     {
     }
 protected:
@@ -63,7 +63,7 @@ class IronOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<IronOreVeinDecorator>;
 private:
     IronOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.iron_ore_vein", 1, 9, 0, 64, 20)
+        : MineralVeinDecorator(L"builtin.iron_ore_vein", 9, 0, 64, 20)
     {
     }
 protected:
@@ -87,7 +87,7 @@ class GoldOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<GoldOreVeinDecorator>;
 private:
     GoldOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.gold_ore_vein", 1, 9, 0, 32, 2)
+        : MineralVeinDecorator(L"builtin.gold_ore_vein", 9, 0, 32, 2)
     {
     }
 protected:
@@ -99,6 +99,102 @@ public:
     static const GoldOreVeinDecorator *pointer()
     {
         return global_instance_maker<GoldOreVeinDecorator>::getInstance();
+    }
+    static DecoratorDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class RedstoneOreVeinDecorator : public MineralVeinDecorator
+{
+    friend class global_instance_maker<RedstoneOreVeinDecorator>;
+private:
+    RedstoneOreVeinDecorator()
+        : MineralVeinDecorator(L"builtin.redstone_ore_vein", 8, 0, 16, 8)
+    {
+    }
+protected:
+    virtual Block getOreBlock() const override
+    {
+        return Block(Blocks::builtin::RedstoneOre::descriptor());
+    }
+public:
+    static const RedstoneOreVeinDecorator *pointer()
+    {
+        return global_instance_maker<RedstoneOreVeinDecorator>::getInstance();
+    }
+    static DecoratorDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class DiamondOreVeinDecorator : public MineralVeinDecorator
+{
+    friend class global_instance_maker<DiamondOreVeinDecorator>;
+private:
+    DiamondOreVeinDecorator()
+        : MineralVeinDecorator(L"builtin.diamond_ore_vein", 8, 0, 16, 1)
+    {
+    }
+protected:
+    virtual Block getOreBlock() const override
+    {
+        return Block(Blocks::builtin::DiamondOre::descriptor());
+    }
+public:
+    static const DiamondOreVeinDecorator *pointer()
+    {
+        return global_instance_maker<DiamondOreVeinDecorator>::getInstance();
+    }
+    static DecoratorDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class LapisLazuliOreVeinDecorator : public MineralVeinDecorator
+{
+    friend class global_instance_maker<LapisLazuliOreVeinDecorator>;
+private:
+    LapisLazuliOreVeinDecorator()
+        : MineralVeinDecorator(L"builtin.lapis_lazuli_ore_vein", 7, 0, 32, 1)
+    {
+    }
+protected:
+    virtual Block getOreBlock() const override
+    {
+        return Block(Blocks::builtin::LapisLazuliOre::descriptor());
+    }
+public:
+    static const LapisLazuliOreVeinDecorator *pointer()
+    {
+        return global_instance_maker<LapisLazuliOreVeinDecorator>::getInstance();
+    }
+    static DecoratorDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class EmeraldOreVeinDecorator : public MineralVeinDecorator
+{
+    friend class global_instance_maker<EmeraldOreVeinDecorator>;
+private:
+    EmeraldOreVeinDecorator()
+        : MineralVeinDecorator(L"builtin.emerald_ore_vein", 1, 0, 16, 0)
+    {
+    }
+protected:
+    virtual Block getOreBlock() const override
+    {
+        return Block(Blocks::builtin::RedstoneOre::descriptor());
+    }
+public:
+    static const EmeraldOreVeinDecorator *pointer()
+    {
+        return global_instance_maker<EmeraldOreVeinDecorator>::getInstance();
     }
     static DecoratorDescriptorPointer descriptor()
     {
