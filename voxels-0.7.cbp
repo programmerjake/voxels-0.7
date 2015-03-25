@@ -120,6 +120,7 @@
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/plant.h" />
+		<Unit filename="include/block/builtin/redstone.h" />
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/block/builtin/torch.h" />
@@ -267,6 +268,7 @@
 		<Unit filename="src/block/builtin/furnace.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/ores.cpp" />
+		<Unit filename="src/block/builtin/redstone.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/block/builtin/torch.cpp" />
 		<Unit filename="src/block/builtin/woods.cpp" />

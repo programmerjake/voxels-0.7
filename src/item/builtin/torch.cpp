@@ -20,7 +20,7 @@
  */
 #include "block/builtin/torch.h"
 #include "item/builtin/torch.h"
-#include "item/builtin/minerals.h" // coal
+#include "item/builtin/minerals.h" // coal redstone
 #include "item/builtin/wood.h" // stick
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/crafting_table.h"
@@ -58,6 +58,37 @@ public:
     static const TorchRecipe *pointer()
     {
         return global_instance_maker<TorchRecipe>::getInstance();
+    }
+    static RecipeDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class RedstoneTorchRecipe final : public PatternRecipe<1, 2>
+{
+    friend class global_instance_maker<RedstoneTorchRecipe>;
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::RedstoneTorch::descriptor()), 1));
+        return true;
+    }
+private:
+    RedstoneTorchRecipe()
+        : PatternRecipe(checked_array<Item, 1 * 2>
+        {
+            Item(Items::builtin::RedstoneDust::descriptor()),
+            Item(Items::builtin::Stick::descriptor()),
+        })
+    {
+    }
+public:
+    static const RedstoneTorchRecipe *pointer()
+    {
+        return global_instance_maker<RedstoneTorchRecipe>::getInstance();
     }
     static RecipeDescriptorPointer descriptor()
     {

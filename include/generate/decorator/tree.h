@@ -42,7 +42,7 @@ class TreeDecorator : public DecoratorDescriptor
 public:
     const TreeDescriptorPointer treeDescriptor;
     TreeDecorator(TreeDescriptorPointer treeDescriptor)
-        : DecoratorDescriptor(L"builtin.tree(treeDescriptor=" + treeDescriptor->name + L")", 1), treeDescriptor(treeDescriptor)
+        : DecoratorDescriptor(L"builtin.tree(treeDescriptor=" + treeDescriptor->name + L")", 1, 1000), treeDescriptor(treeDescriptor)
     {
     }
 protected:

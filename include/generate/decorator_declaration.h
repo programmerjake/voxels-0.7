@@ -26,6 +26,9 @@
 #include <unordered_map>
 #include <cassert>
 #include <vector>
+#include <map>
+#include "util/iterator.h"
+#include <iterator>
 
 namespace programmerjake
 {
@@ -40,13 +43,15 @@ class DecoratorDescriptors_t final
     friend class DecoratorDescriptor;
 private:
     static std::unordered_map<std::wstring, DecoratorDescriptorPointer> *map;
-    static std::vector<DecoratorDescriptorPointer> *list;
+    static std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator> *list;
+    static std::multimap<float, DecoratorDescriptorPointer> *sortedList;
     static void makeMap()
     {
         if(map == nullptr)
         {
             map = new std::unordered_map<std::wstring, DecoratorDescriptorPointer>;
-            list = new std::vector<DecoratorDescriptorPointer>;
+            list = new std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator>;
+            sortedList = new std::multimap<float, DecoratorDescriptorPointer>;
         }
     }
     static void addDescriptor(DecoratorDescriptor *descriptor);
@@ -57,31 +62,65 @@ public:
         makeMap();
         return list->size();
     }
-    typedef typename std::vector<DecoratorDescriptorPointer>::const_iterator iterator;
+    class iterator final : public std::iterator<std::forward_iterator_tag, const DecoratorDescriptorPointer>
+    {
+        friend class DecoratorDescriptors_t;
+    private:
+        std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter;
+        iterator(std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter)
+            : iter(iter)
+        {
+        }
+    public:
+        iterator() = default;
+        const DecoratorDescriptorPointer operator *() const
+        {
+            return std::get<1>(*iter);
+        }
+        const iterator &operator ++()
+        {
+            ++iter;
+            return *this;
+        }
+        iterator operator ++(int)
+        {
+            iterator retval = *this;
+            operator ++();
+            return retval;
+        }
+        bool operator ==(const iterator &rt) const
+        {
+            return iter == rt.iter;
+        }
+        bool operator !=(const iterator &rt) const
+        {
+            return iter != rt.iter;
+        }
+    };
     iterator begin() const
     {
         makeMap();
-        return list->begin();
+        return iterator(sortedList->begin());
     }
     iterator end() const
     {
         makeMap();
-        return list->end();
+        return iterator(sortedList->end());
     }
     iterator find(DecoratorDescriptorPointer descriptor)
     {
         makeMap();
         if(descriptor == nullptr)
-            return list->end();
-        return list->begin() + getIndex(descriptor);
+            return end();
+        return iterator(list->at(getIndex(descriptor)));
     }
     iterator find(std::wstring name)
     {
         makeMap();
         auto iter = map->find(name);
         if(iter == map->end())
-            return list->end();
-        return list->begin() + getIndex(std::get<1>(*iter));
+            return end();
+        return iterator(list->at(getIndex(std::get<1>(*iter))));
     }
 };
 

@@ -117,8 +117,8 @@ protected:
         result = columnBasePosition + VectorI(0, std::uniform_int_distribution<decltype(maxGenerateHeight)>(minGenerateHeight, maxGenerateHeight)(rg), 0);
         return true;
     }
-    MineralVeinDecorator(std::wstring name, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight, float defaultPreChunkGenerateCount)
-        : DecoratorDescriptor(name, 0), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight), defaultPreChunkGenerateCount(defaultPreChunkGenerateCount)
+    MineralVeinDecorator(std::wstring name, std::size_t maxBlockCount, std::int32_t minGenerateHeight, std::int32_t maxGenerateHeight, float defaultPreChunkGenerateCount, float priority)
+        : DecoratorDescriptor(name, 0, priority), maxBlockCount(maxBlockCount), minGenerateHeight(minGenerateHeight), maxGenerateHeight(maxGenerateHeight), defaultPreChunkGenerateCount(defaultPreChunkGenerateCount)
     {
     }
 public:

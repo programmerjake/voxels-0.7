@@ -74,6 +74,7 @@ public:
      * from the central chunk in the X and Z directions.)
      */
     const int chunkSearchDistance;
+    const float priority;
     DecoratorDescriptorIndex getIndex() const
     {
         return index;
@@ -90,7 +91,7 @@ public:
         return retval;
     }
 protected:
-    DecoratorDescriptor(std::wstring name, int chunkSearchDistance);
+    DecoratorDescriptor(std::wstring name, int chunkSearchDistance, float priority);
 public:
     /** @brief create a DecoratorInstance for this decorator in a chunk
      *

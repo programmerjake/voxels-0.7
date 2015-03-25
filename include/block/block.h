@@ -276,6 +276,14 @@ public:
     {
         return lightProperties.reduceValue == Lighting::makeMaxLight();
     }
+    virtual bool breaksRedstoneDust() const
+    {
+        return lightProperties.reduceValue == Lighting::makeMaxLight();
+    }
+    virtual bool transmitsRedstoneSignalDown() const
+    {
+        return lightProperties.reduceValue == Lighting::makeMaxLight();
+    }
     virtual RedstoneSignal getRedstoneSignal(BlockFace outputThroughBlockFace) const
     {
         return RedstoneSignal();

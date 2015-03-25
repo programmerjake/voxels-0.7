@@ -21,7 +21,7 @@
  */
 #include "util/game_version.h"
 
-const std::wstring programmerjake::voxels::GameVersion::VERSION = L"0.7.1.2";
+const std::wstring programmerjake::voxels::GameVersion::VERSION = L"0.7.1.3";
 const std::uint32_t programmerjake::voxels::GameVersion::FILE_VERSION = 0;
 
 #ifdef COMPILE_DUMP_VERSION
@@ -32,7 +32,7 @@ using namespace std;
 
 int main(int argc, char ** argv)
 {
-    const int curVersion = 2;
+    const int curVersion = 3;
     if(argc > 1 && string(argv[1]) == "--next-version")
         cout << (curVersion + 1) << endl;
     else if(argc > 1 && string(argv[1]) == "--next-version-str")

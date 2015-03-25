@@ -27,6 +27,8 @@
 #include "ui/gameui.h"
 #include "item/builtin/stone.h"
 #include "entity/builtin/particles/smoke.h"
+#include "item/builtin/tools/mineral_toolsets.h"
+#include "item/builtin/minerals.h"
 
 namespace programmerjake
 {
@@ -227,6 +229,20 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
 
 void Player::addToPlayersList()
 {
+#ifdef DEBUG_VERSION
+    for(int i = 0; i < 2; i++)
+    {
+        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getAxe()));
+        //addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
+        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getPickaxe()));
+        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getShovel()));
+    }
+    for(int i = 0; i < 25; i++)
+    {
+        addItem(Item(Items::builtin::Coal::descriptor()));
+        addItem(Item(Items::builtin::RedstoneDust::descriptor()));
+    }
+#endif // DEBUG_VERSION
     Players.addPlayer(this);
 }
 

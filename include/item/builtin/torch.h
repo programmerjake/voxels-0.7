@@ -25,6 +25,7 @@
 #include "block/builtin/torch.h"
 #include "texture/texture_atlas.h"
 #include "util/global_instance_maker.h"
+#include "block/builtin/redstone.h"
 
 namespace programmerjake
 {
@@ -83,6 +84,25 @@ public:
     static const Torch *pointer()
     {
         return global_instance_maker<Torch>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
+class RedstoneTorch final : public GenericTorch
+{
+    friend class global_instance_maker<RedstoneTorch>;
+private:
+    RedstoneTorch()
+        : GenericTorch(L"builtin.redstone_torch", TextureAtlas::RedstoneTorchBottomOn.td(), TextureAtlas::RedstoneTorchSideOn.td(), TextureAtlas::RedstoneTorchTopOn.td(), Blocks::builtin::RedstoneTorch::pointer())
+    {
+    }
+public:
+    static const RedstoneTorch *pointer()
+    {
+        return global_instance_maker<RedstoneTorch>::getInstance();
     }
     static ItemDescriptorPointer descriptor()
     {

@@ -380,18 +380,7 @@ protected:
             }
         }
 #ifdef DEBUG_VERSION
-        if(chunkBasePosition == PositionI(0, 0, 0, Dimension::Overworld))
-        {
-            for(int i = 0; i < 5; i++)
-            {
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getAxe())), PositionF(0, 80, 0, Dimension::Overworld));
-                //ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getHoe())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getPickaxe())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::tools::IronToolset::pointer()->getShovel())), PositionF(0, 80, 0, Dimension::Overworld));
-                ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Coal::descriptor())), PositionF(0, 80, 0, Dimension::Overworld));
-            }
-        }
-#if 1
+#if 0
         for(auto &i : blocks)
         {
             for(auto &j : i)

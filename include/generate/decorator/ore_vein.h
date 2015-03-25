@@ -39,7 +39,7 @@ class CoalOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<CoalOreVeinDecorator>;
 private:
     CoalOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.coal_ore_vein", 17, 0, 128, 20)
+        : MineralVeinDecorator(L"builtin.coal_ore_vein", 17, 0, 128, 20, 800)
     {
     }
 protected:
@@ -63,7 +63,7 @@ class IronOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<IronOreVeinDecorator>;
 private:
     IronOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.iron_ore_vein", 9, 0, 64, 20)
+        : MineralVeinDecorator(L"builtin.iron_ore_vein", 9, 0, 64, 20, 700)
     {
     }
 protected:
@@ -87,7 +87,7 @@ class GoldOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<GoldOreVeinDecorator>;
 private:
     GoldOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.gold_ore_vein", 9, 0, 32, 2)
+        : MineralVeinDecorator(L"builtin.gold_ore_vein", 9, 0, 32, 2, 600)
     {
     }
 protected:
@@ -111,7 +111,7 @@ class RedstoneOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<RedstoneOreVeinDecorator>;
 private:
     RedstoneOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.redstone_ore_vein", 8, 0, 16, 8)
+        : MineralVeinDecorator(L"builtin.redstone_ore_vein", 8, 0, 16, 8, 700)
     {
     }
 protected:
@@ -135,7 +135,7 @@ class DiamondOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<DiamondOreVeinDecorator>;
 private:
     DiamondOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.diamond_ore_vein", 8, 0, 16, 1)
+        : MineralVeinDecorator(L"builtin.diamond_ore_vein", 8, 0, 16, 1, 500)
     {
     }
 protected:
@@ -159,7 +159,7 @@ class LapisLazuliOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<LapisLazuliOreVeinDecorator>;
 private:
     LapisLazuliOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.lapis_lazuli_ore_vein", 7, 0, 32, 1)
+        : MineralVeinDecorator(L"builtin.lapis_lazuli_ore_vein", 7, 0, 32, 1, 650)
     {
     }
 protected:
@@ -183,7 +183,7 @@ class EmeraldOreVeinDecorator : public MineralVeinDecorator
     friend class global_instance_maker<EmeraldOreVeinDecorator>;
 private:
     EmeraldOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.emerald_ore_vein", 1, 0, 16, 0)
+        : MineralVeinDecorator(L"builtin.emerald_ore_vein", 1, 0, 16, 0, 400)
     {
     }
 protected:

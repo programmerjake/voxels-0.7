@@ -39,7 +39,7 @@ class CobblestoneSpikeDecorator : public DecoratorDescriptor
     friend class global_instance_maker<CobblestoneSpikeDecorator>;
 private:
     CobblestoneSpikeDecorator()
-        : DecoratorDescriptor(L"builtin.cobblestone_spike", 1)
+        : DecoratorDescriptor(L"builtin.cobblestone_spike", 1, 1000)
     {
     }
 public:
