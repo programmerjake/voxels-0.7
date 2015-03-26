@@ -47,6 +47,8 @@ class ViewPoint final
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn(bool isPrimaryThread);
     std::shared_ptr<void> pLightingCache;
+    static bool generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp);
+    static void copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockManager &source_lock_manager, WorldLockManager &dest_lock_manager, BlockIterator sourceChunkBlockIterator, BlockIterator destChunkBlockIterator);
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
     ViewPoint(const ViewPoint &rt) = delete;

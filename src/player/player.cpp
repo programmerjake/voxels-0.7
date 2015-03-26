@@ -170,7 +170,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 }
                 if(good)
                 {
-                    world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
+                    world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor(), b.lighting));
                     b.descriptor->onBreak(world, b, bi, lock_manager, tool);
                     for(int i = 0; i < 5; i++)
                     {
@@ -269,6 +269,7 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
         if(playerEntity->physicsObject->collidesWithBlock(b.descriptor->blockShape, collision.blockPosition))
             return false;
         oldBlock.descriptor->onReplace(world, oldBlock, bi, lock_manager);
+        b.lighting = oldBlock.lighting;
         world.setBlock(bi, lock_manager, b);
         return true;
     }
@@ -289,7 +290,7 @@ bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLoc
     good = good && b.good();
     if(good)
     {
-        world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor()));
+        world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor(), b.lighting));
         if(runBreakAction)
         {
             Item tool;

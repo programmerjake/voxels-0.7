@@ -53,7 +53,7 @@ private:
     {
         value_type value;
         Node *hash_next;
-        const size_type cachedHash;
+        size_type cachedHash;
         Node(const key_type &key, const mapped_type &value, size_type cachedHash)
             : value(key, value), cachedHash(cachedHash)
         {
@@ -202,19 +202,36 @@ private:
         {
             unlock();
         }
+        std::recursive_mutex &get_lock()
+        {
+            return bucket_locks.get()[bucket_index];
+        }
         void lock()
         {
             if(node && !locked)
             {
-                bucket_locks.get()[bucket_index].lock();
+                get_lock().lock();
                 locked = true;
             }
         }
         void unlock()
         {
             if(locked)
-                bucket_locks.get()[bucket_index].unlock();
+                get_lock().unlock();
             locked = false;
+        }
+        bool try_lock()
+        {
+            if(node && !locked)
+            {
+                if(get_lock().try_lock())
+                {
+                    locked = true;
+                    return true;
+                }
+                return false;
+            }
+            return true;
         }
         void operator ++()
         {
@@ -293,6 +310,10 @@ public:
         {
             imp.unlock();
         }
+        bool try_lock()
+        {
+            return imp.try_lock();
+        }
         bool is_locked() const
         {
             return imp.locked;
@@ -361,6 +382,10 @@ public:
         void unlock()
         {
             imp.unlock();
+        }
+        bool try_lock()
+        {
+            return imp.try_lock();
         }
         bool is_locked() const
         {
@@ -684,6 +709,185 @@ public:
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
         return std::unique_lock<std::recursive_mutex>(bucket_locks.get()[current_hash]);
+    }
+    class node_ptr final
+    {
+        friend class parallel_map;
+    private:
+        Node *node;
+        void reset(Node *newNode)
+        {
+            if(node != nullptr)
+                delete node;
+            node = newNode;
+        }
+        Node *release()
+        {
+            Node *retval = node;
+            node = nullptr;
+            return retval;
+        }
+        Node *get() const
+        {
+            return node;
+        }
+    public:
+        constexpr node_ptr()
+            : node(nullptr)
+        {
+        }
+        constexpr node_ptr(std::nullptr_t)
+            : node(nullptr)
+        {
+        }
+        node_ptr(node_ptr &&rt)
+            : node(rt.node)
+        {
+            rt.node = nullptr;
+        }
+        ~node_ptr()
+        {
+            reset();
+        }
+        node_ptr &operator =(node_ptr &&rt)
+        {
+            reset(rt.release());
+            return *this;
+        }
+        node_ptr &operator =(std::nullptr_t)
+        {
+            reset();
+            return *this;
+        }
+        void reset()
+        {
+            reset(nullptr);
+        }
+        void swap(node_ptr &rt)
+        {
+            Node *temp = node;
+            node = rt.node;
+            rt.node = temp;
+        }
+        explicit operator bool() const
+        {
+            return node != nullptr;
+        }
+        bool operator !() const
+        {
+            return node == nullptr;
+        }
+        parallel_map::value_type &operator *() const
+        {
+            return node->value;
+        }
+        parallel_map::value_type *operator ->() const
+        {
+            return node->value;
+        }
+        friend bool operator ==(std::nullptr_t, const node_ptr &v)
+        {
+            return v.node == nullptr;
+        }
+        friend bool operator ==(const node_ptr &v, std::nullptr_t)
+        {
+            return v.node == nullptr;
+        }
+        friend bool operator !=(std::nullptr_t, const node_ptr &v)
+        {
+            return v.node != nullptr;
+        }
+        friend bool operator !=(const node_ptr &v, std::nullptr_t)
+        {
+            return v.node != nullptr;
+        }
+        bool operator ==(const node_ptr &rt) const
+        {
+            return node == rt.node;
+        }
+        bool operator !=(const node_ptr &rt) const
+        {
+            return node != rt.node;
+        }
+    };
+    struct insert_result final
+    {
+        iterator position;
+        bool inserted;
+        node_ptr node;
+    };
+    insert_result insert(node_ptr node)
+    {
+        insert_result retval;
+        retval.node = std::move(node);
+        if(retval.node == nullptr)
+        {
+            retval.position = end();
+            retval.inserted = false;
+            return std::move(retval);
+        }
+        Node *pnode = retval.node.get();
+        const key_type &key = std::get<0>(pnode->value);
+        size_type key_hash = (size_type)the_hasher(key);
+        pnode->cachedHash = key_hash;
+        size_type current_hash = key_hash % bucket_count;
+        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        for(Node *pretval = buckets[current_hash]; pretval != nullptr; pretval = pretval->hash_next)
+        {
+            if(the_comparer(std::get<0>(pretval->value), key))
+            {
+                lock_it.release();
+                retval.position = iterator(iterator_imp(pretval, current_hash, this, true));
+                retval.inserted = false;
+                return std::move(retval);
+            }
+        }
+
+        Node *pretval = retval.node.release();
+        pretval->hash_next = buckets[current_hash];
+        buckets[current_hash] = pretval;
+        lock_it.release();
+        retval.position = iterator(iterator_imp(pretval, current_hash, this, true));
+        retval.inserted = true;
+        return std::move(retval);
+    }
+    node_ptr extract(const_iterator position)
+    {
+        Node *node = position.get_node();
+        size_type current_hash = position.get_bucket_index();
+
+        if(node == nullptr)
+        {
+            return node_ptr();
+        }
+
+        position.lock();
+        for(Node **pnode = &buckets[current_hash]; *pnode != nullptr; pnode = &(*pnode)->hash_next)
+        {
+            if(*pnode == node)
+            {
+                *pnode = node->hash_next;
+                break;
+            }
+        }
+        node->hash_next = nullptr;
+        return node_ptr(node);
+    }
+    node_ptr extract(const key_type &key)
+    {
+        size_type current_hash = (size_type)the_hasher(key) % bucket_count;
+        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        Node **pnode = &buckets[current_hash];
+        for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
+        {
+            if(the_comparer(std::get<0>(node->value), key))
+            {
+                *pnode = node->hash_next;
+                node->hash_next = nullptr;
+                return node_ptr(node);
+            }
+        }
+        return node_ptr();
     }
 };
 }

@@ -156,7 +156,7 @@ public:
         if(!isPositionValid(blockIterator, block, lock_manager))
         {
             dropItems(blockIterator, block, world, lock_manager, Item());
-            blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor()));
+            blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
         }
     }
     virtual bool canPlace(Block b, BlockIterator bi, WorldLockManager &lock_manager) const

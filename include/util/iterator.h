@@ -141,15 +141,13 @@ public:
     }
     typename joined_iterator_value_type_helper<IT1, IT2>::type &operator *() const
     {
-        static_assert(std::is_same<typename std::remove_const<typename IT1::value_type &>::type, typename std::remove_const<decltype(*std::declval<IT1>())>::type>::value, "unsupported return type for operator *()");
-        static_assert(std::is_same<typename std::remove_const<typename IT2::value_type &>::type, typename std::remove_const<decltype(*std::declval<IT2>())>::type>::value, "unsupported return type for operator *()");
+        static_assert(std::is_same<typename std::remove_const<typename std::iterator_traits<IT1>::value_type &>::type, typename std::remove_const<decltype(*std::declval<IT1>())>::type>::value, "unsupported return type for operator *()");
+        static_assert(std::is_same<typename std::remove_const<typename std::iterator_traits<IT1>::value_type &>::type, typename std::remove_const<decltype(*std::declval<IT2>())>::type>::value, "unsupported return type for operator *()");
         return iterator1 == iterator1end ? *iterator2 : *iterator1;
     }
     typename joined_iterator_value_type_helper<IT1, IT2>::type *operator ->() const
     {
-        static_assert(std::is_same<typename std::remove_const<typename IT1::value_type *>::type, typename std::remove_const<decltype(std::declval<IT1>().operator ->())>::type>::value, "unsupported return type for operator ->()");
-        static_assert(std::is_same<typename std::remove_const<typename IT2::value_type *>::type, typename std::remove_const<decltype(std::declval<IT2>().operator ->())>::type>::value, "unsupported return type for operator ->()");
-        return iterator1 == iterator1end ? iterator2.operator ->() : iterator1.operator ->();
+        return std::addressof(operator *());
     }
     const joined_iterator &operator ++()
     {

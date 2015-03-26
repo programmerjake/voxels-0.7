@@ -108,6 +108,29 @@ public:
     {
         return pointer();
     }
+    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    {
+        const Blocks::builtin::GenericTorch *block = getBlock();
+        if(block == nullptr)
+            return item;
+        RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
+        if(c.valid())
+        {
+            if(c.type == RayCasting::Collision::Type::Block && c.blockFace != BlockFaceOrNone::None)
+            {
+                BlockDescriptorPointer newDescriptor = block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
+                if(newDescriptor != nullptr)
+                {
+                    if(player.placeBlock(c, world, lock_manager, Block(newDescriptor)))
+                    {
+                        BlockDescriptor::addRedstoneBlockUpdates(world, world.getBlockIterator(c.blockPosition), lock_manager, 2);
+                        return getAfterPlaceItem();
+                    }
+                }
+            }
+        }
+        return item;
+    }
 };
 
 }

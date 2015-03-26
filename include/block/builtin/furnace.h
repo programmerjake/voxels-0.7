@@ -256,7 +256,7 @@ private:
         bool newBurning = (data->burnTimeLeft > 0);
         if(burning != newBurning)
         {
-            world.setBlock(bi, lock_manager, Block(descriptor(facing, newBurning), b.data));
+            world.setBlock(bi, lock_manager, Block(descriptor(facing, newBurning), b.lighting, b.data));
         }
     }
     struct FurnaceMaker final
@@ -316,7 +316,7 @@ public:
     {
         if(block.data == nullptr)
         {
-            blockUpdateSet.emplace_back(blockIterator.position(), Block(this, BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(std::make_shared<FurnaceData>()))));
+            blockUpdateSet.emplace_back(blockIterator.position(), Block(this, block.lighting, BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(std::make_shared<FurnaceData>()))));
             return;
         }
         std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(block.data.get())->data;

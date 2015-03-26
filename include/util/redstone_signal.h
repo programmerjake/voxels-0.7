@@ -73,7 +73,7 @@ public:
     }
     constexpr int getRedstoneDustSignalStrength() const
     {
-        return canConnectToRedstoneDustDirectly ? strongSignalStrength : 0;
+        return canConnectToRedstoneDustDirectly ? weakSignalStrength : 0;
     }
     constexpr int getSignalStrength() const
     {

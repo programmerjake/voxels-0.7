@@ -334,11 +334,35 @@ public:
         return pointer();
     }
 private:
+    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager)
+    {
+        blockIterator.moveToward(inputThroughBlockFace);
+        Block b = blockIterator.get(lock_manager);
+        if(!b.good())
+            return RedstoneSignal();
+        RedstoneSignal retval = b.descriptor->getRedstoneSignal(getOppositeBlockFace(inputThroughBlockFace));
+        if(b.descriptor->canTransmitRedstoneSignal())
+        {
+            for(BlockFace bf : enum_traits<BlockFace>())
+            {
+                if(bf == inputThroughBlockFace)
+                    continue;
+                BlockIterator bi = blockIterator;
+                bi.moveFrom(bf);
+                b = bi.get(lock_manager);
+                if(b.good())
+                {
+                    retval = retval.combine(b.descriptor->getRedstoneSignal(bf).transmitThroughSolidBlock());
+                }
+            }
+        }
+        return retval;
+    }
     static std::pair<int, EdgeAttachedState> calcOrientationAndSignalStrengthSide(BlockIterator blockIterator, WorldLockManager &lock_manager, BlockFace side, bool blockAboveCutsRedstoneDust)
     {
         EdgeAttachedState edgeAttachedState = EdgeAttachedState::None;
         RedstoneSignal redstoneSignal = calculateRedstoneSignal(side, blockIterator, lock_manager);
-        int signal = redstoneSignal.strongSignalStrength;
+        int signal = 0;
         BlockIterator bi = blockIterator;
         bi.moveToward(side);
         Block b = bi.get(lock_manager);
@@ -351,18 +375,22 @@ private:
                     signal = sideDescriptor->signalStrength - 1;
                 edgeAttachedState = EdgeAttachedState::Bottom;
             }
-            else if(!b.descriptor->breaksRedstoneDust())
+            else
             {
-                bi.moveTowardNY();
-                b = bi.get(lock_manager);
-                if(b.good())
+                signal = redstoneSignal.getRedstoneDustSignalStrength();
+                if(!b.descriptor->breaksRedstoneDust())
                 {
-                    const RedstoneDust *downDescriptor = dynamic_cast<const RedstoneDust *>(b.descriptor);
-                    if(downDescriptor != nullptr)
+                    bi.moveTowardNY();
+                    b = bi.get(lock_manager);
+                    if(b.good())
                     {
-                        if(downDescriptor->signalStrength > signal + 1)
-                            signal = downDescriptor->signalStrength - 1;
-                        edgeAttachedState = EdgeAttachedState::Bottom;
+                        const RedstoneDust *downDescriptor = dynamic_cast<const RedstoneDust *>(b.descriptor);
+                        if(downDescriptor != nullptr)
+                        {
+                            if(downDescriptor->signalStrength > signal + 1)
+                                signal = downDescriptor->signalStrength - 1;
+                            edgeAttachedState = EdgeAttachedState::Bottom;
+                        }
                     }
                 }
             }
@@ -466,7 +494,7 @@ public:
             const RedstoneDust *newDescriptor = calcOrientationAndSignalStrength(blockIterator, lock_manager);
             if(newDescriptor != this)
             {
-                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor));
+                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor, block.lighting));
                 const int distanceI = 2;
                 for(VectorI delta = VectorI(-distanceI); delta.x <= distanceI; delta.x++)
                 {
@@ -633,7 +661,7 @@ public:
             const RedstoneTorch *newDescriptor = calcSignalStrength(blockIterator, lock_manager, attachedToFace);
             if(newDescriptor != this)
             {
-                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor));
+                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor, block.lighting));
                 addRedstoneBlockUpdates(world, blockIterator, lock_manager, 2);
             }
             return;

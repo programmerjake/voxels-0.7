@@ -51,6 +51,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
                     bi.moveBy(rpos);
                     Block worldBlock = bi.get(lock_manager);
                     Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos), true);
+                    selectedBlock.lighting = worldBlock.lighting;
                     placedTree.setBlock(rpos, selectedBlock);
                 }
             }

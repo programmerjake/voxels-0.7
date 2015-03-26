@@ -49,7 +49,7 @@ void RedstoneDust::onBreak(World &world, Block b, BlockIterator bi, WorldLockMan
 void RedstoneDust::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), blockIterator.position() + VectorF(0.5));
-    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor()));
+    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
 }
 
 void RedstoneTorch::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
@@ -66,7 +66,7 @@ void RedstoneTorch::onReplace(World &world, Block b, BlockIterator bi, WorldLock
 void RedstoneTorch::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), blockIterator.position() + VectorF(0.5));
-    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor()));
+    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
 }
 
 void RedstoneTorch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
@@ -98,7 +98,10 @@ Item RedstoneDust::onUse(Item item, World &world, WorldLockManager &lock_manager
         BlockIterator bi = world.getBlockIterator(c.blockPosition);
         Block b = Block(Blocks::builtin::RedstoneDust::calcOrientationAndSignalStrength(bi, lock_manager));
         if(player.placeBlock(c, world, lock_manager, b))
+        {
+            BlockDescriptor::addRedstoneBlockUpdates(world, bi, lock_manager, 2);
             return getAfterPlaceItem();
+        }
     }
     return item;
 }
