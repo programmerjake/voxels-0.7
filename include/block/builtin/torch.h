@@ -194,6 +194,7 @@ public:
         std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
         if(std::get<0>(collision))
             collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+        BlockFace boxHitFace = std::get<2>(collision);
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
             collision = ray.getAABoxExitFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
@@ -202,7 +203,7 @@ public:
             std::get<1>(collision) = RayCasting::Ray::eps;
             return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
         }
-        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
+        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(boxHitFace));
     }
     virtual Matrix getSelectionBoxTransform(const Block &block) const override
     {
