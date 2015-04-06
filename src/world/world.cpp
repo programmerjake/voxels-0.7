@@ -968,6 +968,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
+    advanceTimeOfDay(deltaTime);
     std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
     while(waitingForMoveEntities)
     {

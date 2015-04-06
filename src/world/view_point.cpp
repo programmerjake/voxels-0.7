@@ -329,7 +329,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                     lockIt.unlock();
                     WorldLockManager lock_manager;
                     BlockIterator cbi = world.getBlockIterator(chunkPosition);
-                    WorldLightingProperties wlp = world.getLighting();
+                    WorldLightingProperties wlp = world.getLighting(chunkPosition.d);
                     if(generateChunkMeshes(meshes, lock_manager, cbi, wlp))
                         anyUpdates = true;
                 }
@@ -424,7 +424,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         }
     }
     BlockIterator bi = world.getBlockIterator((PositionI)position);
-    WorldLightingProperties wlp = world.getLighting();
+    WorldLightingProperties wlp = world.getLighting(position.d);
     for(Mesh &mesh : entityMeshes)
     {
         for(Triangle &triangle : mesh.triangles)

@@ -42,7 +42,7 @@ void Dirt::randomTick(const Block &block, World &world, BlockIterator blockItera
     Block b = bi.get(lock_manager);
     if(!b.good())
         return;
-    if(b.lighting.toFloat(world.getLighting()) < 4.0f / 15 || !b.descriptor->lightProperties.isTotallyTransparent())
+    if(b.lighting.toFloat(world.getLighting(bi.position().d)) < 4.0f / 15 || !b.descriptor->lightProperties.isTotallyTransparent())
         return;
     for(int dx = -1; dx <= 1; dx++)
     {
@@ -57,7 +57,7 @@ void Dirt::randomTick(const Block &block, World &world, BlockIterator blockItera
                     continue;
                 bi.moveBy(VectorI(0, 1, 0));
                 Block b = bi.get(lock_manager);
-                if(b.lighting.toFloat(world.getLighting()) < 9.0f / 15)
+                if(b.lighting.toFloat(world.getLighting(bi.position().d)) < 9.0f / 15)
                     continue;
                 world.setBlock(blockIterator, lock_manager, Block(Grass::descriptor()));
                 return;

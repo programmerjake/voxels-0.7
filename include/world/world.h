@@ -48,6 +48,7 @@
 #include "generate/biome/biome_descriptor.h"
 #include <algorithm>
 #include <random>
+#include "util/math_constants.h"
 
 namespace programmerjake
 {
@@ -520,7 +521,6 @@ private:
     std::shared_ptr<PhysicsWorld> physicsWorld;
     const WorldGenerator *worldGenerator;
     SeedType worldGeneratorSeed;
-    WorldLightingProperties lighting;
     std::list<std::thread> lightingThreads;
     std::list<std::thread> blockUpdateThreads;
     std::thread particleGeneratingThread;
@@ -545,14 +545,148 @@ private:
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
     RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
     void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
+    std::recursive_mutex timeOfDayLock;
+    float timeOfDayInSeconds = 0.0;
+    int moonPhase = 0;
 public:
-    WorldLightingProperties getLighting() const
-    {
-        return lighting;
-    }
-    bool isLightingStable() const
+    static constexpr float dayDurationInSeconds = 1200.0f;
+    static constexpr int moonPhaseCount = 8;
+    bool isLightingStable()
     {
         return lightingStable;
+    }
+    float getTimeOfDayInSeconds()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds;
+    }
+    float getTimeOfDayInDays()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds / dayDurationInSeconds;
+    }
+    static constexpr float timeOfDayDayStart = 0;
+    static constexpr float timeOfDayDuskStart = 600.0f;
+    static constexpr float timeOfDayNightStart = 690.0f;
+    static constexpr float timeOfDayDawnStart = 1110.0f;
+    bool isDaytime()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds >= timeOfDayDayStart && timeOfDayInSeconds < timeOfDayDuskStart;
+    }
+    bool isDusk()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds >= timeOfDayDuskStart && timeOfDayInSeconds < timeOfDayNightStart;
+    }
+    bool isNight()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds >= timeOfDayNightStart && timeOfDayInSeconds < timeOfDayDawnStart;
+    }
+    bool isDawn()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds >= timeOfDayDawnStart && timeOfDayInSeconds < dayDurationInSeconds;
+    }
+    WorldLightingProperties getLighting(Dimension d)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        float t = 1;
+        if(timeOfDayInSeconds < timeOfDayDuskStart)
+        {
+            t = 1;
+        }
+        else if(timeOfDayInSeconds < timeOfDayNightStart)
+        {
+            t = 1 - (timeOfDayInSeconds - timeOfDayDuskStart) / (timeOfDayNightStart - timeOfDayDuskStart);
+        }
+        else if(timeOfDayInSeconds < timeOfDayDawnStart)
+        {
+            t = 0;
+        }
+        else
+        {
+            t = (timeOfDayInSeconds - timeOfDayDawnStart) / (dayDurationInSeconds - timeOfDayDawnStart);
+        }
+        t = interpolate<float>(t, getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
+        t = std::floor(16 * t) / 15;
+        t = limit(t, 0.0f, 1.0f);
+        return WorldLightingProperties(t, d);
+    }
+    void setTimeOfDayInSeconds(float v)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        timeOfDayInSeconds = v - dayDurationInSeconds * std::floor(v / dayDurationInSeconds);
+    }
+    void setTimeOfDayInDays(float v)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        timeOfDayInSeconds = dayDurationInSeconds * (v - std::floor(v));
+    }
+    void setTimeOfDayInSeconds(float v, int newMoonPhase)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        timeOfDayInSeconds = v - dayDurationInSeconds * std::floor(v / dayDurationInSeconds);
+        moonPhase = newMoonPhase % moonPhaseCount;
+        if(moonPhase < 0)
+            moonPhase += moonPhaseCount;
+    }
+    void setTimeOfDayInDays(float v, int newMoonPhase)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        timeOfDayInSeconds = dayDurationInSeconds * (v - std::floor(v));
+        moonPhase = newMoonPhase % moonPhaseCount;
+        if(moonPhase < 0)
+            moonPhase += moonPhaseCount;
+    }
+    void advanceTimeOfDay(double deltaTime) /// @param deltaTime the time to advance in seconds
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        double newTimeOfDayInSeconds = timeOfDayInSeconds + deltaTime;
+        double newTimeInDays = newTimeOfDayInSeconds / dayDurationInSeconds;
+        timeOfDayInSeconds = dayDurationInSeconds * (newTimeInDays - std::floor(newTimeInDays));
+        moonPhase = (moonPhase + (int)std::floor(newTimeInDays)) % moonPhaseCount;
+    }
+    int getMoonPhase()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return moonPhase;
+    }
+    void getTimeOfDayInSeconds(float &timeOfDayInSeconds, int &moonPhase)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        timeOfDayInSeconds = this->timeOfDayInSeconds;
+        moonPhase = this->moonPhase;
+    }
+    int getVisibleMoonPhase()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        int retval = moonPhase;
+        if(timeOfDayInSeconds < 300.0f) // switch phases at noon
+            retval = (retval + moonPhaseCount - 1) % moonPhaseCount;
+        return retval;
+    }
+    bool canSleepInBed()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        return timeOfDayInSeconds >= 627.05f && timeOfDayInSeconds <= 1172.9f;
+    }
+    bool handleSleepInBed()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        if(!canSleepInBed())
+            return false;
+        advanceTimeOfDay(dayDurationInSeconds - timeOfDayInSeconds);
+    }
+    VectorF getSunPosition()
+    {
+        float angle = M_PI * 2 * getTimeOfDayInDays();
+        return VectorF(std::cos(angle), std::sin(angle), 0);
+    }
+    VectorF getMoonPosition()
+    {
+        return -getSunPosition();
     }
 };
 }

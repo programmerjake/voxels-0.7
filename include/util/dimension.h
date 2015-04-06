@@ -44,6 +44,26 @@ inline float getZeroBrightnessLevel(Dimension d)
     }
     assert(false);
 }
+
+inline float getDaySkyBrightnessLevel(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return 1.0f;
+    }
+    assert(false);
+}
+
+inline float getNightSkyBrightnessLevel(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return 4.0f / 15.0f;
+    }
+    assert(false);
+}
 }
 }
 

@@ -42,7 +42,7 @@ int main(std::vector<std::wstring> args)
     Renderer renderer;
     WorldLockManager lock_manager;
     auto theUi = std::make_shared<ui::GameUi>(renderer, *world, lock_manager);
-    auto playingSound = sound.play(0.3f, true);
+    auto playingSound = sound.play(0.1f, true);
     theUi->run(renderer);
     theUi = nullptr;
     endGraphics();

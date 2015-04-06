@@ -558,7 +558,7 @@ protected:
         if(treeBaseSize == 0)
             return false;
         Block block = blockIterator.get(lock_manager);
-        if(block.lighting.toFloat(world.getLighting()) < 9 / 16.0f)
+        if(block.lighting.toFloat(world.getLighting(blockIterator.position().d)) < 9 / 16.0f)
             return false;
         BlockIterator bi = blockIterator;
         bi.moveTowardNY();
