@@ -60,7 +60,7 @@ inline float getNightSkyBrightnessLevel(Dimension d)
     switch(d)
     {
     case Dimension::Overworld:
-        return 4.0f / 15.0f;
+        return 4.01f / 15.0f;
     }
     assert(false);
 }

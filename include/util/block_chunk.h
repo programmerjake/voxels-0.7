@@ -223,6 +223,7 @@ struct BlockChunkChunkVariables final
     bool generatingCachedMeshes = false;
     std::condition_variable cachedMeshesCond;
     std::atomic_bool cachedMeshesUpToDate;
+    WorldLightingProperties wlp;
     BlockChunkChunkVariables()
         : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *v)
         {

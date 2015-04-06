@@ -609,8 +609,9 @@ public:
         {
             t = (timeOfDayInSeconds - timeOfDayDawnStart) / (dayDurationInSeconds - timeOfDayDawnStart);
         }
+        t = limit(t, 0.0f, 1.0f);
         t = interpolate<float>(t, getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
-        t = std::floor(16 * t) / 15;
+        t = (std::floor(16 * t) + 0.01f) / 15;
         t = limit(t, 0.0f, 1.0f);
         return WorldLightingProperties(t, d);
     }

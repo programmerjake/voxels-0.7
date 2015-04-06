@@ -206,6 +206,13 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
     std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes;
     if(!cbi.chunk->chunkVariables.cachedMeshesUpToDate.exchange(true))
         chunkMeshes = nullptr;
+    bool lightingChanged = false;
+    if(wlp != cbi.chunk->chunkVariables.wlp)
+    {
+        chunkMeshes = nullptr;
+        cbi.chunk->chunkVariables.wlp = wlp;
+        lightingChanged = true;
+    }
     cbi.chunk->chunkVariables.generatingCachedMeshes = (chunkMeshes == nullptr);
     cachedChunkMeshesLock.unlock();
     if(chunkMeshes != nullptr)
@@ -235,6 +242,17 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
                 BlockChunkSubchunk &subchunk = sbi.getSubchunk();
                 if(!subchunk.cachedMeshesUpToDate.exchange(true))
                     subchunk.cachedMeshes = nullptr;
+                if(lightingChanged && subchunk.cachedMeshes != nullptr)
+                {
+                    for(RenderLayer rl : enum_traits<RenderLayer>())
+                    {
+                        if(subchunk.cachedMeshes->at(rl).size() != 0) // if there's nothing displayed here then we don't need to re-render
+                        {
+                            subchunk.cachedMeshes = nullptr;
+                            break;
+                        }
+                    }
+                }
                 std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = subchunk.cachedMeshes;
                 if(subchunkMeshes != nullptr)
                 {
