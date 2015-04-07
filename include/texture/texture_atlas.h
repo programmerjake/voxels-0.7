@@ -422,7 +422,16 @@ public:
     DamageBarRed,
     DamageBarYellow,
     DamageBarGreen,
-    DamageBarGray;
+    DamageBarGray,
+    Sun,
+    Moon0,
+    Moon1,
+    Moon2,
+    Moon3,
+    Moon4,
+    Moon5,
+    Moon6,
+    Moon7;
 };
 }
 }

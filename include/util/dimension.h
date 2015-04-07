@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cassert>
 #include "util/enum_traits.h"
+#include "util/color.h"
 
 namespace programmerjake
 {
@@ -61,6 +62,36 @@ inline float getNightSkyBrightnessLevel(Dimension d)
     {
     case Dimension::Overworld:
         return 4.01f / 15.0f;
+    }
+    assert(false);
+}
+
+inline ColorF getNightSkyColor(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return GrayscaleF(0);
+    }
+    assert(false);
+}
+
+inline ColorF getDaySkyColor(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return RGBF(0.529f, 0.808f, 0.922f);
+    }
+    assert(false);
+}
+
+inline ColorF getDawnDuskSkyColor(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return RGBAF(1.0f, 0.5f, 0.5f, 0.7f);
     }
     assert(false);
 }

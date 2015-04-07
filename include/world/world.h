@@ -589,7 +589,7 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= timeOfDayDawnStart && timeOfDayInSeconds < dayDurationInSeconds;
     }
-    WorldLightingProperties getLighting(Dimension d)
+    float getLightingParameter()
     {
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
         float t = 1;
@@ -610,7 +610,11 @@ public:
             t = (timeOfDayInSeconds - timeOfDayDawnStart) / (dayDurationInSeconds - timeOfDayDawnStart);
         }
         t = limit(t, 0.0f, 1.0f);
-        t = interpolate<float>(t, getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
+        return t;
+    }
+    WorldLightingProperties getLighting(Dimension d)
+    {
+        float t = interpolate<float>(getLightingParameter(), getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
         t = (std::floor(16 * t) + 0.01f) / 15;
         t = limit(t, 0.0f, 1.0f);
         return WorldLightingProperties(t, d);
@@ -688,6 +692,10 @@ public:
     VectorF getMoonPosition()
     {
         return -getSunPosition();
+    }
+    ColorF getSkyColor(PositionF pos)
+    {
+        return interpolate(getLightingParameter(), getNightSkyColor(pos.d), getDaySkyColor(pos.d));
     }
 };
 }

@@ -408,7 +408,16 @@ const TextureAtlas
     TextureAtlas::DamageBarRed(256, 222, 1, 2),
     TextureAtlas::DamageBarYellow(257, 222, 1, 2),
     TextureAtlas::DamageBarGreen(258, 222, 1, 2),
-    TextureAtlas::DamageBarGray(259, 222, 1, 2);
+    TextureAtlas::DamageBarGray(259, 222, 1, 2),
+    TextureAtlas::Sun(320, 224, 32, 32),
+    TextureAtlas::Moon0(352, 240, 16, 16),
+    TextureAtlas::Moon1(368, 240, 16, 16),
+    TextureAtlas::Moon2(384, 240, 16, 16),
+    TextureAtlas::Moon3(400, 240, 16, 16),
+    TextureAtlas::Moon4(416, 240, 16, 16),
+    TextureAtlas::Moon5(432, 240, 16, 16),
+    TextureAtlas::Moon6(448, 240, 16, 16),
+    TextureAtlas::Moon7(464, 240, 16, 16);
 
 const TextureAtlas &TextureAtlas::Fire(int index)
 {
