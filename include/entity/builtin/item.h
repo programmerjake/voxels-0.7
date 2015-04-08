@@ -54,18 +54,25 @@ private:
 public:
     const ItemDescriptorPointer itemDescriptor;
     EntityItem(ItemDescriptorPointer itemDescriptor, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
-        : EntityDescriptor(makeName(itemDescriptor), PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))),
-                           meshes(meshes), renderDynamic(false),
-                           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
-                           itemDescriptor(itemDescriptor)
+        : EntityDescriptor(makeName(itemDescriptor)),
+          meshes(meshes), renderDynamic(false),
+          preorientSelectionBoxTransform(preorientSelectionBoxTransform),
+          itemDescriptor(itemDescriptor)
     {
     }
     EntityItem(ItemDescriptorPointer itemDescriptor, Matrix preorientSelectionBoxTransform)
-        : EntityDescriptor(makeName(itemDescriptor), PhysicsObjectConstructor::cylinderMaker(baseSize / 2, baseSize / 2 + extraHeight / 2, true, false, PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask))),
-                           meshes(), renderDynamic(true),
-                           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
-                           itemDescriptor(itemDescriptor)
+        : EntityDescriptor(makeName(itemDescriptor)),
+          meshes(), renderDynamic(true),
+          preorientSelectionBoxTransform(preorientSelectionBoxTransform),
+          itemDescriptor(itemDescriptor)
     {
+    }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    {
+        return PhysicsObject::makeCylinder(position, velocity,
+                                           true, false,
+                                           baseSize / 2, baseSize / 2 + extraHeight / 2,
+                                           PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask), physicsWorld);
     }
 private:
     struct ItemData final

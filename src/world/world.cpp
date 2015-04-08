@@ -814,7 +814,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
             PositionF position = srcChunkIter->entity.physicsObject->getPosition();
             VectorF velocity = srcChunkIter->entity.physicsObject->getVelocity();
             srcChunkIter->entity.physicsObject->destroy();
-            srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld);
+            srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->makePhysicsObject(srcChunkIter->entity, *this, position, velocity, physicsWorld);
             WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
             ++nextSrcIter;
             BlockIterator destBi = cbi;
@@ -951,7 +951,8 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
     assert(descriptor != nullptr);
     BlockIterator bi = getBlockIterator((PositionI)position);
     lock_manager.block_biome_lock.clear();
-    WrappedEntity *entity = new WrappedEntity(Entity(descriptor, descriptor->physicsObjectConstructor->make(position, velocity, physicsWorld), entityData));
+    WrappedEntity *entity = new WrappedEntity(Entity(descriptor, nullptr, entityData));
+    entity->entity.physicsObject = descriptor->makePhysicsObject(entity->entity, *this, position, velocity, physicsWorld);
     descriptor->makeData(entity->entity, *this, lock_manager);
     lock_manager.block_biome_lock.clear();
     std::unique_lock<std::recursive_mutex> lockChunk(bi.chunk->chunkVariables.entityListLock);
@@ -968,7 +969,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
-    advanceTimeOfDay(deltaTime);
+    advanceTimeOfDay(deltaTime * 60);
     std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
     while(waitingForMoveEntities)
     {

@@ -34,8 +34,8 @@ void Entity::destroy()
     *this = Entity();
 }
 
-EntityDescriptor::EntityDescriptor(wstring name, shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor)
-    : name(name), physicsObjectConstructor(physicsObjectConstructor)
+EntityDescriptor::EntityDescriptor(wstring name)
+    : name(name)
 {
     EntityDescriptors.add(this);
 }

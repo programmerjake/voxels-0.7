@@ -95,6 +95,26 @@ inline ColorF getDawnDuskSkyColor(Dimension d)
     }
     assert(false);
 }
+
+inline bool hasSun(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return true;
+    }
+    assert(false);
+}
+
+inline bool hasMoon(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return true;
+    }
+    assert(false);
+}
 }
 }
 

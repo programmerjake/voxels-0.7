@@ -43,14 +43,6 @@ public:
     const VectorF gravity;
     const float extent;
 private:
-    static std::shared_ptr<const PhysicsObjectConstructor> makePhysicsObjectConstructor(bool collideWithBlocks, VectorF gravity, float extent)
-    {
-        if(!collideWithBlocks)
-        {
-            return PhysicsObjectConstructor::empty(gravity);
-        }
-        return PhysicsObjectConstructor::cylinderMaker(extent, extent, gravity != VectorF(0), false, PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1, gravity));
-    }
     struct ParticleData final
     {
         double time = 0.0f;
@@ -71,8 +63,20 @@ protected:
     }
 public:
     Particle(std::wstring name, std::vector<TextureDescriptor> frames, float framesPerSecond, float existDuration, bool loop = false, bool collideWithBlocks = true, VectorF gravity = VectorF(0), float extent = 1.0f / 12.0f)
-        : EntityDescriptor(name, makePhysicsObjectConstructor(collideWithBlocks, gravity, extent)), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop), existDuration(existDuration)
+        : EntityDescriptor(name), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop), existDuration(existDuration)
     {
+    }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    {
+        if(!collideWithBlocks)
+        {
+            return PhysicsObject::makeEmpty(position, velocity, physicsWorld, gravity);
+        }
+        return PhysicsObject::makeCylinder(position, velocity,
+                                           gravity != VectorF(0), false,
+                                           extent, extent,
+                                           PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1, gravity),
+                                           physicsWorld);
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {

@@ -162,6 +162,15 @@ struct write<PhysicsConstraint>
 };
 }
 
+class PhysicsObject;
+
+class PhysicsCollisionHandler
+{
+public:
+    virtual void onCollide(std::shared_ptr<PhysicsObject> collidingObject, std::shared_ptr<PhysicsObject> otherObject) = 0;
+    virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject, BlockIterator otherObject, WorldLockManager &lock_manager) = 0;
+};
+
 class PhysicsObject final : public std::enable_shared_from_this<PhysicsObject>
 {
     friend class PhysicsWorld;
@@ -188,9 +197,10 @@ private:
     std::size_t newStateCount = 0;
     PhysicsProperties properties;
     std::shared_ptr<const std::vector<PhysicsConstraint>> constraints;
+    std::shared_ptr<PhysicsCollisionHandler> collisionHandler;
     PhysicsObject(const PhysicsObject &) = delete;
     const PhysicsObject & operator =(const PhysicsObject &) = delete;
-    PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type);
+    PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type, std::shared_ptr<PhysicsCollisionHandler> collisionHandler);
     void setToBlock(const BlockShape &shape, PositionI blockPosition)
     {
         if(shape.empty())
@@ -212,8 +222,8 @@ private:
     }
     static std::shared_ptr<PhysicsObject> makeEmptyNoAddToWorld(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world);
 public:
-    static std::shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world);
-    static std::shared_ptr<PhysicsObject> makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world);
+    static std::shared_ptr<PhysicsObject> makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world, std::shared_ptr<PhysicsCollisionHandler> collisionHandler = nullptr);
+    static std::shared_ptr<PhysicsObject> makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world, std::shared_ptr<PhysicsCollisionHandler> collisionHandler = nullptr);
     static std::shared_ptr<PhysicsObject> makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world, VectorF gravity = VectorF(0));
     ~PhysicsObject();
     PositionF getPosition() const;
@@ -227,6 +237,10 @@ public:
     {
         this->constraints = std::make_shared<std::vector<PhysicsConstraint>>(constraints);
         return shared_from_this();
+    }
+    std::shared_ptr<PhysicsCollisionHandler> getCollisionHandler() const
+    {
+        return collisionHandler;
     }
     bool isAffectedByGravity() const
     {
@@ -436,11 +450,11 @@ inline void PhysicsObject::transferToNewWorld(std::shared_ptr<PhysicsWorld> newW
     this->world = newWorld;
 }
 
+#if 0
 class PhysicsObjectConstructor : public std::enable_shared_from_this<PhysicsObjectConstructor>
 {
 public:
     virtual std::shared_ptr<PhysicsObject> make(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world) const = 0;
-    virtual void write(stream::Writer & writer, VariableSet &variableSet) const = 0;
     virtual ~PhysicsObjectConstructor()
     {
     }
@@ -453,57 +467,9 @@ protected:
         DEFINE_ENUM_LIMITS(Empty, Cylinder)
     };
 public:
-    static std::shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::vector<PhysicsConstraint> constraints = {});
-    static std::shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::vector<PhysicsConstraint> constraints = {});
+    static std::shared_ptr<const PhysicsObjectConstructor> cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::shared_ptr<PhysicsCollisionHandler> collisionHandler = nullptr, std::vector<PhysicsConstraint> constraints = {});
+    static std::shared_ptr<const PhysicsObjectConstructor> boxMaker(VectorF extents, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::shared_ptr<PhysicsCollisionHandler> collisionHandler = nullptr, std::vector<PhysicsConstraint> constraints = {});
     static std::shared_ptr<const PhysicsObjectConstructor> empty(VectorF gravity = VectorF(0));
-    static std::shared_ptr<const PhysicsObjectConstructor> read(stream::Reader & reader, VariableSet &variableSet)
-    {
-        Shape shape = stream::read<Shape>(reader);
-        switch(shape)
-        {
-        case Shape::Box:
-        {
-            VectorF extents;
-            extents.x = stream::read_limited<float32_t>(reader, PhysicsWorld::distanceEPS, 100);
-            extents.y = stream::read_limited<float32_t>(reader, PhysicsWorld::distanceEPS, 100);
-            extents.z = stream::read_limited<float32_t>(reader, PhysicsWorld::distanceEPS, 100);
-            bool affectedByGravity = stream::read<bool>(reader);
-            bool isStatic = stream::read<bool>(reader);
-            PhysicsProperties properties = stream::read<PhysicsProperties>(reader);
-            std::vector<PhysicsConstraint> constraints;
-            std::size_t size = stream::read<std::uint8_t>(reader);
-            constraints.reserve(size);
-            for(std::size_t i = 0; i < size; i++)
-            {
-                constraints[i] = stream::read<PhysicsConstraint>(reader, variableSet);
-            }
-            return boxMaker(extents, affectedByGravity, isStatic, properties, constraints);
-        }
-        case Shape::Cylinder:
-        {
-            float radius = stream::read_limited<float32_t>(reader, PhysicsWorld::distanceEPS, 100);
-            float yExtent = stream::read_limited<float32_t>(reader, PhysicsWorld::distanceEPS, 100);
-            bool affectedByGravity = stream::read<bool>(reader);
-            bool isStatic = stream::read<bool>(reader);
-            PhysicsProperties properties = stream::read<PhysicsProperties>(reader);
-            std::vector<PhysicsConstraint> constraints;
-            std::size_t size = stream::read<std::uint8_t>(reader);
-            constraints.reserve(size);
-            for(std::size_t i = 0; i < size; i++)
-            {
-                constraints[i] = stream::read<PhysicsConstraint>(reader, variableSet);
-            }
-            return cylinderMaker(radius, yExtent, affectedByGravity, isStatic, properties, constraints);
-        }
-        case Shape::Empty:
-        {
-            VectorF gravity = stream::read<VectorF>(reader);
-            return empty(gravity);
-        }
-        }
-        assert(false);
-        return nullptr;
-    }
 };
 
 class PhysicsObjectConstructorCylinder final : public PhysicsObjectConstructor
@@ -526,24 +492,9 @@ public:
         retval->setConstraints(constraints);
         return retval;
     }
-    virtual void write(stream::Writer & writer, VariableSet &variableSet) const override
-    {
-        stream::write<Shape>(writer, Shape::Cylinder);
-        stream::write<float32_t>(writer, radius);
-        stream::write<float32_t>(writer, yExtent);
-        stream::write<bool>(writer, affectedByGravity);
-        stream::write<bool>(writer, isStatic);
-        stream::write<PhysicsProperties>(writer, properties);
-        assert(constraints.size() < 0x100); // fits in a std::uint8_t
-        stream::write<std::uint8_t>(writer, constraints.size());
-        for(auto constraint : constraints)
-        {
-            stream::write<PhysicsConstraint>(writer, variableSet, constraint);
-        }
-    }
 };
 
-inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::vector<PhysicsConstraint> constraints)
+inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor::cylinderMaker(float radius, float yExtent, bool affectedByGravity, bool isStatic, PhysicsProperties properties, std::shared_ptr<PhysicsCollisionHandler>, std::vector<PhysicsConstraint> constraints)
 {
     return std::shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorCylinder(radius, yExtent, affectedByGravity, isStatic, properties, constraints));
 }
@@ -561,20 +512,6 @@ public:
         : extents(extents), affectedByGravity(affectedByGravity), isStatic(isStatic), properties(properties)
     {
     }
-    virtual void write(stream::Writer & writer, VariableSet &variableSet) const override
-    {
-        stream::write<Shape>(writer, Shape::Box);
-        stream::write<VectorF>(writer, extents);
-        stream::write<bool>(writer, affectedByGravity);
-        stream::write<bool>(writer, isStatic);
-        stream::write<PhysicsProperties>(writer, properties);
-        assert(constraints.size() < 0x100); // fits in a std::uint8_t
-        stream::write<std::uint8_t>(writer, constraints.size());
-        for(auto constraint : constraints)
-        {
-            stream::write<PhysicsConstraint>(writer, variableSet, constraint);
-        }
-    };
     virtual std::shared_ptr<PhysicsObject> make(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world) const override
     {
         auto retval = PhysicsObject::makeBox(position, velocity, affectedByGravity, isStatic, extents, properties, world);
@@ -597,11 +534,6 @@ public:
         : gravity(gravity)
     {
     }
-    virtual void write(stream::Writer & writer, VariableSet &) const override
-    {
-        stream::write<Shape>(writer, Shape::Empty);
-        stream::write<VectorF>(writer, gravity);
-    }
     virtual std::shared_ptr<PhysicsObject> make(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world) const override
     {
         return PhysicsObject::makeEmpty(position, velocity, world, gravity);
@@ -612,8 +544,9 @@ inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor:
 {
     return std::shared_ptr<const PhysicsObjectConstructor>(new PhysicsObjectConstructorEmpty(gravity));
 }
+#endif
 
-inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type)
+inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type, std::shared_ptr<PhysicsCollisionHandler> collisionHandler)
     : position{position, position},
     velocity{velocity, velocity},
     objectTime{world->getCurrentTime(), world->getCurrentTime()},
@@ -622,21 +555,22 @@ inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool a
     type(type),
     extents(extents),
     world(world),
-    properties(properties)
+    properties(properties),
+    collisionHandler(collisionHandler)
 {
 }
 
-inline std::shared_ptr<PhysicsObject> PhysicsObject::makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world)
+inline std::shared_ptr<PhysicsObject> PhysicsObject::makeBox(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world, std::shared_ptr<PhysicsCollisionHandler> collisionHandler)
 {
-    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, extents, world, properties, Type::Box));
+    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, extents, world, properties, Type::Box, collisionHandler));
     world->objects.insert(retval);
     world->changedObjects.insert(retval);
     return retval;
 }
 
-inline std::shared_ptr<PhysicsObject> PhysicsObject::makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world)
+inline std::shared_ptr<PhysicsObject> PhysicsObject::makeCylinder(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, float radius, float yExtents, PhysicsProperties properties, std::shared_ptr<PhysicsWorld> world, std::shared_ptr<PhysicsCollisionHandler> collisionHandler)
 {
-    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, VectorF(radius, yExtents, radius), world, properties, Type::Cylinder));
+    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, affectedByGravity, isStatic, VectorF(radius, yExtents, radius), world, properties, Type::Cylinder, collisionHandler));
     world->objects.insert(retval);
     world->changedObjects.insert(retval);
     return retval;
@@ -644,14 +578,14 @@ inline std::shared_ptr<PhysicsObject> PhysicsObject::makeCylinder(PositionF posi
 
 inline std::shared_ptr<PhysicsObject> PhysicsObject::makeEmpty(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world, VectorF gravity)
 {
-    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, gravity != VectorF(0), true, VectorF(), world, PhysicsProperties(PhysicsProperties::defaultCollisionMask, PhysicsProperties::defaultCollisionMask, std::sqrt(0.5f), 1 - std::sqrt(0.5f), gravity), Type::Empty));
+    std::shared_ptr<PhysicsObject> retval = std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, gravity != VectorF(0), true, VectorF(), world, PhysicsProperties(PhysicsProperties::defaultCollisionMask, PhysicsProperties::defaultCollisionMask, std::sqrt(0.5f), 1 - std::sqrt(0.5f), gravity), Type::Empty, nullptr));
     world->objects.insert(retval);
     return retval;
 }
 
 inline std::shared_ptr<PhysicsObject> PhysicsObject::makeEmptyNoAddToWorld(PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> world)
 {
-    return std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, false, true, VectorF(), world, PhysicsProperties(), Type::Empty));
+    return std::shared_ptr<PhysicsObject>(new PhysicsObject(position, velocity, false, true, VectorF(), world, PhysicsProperties(), Type::Empty, nullptr));
 }
 
 inline PhysicsObject::~PhysicsObject()

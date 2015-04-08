@@ -81,41 +81,46 @@ void renderSunOrMoon(Renderer &renderer, Matrix orientationTransform, VectorF po
 }
 void GameUi::clear(Renderer &renderer)
 {
-    background = world.getSkyColor(player->getPosition());
+    PositionF playerPosition = player->getPosition();
+    background = world.getSkyColor(playerPosition);
     Ui::clear(renderer);
     Matrix tform = player->getViewTransform();
-    viewPoint->setPosition(player->getPosition());
+    viewPoint->setPosition(playerPosition);
     renderer << RenderLayer::Opaque;
-    renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getSunPosition(), TextureAtlas::Sun.td());
-    TextureDescriptor moonTD;
-    switch(world.getVisibleMoonPhase())
+    if(hasSun(playerPosition.d))
+        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getSunPosition(), TextureAtlas::Sun.td());
+    if(hasMoon(playerPosition.d))
     {
-    case 0:
-        moonTD = TextureAtlas::Moon0.td();
-        break;
-    case 1:
-        moonTD = TextureAtlas::Moon1.td();
-        break;
-    case 2:
-        moonTD = TextureAtlas::Moon2.td();
-        break;
-    case 3:
-        moonTD = TextureAtlas::Moon3.td();
-        break;
-    case 4:
-        moonTD = TextureAtlas::Moon4.td();
-        break;
-    case 5:
-        moonTD = TextureAtlas::Moon5.td();
-        break;
-    case 6:
-        moonTD = TextureAtlas::Moon6.td();
-        break;
-    default:
-        moonTD = TextureAtlas::Moon7.td();
-        break;
+        TextureDescriptor moonTD;
+        switch(world.getVisibleMoonPhase())
+        {
+        case 0:
+            moonTD = TextureAtlas::Moon0.td();
+            break;
+        case 1:
+            moonTD = TextureAtlas::Moon1.td();
+            break;
+        case 2:
+            moonTD = TextureAtlas::Moon2.td();
+            break;
+        case 3:
+            moonTD = TextureAtlas::Moon3.td();
+            break;
+        case 4:
+            moonTD = TextureAtlas::Moon4.td();
+            break;
+        case 5:
+            moonTD = TextureAtlas::Moon5.td();
+            break;
+        case 6:
+            moonTD = TextureAtlas::Moon6.td();
+            break;
+        default:
+            moonTD = TextureAtlas::Moon7.td();
+            break;
+        }
+        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getMoonPosition(), moonTD);
     }
-    renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getMoonPosition(), moonTD);
     renderer << start_overlay;
     RayCasting::Collision collision = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
     if(collision.valid())

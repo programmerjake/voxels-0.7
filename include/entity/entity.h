@@ -36,7 +36,8 @@ namespace programmerjake
 {
 namespace voxels
 {
-class PhysicsObjectConstructor;
+class PhysicsObject;
+class PhysicsWorld;
 class Player;
 class World;
 
@@ -45,11 +46,10 @@ class EntityDescriptor
     EntityDescriptor(const EntityDescriptor &) = delete;
     void operator =(const EntityDescriptor &) = delete;
 protected:
-    EntityDescriptor(std::wstring name, std::shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor);
+    explicit EntityDescriptor(std::wstring name);
 public:
     virtual ~EntityDescriptor();
     const std::wstring name;
-    const std::shared_ptr<const PhysicsObjectConstructor> physicsObjectConstructor;
 
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
     {
@@ -68,6 +68,7 @@ public:
     {
         return false;
     }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const = 0;
 };
 
 class EntityDescriptors_t final

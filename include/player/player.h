@@ -65,13 +65,20 @@ private:
     Mesh rightLeg;
     void generateMeshes();
     PlayerEntity()
-        : EntityDescriptor(L"builtin.player", PhysicsObjectConstructor::cylinderMaker(0.3, 0.9, true, false, PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1)))
+        : EntityDescriptor(L"builtin.player")
     {
         generateMeshes();
     }
     Player *getPlayer(Entity &entity) const
     {
         return static_cast<Player *>(entity.data.get());
+    }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    {
+        return PhysicsObject::makeCylinder(position, velocity,
+                                           true, false,
+                                           0.3, 0.9,
+                                           PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1), physicsWorld);
     }
 public:
     static const PlayerEntity *descriptor()

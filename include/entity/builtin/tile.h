@@ -60,8 +60,12 @@ private:
     const MoveHandlerType moveHandler;
 public:
     explicit TileEntity(BlockDescriptorPointer block, MoveHandlerType moveHandler)
-        : EntityDescriptor(L"builtin.tile_entity(block=" + block->name + L")", PhysicsObjectConstructor::empty()), block(block), moveHandler(moveHandler)
+        : EntityDescriptor(L"builtin.tile_entity(block=" + block->name + L")"), block(block), moveHandler(moveHandler)
     {
+    }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    {
+        return PhysicsObject::makeEmpty(position, velocity, physicsWorld);
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {

@@ -136,7 +136,7 @@ public:
     }
     static constexpr Lighting makeDirectOnlyLighting()
     {
-        return Lighting(maxLight, 0, 0, MakeDirectOnly);
+        return Lighting(maxLight, 1, 1, MakeDirectOnly);
     }
     static constexpr Lighting makeArtificialLighting(LightValueType indirectArtificalLight)
     {

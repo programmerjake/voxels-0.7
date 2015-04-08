@@ -697,6 +697,11 @@ public:
     {
         return interpolate(getLightingParameter(), getNightSkyColor(pos.d), getDaySkyColor(pos.d));
     }
+    float getMoonFullness()
+    {
+        int phase = getVisibleMoonPhase();
+        return 1.0f - 2.0f / (float)moonPhaseCount * std::abs(phase - moonPhaseCount / 2);
+    }
 };
 }
 }
