@@ -102,6 +102,10 @@ private:
 public:
     void setBlock(VectorI position, Block b)
     {
+        if(position.x < getArrayMin().x || position.x >= getArrayEnd().x ||
+           position.y < getArrayMin().y || position.y >= getArrayEnd().y ||
+           position.z < getArrayMin().z || position.z >= getArrayEnd().z)
+            return;
         blocksArray[getArrayIndex(position)] = (PackedBlock)b;
     }
     Block getBlock(VectorI position) const
@@ -133,9 +137,10 @@ public:
     const int baseSize;
     const bool canGenerateFromSapling;
     const std::wstring name;
+    const std::size_t generateChance;
 protected:
-    explicit TreeDescriptor(std::wstring name, int baseSize, bool canGenerateFromSapling)
-        : baseSize(baseSize), canGenerateFromSapling(canGenerateFromSapling), name(name)
+    explicit TreeDescriptor(std::wstring name, int baseSize, bool canGenerateFromSapling, std::size_t generateChance)
+        : baseSize(baseSize), canGenerateFromSapling(canGenerateFromSapling), name(name), generateChance(generateChance)
     {
     }
 public:

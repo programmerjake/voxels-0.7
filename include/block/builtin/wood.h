@@ -570,18 +570,18 @@ protected:
             return false;
         if(!dirtDescriptor->canGrowTreeOn())
             return false;
-        std::size_t treeCount = 0;
+        std::size_t treeGenerateChanceSum = 0;
         for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
         {
             if(!treeDescriptor->canGenerateFromSapling)
                 continue;
             if(treeDescriptor->baseSize != treeBaseSize)
                 continue;
-            treeCount++;
+            treeGenerateChanceSum += treeDescriptor->generateChance;
         }
-        if(treeCount == 0)
+        if(treeGenerateChanceSum == 0)
             return false;
-        std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(0, treeCount - 1)(world.getRandomGenerator());
+        std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(0, treeGenerateChanceSum - 1)(world.getRandomGenerator());
         TreeDescriptorPointer treeDescriptor = nullptr;
         for(TreeDescriptorPointer td : woodDescriptor->trees)
         {
@@ -589,12 +589,12 @@ protected:
                 continue;
             if(td->baseSize != treeBaseSize)
                 continue;
-            if(treeIndex == 0)
+            if(treeIndex < td->generateChance)
             {
                 treeDescriptor = td;
                 break;
             }
-            treeIndex--;
+            treeIndex -= td->generateChance;
         }
         assert(treeDescriptor);
         Tree tree = treeDescriptor->generateTree(std::uniform_int_distribution<std::uint32_t>()(world.getRandomGenerator()));
