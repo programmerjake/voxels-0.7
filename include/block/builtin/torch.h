@@ -285,7 +285,7 @@ public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
     virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
 protected:
-    virtual void onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
 public:
     virtual bool generatesParticles() const override
     {

@@ -114,6 +114,8 @@
 		<Unit filename="include/block/builtin/crafting_table.h" />
 		<Unit filename="include/block/builtin/dirt.h" />
 		<Unit filename="include/block/builtin/dirt_block.h" />
+		<Unit filename="include/block/builtin/falling_block.h" />
+		<Unit filename="include/block/builtin/falling_full_block.h" />
 		<Unit filename="include/block/builtin/fluid.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
 		<Unit filename="include/block/builtin/furnace.h" />
@@ -121,6 +123,7 @@
 		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/plant.h" />
 		<Unit filename="include/block/builtin/redstone.h" />
+		<Unit filename="include/block/builtin/sand.h" />
 		<Unit filename="include/block/builtin/stone.h" />
 		<Unit filename="include/block/builtin/stone_block.h" />
 		<Unit filename="include/block/builtin/torch.h" />
@@ -129,6 +132,8 @@
 		<Unit filename="include/block/builtin/woods.h" />
 		<Unit filename="include/decoder/ogg_vorbis_decoder.h" />
 		<Unit filename="include/decoder/png_decoder.h" />
+		<Unit filename="include/entity/builtin/falling_block.h" />
+		<Unit filename="include/entity/builtin/falling_sand.h" />
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/particle.h" />
 		<Unit filename="include/entity/builtin/particles/smoke.h" />
@@ -162,6 +167,7 @@
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/minerals.h" />
 		<Unit filename="include/item/builtin/ores.h" />
+		<Unit filename="include/item/builtin/sand.h" />
 		<Unit filename="include/item/builtin/stone.h" />
 		<Unit filename="include/item/builtin/tools/mineral_toolsets.h" />
 		<Unit filename="include/item/builtin/tools/simple_toolset.h" />
@@ -269,6 +275,7 @@
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/ores.cpp" />
 		<Unit filename="src/block/builtin/redstone.cpp" />
+		<Unit filename="src/block/builtin/sand.cpp" />
 		<Unit filename="src/block/builtin/stone.cpp" />
 		<Unit filename="src/block/builtin/torch.cpp" />
 		<Unit filename="src/block/builtin/woods.cpp" />

@@ -30,6 +30,7 @@
 #include "block/builtin/stone.h"
 #include "block/builtin/dirt.h"
 #include "block/builtin/bedrock.h"
+#include "block/builtin/sand.h"
 
 namespace programmerjake
 {
@@ -76,10 +77,8 @@ public:
             Block block;
             if(position.y < groundHeight - 5)
                 block = Block(Blocks::builtin::Stone::descriptor());
-            else if(position.y < groundHeight)
-                block = Block(Blocks::builtin::Dirt::descriptor());
-            else if(position.y == groundHeight)
-                block = Block(Blocks::builtin::Grass::descriptor());
+            else if(position.y <= groundHeight)
+                block = Block(Blocks::builtin::Sand::descriptor());
             else
             {
                 block = Block(Blocks::builtin::Air::descriptor());

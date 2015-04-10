@@ -57,8 +57,6 @@ namespace voxels
 {
 class Player;
 
-typedef std::list<std::pair<PositionI, Block>> BlockUpdateSet;
-
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
@@ -211,7 +209,7 @@ public:
             renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
     }
     virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
@@ -250,6 +248,10 @@ public:
     virtual bool isReplaceableByFluid() const
     {
         return false;
+    }
+    virtual bool isReplaceableByFallingBlock() const
+    {
+        return isReplaceable();
     }
     virtual bool isGroundBlock() const = 0;
     virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const

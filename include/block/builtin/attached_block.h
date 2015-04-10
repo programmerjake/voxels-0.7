@@ -78,13 +78,13 @@ protected:
             return ThreeStateBool::Unknown;
         return toThreeStateBool(attachedToBlock.descriptor->canAttachBlock(attachedToBlock, getOppositeBlockFace(attachedToFace), b));
     }
-    virtual void onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const = 0;
+    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const = 0;
 public:
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
     {
         if(!toBool(isAttached(block, blockIterator, lock_manager), true))
         {
-            onDisattach(blockUpdateSet, world, block, blockIterator, lock_manager, kind);
+            onDisattach(world, block, blockIterator, lock_manager, kind);
         }
     }
     virtual bool canPlace(Block b, BlockIterator bi, WorldLockManager &lock_manager) const override

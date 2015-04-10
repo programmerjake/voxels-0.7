@@ -184,7 +184,7 @@ public:
     }
     virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const override
     {
-        return 9;
+        return 9 / 2.0f;
     }
 };
 class LargeOakTree : public TreeDescriptor
@@ -436,15 +436,16 @@ public:
     }
     virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const override
     {
-        return 1;
+        return 1 / 2.0f;
     }
 };
 class BirchTree : public TreeDescriptor
 {
 public:
     DecoratorDescriptorPointer decorator;
-    BirchTree()
-        : TreeDescriptor(L"builtin.birch", 1, true, 9)
+    const bool isTallVariant;
+    BirchTree(bool isTallVariant)
+        : TreeDescriptor(isTallVariant ? L"builtin.tall_birch" : L"builtin.birch", 1, !isTallVariant, 9), isTallVariant(isTallVariant)
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
@@ -459,12 +460,15 @@ public:
         Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder for clearance block that is empty
         Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder for clearance block that is leaves
         Block saplingReplace = Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block that can break saplings
+        const int tallVariantExtraHeight = 2;
         const int xzSize = 2;
-        const int ySize = 8;
+        const int ySize = isTallVariant ? 8 + tallVariantExtraHeight : 8;
         Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
         std::minstd_rand rg(seed);
         rg.discard(10);
         int trunkHeight = std::uniform_int_distribution<int>(5, 7)(rg);
+        if(isTallVariant)
+            trunkHeight += tallVariantExtraHeight;
         for(int x = -1; x <= 1; x++)
         {
             retval.setBlock(VectorI(x, trunkHeight, 0), leaves);
@@ -617,7 +621,9 @@ public:
     }
     virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const override
     {
-        return 9;
+        if(isTallVariant)
+            return 0;
+        return 10 / 2.0f;
     }
 };
 }
@@ -627,7 +633,7 @@ std::vector<TreeDescriptorPointer> Oak::makeTreeDescriptors()
 }
 std::vector<TreeDescriptorPointer> Birch::makeTreeDescriptors()
 {
-    return std::vector<TreeDescriptorPointer>{new BirchTree()};
+    return std::vector<TreeDescriptorPointer>{new BirchTree(false), new BirchTree(true)};
 }
 std::vector<TreeDescriptorPointer> Spruce::makeTreeDescriptors()
 {

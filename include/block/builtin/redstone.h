@@ -483,7 +483,7 @@ public:
     {
         return true;
     }
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
@@ -494,7 +494,7 @@ public:
             const RedstoneDust *newDescriptor = calcOrientationAndSignalStrength(blockIterator, lock_manager);
             if(newDescriptor != this)
             {
-                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor, block.lighting));
+                world.setBlock(blockIterator, lock_manager, Block(newDescriptor, block.lighting));
                 const int distanceI = 2;
                 for(VectorI delta = VectorI(-distanceI); delta.x <= distanceI; delta.x++)
                 {
@@ -514,7 +514,7 @@ public:
             }
             return;
         }
-        AttachedBlock::tick(blockUpdateSet, world, block, blockIterator, lock_manager, kind);
+        AttachedBlock::tick(world, block, blockIterator, lock_manager, kind);
     }
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
     {
@@ -536,7 +536,7 @@ public:
         return false;
     }
 protected:
-    virtual void onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
 };
 
 class RedstoneTorch final : public GenericTorch
@@ -630,7 +630,7 @@ public:
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
     virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
 protected:
-    virtual void onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
 public:
     virtual bool generatesParticles() const override
     {
@@ -650,7 +650,7 @@ public:
     {
         return pointer(attachedToFace, !calculateRedstoneSignal(attachedToFace, blockIterator, lock_manager).isOnAtAll());
     }
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
@@ -661,12 +661,12 @@ public:
             const RedstoneTorch *newDescriptor = calcSignalStrength(blockIterator, lock_manager, attachedToFace);
             if(newDescriptor != this)
             {
-                blockUpdateSet.emplace_back(blockIterator.position(), Block(newDescriptor, block.lighting));
+                world.setBlock(blockIterator, lock_manager, Block(newDescriptor, block.lighting));
                 addRedstoneBlockUpdates(world, blockIterator, lock_manager, 2);
             }
             return;
         }
-        AttachedBlock::tick(blockUpdateSet, world, block, blockIterator, lock_manager, kind);
+        AttachedBlock::tick(world, block, blockIterator, lock_manager, kind);
     }
 };
 

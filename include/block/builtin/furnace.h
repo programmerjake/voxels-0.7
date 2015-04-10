@@ -312,11 +312,11 @@ public:
     {
         return ToolLevel_Wood;
     }
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
     {
         if(block.data == nullptr)
         {
-            blockUpdateSet.emplace_back(blockIterator.position(), Block(this, block.lighting, BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(std::make_shared<FurnaceData>()))));
+            world.setBlock(blockIterator, lock_manager, Block(this, block.lighting, BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(std::make_shared<FurnaceData>()))));
             return;
         }
         std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(block.data.get())->data;

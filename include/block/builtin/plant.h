@@ -151,12 +151,12 @@ public:
     {
         return Matrix::scale(1, blockHeight, 1);
     }
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
         if(!isPositionValid(blockIterator, block, lock_manager))
         {
             dropItems(blockIterator, block, world, lock_manager, Item());
-            blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
+            world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
         }
     }
     virtual bool canPlace(Block b, BlockIterator bi, WorldLockManager &lock_manager) const

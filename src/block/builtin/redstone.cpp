@@ -46,10 +46,10 @@ void RedstoneDust::onBreak(World &world, Block b, BlockIterator bi, WorldLockMan
     handleToolDamage(tool);
 }
 
-void RedstoneDust::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void RedstoneDust::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), blockIterator.position() + VectorF(0.5));
-    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
+    world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
 void RedstoneTorch::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
@@ -63,10 +63,10 @@ void RedstoneTorch::onReplace(World &world, Block b, BlockIterator bi, WorldLock
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), bi.position() + VectorF(0.5));
 }
 
-void RedstoneTorch::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void RedstoneTorch::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), blockIterator.position() + VectorF(0.5));
-    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
+    world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
 void RedstoneTorch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const

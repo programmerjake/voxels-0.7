@@ -296,13 +296,13 @@ public:
         return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
     }
 private:
-    void setBlock(BlockUpdateSet &blockUpdateSet, BlockIterator blockIterator, WorldLockManager &lock_manager, Block newBlock) const
+    void setBlock(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, Block newBlock) const
     {
         Block prevBlock = blockIterator.get(lock_manager);
         newBlock.lighting = prevBlock.lighting;
         if(prevBlock != newBlock)
         {
-            blockUpdateSet.emplace_back(blockIterator.position(), newBlock);
+            world.setBlock(blockIterator, lock_manager, newBlock);
         }
     }
     bool getIsFalling(BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned newLevel) const
@@ -324,7 +324,7 @@ private:
         return b.descriptor->isReplaceableByFluid();
     }
 public:
-    virtual void tick(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
@@ -356,7 +356,7 @@ public:
                 if(isSameKind(dynamic_cast<const Fluid *>(b.descriptor)))
                 {
                     newLevel = 1;
-                    setBlock(blockUpdateSet, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                    setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
                 }
                 else
                 {
@@ -408,14 +408,14 @@ public:
                     }
                     newLevel = minLevel + 1;
                     if(newLevel > maxLevel)
-                        setBlock(blockUpdateSet, blockIterator, lock_manager, Block(Air::descriptor()));
+                        setBlock(world, blockIterator, lock_manager, Block(Air::descriptor()));
                     else
-                        setBlock(blockUpdateSet, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                        setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
                 }
             }
             else
             {
-                setBlock(blockUpdateSet, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
             }
             if(!isFalling && newLevel < maxLevel)
             {
@@ -425,7 +425,7 @@ public:
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPX();
@@ -433,7 +433,7 @@ public:
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardNZ();
@@ -441,7 +441,7 @@ public:
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPZ();
@@ -449,7 +449,7 @@ public:
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
             }
             bi = blockIterator;
@@ -458,7 +458,7 @@ public:
             if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
             {
                 b.descriptor->onReplace(world, b, bi, lock_manager);
-                setBlock(blockUpdateSet, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
+                setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
             }
         }
     }

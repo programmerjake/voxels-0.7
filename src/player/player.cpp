@@ -29,6 +29,7 @@
 #include "entity/builtin/particles/smoke.h"
 #include "item/builtin/tools/mineral_toolsets.h"
 #include "item/builtin/minerals.h"
+#include "item/builtin/sand.h"
 
 namespace programmerjake
 {
@@ -230,7 +231,7 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
 void Player::addToPlayersList()
 {
 #ifdef DEBUG_VERSION
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 1; i++)
     {
         addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getAxe()));
         //addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
@@ -240,6 +241,8 @@ void Player::addToPlayersList()
     for(int i = 0; i < 25; i++)
     {
         addItem(Item(Items::builtin::Coal::descriptor()));
+        addItem(Item(Items::builtin::Sand::descriptor()));
+        addItem(Item(Items::builtin::Gravel::descriptor()));
         addItem(Item(Items::builtin::RedstoneDust::descriptor()));
     }
 #endif // DEBUG_VERSION

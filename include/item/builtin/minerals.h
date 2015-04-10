@@ -171,6 +171,25 @@ public:
     }
 };
 
+class Flint final : public ItemImage
+{
+    friend class global_instance_maker<Flint>;
+private:
+    Flint()
+        : ItemImage(L"builtin.flint", TextureAtlas::Flint.td(), nullptr)
+    {
+    }
+public:
+    static const Flint *pointer()
+    {
+        return global_instance_maker<Flint>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
 }
 }
 }

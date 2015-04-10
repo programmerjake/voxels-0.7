@@ -44,10 +44,10 @@ void Torch::onReplace(World &world, Block b, BlockIterator bi, WorldLockManager 
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), bi.position() + VectorF(0.5));
 }
 
-void Torch::onDisattach(BlockUpdateSet &blockUpdateSet, World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void Torch::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), blockIterator.position() + VectorF(0.5));
-    blockUpdateSet.emplace_back(blockIterator.position(), Block(Air::descriptor(), block.lighting));
+    world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
 void Torch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const

@@ -725,14 +725,7 @@ void World::blockUpdateThreadFn()
                     Block b = bi.get(lock_manager);
                     if(b.good())
                     {
-                        BlockUpdateSet blockUpdateSet;
-                        b.descriptor->tick(blockUpdateSet, *this, b, bi, lock_manager, node->kind);
-                        for(BlockUpdateSet::value_type v : blockUpdateSet)
-                        {
-                            bi = cbi;
-                            bi.moveTo(std::get<0>(v));
-                            setBlock(bi, lock_manager, std::get<1>(v));
-                        }
+                        b.descriptor->tick(*this, b, bi, lock_manager, node->kind);
                     }
 
                     BlockUpdate *deleteMe = node;
@@ -969,7 +962,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
-    advanceTimeOfDay(deltaTime * 60);
+    advanceTimeOfDay(deltaTime);
     std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
     while(waitingForMoveEntities)
     {

@@ -269,6 +269,13 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                     if(objectA != objectB && objectA->collides(*objectB))
                     {
                         anyCollisions = true;
+                        std::shared_ptr<PhysicsCollisionHandler> collisionHandler = objectA->getCollisionHandler();
+                        if(collisionHandler != nullptr)
+                        {
+                            lockIt.unlock();
+                            collisionHandler->onCollide(objectA, objectB);
+                            lockIt.lock();
+                        }
                         objectA->adjustPosition(*objectB);
                         //debugLog << "collision" << std::endl;
                     }
@@ -297,6 +304,13 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;
+                                std::shared_ptr<PhysicsCollisionHandler> collisionHandler = objectA->getCollisionHandler();
+                                if(collisionHandler != nullptr)
+                                {
+                                    lockIt.unlock();
+                                    collisionHandler->onCollideWithBlock(objectA, bi, lock_manager);
+                                    lockIt.lock();
+                                }
                                 objectA->adjustPosition(*objectB);
                             }
                             lockIt.unlock();
