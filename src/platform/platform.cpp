@@ -1212,6 +1212,12 @@ void renderInternal(const Mesh & m)
 {
     if(m.size() == 0)
         return;
+#if 1
+    const char *array_start = (const char *)&m.triangles[0];
+    glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
+    glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
+    glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
+#else
     static vector<float> vertexArray, textureCoordArray, colorArray;
     vertexArray.resize(m.triangles.size() * 3 * 3);
     textureCoordArray.resize(m.triangles.size() * 3 * 2);
@@ -1250,6 +1256,7 @@ void renderInternal(const Mesh & m)
     glVertexPointer(3, GL_FLOAT, 0, (const void *)&vertexArray[0]);
     glTexCoordPointer(2, GL_FLOAT, 0, (const void *)&textureCoordArray[0]);
     glColorPointer(4, GL_FLOAT, 0, (const void *)&colorArray[0]);
+#endif
     glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
 }
 }

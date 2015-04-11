@@ -27,6 +27,7 @@
 #include "stream/stream.h"
 #include <algorithm>
 #include <tuple>
+#include <cstddef> // offsetof
 
 namespace programmerjake
 {
@@ -58,52 +59,181 @@ struct TextureCoord
 
 struct Triangle
 {
-    TextureCoord t1, t2, t3;
-    VectorF p1, p2, p3;
-    ColorF c1, c2, c3;
-    VectorF n1, n2, n3;
+    TextureCoord t1; // do NOT change the order of the variables
+    VectorF p1;
+    ColorF c1;
+    VectorF n1;
+    TextureCoord t2;
+    VectorF p2;
+    ColorF c2;
+    VectorF n2;
+    TextureCoord t3;
+    VectorF p3;
+    ColorF c3;
+    VectorF n3;
     constexpr Triangle(VectorF p1, VectorF p2, VectorF p3, ColorF color = colorizeIdentity())
-        : t1(0, 0), t2(0, 0), t3(0, 0), p1(p1), p2(p2), p3(p3), c1(color), c2(color), c3(color), n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
+        : t1(0, 0),
+          p1(p1),
+          c1(color),
+          n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t2(0, 0),
+          p2(p2),
+          c2(color),
+          n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t3(0, 0),
+          p3(p3),
+          c3(color),
+          n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
     constexpr Triangle(VectorF p1, TextureCoord t1, VectorF p2, TextureCoord t2, VectorF p3, TextureCoord t3, ColorF color = colorizeIdentity())
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(color), c2(color), c3(color), n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
+        : t1(t1),
+          p1(p1),
+          c1(color),
+          n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t2(t2),
+          p2(p2),
+          c2(color),
+          n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t3(t3),
+          p3(p3),
+          c3(color),
+          n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
     constexpr Triangle(VectorF p1, ColorF c1, VectorF p2, ColorF c2, VectorF p3, ColorF c3)
-        : t1(0, 0), t2(0, 0), t3(0, 0), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
+        : t1(0, 0),
+          p1(p1),
+          c1(c1),
+          n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t2(0, 0),
+          p2(p2),
+          c2(c2),
+          n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t3(0, 0),
+          p3(p3),
+          c3(c3),
+          n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
     constexpr Triangle(VectorF p1, TextureCoord t1, ColorF c1, VectorF p2, TextureCoord t2, ColorF c2, VectorF p3, TextureCoord t3, ColorF c3)
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
+        : t1(t1),
+          p1(p1),
+          c1(c1),
+          n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t2(t2),
+          p2(p2),
+          c2(c2),
+          n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t3(t3),
+          p3(p3),
+          c3(c3),
+          n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
     constexpr Triangle(VectorF p1, ColorF c1, TextureCoord t1, VectorF p2, ColorF c2, TextureCoord t2, VectorF p3, ColorF c3, TextureCoord t3)
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))), n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
+        : t1(t1),
+          p1(p1),
+          c1(c1),
+          n1(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t2(t2),
+          p2(p2),
+          c2(c2),
+          n2(normalizeNoThrow(cross(p1 - p2, p1 - p3))),
+          t3(t3),
+          p3(p3),
+          c3(c3),
+          n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
     constexpr Triangle(VectorF p1, VectorF n1, VectorF p2, VectorF n2, VectorF p3, VectorF n3, ColorF color = colorizeIdentity())
-        : t1(0, 0), t2(0, 0), t3(0, 0), p1(p1), p2(p2), p3(p3), c1(color), c2(color), c3(color), n1(n1), n2(n2), n3(n3)
+        : t1(0, 0),
+          p1(p1),
+          c1(color),
+          n1(n1),
+          t2(0, 0),
+          p2(p2),
+          c2(color),
+          n2(n2),
+          t3(0, 0),
+          p3(p3),
+          c3(color),
+          n3(n3)
     {
     }
     constexpr Triangle(VectorF p1, TextureCoord t1, VectorF n1, VectorF p2, TextureCoord t2, VectorF n2, VectorF p3, TextureCoord t3, VectorF n3, ColorF color = colorizeIdentity())
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(color), c2(color), c3(color), n1(n1), n2(n2), n3(n3)
+        : t1(t1),
+          p1(p1),
+          c1(color),
+          n1(n1),
+          t2(t2),
+          p2(p2),
+          c2(color),
+          n2(n2),
+          t3(t3),
+          p3(p3),
+          c3(color),
+          n3(n3)
     {
     }
     constexpr Triangle(VectorF p1, ColorF c1, VectorF n1, VectorF p2, ColorF c2, VectorF n2, VectorF p3, ColorF c3, VectorF n3)
-        : t1(0, 0), t2(0, 0), t3(0, 0), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(n1), n2(n2), n3(n3)
+        : t1(0, 0),
+          p1(p1),
+          c1(c1),
+          n1(n1),
+          t2(0, 0),
+          p2(p2),
+          c2(c2),
+          n2(n2),
+          t3(0, 0),
+          p3(p3),
+          c3(c3),
+          n3(n3)
     {
     }
     constexpr Triangle(VectorF p1, TextureCoord t1, ColorF c1, VectorF n1, VectorF p2, TextureCoord t2, ColorF c2, VectorF n2, VectorF p3, TextureCoord t3, ColorF c3, VectorF n3)
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(n1), n2(n2), n3(n3)
+        : t1(t1),
+          p1(p1),
+          c1(c1),
+          n1(n1),
+          t2(t2),
+          p2(p2),
+          c2(c2),
+          n2(n2),
+          t3(t3),
+          p3(p3),
+          c3(c3),
+          n3(n3)
     {
     }
     constexpr Triangle(VectorF p1, ColorF c1, TextureCoord t1, VectorF n1, VectorF p2, ColorF c2, TextureCoord t2, VectorF n2, VectorF p3, ColorF c3, TextureCoord t3, VectorF n3)
-        : t1(t1), t2(t2), t3(t3), p1(p1), p2(p2), p3(p3), c1(c1), c2(c2), c3(c3), n1(n1), n2(n2), n3(n3)
+        : t1(t1),
+          p1(p1),
+          c1(c1),
+          n1(n1),
+          t2(t2),
+          p2(p2),
+          c2(c2),
+          n2(n2),
+          t3(t3),
+          p3(p3),
+          c3(c3),
+          n3(n3)
     {
     }
     constexpr Triangle()
-        : t1(0, 0), t2(0, 0), t3(0, 0), p1(0), p2(0), p3(0), c1(colorizeIdentity()), c2(colorizeIdentity()), c3(colorizeIdentity()), n1(0), n2(0), n3(0)
+        : t1(0, 0),
+          p1(0),
+          c1(colorizeIdentity()),
+          n1(0),
+          t2(0, 0),
+          p2(0),
+          c2(colorizeIdentity()),
+          n2(0),
+          t3(0, 0),
+          p3(0),
+          c3(colorizeIdentity()),
+          n3(0)
     {
     }
     static Triangle read(stream::Reader &reader)
@@ -153,6 +283,25 @@ public:
         return getPlaneEquationHelper(getPlaneNormal());
     }
 };
+
+constexpr std::size_t Triangle_vertex_stride = offsetof(Triangle, t2) - offsetof(Triangle, t1);
+constexpr std::size_t Triangle_texture_coord_start = offsetof(Triangle, t1);
+constexpr std::size_t Triangle_position_start = offsetof(Triangle, p1);
+constexpr std::size_t Triangle_color_start = offsetof(Triangle, c1);
+constexpr std::size_t Triangle_normal_start = offsetof(Triangle, n1);
+
+static_assert(sizeof(Triangle) == 3 * Triangle_vertex_stride, "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, t2) - offsetof(Triangle, t1), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, t3) - offsetof(Triangle, t2), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, p2) - offsetof(Triangle, p1), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, p3) - offsetof(Triangle, p2), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, c2) - offsetof(Triangle, c1), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, c3) - offsetof(Triangle, c2), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, n2) - offsetof(Triangle, n1), "triangle not packed correctly");
+static_assert(Triangle_vertex_stride == offsetof(Triangle, n3) - offsetof(Triangle, n2), "triangle not packed correctly");
+static_assert(sizeof(Triangle::p1) == sizeof(float[3]), "triangle not packed properly");
+static_assert(sizeof(Triangle::t1) == sizeof(float[2]), "triangle not packed properly");
+static_assert(sizeof(Triangle::c1) == sizeof(float[4]), "triangle not packed properly");
 
 inline Triangle transform(const Matrix & m, const Triangle & t)
 {
