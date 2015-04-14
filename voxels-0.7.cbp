@@ -13,6 +13,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-march=native" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
 					<Add option="-DDEBUG_VERSION" />
@@ -30,6 +31,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
+					<Add option="-march=k8" />
 					<Add option="-O3" />
 					<Add option="-DNDEBUG" />
 				</Compiler>
@@ -45,6 +47,7 @@
 				<Compiler>
 					<Add option="-O2" />
 					<Add option="-g" />
+					<Add option="-march=native" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
 					<Add option="-fsanitize=thread" />
@@ -66,6 +69,7 @@
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-g" />
+					<Add option="-march=native" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 			</Target>
@@ -78,6 +82,7 @@
 					<Add option="-O3" />
 					<Add option="-pg" />
 					<Add option="-g" />
+					<Add option="-march=native" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 				<Linker>
@@ -88,7 +93,6 @@
 		<Compiler>
 			<Add option="-std=c++11" />
 			<Add option="-Wall" />
-			<Add option="-march=native" />
 			<Add option="-fexceptions" />
 			<Add option="-pthread" />
 			<Add option="`sdl2-config --cflags`" />
