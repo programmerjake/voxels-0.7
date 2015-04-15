@@ -523,71 +523,74 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
 World::World(SeedType seed, const WorldGenerator *worldGenerator)
     : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
 {
-    getDebugLog() << L"generating initial world..." << postnl;
-    WorldLockManager lock_manager;
-    for(;;)
+    thread([&]()
     {
-        RandomSource randomSource(getWorldGeneratorSeed());
-        BiomeProperties bp = randomSource.getBiomeProperties(PositionI(0, 0, 0, Dimension::Overworld));
-        if(!bp.getDominantBiome()->isGoodStartingPosition())
+        getDebugLog() << L"generating initial world..." << postnl;
+        WorldLockManager lock_manager;
+        for(;;)
         {
-            auto &rg = getRandomGenerator();
-            worldGeneratorSeed = rg();
-            continue;
+            RandomSource randomSource(getWorldGeneratorSeed());
+            BiomeProperties bp = randomSource.getBiomeProperties(PositionI(0, 0, 0, Dimension::Overworld));
+            if(!bp.getDominantBiome()->isGoodStartingPosition())
+            {
+                auto &rg = getRandomGenerator();
+                worldGeneratorSeed = rg();
+                continue;
+            }
+            break;
         }
-        break;
-    }
-    for(int i = 0; i < 2; i++)
-    {
-        lightingThreads.emplace_back([this]()
+        for(int i = 0; i < 2; i++)
         {
-            lightingThreadFn();
-        });
-    }
-    for(int dx = 0; dx >= -1; dx--)
-    {
-        for(int dz = 0; dz >= -1; dz--)
-        {
-            BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
-            initialChunk->chunkVariables.generateStarted = true;
-            getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
-            generateChunk(initialChunk, lock_manager);
-            initialChunk->chunkVariables.generated = true;
+            lightingThreads.emplace_back([this]()
+            {
+                lightingThreadFn();
+            });
         }
-    }
-    for(int i = 0; i < 3; i++)
-    {
-        blockUpdateThreads.emplace_back([this]()
+        for(int dx = 0; dx >= -1; dx--)
         {
-            blockUpdateThreadFn();
-        });
-    }
-    lock_manager.clear();
-    getDebugLog() << L"lighting initial world..." << postnl;
-    for(int i = 0; i < 500 && !isLightingStable(); i++)
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    getDebugLog() << L"generated initial world." << postnl;
-#if 1 || defined(NDEBUG)
-    const int threadCount = 5;
-#else
-    const int threadCount = 1;
-#endif
-    for(int i = 0; i < threadCount; i++)
-    {
-        chunkGeneratingThreads.emplace_back([this]()
+            for(int dz = 0; dz >= -1; dz--)
+            {
+                BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
+                initialChunk->chunkVariables.generateStarted = true;
+                getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
+                generateChunk(initialChunk, lock_manager);
+                initialChunk->chunkVariables.generated = true;
+            }
+        }
+        for(int i = 0; i < 3; i++)
         {
-            setThreadPriority(ThreadPriority::Low);
-            chunkGeneratingThreadFn();
+            blockUpdateThreads.emplace_back([this]()
+            {
+                blockUpdateThreadFn();
+            });
+        }
+        lock_manager.clear();
+        getDebugLog() << L"lighting initial world..." << postnl;
+        for(int i = 0; i < 500 && !isLightingStable(); i++)
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        getDebugLog() << L"generated initial world." << postnl;
+    #if 1 || defined(NDEBUG)
+        const int threadCount = 5;
+    #else
+        const int threadCount = 1;
+    #endif
+        for(int i = 0; i < threadCount; i++)
+        {
+            chunkGeneratingThreads.emplace_back([this]()
+            {
+                setThreadPriority(ThreadPriority::Low);
+                chunkGeneratingThreadFn();
+            });
+        }
+        particleGeneratingThread = thread([this]()
+        {
+            particleGeneratingThreadFn();
         });
-    }
-    particleGeneratingThread = thread([this]()
-    {
-        particleGeneratingThreadFn();
-    });
-    moveEntitiesThread = thread([this]()
-    {
-        moveEntitiesThreadFn();
-    });
+        moveEntitiesThread = thread([this]()
+        {
+            moveEntitiesThreadFn();
+        });
+    }).join();
 }
 
 World::~World()

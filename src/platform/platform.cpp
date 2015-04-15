@@ -36,6 +36,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <functional>
+#include <deque>
+#include <condition_variable>
 #include "platform/audio.h"
 #include "platform/thread_priority.h"
 #include "util/logging.h"
@@ -243,6 +246,172 @@ static SDL_GLContext glcontext = nullptr;
 static atomic_bool runningGraphics(false), runningSDL(false), runningAudio(false);
 static atomic_int SDLUseCount(0);
 static atomic_bool addedAtExits(false);
+static std::mutex renderThreadLock;
+static std::condition_variable renderThreadCond;
+static std::thread renderThread;
+static std::atomic_bool renderThreadRunning(false);
+struct RenderThreadFunction final
+{
+    std::function<void()> fn;
+    std::condition_variable *cond = nullptr;
+    enum State
+    {
+        Waiting,
+        Done,
+        Aborted
+    };
+    State *state;
+    RenderThreadFunction(std::function<void()> fn, std::condition_variable *cond, State *state)
+        : fn(fn), cond(cond), state(state)
+    {
+    }
+};
+static std::deque<RenderThreadFunction> renderThreadFnQueue;
+
+static void renderThreadRunFn()
+{
+    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    for(;;)
+    {
+        while(renderThreadFnQueue.empty())
+        {
+            renderThreadCond.wait(lockIt);
+        }
+        RenderThreadFunction fn = renderThreadFnQueue.front();
+        if(fn.fn == nullptr)
+        {
+            renderThreadFnQueue.pop_front();
+            for(RenderThreadFunction fn : renderThreadFnQueue)
+            {
+                if(fn.state != nullptr)
+                    *fn.state = RenderThreadFunction::Aborted;
+                if(fn.cond != nullptr)
+                    fn.cond->notify_all();
+            }
+            renderThreadFnQueue.clear();
+            if(fn.state != nullptr)
+                *fn.state = RenderThreadFunction::Done;
+            if(fn.cond != nullptr)
+                fn.cond->notify_all();
+            break;
+        }
+        lockIt.unlock();
+        fn.fn();
+        lockIt.lock();
+        if(fn.state != nullptr)
+            *fn.state = RenderThreadFunction::Done;
+        if(fn.cond != nullptr)
+            fn.cond->notify_all();
+        renderThreadFnQueue.pop_front();
+        if(renderThreadFnQueue.empty())
+            renderThreadCond.notify_all();
+    }
+    renderThreadRunning = false;
+}
+
+static void stopRenderThread()
+{
+    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    if(!renderThreadRunning)
+        return;
+    renderThreadFnQueue.push_back(RenderThreadFunction(nullptr, nullptr, nullptr));
+    lockIt.unlock();
+    renderThread.join();
+}
+
+static bool runOnRenderThread(std::function<void()> fn)
+{
+    assert(fn != nullptr);
+    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    if(!renderThreadRunning)
+    {
+        if(!renderThreadRunning.exchange(true))
+        {
+            renderThread = thread(renderThreadRunFn);
+        }
+    }
+    RenderThreadFunction::State state = RenderThreadFunction::Waiting;
+    std::condition_variable cond;
+    renderThreadFnQueue.push_back(RenderThreadFunction(fn, &cond, &state));
+    while(state == RenderThreadFunction::Waiting)
+        cond.wait(lockIt);
+    if(state == RenderThreadFunction::Done)
+        return true;
+    return false;
+}
+
+class RunOnRenderThreadStatus final
+{
+private:
+    RenderThreadFunction::State state = RenderThreadFunction::Waiting;
+    std::condition_variable cond;
+    bool did_wait = true;
+public:
+    RunOnRenderThreadStatus(const RunOnRenderThreadStatus &) = delete;
+    RunOnRenderThreadStatus() = default;
+    RunOnRenderThreadStatus &operator =(const RunOnRenderThreadStatus &) = delete;
+    RenderThreadFunction makeRenderThreadFunction(std::function<void()> fn)
+    {
+        did_wait = false;
+        state = RenderThreadFunction::Waiting;
+        return RenderThreadFunction(fn, &cond, &state);
+    }
+    bool try_wait()
+    {
+        if(did_wait)
+            return true;
+        std::unique_lock<std::mutex> lockIt(renderThreadLock, std::try_to_lock);
+        if(!lockIt.owns_lock())
+            return false;
+        if(state == RenderThreadFunction::Waiting)
+            return false;
+        did_wait = true;
+        return true;
+    }
+    void wait()
+    {
+        if(did_wait)
+            return;
+        std::unique_lock<std::mutex> lockIt(renderThreadLock);
+        while(state == RenderThreadFunction::Waiting)
+            cond.wait(lockIt);
+        did_wait = true;
+    }
+    bool status()
+    {
+        if(!did_wait)
+            return false;
+        return state == RenderThreadFunction::Done;
+    }
+};
+
+static void runOnRenderThreadAsync(std::function<void()> fn)
+{
+    assert(fn != nullptr);
+    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    if(!renderThreadRunning)
+    {
+        if(!renderThreadRunning.exchange(true))
+        {
+            renderThread = thread(renderThreadRunFn);
+        }
+    }
+    renderThreadFnQueue.push_back(RenderThreadFunction(fn, nullptr, nullptr));
+}
+
+static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadStatus &status)
+{
+    assert(fn != nullptr);
+    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    if(!renderThreadRunning)
+    {
+        if(!renderThreadRunning.exchange(true))
+        {
+            renderThread = thread(renderThreadRunFn);
+        }
+    }
+    renderThreadFnQueue.push_back(status.makeRenderThreadFunction(fn));
+}
 
 static void startSDL()
 {
@@ -258,6 +427,8 @@ static void startSDL()
         atexit(endGraphics);
         atexit(endAudio);
     }
+    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
+    SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
 }
 
 static SDL_AudioSpec globalAudioSpec;
@@ -395,8 +566,6 @@ void startGraphics()
         cerr << "error : can't create OpenGL context : " << SDL_GetError();
         exit(1);
     }
-    SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
-    SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
     getExtensions();
 }
 
