@@ -536,13 +536,26 @@ private:
     void lightingThreadFn();
     void blockUpdateThreadFn();
     void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
-    void chunkGeneratingThreadFn();
+    struct InitialChunkGenerateStruct final
+    {
+        std::mutex lock;
+        std::condition_variable initialGenerationDoneCond;
+        std::condition_variable generatorWaitDoneCond;
+        std::size_t count;
+        bool generatorWait = true;
+        explicit InitialChunkGenerateStruct(std::size_t count)
+            : count(count)
+        {
+        }
+    };
+    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct);
     void particleGeneratingThreadFn();
     void moveEntitiesThreadFn();
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
+    bool isInitialGenerateChunk(PositionI position);
     RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
     void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
     std::recursive_mutex timeOfDayLock;

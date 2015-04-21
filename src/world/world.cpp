@@ -526,7 +526,6 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
     thread([&]()
     {
         getDebugLog() << L"generating initial world..." << postnl;
-        WorldLockManager lock_manager;
         for(;;)
         {
             RandomSource randomSource(getWorldGeneratorSeed());
@@ -546,16 +545,33 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
                 lightingThreadFn();
             });
         }
-        for(int dx = 0; dx >= -1; dx--)
+        std::size_t initialChunkGenerateCount = 0;
+        for(PositionI position(-BlockChunk::chunkSizeX, 0, -BlockChunk::chunkSizeZ, Dimension::Overworld); position.z <= 0; position.z += BlockChunk::chunkSizeZ)
         {
-            for(int dz = 0; dz >= -1; dz--)
+            for(position.x = -BlockChunk::chunkSizeX; position.x <= 0; position.x += BlockChunk::chunkSizeX)
             {
-                BlockChunk *initialChunk = getBlockIterator(PositionI(dx * BlockChunk::chunkSizeX, 0, dz * BlockChunk::chunkSizeZ, Dimension::Overworld)).chunk;
-                initialChunk->chunkVariables.generateStarted = true;
-                getDebugLog() << L"generating " << initialChunk->basePosition << postnl;
-                generateChunk(initialChunk, lock_manager);
-                initialChunk->chunkVariables.generated = true;
+                getBlockIterator(position); // adds chunk to chunks to look through
+                initialChunkGenerateCount++;
             }
+        }
+        std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct = std::make_shared<InitialChunkGenerateStruct>(initialChunkGenerateCount);
+    #if 1 || defined(NDEBUG)
+        const int threadCount = 5;
+    #else
+        const int threadCount = 1;
+    #endif
+        for(int i = 0; i < threadCount; i++)
+        {
+            chunkGeneratingThreads.emplace_back([this, initialChunkGenerateStruct]()
+            {
+                setThreadPriority(ThreadPriority::Low);
+                chunkGeneratingThreadFn(std::move(initialChunkGenerateStruct));
+            });
+        }
+        {
+            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            while(initialChunkGenerateStruct->count > 0)
+                initialChunkGenerateStruct->initialGenerationDoneCond.wait(lockIt);
         }
         for(int i = 0; i < 3; i++)
         {
@@ -564,24 +580,16 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
                 blockUpdateThreadFn();
             });
         }
-        lock_manager.clear();
         getDebugLog() << L"lighting initial world..." << postnl;
         for(int i = 0; i < 500 && !isLightingStable(); i++)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         getDebugLog() << L"generated initial world." << postnl;
-    #if 1 || defined(NDEBUG)
-        const int threadCount = 5;
-    #else
-        const int threadCount = 1;
-    #endif
-        for(int i = 0; i < threadCount; i++)
         {
-            chunkGeneratingThreads.emplace_back([this]()
-            {
-                setThreadPriority(ThreadPriority::Low);
-                chunkGeneratingThreadFn();
-            });
+            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            initialChunkGenerateStruct->generatorWait = false;
+            initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
         }
+        initialChunkGenerateStruct = nullptr;
         particleGeneratingThread = thread([this]()
         {
             particleGeneratingThreadFn();
@@ -844,7 +852,19 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
     setBlockRange(chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
 }
 
-void World::chunkGeneratingThreadFn()
+bool World::isInitialGenerateChunk(PositionI position)
+{
+    if(position == PositionI(0, 0, 0, Dimension::Overworld) ||
+       position == PositionI(-BlockChunk::chunkSizeX, 0, 0, Dimension::Overworld) ||
+       position == PositionI(0, 0, -BlockChunk::chunkSizeZ, Dimension::Overworld) ||
+       position == PositionI(-BlockChunk::chunkSizeX, 0, -BlockChunk::chunkSizeZ, Dimension::Overworld))
+    {
+        return true;
+    }
+    return false;
+}
+
+void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct)
 {
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
@@ -854,6 +874,7 @@ void World::chunkGeneratingThreadFn()
         BlockChunk *bestChunk = nullptr;
         bool haveChunk = false;
         float chunkPriority = 0;
+        bool isChunkInitialGenerate = false;
         for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
         {
             BlockChunk *chunk = &(*chunkIter);
@@ -863,15 +884,17 @@ void World::chunkGeneratingThreadFn()
                 continue;
             if(chunkIter.is_locked())
                 chunkIter.unlock();
+            bool isCurrentChunkInitialGenerate = isInitialGenerateChunk(chunk->basePosition);
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
             float currentChunkPriority = getChunkGeneratePriority(cbi, lock_manager);
-            if(std::isnan(currentChunkPriority))
+            if(!isCurrentChunkInitialGenerate && std::isnan(currentChunkPriority))
                 continue;
-            if(!haveChunk || chunkPriority > currentChunkPriority) // low values mean high priority
+            if(!haveChunk || (isCurrentChunkInitialGenerate && !isChunkInitialGenerate) || chunkPriority > currentChunkPriority) // low values mean high priority
             {
                 haveChunk = true;
                 bestChunk = chunk;
                 chunkPriority = currentChunkPriority;
+                isChunkInitialGenerate = isCurrentChunkInitialGenerate;
             }
         }
 
@@ -886,6 +909,32 @@ void World::chunkGeneratingThreadFn()
             generateChunk(chunk, lock_manager);
 
             chunk->chunkVariables.generated = true;
+            lock_manager.clear();
+            if(isChunkInitialGenerate && initialChunkGenerateStruct != nullptr)
+            {
+                std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+                if(initialChunkGenerateStruct->count > 0)
+                {
+                    initialChunkGenerateStruct->count--;
+                    if(initialChunkGenerateStruct->count == 0)
+                    {
+                        initialChunkGenerateStruct->initialGenerationDoneCond.notify_all();
+                        while(initialChunkGenerateStruct->generatorWait)
+                            initialChunkGenerateStruct->generatorWaitDoneCond.wait(lockIt);
+                        lockIt.unlock();
+                        lockIt.release();
+                        initialChunkGenerateStruct = nullptr;
+                    }
+                }
+                else
+                {
+                    while(initialChunkGenerateStruct->generatorWait)
+                        initialChunkGenerateStruct->generatorWaitDoneCond.wait(lockIt);
+                    lockIt.unlock();
+                    lockIt.release();
+                    initialChunkGenerateStruct = nullptr;
+                }
+            }
         }
 
         lock_manager.clear();
@@ -910,6 +959,10 @@ float boxDistanceSquared(VectorF minCorner, VectorF maxCorner, VectorF pos)
 
 float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager) // low values mean high priority, NAN means don't generate
 {
+    if(isInitialGenerateChunk(bi.position()))
+    {
+        return -1e30;
+    }
     if(bi.position().y != 0)
         return NAN;
     std::unique_lock<std::mutex> lockIt(viewPointsLock);
