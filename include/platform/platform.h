@@ -280,6 +280,56 @@ struct CachedMesh;
 std::shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh);
 std::shared_ptr<CachedMesh> transform(const Matrix & m, std::shared_ptr<CachedMesh> mesh);
 
+struct MeshBufferImp;
+class MeshBuffer;
+
+namespace Display
+{
+    void render(const MeshBuffer &m, bool enableDepthBuffer);
+}
+
+class MeshBuffer final
+{
+private:
+    std::shared_ptr<MeshBufferImp> imp;
+    Matrix tform;
+    static bool impIsEmpty(std::shared_ptr<MeshBufferImp> mesh);
+    static std::size_t impCapacity(std::shared_ptr<MeshBufferImp> mesh);
+    MeshBuffer(std::shared_ptr<MeshBufferImp> imp, Matrix tform)
+        : imp(imp), tform(tform)
+    {
+    }
+public:
+    constexpr MeshBuffer()
+        : imp(), tform(Matrix::identity())
+    {
+    }
+    MeshBuffer(std::size_t triangleCount);
+    bool set(const Mesh &mesh, bool isFinal);
+    std::size_t capacity() const
+    {
+        if(imp == nullptr)
+            return 0;
+        return impCapacity(imp);
+    }
+    bool empty() const
+    {
+        if(imp == nullptr)
+            return true;
+        return impIsEmpty(imp);
+    }
+    MeshBuffer createTransformed(Matrix m) const
+    {
+        return MeshBuffer(imp, transform(m, tform));
+    }
+    friend void Display::render(const MeshBuffer &m, bool enableDepthBuffer);
+};
+
+inline MeshBuffer transform(const Matrix &m, const MeshBuffer &meshBuffer)
+{
+    return meshBuffer.createTransformed(m);
+}
+
 namespace Display
 {
     std::wstring title();
@@ -321,6 +371,8 @@ int main(std::vector<std::wstring> args); // called by the platform's main funct
 void dumpStackTraceToDebugLog();
 void setStackTraceDumpingEnabled(bool v);
 bool getStackTraceDumpingEnabled();
+std::uint32_t allocateTexture();
+void freeTexture(std::uint32_t texture);
 }
 }
 

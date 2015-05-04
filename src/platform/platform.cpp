@@ -1532,7 +1532,17 @@ void getOpenGLBuffersExtension()
     }
 }
 
-vector<GLuint> freeBuffers;
+struct FreeBuffer final
+{
+    GLuint buffer;
+    bool needUnmap;
+    FreeBuffer(GLuint buffer, bool needUnmap = false)
+        : buffer(buffer), needUnmap(needUnmap)
+    {
+    }
+};
+
+vector<FreeBuffer> freeBuffers;
 mutex freeBuffersLock;
 GLuint allocateBuffer()
 {
@@ -1545,12 +1555,18 @@ GLuint allocateBuffer()
         fnGLGenBuffersARB(1, &retval);
         return retval;
     }
-    GLuint retval = freeBuffers.back();
+    FreeBuffer retval = freeBuffers.back();
     freeBuffers.pop_back();
     freeBuffersLock.unlock();
-    return retval;
+    if(retval.needUnmap)
+    {
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, retval.buffer);
+        fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+    }
+    return retval.buffer;
 }
-void freeBuffer(GLuint displayList)
+void freeBuffer(GLuint displayList, bool unmap)
 {
     lock_guard<mutex> lockGuard(freeBuffersLock);
     freeBuffers.push_back(displayList);
@@ -1613,7 +1629,7 @@ struct CachedMeshDataOpenGLBuffer : public CachedMeshData
     }
     virtual ~CachedMeshDataOpenGLBuffer()
     {
-        freeBuffer(buffer);
+        freeBuffer(buffer, false);
     }
     virtual void render(Matrix tform, bool enableDepthBuffer) override
     {
@@ -1667,6 +1683,169 @@ void Display::render(shared_ptr<CachedMesh> m, bool enableDepthBuffer)
         m->data->render(m->tform, enableDepthBuffer);
 }
 
+struct MeshBufferImp
+{
+    virtual void render(Matrix tform, bool enableDepthBuffer) = 0;
+    virtual ~MeshBufferImp() = default;
+    virtual bool set(const Mesh &mesh, bool isFinal) = 0;
+    virtual bool empty() const = 0;
+    virtual std::size_t capacity() const = 0;
+};
+
+namespace
+{
+struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
+{
+    GLuint buffer;
+    Image image;
+    std::size_t allocatedTriangleCount, usedTriangleCount;
+    void *bufferMemory;
+    bool gotFinalSet;
+    MeshBufferImpOpenGLBuffer(std::size_t triangleCount)
+    {
+        buffer = allocateBuffer();
+        usedTriangleCount = 0;
+        allocatedTriangleCount = triangleCount;
+        gotFinalSet = false;
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW_ARB);
+        bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_WRITE_ARB);
+        if(bufferMemory == nullptr)
+        {
+            cerr << "error : can't map opengl buffer\n" << flush;
+            abort();
+        }
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+    }
+    virtual ~MeshBufferImpOpenGLBuffer()
+    {
+        freeBuffer(buffer, bufferMemory != nullptr);
+    }
+    virtual void render(Matrix tform, bool enableDepthBuffer) override
+    {
+        if(usedTriangleCount == 0)
+            return;
+        image.bind();
+        glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadMatrix(tform);
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        if(bufferMemory != nullptr)
+        {
+            fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
+            bufferMemory = nullptr;
+        }
+        const char *array_start = (const char *)0;
+        glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
+        glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
+        glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
+        glDrawArrays(GL_TRIANGLES, 0, (GLint)usedTriangleCount * 3);
+        glLoadIdentity();
+        if(!gotFinalSet)
+        {
+            bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_WRITE_ARB);
+            if(bufferMemory == nullptr)
+            {
+                cerr << "error : can't map opengl buffer\n" << flush;
+                abort();
+            }
+        }
+        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+    }
+    virtual bool set(const Mesh &mesh, bool isFinal) override
+    {
+        if(gotFinalSet)
+            return false;
+        if(mesh.triangles.size() > allocatedTriangleCount)
+            return false;
+        assert(bufferMemory);
+        image = mesh.image;
+        Triangle *triangles = (Triangle *)bufferMemory;
+        for(std::size_t i = 0; i < mesh.triangles.size(); i++)
+        {
+            triangles[i] = mesh.triangles[i];
+        }
+        usedTriangleCount = mesh.triangles.size();
+        gotFinalSet = isFinal;
+        return true;
+    }
+    virtual bool empty() const override
+    {
+        return usedTriangleCount == 0;
+    }
+    virtual std::size_t capacity() const override
+    {
+        return allocatedTriangleCount;
+    }
+};
+
+struct MeshBufferImpFallback final : public MeshBufferImp
+{
+    std::size_t allocatedTriangleCount;
+    bool gotFinalSet;
+    Mesh mesh;
+    MeshBufferImpFallback(std::size_t triangleCount)
+    {
+        allocatedTriangleCount = triangleCount;
+        gotFinalSet = false;
+        mesh.triangles.reserve(triangleCount);
+    }
+    virtual ~MeshBufferImpFallback()
+    {
+    }
+    virtual void render(Matrix tform, bool enableDepthBuffer) override
+    {
+        Display::render(mesh, tform, enableDepthBuffer);
+    }
+    virtual bool set(const Mesh &mesh, bool isFinal) override
+    {
+        if(gotFinalSet)
+            return false;
+        if(mesh.triangles.size() > allocatedTriangleCount)
+            return false;
+        this->mesh.clear();
+        this->mesh.append(mesh);
+        gotFinalSet = isFinal;
+        return true;
+    }
+    virtual bool empty() const override
+    {
+        return mesh.size() == 0;
+    }
+    virtual std::size_t capacity() const override
+    {
+        return allocatedTriangleCount;
+    }
+};
+}
+
+bool MeshBuffer::impIsEmpty(std::shared_ptr<MeshBufferImp> mesh)
+{
+    return mesh->empty();
+}
+
+std::size_t MeshBuffer::impCapacity(std::shared_ptr<MeshBufferImp> mesh)
+{
+    return mesh->capacity();
+}
+
+MeshBuffer::MeshBuffer(std::size_t triangleCount)
+{
+    if(triangleCount == 0)
+        imp = nullptr;
+    else if(haveOpenGLBuffers)
+        imp = std::make_shared<MeshBufferImpOpenGLBuffer>(triangleCount);
+    else
+        imp = std::make_shared<MeshBufferImpFallback>(triangleCount);
+}
+
+bool MeshBuffer::set(const Mesh &mesh, bool isFinal)
+{
+    if(!imp)
+        return false;
+    return imp->set(mesh, isFinal);
+}
+
 float Display::screenRefreshRate()
 {
     int displayIndex = SDL_GetWindowDisplayIndex(window);
@@ -1680,9 +1859,43 @@ float Display::screenRefreshRate()
     return mode.refresh_rate;
 }
 
+void Display::render(const MeshBuffer &m, bool enableDepthBuffer)
+{
+    if(!m.imp)
+        return;
+    m.imp->render(m.tform, enableDepthBuffer);
+}
+
 static void getExtensions()
 {
     getOpenGLBuffersExtension();
+}
+
+static std::vector<std::uint32_t> freeTextures;
+static std::mutex freeTexturesLock;
+
+std::uint32_t allocateTexture()
+{
+    std::uint32_t retval;
+    std::unique_lock<std::mutex> lockIt(freeTexturesLock);
+    if(freeTextures.empty())
+    {
+        lockIt.unlock();
+        glGenTextures(1, (GLuint *)&retval);
+        return retval;
+    }
+    retval = freeTextures.back();
+    freeTextures.pop_back();
+    lockIt.unlock();
+    return retval;
+}
+
+void freeTexture(std::uint32_t texture)
+{
+    if(texture == 0)
+        return;
+    std::unique_lock<std::mutex> lockIt(freeTexturesLock);
+    freeTextures.push_back(texture);
 }
 
 void setThreadPriority(ThreadPriority priority)

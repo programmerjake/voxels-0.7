@@ -62,7 +62,7 @@ Image::data_t::~data_t()
     static_assert(sizeof(uint32_t) == sizeof(GLuint), "GLuint is not the same size as uint32_t");
     if(texture != 0)
     {
-        glDeleteTextures(1, (const GLuint *)&texture);
+        freeTexture(texture);
     }
     delete []data;
 }
@@ -145,7 +145,7 @@ void Image::bind() const
 
     if(data->texture == 0)
     {
-        glGenTextures(1, (GLuint *)&data->texture);
+        data->texture = allocateTexture();
     }
 
     glBindTexture(GL_TEXTURE_2D, data->texture);

@@ -325,9 +325,14 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
     {
         PositionF position = this->position;
         std::int32_t viewDistance = this->viewDistance;
-        std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = nullptr;
+        std::shared_ptr<Meshes> meshes = nullptr;
         if(isPrimaryThread)
-            meshes = makeCachedMesh(&cachedViewPointMeshCount);
+        {
+            meshes = nextBlockRenderMeshes;
+            nextBlockRenderMeshes = nullptr;
+            if(meshes == nullptr)
+                meshes = std::make_shared<Meshes>();
+        }
         bool anyUpdates = false;
         if(blockRenderMeshes == nullptr)
             anyUpdates = true;
@@ -348,7 +353,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                     WorldLockManager lock_manager;
                     BlockIterator cbi = world.getBlockIterator(chunkPosition);
                     WorldLightingProperties wlp = world.getLighting(chunkPosition.d);
-                    if(generateChunkMeshes(meshes, lock_manager, cbi, wlp))
+                    if(generateChunkMeshes(meshes ? std::shared_ptr<enum_array<Mesh, RenderLayer>>(meshes, &meshes->meshes) : std::shared_ptr<enum_array<Mesh, RenderLayer>>(nullptr), lock_manager, cbi, wlp))
                         anyUpdates = true;
                 }
                 auto currentTime = std::chrono::steady_clock::now();
@@ -357,6 +362,14 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                     lastDumpMeshStatsTime = currentTime;
                     dumpMeshStats();
                 }
+            }
+        }
+
+        if(isPrimaryThread)
+        {
+            for(RenderLayer rl : enum_traits<RenderLayer>())
+            {
+                meshes->meshBuffers[rl].set(meshes->meshes[rl], true);
             }
         }
 
@@ -410,7 +423,22 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
     if(pBlockLightingCache == nullptr)
         pBlockLightingCache = std::make_shared<BlockLightingCache>();
     BlockLightingCache &lightingCache = *pBlockLightingCache;
-    std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes = blockRenderMeshes;
+    std::shared_ptr<Meshes> meshes = blockRenderMeshes;
+    if(!nextBlockRenderMeshes)
+    {
+        nextBlockRenderMeshes = std::make_shared<Meshes>();
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            std::size_t size = 0;
+            if(meshes)
+                size = meshes->meshes[rl].size();
+            const std::size_t minSize = 1024;
+            if(size < minSize)
+                size = minSize;
+            size = size * 2;
+            nextBlockRenderMeshes->meshBuffers[rl] = MeshBuffer(size);
+        }
+    }
     enum_array<Mesh, RenderLayer> entityMeshes;
     PositionF position = this->position;
     std::int32_t viewDistance = this->viewDistance;
@@ -435,7 +463,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
                         continue;
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
-                        entity.entity.descriptor->render(entity.entity, entityMeshes.at(rl), rl, cameraToWorld);
+                        entity.entity.descriptor->render(entity.entity, entityMeshes[rl], rl, cameraToWorld);
                     }
                 }
             }
@@ -476,8 +504,15 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
     for(RenderLayer rl : enum_traits<RenderLayer>())
     {
         renderer << rl;
-        renderer << transform(worldToCamera, meshes->at(rl));
-        renderer << transform(worldToCamera, entityMeshes.at(rl));
+        if(meshes->meshBuffers[rl].empty())
+        {
+            renderer << transform(worldToCamera, meshes->meshes[rl]);
+        }
+        else
+        {
+            renderer << transform(worldToCamera, meshes->meshBuffers[rl]);
+        }
+        renderer << transform(worldToCamera, entityMeshes[rl]);
     }
 }
 }

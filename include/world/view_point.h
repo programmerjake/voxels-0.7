@@ -26,6 +26,7 @@
 #include "render/mesh.h"
 #include "render/renderer.h"
 #include "util/enum_traits.h"
+#include "platform/platform.h"
 #include <mutex>
 #include <thread>
 #include <list>
@@ -42,7 +43,13 @@ class ViewPoint final
     std::list<std::thread> generateMeshesThreads;
     std::recursive_mutex theLock;
     bool shuttingDown;
-    std::shared_ptr<enum_array<Mesh, RenderLayer>> blockRenderMeshes;
+    struct Meshes final
+    {
+        enum_array<Mesh, RenderLayer> meshes;
+        enum_array<MeshBuffer, RenderLayer> meshBuffers;
+    };
+    std::shared_ptr<Meshes> blockRenderMeshes;
+    std::shared_ptr<Meshes> nextBlockRenderMeshes;
     World &world;
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn(bool isPrimaryThread);

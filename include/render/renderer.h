@@ -136,6 +136,11 @@ public:
         Display::render(m, depthBufferEnabled);
         return *this;
     }
+    Renderer & operator <<(const MeshBuffer &m)
+    {
+        Display::render(m, depthBufferEnabled);
+        return *this;
+    }
     std::shared_ptr<CachedMesh> cacheMesh(const Mesh & m)
     {
         return makeCachedMesh(m);
