@@ -70,6 +70,8 @@ struct PlayingAudioData
             decoder = make_shared<ResampleAudioDecoder>(decoder, getGlobalAudioSampleRate());
         if(decoder->channelCount() != getGlobalAudioChannelCount())
             decoder = make_shared<RedistributeChannelsAudioDecoder>(decoder, getGlobalAudioChannelCount());
+        if(decoder->isHighLatencySource())
+            decoder = make_shared<StreamBufferingAudioDecoder>(decoder);
         unsigned channels = decoder->channelCount();
         checked_array<float, bufferValueCount> buffer;
         uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;

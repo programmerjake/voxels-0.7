@@ -30,6 +30,10 @@
 #include <limits>
 #include "stream/stream.h"
 #include "util/util.h"
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <functional>
 
 namespace programmerjake
 {
@@ -67,6 +71,7 @@ public:
         return (double)count / samplesPerSecond();
     }
     virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) = 0; // returns number of samples decoded
+    virtual bool isHighLatencySource() const = 0;
 };
 
 class MemoryAudioDecoder final : public AudioDecoder
@@ -109,6 +114,10 @@ public:
     void reset()
     {
         currentLocation = 0;
+    }
+    virtual bool isHighLatencySource() const override
+    {
+        return false;
     }
 };
 
@@ -191,6 +200,10 @@ public:
             }
         }
         return retval;
+    }
+    virtual bool isHighLatencySource() const override
+    {
+        return decoder->isHighLatencySource();
     }
 };
 
@@ -656,6 +669,194 @@ public:
         }
         }
         return sampleCount;
+    }
+    virtual bool isHighLatencySource() const override
+    {
+        return decoder->isHighLatencySource();
+    }
+};
+
+class StreamBufferingAudioDecoder final : public AudioDecoder
+{
+    std::shared_ptr<AudioDecoder> decoder;
+    static constexpr std::size_t bufferSize = 256, bufferCount = 256;
+    std::vector<float> leftovers;
+    std::size_t leftoversCurrentLocation = 0;
+    std::list<std::vector<float>> fullBuffers;
+    std::list<std::vector<float>> emptyBuffers;
+    std::size_t fullBufferCount = 0, emptyBufferCount = 0;
+    std::mutex buffersListsLock;
+    std::condition_variable readerCond;
+    std::condition_variable writerCond;
+    bool done;
+    std::thread decoderThread;
+    void decoderThreadFn()
+    {
+        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        while(!done)
+        {
+            while(!done && emptyBufferCount == 0)
+                writerCond.wait(lockIt);
+            if(done)
+                break;
+            std::list<std::vector<float>> theBufferInList;
+            theBufferInList.splice(theBufferInList.begin(), emptyBuffers, emptyBuffers.begin());
+            emptyBufferCount--;
+            lockIt.unlock();
+            std::vector<float> &buffer = theBufferInList.front();
+            buffer.resize(bufferSize * channelCountValue);
+            std::uint64_t decodedSampleCount = decoder->decodeAudioBlock(buffer.data(), bufferSize);
+            buffer.resize(decodedSampleCount * channelCountValue);
+            lockIt.lock();
+            if(buffer.empty())
+            {
+                done = true;
+            }
+            else
+            {
+                fullBuffers.splice(fullBuffers.end(), theBufferInList, theBufferInList.begin());
+                fullBufferCount++;
+            }
+            readerCond.notify_all();
+        }
+    }
+    std::uint64_t numSamplesValue;
+    unsigned channelCountValue;
+    unsigned samplesPerSecondValue;
+public:
+    StreamBufferingAudioDecoder(std::shared_ptr<AudioDecoder> decoder)
+        : decoder(decoder)
+    {
+        numSamplesValue = decoder->numSamples();
+        channelCountValue = decoder->channelCount();
+        samplesPerSecondValue = decoder->samplesPerSecond();
+        emptyBuffers.resize(bufferCount);
+        fullBufferCount = 0;
+        emptyBufferCount = bufferCount;
+        leftoversCurrentLocation = 0;
+        done = false;
+        decoderThread = std::thread([this]()
+        {
+            decoderThreadFn();
+        });
+    }
+    ~StreamBufferingAudioDecoder()
+    {
+        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        done = true;
+        writerCond.notify_all();
+        lockIt.unlock();
+        decoderThread.join();
+    }
+    virtual unsigned samplesPerSecond() override
+    {
+        return samplesPerSecondValue;
+    }
+    virtual std::uint64_t numSamples() override
+    {
+        return numSamplesValue;
+    }
+    virtual unsigned channelCount() override
+    {
+        return channelCountValue;
+    }
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
+    {
+        std::uint64_t retval = 0;
+        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        for(; samplesCount > 0; samplesCount--, retval++)
+        {
+            if(leftoversCurrentLocation + channelCountValue > leftovers.size())
+            {
+                leftoversCurrentLocation = 0;
+                leftovers.clear();
+                while(fullBufferCount == 0)
+                {
+                    if(done)
+                        return retval;
+                    readerCond.wait(lockIt);
+                }
+                leftovers.swap(fullBuffers.front());
+                emptyBuffers.splice(emptyBuffers.end(), fullBuffers, fullBuffers.begin());
+                emptyBufferCount++;
+                fullBufferCount--;
+                writerCond.notify_all();
+            }
+            for(unsigned i = 0; i < channelCountValue; i++)
+            {
+                *data++ = leftovers[leftoversCurrentLocation++];
+            }
+        }
+        return retval;
+    }
+    virtual bool isHighLatencySource() const override
+    {
+        return false;
+    }
+};
+
+class LoopingAudioDecoder final : public AudioDecoder
+{
+    std::shared_ptr<AudioDecoder> decoder;
+    std::function<std::shared_ptr<AudioDecoder>()> decoderFactory;
+    unsigned samplesPerSecondValue;
+    unsigned channelCountValue;
+    bool isHighLatencySourceValue;
+public:
+    LoopingAudioDecoder(std::function<std::shared_ptr<AudioDecoder>()> decoderFactory, bool isHighLatencySourceValue = true)
+        : decoderFactory(decoderFactory), isHighLatencySourceValue(isHighLatencySourceValue)
+    {
+        decoder = decoderFactory();
+        if(!decoder)
+        {
+            samplesPerSecondValue = 44100;
+            channelCountValue = 1;
+        }
+        else
+        {
+            samplesPerSecondValue = decoder->samplesPerSecond();
+            channelCountValue = decoder->channelCount();
+        }
+    }
+    virtual unsigned samplesPerSecond() override
+    {
+        return samplesPerSecondValue;
+    }
+    virtual std::uint64_t numSamples() override
+    {
+        return Unknown;
+    }
+    virtual unsigned channelCount() override
+    {
+        return channelCountValue;
+    }
+    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
+    {
+        std::uint64_t retval = 0;
+        while(samplesCount > 0)
+        {
+            if(!decoder)
+                return retval;
+            std::uint64_t decodedAmount = decoder->decodeAudioBlock(data, samplesCount);
+            retval += decodedAmount;
+            samplesCount -= decodedAmount;
+            if(decodedAmount == 0)
+            {
+                decoder = nullptr; // free decoder first to save memory
+                decoder = decoderFactory();
+                if(!decoder)
+                    return retval;
+                if(decoder->channelCount() != channelCountValue)
+                    decoder = std::make_shared<RedistributeChannelsAudioDecoder>(decoder, channelCountValue);
+                if(decoder->samplesPerSecond() != samplesPerSecondValue)
+                    decoder = std::make_shared<ResampleAudioDecoder>(decoder, samplesPerSecondValue);
+            }
+        }
+        return retval;
+    }
+    virtual bool isHighLatencySource() const override
+    {
+        return isHighLatencySourceValue;
     }
 };
 

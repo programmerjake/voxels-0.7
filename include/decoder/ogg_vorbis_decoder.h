@@ -154,6 +154,10 @@ public:
         curPos += retval;
         return retval;
     }
+    virtual bool isHighLatencySource() const override
+    {
+        return true;
+    }
 };
 }
 }
