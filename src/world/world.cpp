@@ -103,15 +103,7 @@ public:
     void fillWorldChunk(World &world, PositionI chunkBasePosition, WorldLockManager &lock_manager, RandomSource &randomSource)
     {
         Chunk &c = getChunk(chunkBasePosition, randomSource);
-        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
-        for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
-        {
-            for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
-            {
-                bi.moveTo(chunkBasePosition + VectorI(dx, 0, dz));
-                world.setBiomeProperties(bi, lock_manager, c.columns[dx][dz]);
-            }
-        }
+        world.setBiomePropertiesRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, c.columns, VectorI(0, 0, 0));
     }
 };
 

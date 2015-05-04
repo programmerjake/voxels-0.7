@@ -293,6 +293,32 @@ private:
                 addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
+    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
+    {
+        BlockIterator biX = bi;
+        biX.moveTo(minCorner);
+        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
+        {
+            BlockIterator biXY = biX;
+            for(p.y = minCorner.y; p.y <= maxCorner.y; p.y++, biXY.moveTowardPY())
+            {
+                BlockIterator biXYZ = biXY;
+                for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXYZ.moveTowardPZ())
+                {
+                    BlockChunkBlock &b = biXYZ.getBlock(lock_manager);
+                    b.invalidate();
+                    biXYZ.getSubchunk().invalidate();
+                    biXYZ.chunk->chunkVariables.invalidate();
+                    for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+                    {
+                        float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+                        if(defaultPeriod == 0)
+                            addBlockUpdate(biXYZ, lock_manager, kind, defaultPeriod);
+                    }
+                }
+            }
+        }
+    }
 public:
     /** @brief set a block
      *
@@ -363,6 +389,28 @@ public:
                 }
             }
         }
+    }
+    template <typename T>
+    void setBiomePropertiesRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBiomes, VectorI newBiomesOrigin)
+    {
+        minCorner.y = 0;
+        maxCorner.y = BlockChunk::chunkSizeY - 1;
+        VectorI adjustedMinCorner = minCorner - VectorI(1, 0, 1);
+        VectorI adjustedMaxCorner = maxCorner + VectorI(1, 0, 1);
+        BlockIterator biX = getBlockIterator(minCorner);
+        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
+        {
+            BlockIterator biXZ = biX;
+            for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXZ.moveTowardPZ())
+            {
+                biXZ.updateLock(lock_manager);
+                BlockChunkBiome &b = biXZ.getBiome();
+                VectorI inputP = p - minCorner + newBiomesOrigin;
+                b.biomeProperties = newBiomes[inputP.x][inputP.z];
+            }
+        }
+        lightingStable = false;
+        invalidateBlockRange(biX, adjustedMinCorner, adjustedMaxCorner, lock_manager);
     }
     /** @brief set a block range
      *
@@ -439,7 +487,6 @@ public:
                                 {
                                     bi.getSubchunk().addParticleGeneratingBlock(bi.position());
                                 }
-                                invalidateBlock(bi, lock_manager);
                                 for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
                                 {
                                     float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
@@ -453,48 +500,8 @@ public:
                 }
             }
         }
-        minCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(adjustedMinCorner);
-        maxCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(adjustedMaxCorner);
-        for(PositionI subchunkPos = minCornerSubchunk; subchunkPos.x <= maxCornerSubchunk.x; subchunkPos.x += BlockChunk::subchunkSizeXYZ)
-        {
-            for(subchunkPos.y = minCornerSubchunk.y; subchunkPos.y <= maxCornerSubchunk.y; subchunkPos.y += BlockChunk::subchunkSizeXYZ)
-            {
-                for(subchunkPos.z = minCornerSubchunk.z; subchunkPos.z <= maxCornerSubchunk.z; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
-                {
-                    VectorI minSubchunkRelativePos = VectorI(0);
-                    VectorI maxSubchunkRelativePos = VectorI(BlockChunk::subchunkSizeXYZ - 1);
-                    minSubchunkRelativePos.x = std::max(minSubchunkRelativePos.x, adjustedMinCorner.x - subchunkPos.x);
-                    minSubchunkRelativePos.y = std::max(minSubchunkRelativePos.y, adjustedMinCorner.y - subchunkPos.y);
-                    minSubchunkRelativePos.z = std::max(minSubchunkRelativePos.z, adjustedMinCorner.z - subchunkPos.z);
-                    maxSubchunkRelativePos.x = std::min(maxSubchunkRelativePos.x, adjustedMaxCorner.x - subchunkPos.x);
-                    maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, adjustedMaxCorner.y - subchunkPos.y);
-                    maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, adjustedMaxCorner.z - subchunkPos.z);
-                    if(minSubchunkRelativePos.x > adjustedMinCorner.x - subchunkPos.x && maxSubchunkRelativePos.x < adjustedMaxCorner.x - subchunkPos.x &&
-                       minSubchunkRelativePos.y > adjustedMinCorner.y - subchunkPos.y && maxSubchunkRelativePos.y < adjustedMaxCorner.y - subchunkPos.y &&
-                       minSubchunkRelativePos.z > adjustedMinCorner.z - subchunkPos.z && maxSubchunkRelativePos.z < adjustedMaxCorner.z - subchunkPos.z)
-                        continue;
-                    BlockIterator sbi = getBlockIterator(subchunkPos);
-                    for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
-                    {
-                        for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
-                        {
-                            for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
-                            {
-                                PositionI pos = subchunkRelativePos + subchunkPos;
-                                if(pos.x > adjustedMinCorner.x && pos.x < adjustedMaxCorner.x &&
-                                   pos.x > adjustedMinCorner.y && pos.y < adjustedMaxCorner.y &&
-                                   pos.x > adjustedMinCorner.z && pos.z < adjustedMaxCorner.z)
-                                    continue;
-                                BlockIterator bi = sbi;
-                                bi.moveBy(subchunkRelativePos);
-                                invalidateBlock(bi, lock_manager);
-                            }
-                        }
-                    }
-                    lightingStable = false;
-                }
-            }
-        }
+        invalidateBlockRange(getBlockIterator(adjustedMinCorner), adjustedMinCorner, adjustedMaxCorner, lock_manager);
+        lightingStable = false;
     }
     /** @brief create a <code>BlockIterator</code>
      *

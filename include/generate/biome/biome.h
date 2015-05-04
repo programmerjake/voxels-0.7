@@ -136,6 +136,40 @@ public:
             elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<>());
         }
     }
+    BiomeMap(const BiomeMap &rt)
+    {
+        elements.reserve(BiomeDescriptors.size());
+        for(BiomeDescriptorPointer v : BiomeDescriptors)
+        {
+            elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<const T &>(rt.at(v)));
+        }
+    }
+    BiomeMap(BiomeMap &&rt)
+    {
+        elements.reserve(BiomeDescriptors.size());
+        for(BiomeDescriptorPointer v : BiomeDescriptors)
+        {
+            elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<T &&>(std::move(rt.at(v))));
+        }
+    }
+    BiomeMap &operator =(const BiomeMap &rt)
+    {
+        assert(size() == rt.size());
+        for(auto i = begin(), j = rt.begin(); i != end(); i++, j++)
+        {
+            std::get<1>(*i) = std::get<1>(*j);
+        }
+        return *this;
+    }
+    BiomeMap &operator =(BiomeMap &&rt)
+    {
+        assert(size() == rt.size());
+        for(auto i = begin(), j = rt.begin(); i != end(); i++, j++)
+        {
+            std::get<1>(*i) = std::get<1>(std::move(*j));
+        }
+        return *this;
+    }
     std::size_t size() const
     {
         return elements.size();
