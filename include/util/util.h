@@ -54,6 +54,66 @@ struct constexpr_assert_failure final
 #define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
 #endif
 
+#ifndef NDEBUG
+#define UNREACHABLE() assert(!"unreachable")
+#elif defined(__GNUC__) || defined(__GNUG__)
+#define UNREACHABLE() __builtin_unreachable()
+#elif defined(__HP_cc) || defined(__HP_aCC)
+#warning UNREACHABLE() unsupported on Hewlett-Packard C/aC++
+#define UNREACHABLE() assert(!"unreachable")
+#elif defined(__IBMC__) || defined(__IBMCPP__)
+#warning UNREACHABLE() unsupported on IBM XL C/C++
+#define UNREACHABLE() assert(!"unreachable")
+#elif defined(_MSC_VER)
+#define UNREACHABLE() __assume(false)
+#elif defined(__PGI)
+#warning UNREACHABLE() unsupported on Portland Group PGCC/PGCPP
+#define UNREACHABLE() assert(!"unreachable")
+#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#warning UNREACHABLE() unsupported on Oracle Solaris Studio
+#define UNREACHABLE() assert(!"unreachable")
+#else
+#warning UNREACHABLE() unsupported on unknown compiler
+#define UNREACHABLE() assert(!"unreachable")
+#endif
+#if defined(__GNUC__) || defined(__GNUG__)
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &) __attribute__((always_inline));
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#elif defined(__HP_cc) || defined(__HP_aCC)
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#elif defined(__IBMC__) || defined(__IBMCPP__)
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#elif defined(_MSC_VER)
+template <typename T>
+__forceinline constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#elif defined(__PGI)
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#else
+template <typename T>
+constexpr void ignore_unused_variable_warning(const T &)
+{
+}
+#endif
 template <typename T>
 constexpr T ensureInRange(const T v, const T minV, const T maxV)
 {

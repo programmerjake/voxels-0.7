@@ -32,6 +32,7 @@
 #include <cmath>
 #include <iostream>
 #include "util/logging.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -82,7 +83,7 @@ namespace Scripting
             case Type::Boolean:
                 return L"boolean";
             }
-            assert(false);
+            UNREACHABLE();
             return L"unknown";
         }
     };
@@ -671,7 +672,7 @@ inline std::shared_ptr<Scripting::Data> Scripting::Data::read(stream::Reader &re
     case Type::String:
         return std::static_pointer_cast<Data>(DataString::read(reader));
     }
-    assert(false);
+    UNREACHABLE();
     return nullptr;
 }
 

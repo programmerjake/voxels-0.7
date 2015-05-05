@@ -71,7 +71,7 @@ inline BlockFaceOrNone toBlockFaceOrNone(BlockFace f)
     case BlockFace::PZ:
         return BlockFaceOrNone::PZ;
     }
-    assert(false);
+    UNREACHABLE();
     return BlockFaceOrNone::None;
 }
 
@@ -80,7 +80,7 @@ inline BlockFace toBlockFace(BlockFaceOrNone f)
     switch(f)
     {
     case BlockFaceOrNone::None:
-        assert(false);
+        UNREACHABLE();
         return BlockFace::NX;
     case BlockFaceOrNone::NX:
         return BlockFace::NX;
@@ -95,7 +95,7 @@ inline BlockFace toBlockFace(BlockFaceOrNone f)
     case BlockFaceOrNone::PZ:
         return BlockFace::PZ;
     }
-    assert(false);
+    UNREACHABLE();
     return BlockFace::NX;
 }
 
@@ -156,7 +156,7 @@ inline BlockFace getOppositeBlockFace(BlockFace f)
     case BlockFace::PZ:
         return BlockFace::NZ;
     }
-    assert(false);
+    UNREACHABLE();
     return BlockFace::NX;
 }
 

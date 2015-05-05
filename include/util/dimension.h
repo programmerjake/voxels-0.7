@@ -25,6 +25,7 @@
 #include <cassert>
 #include "util/enum_traits.h"
 #include "util/color.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -43,7 +44,7 @@ inline float getZeroBrightnessLevel(Dimension d)
     case Dimension::Overworld:
         return 0;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline float getDaySkyBrightnessLevel(Dimension d)
@@ -53,7 +54,7 @@ inline float getDaySkyBrightnessLevel(Dimension d)
     case Dimension::Overworld:
         return 1.0f;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline float getNightSkyBrightnessLevel(Dimension d)
@@ -63,7 +64,7 @@ inline float getNightSkyBrightnessLevel(Dimension d)
     case Dimension::Overworld:
         return 4.01f / 15.0f;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline ColorF getNightSkyColor(Dimension d)
@@ -73,7 +74,7 @@ inline ColorF getNightSkyColor(Dimension d)
     case Dimension::Overworld:
         return GrayscaleF(0);
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline ColorF getDaySkyColor(Dimension d)
@@ -83,7 +84,7 @@ inline ColorF getDaySkyColor(Dimension d)
     case Dimension::Overworld:
         return RGBF(0.529f, 0.808f, 0.922f);
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline ColorF getDawnDuskSkyColor(Dimension d)
@@ -93,7 +94,7 @@ inline ColorF getDawnDuskSkyColor(Dimension d)
     case Dimension::Overworld:
         return RGBAF(1.0f, 0.5f, 0.5f, 0.7f);
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline bool hasSun(Dimension d)
@@ -103,7 +104,7 @@ inline bool hasSun(Dimension d)
     case Dimension::Overworld:
         return true;
     }
-    assert(false);
+    UNREACHABLE();
 }
 
 inline bool hasMoon(Dimension d)
@@ -113,7 +114,7 @@ inline bool hasMoon(Dimension d)
     case Dimension::Overworld:
         return true;
     }
-    assert(false);
+    UNREACHABLE();
 }
 }
 }

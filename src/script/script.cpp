@@ -1620,7 +1620,7 @@ struct Parser
             errorFn(L"unexpected token");
         }
 
-        assert(false);
+        UNREACHABLE();
         return 0;
     }
 
@@ -1665,7 +1665,7 @@ struct Parser
             }
             else
             {
-                assert(false);
+                UNREACHABLE();
             }
         }
 
@@ -2360,7 +2360,7 @@ shared_ptr<Scripting::Node> Scripting::Node::read(stream::Reader &reader, uint32
     case Type::For:
         return NodeFor::read(reader, nodeCount);
     }
-    assert(false);
+    UNREACHABLE();
     return nullptr;
 }
 

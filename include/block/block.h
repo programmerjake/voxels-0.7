@@ -50,6 +50,7 @@
 #include "item/item_struct.h"
 #include "util/tool_level.h"
 #include "util/redstone_signal.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -91,7 +92,7 @@ protected:
      */
     virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
     {
-        assert(false); // base class shouldn't be called
+        UNREACHABLE(); // base class shouldn't be called
     }
     virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {

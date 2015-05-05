@@ -22,6 +22,7 @@
 #define SCRIPT_NODES_H_INCLUDED
 
 #include "script/script.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -586,7 +587,7 @@ struct NodeAssignIndex final : public NodeConstArgCount<3, NodeAssignIndex>
                 case 2:
                     return std::shared_ptr<Data>(new DataFloat(dynamic_cast<DataVector *>(arg1.get())->value.z = newValue));
                 default:
-                    assert(false);
+                    UNREACHABLE();
                 }
             }
             if(arg2->type() == Data::Type::String)

@@ -23,6 +23,7 @@
 
 #include "render/mesh.h"
 #include "platform/platform.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -128,7 +129,7 @@ public:
             depthBufferEnabled = false;
             return *this;
         }
-        assert(false);
+        UNREACHABLE();
         return *this;
     }
     Renderer & operator <<(std::shared_ptr<CachedMesh> m)

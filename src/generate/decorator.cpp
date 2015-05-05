@@ -19,6 +19,7 @@
  *
  */
 #include "generate/decorator.h"
+#include "util/util.h"
 #include <cassert>
 
 namespace programmerjake
@@ -42,7 +43,7 @@ void DecoratorDescriptors_t::addDescriptor(DecoratorDescriptor *descriptor)
     makeMap();
     if(!std::get<1>(map->insert(std::pair<std::wstring, DecoratorDescriptorPointer>(descriptor->name, descriptor))))
     {
-        assert(false);
+        UNREACHABLE();
     }
     descriptor->index = list->size();
     list->push_back(sortedList->emplace(descriptor->priority, descriptor));

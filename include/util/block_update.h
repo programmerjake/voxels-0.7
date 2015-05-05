@@ -23,6 +23,7 @@
 
 #include "util/position.h"
 #include "util/enum_traits.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -56,7 +57,7 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
     case BlockUpdateKind::RedstoneDust:
         return 0.1f;
     }
-    assert(false);
+    UNREACHABLE();
     return 0;
 }
 }

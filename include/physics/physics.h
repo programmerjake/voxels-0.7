@@ -45,6 +45,7 @@
 #include "util/object_counter.h"
 #include "util/ordered_weak_ptr.h"
 #include "util/lock.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -705,7 +706,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
         v -= boxExtents * VectorF(sgn(deltaCenter.x), 0, sgn(deltaCenter.z));
         return abs(v) <= cylinderRadius + PhysicsWorld::distanceEPS;
     }
-    assert(false);
+    UNREACHABLE();
     return false;
 }
 
@@ -879,7 +880,7 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         }
     }
     else
-        assert(false);
+        UNREACHABLE();
     if(dot(deltaVelocity, normal) < 0)
         aVelocity -= ((1 + properties.bounceFactor * rt.properties.bounceFactor) * dot(deltaVelocity, normal) * normal + (1 - properties.slideFactor) * (1 - rt.properties.slideFactor) * (deltaVelocity - normal * dot(deltaVelocity, normal))) * interpolationT;
     else
@@ -948,7 +949,7 @@ inline bool PhysicsObject::isSupportedBy(const PhysicsObject & rt) const
                     v -= boxExtents * VectorF(sgn(deltaCenter.x), 0, sgn(deltaCenter.z));
                     return abs(v) <= cylinderRadius + PhysicsWorld::distanceEPS;
                 }
-                assert(false);
+                UNREACHABLE();
             }
         }
     }

@@ -20,6 +20,7 @@
  */
 #include "entity/entity.h"
 #include "physics/physics.h"
+#include "util/util.h"
 
 using namespace std;
 
@@ -53,6 +54,7 @@ void EntityDescriptors_t::add(EntityDescriptorPointer bd) const
     if(entitiesMap == nullptr)
         entitiesMap = new linked_map<wstring, EntityDescriptorPointer>();
     bool wasInserted = std::get<1>(entitiesMap->insert(make_pair(bd->name, bd)));
+    ignore_unused_variable_warning(wasInserted);
     assert(wasInserted);
 }
 

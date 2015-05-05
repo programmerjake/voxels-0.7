@@ -64,6 +64,7 @@ void BlockDescriptors_t::add(BlockDescriptorPointer bd) const
     if(blocksMap == nullptr)
         blocksMap = new linked_map<wstring, BlockDescriptorPointer>();
     bool wasInserted = std::get<1>(blocksMap->insert(make_pair(bd->name, bd)));
+    ignore_unused_variable_warning(wasInserted);
     assert(wasInserted);
 }
 
@@ -72,6 +73,7 @@ void BlockDescriptors_t::remove(BlockDescriptorPointer bd) const
     assert(bd != nullptr);
     assert(blocksMap != nullptr);
     size_t removedCount = blocksMap->erase(bd->name);
+    ignore_unused_variable_warning(removedCount);
     assert(removedCount == 1);
     if(blocksMap->empty())
     {

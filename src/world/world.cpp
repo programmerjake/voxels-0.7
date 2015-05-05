@@ -48,6 +48,7 @@
 #include "item/builtin/cobblestone.h"
 #include "item/builtin/furnace.h"
 #include "item/builtin/bucket.h"
+#include "util/util.h"
 
 using namespace std;
 
@@ -627,7 +628,7 @@ Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manage
                 return Lighting::makeSkyLighting();
             return Lighting();
         }
-        assert(false);
+        UNREACHABLE();
         return Lighting();
     }
     return b.lighting;

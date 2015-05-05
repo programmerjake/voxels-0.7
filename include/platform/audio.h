@@ -307,7 +307,6 @@ public:
                 }
                 break;
             default:
-                assert(false);
                 for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
@@ -382,7 +381,6 @@ public:
                 }
                 break;
             default:
-                assert(false);
                 for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
@@ -462,7 +460,6 @@ public:
                 }
                 break;
             default:
-                assert(false);
                 for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
@@ -547,7 +544,6 @@ public:
                 }
                 break;
             default:
-                assert(false);
                 for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
@@ -637,7 +633,6 @@ public:
                 }
                 break;
             default:
-                assert(false);
                 for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
                 {
                     float sum = 0;
@@ -656,7 +651,6 @@ public:
         }
         default:
         {
-            assert(false);
             for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
             {
                 float sum = 0;

@@ -29,6 +29,7 @@
 #include "util/block_face.h"
 #include "entity/entity_struct.h"
 #include "render/render_layer.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -100,7 +101,7 @@ public:
     }
     virtual void entityRender(Item item, Matrix tform, Mesh &mesh, RenderLayer rl) const
     {
-        assert(false);
+        UNREACHABLE();
     }
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity = VectorF(0.0f));
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, const Player *player, double ignoreTime = 1);
