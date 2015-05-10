@@ -23,6 +23,10 @@ project_filename="voxels-0.7.cbp"
 declare -a a
 mapfile -t a < "$project_filename"
 target="Release"
+if [[ ! -z "$1" ]]; then
+    target="$1"
+fi
+found_target=0
 current_target=""
 in_compiler=0
 in_linker=0
@@ -43,6 +47,9 @@ for((i=0;i<${#a[@]};i++)); do
         current_target=""
     elif [[ "$line" =~ '<Target title="'(.*)'">' ]]; then
         current_target="${BASH_REMATCH[1]}"
+        if [ "$current_target" == "$target" ]; then
+            found_target=1
+        fi
     elif [ "$current_target" != "$target" -a ! -z "$current_target" ]; then
         continue
     elif [[ "$line" =~ '<Compiler>' ]]; then
@@ -81,13 +88,17 @@ for((i=0;i<${#a[@]};i++)); do
         :
     elif [[ "$line" =~ '<?xml'.*'?>' || "$line" =~ '<'/?'CodeBlocks_project_file>' || "$line" =~ '<'/?'Project>' || "$line" =~ '<'/?'Build>' || "$line" =~ '<FileVersion '.*' />' ]]; then
         :
-    elif [[ "$line" =~ '<Option title="'[^\"]*'" />' || "$line" =~ '<Option pch_mode="'[^\"]*'" />' || "$line" =~ '<Option type="'[^\"]*'" />' ]]; then
+    elif [[ "$line" =~ '<Option parameters="'[^\"]*'" />' || "$line" =~ '<Option title="'[^\"]*'" />' || "$line" =~ '<Option pch_mode="'[^\"]*'" />' || "$line" =~ '<Option type="'[^\"]*'" />' ]]; then
         :
     else
         echo "unhandled line : $i : $line" >&2
         exit 1
     fi
 done
+if ! ((found_target)); then
+    echo "target '$target' not found." >&2
+    exit 1
+fi
 declare -A objects
 declare -A object_directories
 for file in "${files[@]}"; do
