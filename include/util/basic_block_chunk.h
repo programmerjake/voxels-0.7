@@ -130,7 +130,156 @@ struct BasicBlockChunk
         return PositionI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z), pos.d);
     }
     checked_array<checked_array<BiomeType, chunkSizeZ>, chunkSizeX> biomes;
-    checked_array<checked_array<checked_array<BlockType, chunkSizeZ>, chunkSizeY>, chunkSizeX> blocks;
+    class BlocksArray final
+    {
+    private:
+        BlockType blocks[chunkSizeX * chunkSizeY * chunkSizeZ];
+        static std::size_t getIndex(std::size_t indexX, std::size_t indexY, std::size_t indexZ)
+        {
+            assert(indexX < static_cast<std::size_t>(chunkSizeX) && indexY < static_cast<std::size_t>(chunkSizeY) && indexZ < static_cast<std::size_t>(chunkSizeZ));
+            std::size_t subchunkIndexX = indexX / subchunkSizeXYZ;
+            std::size_t subchunkIndexY = indexY / subchunkSizeXYZ;
+            std::size_t subchunkIndexZ = indexZ / subchunkSizeXYZ;
+            std::size_t subchunkOffsetX = indexX % subchunkSizeXYZ;
+            std::size_t subchunkOffsetY = indexY % subchunkSizeXYZ;
+            std::size_t subchunkOffsetZ = indexZ % subchunkSizeXYZ;
+            std::size_t retval = subchunkIndexY;
+            retval = retval * subchunkCountX + subchunkIndexX;
+            retval = retval * subchunkCountZ + subchunkIndexZ;
+            retval = retval * subchunkSizeXYZ + subchunkOffsetX;
+            retval = retval * subchunkSizeXYZ + subchunkOffsetY;
+            retval = retval * subchunkSizeXYZ + subchunkOffsetZ;
+            return retval;
+        }
+    public:
+        class IndexHelper1;
+        class IndexHelper2 final
+        {
+            friend class IndexHelper1;
+        private:
+            BlockType *blocks;
+            std::size_t indexX;
+            std::size_t indexY;
+            IndexHelper2(BlockType *blocks, std::size_t indexX, std::size_t indexY)
+                : blocks(blocks), indexX(indexX), indexY(indexY)
+            {
+            }
+        public:
+            BlockType &operator[](std::size_t indexZ)
+            {
+                return blocks[getIndex(indexX, indexY, indexZ)];
+            }
+            BlockType &at(std::size_t index)
+            {
+                assert(index < size());
+                return operator [](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeZ;
+            }
+        };
+        class IndexHelper1 final
+        {
+            friend class BlocksArray;
+        private:
+            BlockType *blocks;
+            std::size_t indexX;
+            IndexHelper1(BlockType *blocks, std::size_t indexX)
+                : blocks(blocks), indexX(indexX)
+            {
+            }
+        public:
+            IndexHelper2 operator[](std::size_t indexY)
+            {
+                return IndexHelper2(blocks, indexX, indexY);
+            }
+            IndexHelper2 at(std::size_t index)
+            {
+                assert(index < size());
+                return operator [](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeY;
+            }
+        };
+        class ConstIndexHelper1;
+        class ConstIndexHelper2 final
+        {
+            friend class ConstIndexHelper1;
+        private:
+            const BlockType *blocks;
+            std::size_t indexX;
+            std::size_t indexY;
+            ConstIndexHelper2(const BlockType *blocks, std::size_t indexX, std::size_t indexY)
+                : blocks(blocks), indexX(indexX), indexY(indexY)
+            {
+            }
+        public:
+            const BlockType &operator[](std::size_t indexZ)
+            {
+                return blocks[getIndex(indexX, indexY, indexZ)];
+            }
+            const BlockType &at(std::size_t index)
+            {
+                assert(index < size());
+                return operator [](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeZ;
+            }
+        };
+        class ConstIndexHelper1 final
+        {
+            friend class BlocksArray;
+        private:
+            const BlockType *blocks;
+            std::size_t indexX;
+            ConstIndexHelper1(const BlockType *blocks, std::size_t indexX)
+                : blocks(blocks), indexX(indexX)
+            {
+            }
+        public:
+            ConstIndexHelper2 operator[](std::size_t indexY)
+            {
+                return ConstIndexHelper2(blocks, indexX, indexY);
+            }
+            ConstIndexHelper2 at(std::size_t index)
+            {
+                assert(index < size());
+                return operator [](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeY;
+            }
+        };
+        ConstIndexHelper1 operator[](std::size_t indexX) const
+        {
+            return ConstIndexHelper1(blocks, indexX);
+        }
+        IndexHelper1 operator[](std::size_t indexX)
+        {
+            return IndexHelper1(blocks, indexX);
+        }
+        ConstIndexHelper1 at(std::size_t index) const
+        {
+            assert(index < size());
+            return operator [](index);
+        }
+        IndexHelper1 at(std::size_t index)
+        {
+            assert(index < size());
+            return operator [](index);
+        }
+        static std::size_t size()
+        {
+            return chunkSizeX;
+        }
+    };
+    BlocksArray blocks;
     checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>, subchunkCountX> subchunks;
     ChunkVariablesType chunkVariables;
 };

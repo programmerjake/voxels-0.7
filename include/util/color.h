@@ -79,6 +79,14 @@ public:
         stream::write<std::uint8_t>(writer, r);
         stream::write<std::uint8_t>(writer, a);
     }
+    constexpr bool operator ==(const ColorI &rt) const
+    {
+        return b == rt.b && g == rt.g && r == rt.r && a == rt.a;
+    }
+    constexpr bool operator !=(const ColorI &rt) const
+    {
+        return !operator ==(rt);
+    }
 };
 
 constexpr ColorI RGBAI(int r, int g, int b, int a)
@@ -158,6 +166,14 @@ public:
     void write(stream::Writer &writer) const
     {
         stream::write<ColorI>(writer, (ColorI)*this);
+    }
+    constexpr bool operator ==(const ColorF &rt) const
+    {
+        return r == rt.r && g == rt.g && b == rt.b && a == rt.a;
+    }
+    constexpr bool operator !=(const ColorF &rt) const
+    {
+        return !operator ==(rt);
     }
 };
 

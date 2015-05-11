@@ -321,12 +321,14 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
 {
     auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
+    std::shared_ptr<Meshes> cachedMeshes = nullptr;
     while(!shuttingDown)
     {
         PositionF position = this->position;
         std::int32_t viewDistance = this->viewDistance;
-        std::shared_ptr<Meshes> meshes = nullptr;
-        if(isPrimaryThread)
+        std::shared_ptr<Meshes> meshes = cachedMeshes;
+        cachedMeshes = nullptr;
+        if(isPrimaryThread && !meshes)
         {
             meshes = nextBlockRenderMeshes;
             nextBlockRenderMeshes = nullptr;
@@ -334,8 +336,13 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                 meshes = std::make_shared<Meshes>();
         }
         bool anyUpdates = false;
+        std::shared_ptr<enum_array<Mesh, RenderLayer>> lastMeshes = nullptr;
         if(blockRenderMeshes == nullptr)
             anyUpdates = true;
+        else
+        {
+            lastMeshes = std::shared_ptr<enum_array<Mesh, RenderLayer>>(blockRenderMeshes, &blockRenderMeshes->meshes);
+        }
         lockIt.unlock();
         PositionI chunkPosition;
         PositionI minChunkPosition = BlockChunk::getChunkBasePosition((PositionI)position - VectorI(viewDistance));
@@ -365,7 +372,24 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
             }
         }
 
-        if(isPrimaryThread)
+        if(isPrimaryThread && !anyUpdates)
+        {
+            if(lastMeshes == nullptr)
+                anyUpdates = true;
+            else
+            {
+                for(RenderLayer rl : enum_traits<RenderLayer>())
+                {
+                    if(meshes->meshes[rl] != (*lastMeshes)[rl])
+                    {
+                        anyUpdates = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(isPrimaryThread && anyUpdates)
         {
             for(RenderLayer rl : enum_traits<RenderLayer>())
             {
@@ -378,8 +402,18 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
         lockIt.lock();
         //if(anyUpdates)
             //debugLog << L"generated render meshes.\x1b[K" << std::endl;
-        if(isPrimaryThread)
+        if(isPrimaryThread && anyUpdates)
+        {
             blockRenderMeshes = std::move(meshes);
+        }
+        else if(meshes)
+        {
+            for(RenderLayer rl : enum_traits<RenderLayer>())
+            {
+                meshes->meshes[rl].clear();
+            }
+            cachedMeshes = meshes;
+        }
     }
 }
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)

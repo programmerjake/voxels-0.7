@@ -55,6 +55,14 @@ struct TextureCoord
         stream::write<float32_t>(writer, u);
         stream::write<float32_t>(writer, v);
     }
+    constexpr bool operator ==(const TextureCoord &rt) const
+    {
+        return u == rt.u && v == rt.v;
+    }
+    constexpr bool operator !=(const TextureCoord &rt) const
+    {
+        return !operator ==(rt);
+    }
 };
 
 struct Triangle
@@ -271,6 +279,16 @@ struct Triangle
     constexpr VectorF getPlaneNormal() const
     {
         return normalizeNoThrow(cross(p1 - p2, p1 - p3));
+    }
+    constexpr bool operator ==(const Triangle &rt) const
+    {
+        return t1 == rt.t1 && p1 == rt.p1 && c1 == rt.c1 && n1 == rt.n1 &&
+            t2 == rt.t2 && p2 == rt.p2 && c2 == rt.c2 && n2 == rt.n2 &&
+            t3 == rt.t3 && p3 == rt.p3 && c3 == rt.c3 && n3 == rt.n3;
+    }
+    constexpr bool operator !=(const Triangle &rt) const
+    {
+        return !operator ==(rt);
     }
 private:
     constexpr std::pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const

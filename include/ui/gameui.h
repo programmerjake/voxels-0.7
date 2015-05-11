@@ -31,7 +31,10 @@
 #include "ui/image.h"
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
+#include "ui/dynamic_label.h"
 #include <mutex>
+#include <sstream>
+#include <deque>
 
 namespace programmerjake
 {
@@ -437,6 +440,41 @@ public:
                     return player->currentItemIndex == i;
                 }, &player->itemsLock));
             }
+            add(std::make_shared<DynamicLabel>([](double deltaTime)->std::wstring
+            {
+                static thread_local std::deque<double> samples;
+                samples.push_back(deltaTime);
+                double totalSampleTime = 0;
+                double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;
+                for(double v : samples)
+                {
+                    totalSampleTime += v;
+                    if(v > minDeltaTime)
+                        minDeltaTime = v;
+                    if(v < maxDeltaTime)
+                        maxDeltaTime = v;
+                }
+                double averageDeltaTime = totalSampleTime / samples.size();
+                while(totalSampleTime > 5 && !samples.empty())
+                {
+                    totalSampleTime -= samples.front();
+                    samples.pop_front();
+                }
+                std::wostringstream ss;
+                ss << L"FPS:";
+                ss.setf(std::ios::fixed);
+                ss.precision(1);
+                ss.width(5);
+                if(maxDeltaTime > 0)
+                    ss << 1.0 / maxDeltaTime;
+                ss << L"/";
+                if(averageDeltaTime > 0)
+                    ss << 1.0 / averageDeltaTime;
+                ss << L"/";
+                if(minDeltaTime > 0)
+                    ss << 1.0 / minDeltaTime;
+                return ss.str();
+            }, -0.2f, 0.2f, 0.9f, 1, GrayscaleF(1)));
         }
         Ui::reset();
     }

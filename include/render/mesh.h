@@ -373,6 +373,21 @@ struct Mesh
         }
         stream::write<Image>(writer, variableSet, image);
     }
+    bool operator ==(const Mesh &rt) const
+    {
+        if(image != rt.image)
+            return false;
+        if(size() != rt.size())
+            return false;
+        for(std::size_t i = 0; i < triangles.size(); i++)
+            if(triangles[i] != rt.triangles[i])
+                return false;
+        return true;
+    }
+    bool operator !=(const Mesh &rt) const
+    {
+        return !operator ==(rt);
+    }
 };
 
 inline TransformedMesh::operator Mesh() const
