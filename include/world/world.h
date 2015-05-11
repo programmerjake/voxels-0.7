@@ -542,7 +542,7 @@ private:
     double moveEntitiesDeltaTime = 1 / 60.0;
     void lightingThreadFn();
     void blockUpdateThreadFn();
-    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager);
+    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
     struct InitialChunkGenerateStruct final
     {
         std::mutex lock;

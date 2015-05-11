@@ -231,6 +231,7 @@
 		<Unit filename="include/util/block_face.h" />
 		<Unit filename="include/util/block_iterator.h" />
 		<Unit filename="include/util/block_update.h" />
+		<Unit filename="include/util/blocks_generate_array.h" />
 		<Unit filename="include/util/cached_variable.h" />
 		<Unit filename="include/util/checked_array.h" />
 		<Unit filename="include/util/circular_deque.h" />

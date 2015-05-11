@@ -24,6 +24,7 @@
 #include "generate/biome/biome.h"
 #include "util/block_chunk.h"
 #include "generate/decorator_declaration.h"
+#include "util/blocks_generate_array.h"
 
 namespace programmerjake
 {
@@ -63,10 +64,9 @@ public:
         humidity = limit<float>(humidity, 0, 1) * temperature;
         return interpolate(temperature, RGBF(0.0f, 0.0f, 1.0f), interpolate(humidity, RGBF(0.0f, 0.63f, 0.83f), RGBF(0.0f, 0.9f, 0.75f)));
     }
-    typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlocksArray;
     virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const = 0;
     virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const = 0;
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const = 0;
+    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const = 0;
     virtual bool isGoodStartingPosition() const
     {
         return true;

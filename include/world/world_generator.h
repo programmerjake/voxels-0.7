@@ -38,7 +38,7 @@ public:
     virtual ~WorldGenerator()
     {
     }
-    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager) const = 0;
+    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag) const = 0;
 };
 }
 }

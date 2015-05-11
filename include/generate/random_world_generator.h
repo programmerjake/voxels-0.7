@@ -29,6 +29,8 @@
 #include <cmath>
 #include <limits>
 #include <atomic>
+#include <exception>
+#include "util/blocks_generate_array.h"
 
 namespace programmerjake
 {
@@ -242,15 +244,33 @@ public:
 class RandomWorldGenerator : public WorldGenerator
 {
 protected:
-    typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlocksArray;
-    virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const = 0;
-public:
-    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager) const final
+    virtual void generate(PositionI chunkBasePosition, BlocksGenerateArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource, const std::atomic_bool *abortFlag) const = 0;
+    struct GenerationAbortedException final : public std::exception
     {
-        std::unique_ptr<BlocksArray> blocks(new BlocksArray);
-        RandomSource randomSource(world.getWorldGeneratorSeed());
-        generate(chunkBasePosition, *blocks, world, lock_manager, randomSource);
-        world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
+        virtual const char *what() const noexcept override final
+        {
+            return "generation aborted";
+        }
+    };
+    static void checkForAbort(const std::atomic_bool *abortFlag)
+    {
+        if(abortFlag != nullptr && abortFlag->load(std::memory_order_relaxed))
+            throw GenerationAbortedException();
+    }
+public:
+    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag) const override final
+    {
+        try
+        {
+            std::unique_ptr<BlocksGenerateArray> blocks(new BlocksGenerateArray);
+            RandomSource randomSource(world.getWorldGeneratorSeed());
+            generate(chunkBasePosition, *blocks, world, lock_manager, randomSource, abortFlag);
+            world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, *blocks, VectorI(0));
+        }
+        catch(GenerationAbortedException &)
+        {
+            return;
+        }
     }
 };
 }

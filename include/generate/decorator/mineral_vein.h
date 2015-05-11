@@ -54,7 +54,7 @@ protected:
         {
         }
         virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
-                                     checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks) const override
+                                     BlocksGenerateArray &blocks) const override
         {
             if(maxBlockCount == 0)
                 return;
@@ -138,7 +138,7 @@ public:
      */
     virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
                                  WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                                 const BlocksGenerateArray &blocks,
                                  RandomSource &randomSource, std::uint32_t generateNumber) const override
     {
         PositionI generatePosition;

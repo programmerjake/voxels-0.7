@@ -73,6 +73,8 @@ private:
             v = VectorF(0);
         gameInput->moveDirectionPlayerRelative.set(v * 3.5f);
     }
+    float deltaViewTheta = 0;
+    float deltaViewPhi = 0;
     void startInventoryDialog();
     void setDialogWorldAndLockManager();
 public:
@@ -104,6 +106,24 @@ public:
         if(dialog)
         {
             setFocus(dialog);
+        }
+        if(dialog || gameInput->paused.get())
+        {
+            deltaViewTheta = 0;
+            deltaViewPhi = 0;
+        }
+        else
+        {
+            float viewTheta = gameInput->viewTheta.get();
+            float viewPhi = gameInput->viewPhi.get();
+            deltaViewTheta *= 0.5f;
+            deltaViewPhi *= 0.5f;
+            viewTheta += deltaViewTheta;
+            viewPhi += deltaViewPhi;
+            viewTheta = std::fmod(viewTheta, 2 * M_PI);
+            viewPhi = limit<float>(viewPhi, -M_PI / 2, M_PI / 2);
+            gameInput->viewTheta.set(viewTheta);
+            gameInput->viewPhi.set(viewPhi);
         }
         Display::grabMouse(!dialog && !gameInput->paused.get());
         Ui::move(deltaTime);
@@ -196,15 +216,9 @@ public:
     {
         if(!dialog && !gameInput->paused.get())
         {
-            float viewTheta = gameInput->viewTheta.get();
-            float viewPhi = gameInput->viewPhi.get();
             VectorF deltaPos = Display::transformMouseTo3D(event.x + event.deltaX, event.y + event.deltaY) - Display::transformMouseTo3D(event.x, event.y);
-            viewTheta -= deltaPos.x;
-            viewPhi += deltaPos.y;
-            viewTheta = std::fmod(viewTheta, 2 * M_PI);
-            viewPhi = limit<float>(viewPhi, -M_PI / 2, M_PI / 2);
-            gameInput->viewTheta.set(viewTheta);
-            gameInput->viewPhi.set(viewPhi);
+            deltaViewTheta -= deltaPos.x;
+            deltaViewPhi += deltaPos.y;
         }
         if(Ui::handleMouseMove(event))
             return true;

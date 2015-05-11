@@ -1871,21 +1871,23 @@ static void getExtensions()
     getOpenGLBuffersExtension();
 }
 
-static std::vector<std::uint32_t> freeTextures;
+static std::vector<std::uint32_t> *freeTextures = nullptr;
 static std::mutex freeTexturesLock;
 
 std::uint32_t allocateTexture()
 {
     std::uint32_t retval;
     std::unique_lock<std::mutex> lockIt(freeTexturesLock);
-    if(freeTextures.empty())
+    if(freeTextures == nullptr)
+        freeTextures = new std::vector<std::uint32_t>();
+    if(freeTextures->empty())
     {
         lockIt.unlock();
         glGenTextures(1, (GLuint *)&retval);
         return retval;
     }
-    retval = freeTextures.back();
-    freeTextures.pop_back();
+    retval = freeTextures->back();
+    freeTextures->pop_back();
     lockIt.unlock();
     return retval;
 }
@@ -1895,7 +1897,9 @@ void freeTexture(std::uint32_t texture)
     if(texture == 0)
         return;
     std::unique_lock<std::mutex> lockIt(freeTexturesLock);
-    freeTextures.push_back(texture);
+    if(freeTextures == nullptr)
+        freeTextures = new std::vector<std::uint32_t>();
+    freeTextures->push_back(texture);
 }
 
 void setThreadPriority(ThreadPriority priority)

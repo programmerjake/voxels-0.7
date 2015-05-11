@@ -66,7 +66,7 @@ public:
      */
     virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
                                  WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                                 const BlocksGenerateArray &blocks,
                                  RandomSource &randomSource, std::uint32_t generateNumber) const override
     {
         std::shared_ptr<PregeneratedDecoratorInstance> retval = std::make_shared<PregeneratedDecoratorInstance>(surfacePosition, this, VectorI(-5, 0, -5), VectorI(11, 10, 11));

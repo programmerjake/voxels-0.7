@@ -137,7 +137,7 @@ private:
         if(retval.empty)
         {
             retval.empty = false;
-            static thread_local checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+            static thread_local BlocksGenerateArray blocks;
             generateFn(pos, blocks, retval.groundHeights);
             for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
             {
@@ -160,7 +160,7 @@ private:
     }
 public:
     template <typename T>
-    void getChunk(PositionI chunkBasePosition, checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks, checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights, T generateFn)
+    void getChunk(PositionI chunkBasePosition, BlocksGenerateArray &blocks, checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights, T generateFn)
     {
         Chunk &c = getChunk(chunkBasePosition, generateFn);
         for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
@@ -196,17 +196,18 @@ public:
         return global_instance_maker<MyWorldGenerator>::getInstance();
     }
 private:
-    void generateGroundChunkH(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+    void generateGroundChunkH(BlocksGenerateArray &blocks,
                              checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights,
                              PositionI chunkBasePosition,
                              WorldLockManager &lock_manager, World &world,
-                             RandomSource &randomSource) const
+                             RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
         BlockIterator bi = world.getBlockIterator(chunkBasePosition);
         for(int cx = 0; cx < BlockChunk::chunkSizeX; cx++)
         {
             for(int cz = 0; cz < BlockChunk::chunkSizeZ; cz++)
             {
+                checkForAbort(abortFlag);
                 PositionI columnBasePosition = chunkBasePosition + VectorI(cx, 0, cz);
                 bi.moveTo(columnBasePosition);
                 const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
@@ -251,11 +252,11 @@ private:
             }
         }
     }
-    void generateGroundChunk(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+    void generateGroundChunk(BlocksGenerateArray &blocks,
                              checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights,
                              PositionI chunkBasePosition,
                              WorldLockManager &lock_manager, World &world,
-                             RandomSource &randomSource) const
+                             RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
         static thread_local std::shared_ptr<BiomesCache> pBiomesCache = nullptr;
         static thread_local std::shared_ptr<GroundChunksCache> pGroundCache = nullptr;
@@ -268,19 +269,20 @@ private:
             pGroundCache = std::make_shared<GroundChunksCache>();
         }
         pBiomesCache->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
-        pGroundCache->getChunk(chunkBasePosition, blocks, groundHeights, [&](PositionI chunkBasePosition, checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+        checkForAbort(abortFlag);
+        pGroundCache->getChunk(chunkBasePosition, blocks, groundHeights, [&](PositionI chunkBasePosition, BlocksGenerateArray &blocks,
                              checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights)
         {
-            generateGroundChunkH(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+            generateGroundChunkH(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         });
     }
     std::vector<std::shared_ptr<const DecoratorInstance>> generateDecoratorsInChunk(DecoratorDescriptorPointer descriptor, PositionI chunkBasePosition,
                                  WorldLockManager &lock_manager, World &world,
-                                 RandomSource &randomSource) const
+                                 RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
-        static thread_local checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+        static thread_local BlocksGenerateArray blocks;
         static thread_local checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
-        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         std::vector<std::shared_ptr<const DecoratorInstance>> retval;
         std::uint32_t decoratorGenerateNumber = descriptor->getInitialDecoratorGenerateNumber() + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
         std::minstd_rand rg(decoratorGenerateNumber);
@@ -290,6 +292,7 @@ private:
         {
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
+                checkForAbort(abortFlag);
                 BlockIterator bi = chunkBaseIterator;
                 PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
                 bi.moveTo(columnBasePosition);
@@ -339,7 +342,7 @@ private:
         return std::move(retval);
     }
 protected:
-    virtual void generate(PositionI chunkBasePosition, BlocksArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource) const override
+    virtual void generate(PositionI chunkBasePosition, BlocksGenerateArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource, const std::atomic_bool *abortFlag) const override
     {
         static thread_local std::shared_ptr<DecoratorCache> pDecoratorCache = nullptr;
         static thread_local World::SeedType lastSeed = 0;
@@ -349,7 +352,7 @@ protected:
             pDecoratorCache = std::make_shared<DecoratorCache>();
         DecoratorCache &decoratorCache = *pDecoratorCache;
         checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
-        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource);
+        generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         for(DecoratorDescriptorPointer descriptor : DecoratorDescriptors)
         {
             int chunkSearchDistance = descriptor->chunkSearchDistance;
@@ -357,16 +360,18 @@ protected:
             {
                 for(i.z = -chunkSearchDistance; i.z <= chunkSearchDistance; i.z++)
                 {
+                    checkForAbort(abortFlag);
                     VectorI rcpos = VectorI(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ) * i;
                     PositionI pos = rcpos + chunkBasePosition;
                     auto instances = decoratorCache.getChunkInstances(pos, descriptor);
                     if(!std::get<1>(instances))
                     {
-                        decoratorCache.setChunkInstances(pos, descriptor, generateDecoratorsInChunk(descriptor, pos, lock_manager, world, randomSource));
+                        decoratorCache.setChunkInstances(pos, descriptor, generateDecoratorsInChunk(descriptor, pos, lock_manager, world, randomSource, abortFlag));
                         instances = decoratorCache.getChunkInstances(pos, descriptor);
                     }
                     for(std::shared_ptr<const DecoratorInstance> instance : std::get<0>(instances))
                     {
+                        checkForAbort(abortFlag);
                         instance->generateInChunk(chunkBasePosition, lock_manager, world, blocks);
                     }
                 }
@@ -749,12 +754,12 @@ void World::blockUpdateThreadFn()
     }
 }
 
-void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
+void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag)
 {
     lock_manager.clear();
     WorldLockManager new_lock_manager;
     World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
-    worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager);
+    worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager, abortFlag);
 #if 0
     new_lock_manager.clear();
     newWorld.lightingThread = thread([&]()
@@ -766,7 +771,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager)
     newWorld.destructing = true;
 #endif
 
-    typedef checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> BlockArrayType;
+    typedef BlocksGenerateArray BlockArrayType;
     typedef checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> BiomeArrayType;
     std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
     std::unique_ptr<BiomeArrayType> biomes(new BiomeArrayType);
@@ -899,7 +904,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
             getDebugLog() << L"generating " << chunk->basePosition << L" " << chunkPriority << postnl;
             didAnything = true;
 
-            generateChunk(chunk, lock_manager);
+            generateChunk(chunk, lock_manager, &destructing);
 
             chunk->chunkVariables.generated = true;
             lock_manager.clear();

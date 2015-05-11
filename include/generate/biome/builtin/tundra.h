@@ -65,7 +65,7 @@ public:
     {
         return 7 + World::SeaLevel;
     }
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const override
     {
         for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
         {

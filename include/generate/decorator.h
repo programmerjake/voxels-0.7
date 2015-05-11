@@ -32,6 +32,7 @@
 #include "util/checked_array.h"
 #include "generate/decorator_declaration.h"
 #include "util/block_chunk.h"
+#include "util/blocks_generate_array.h"
 #include <cassert>
 
 namespace programmerjake
@@ -56,7 +57,7 @@ protected:
 public:
     virtual ~DecoratorInstance() = default;
     virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
-                                 checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks) const = 0;
+                                 BlocksGenerateArray &blocks) const = 0;
 };
 
 class DecoratorDescriptor
@@ -108,7 +109,7 @@ public:
      */
     virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
                                  WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks,
+                                 const BlocksGenerateArray &blocks,
                                  RandomSource &randomSource, std::uint32_t generateNumber) const = 0;
 };
 }

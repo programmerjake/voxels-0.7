@@ -135,7 +135,7 @@ echo CXX = g++
 echo CC = gcc
 echo LD = g++
 echo
-echo ".PHONY: all build clean prebuild postbuild"
+echo ".PHONY: all build clean prebuild"
 echo
 echo "all: build"
 echo 
@@ -143,7 +143,7 @@ echo "clean:"
 echo $'\t'rm -rf "${object_output_dir%/}"
 echo $'\t'rm -f "$output_executable_name"
 echo
-echo "build: prebuild $output_executable_name postbuild"
+echo "build: prebuild $output_executable_name"
 echo
 echo "prebuild:"
 printf "\tmkdir -p %s\n" "${object_directories[@]}"
@@ -151,9 +151,7 @@ if [[ "$output_executable_name" =~ ^(.+)/[^/]*$ ]]; then
     printf "\tmkdir -p %s\n" "${BASH_REMATCH[1]}"
 fi
 echo
-echo "postbuild:"
-echo
-echo "$output_executable_name: ${objects[@]}"
+echo "$output_executable_name: prebuild ${objects[@]}"
 echo $'\t''$(LD)' "${objects[@]}" -o "$output_executable_name" "${linker_command_line[@]}"
 echo
 index=0
@@ -163,7 +161,7 @@ space_line="                                    "
 for source in "${!objects[@]}"; do
     index=$((index + 1))
     printf "processing dependencies |%s%s| %i%% (%s)\x1b[K\r" "${pound_line::index * ${#pound_line} / max_index}" "${space_line:index * ${#pound_line} / max_index}" $((index * 100 / max_index)) "$source" >&2
-    printf "%s: " "${objects["$source"]}"
+    printf "%s: prebuild " "${objects["$source"]}"
     gcc_executable="g++"
     compiler_line_start=""
     if [ "${source%.c}" != "${source}" ]; then

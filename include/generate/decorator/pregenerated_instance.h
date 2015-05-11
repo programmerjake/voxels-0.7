@@ -72,7 +72,7 @@ public:
         return newBlock.good();
     }
     virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
-                                 checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> &blocks) const override
+                                 BlocksGenerateArray &blocks) const override
     {
         assert(chunkBasePosition.d == position.d);
         VectorI minPos = minRelativePosition() + position;

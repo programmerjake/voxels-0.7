@@ -68,7 +68,7 @@ public:
         pos.y = 0;
         return limit<float>(randomSource.getFBMValue(pos * 0.03f) * 2, -0.5f, 0.5f) * 6 + 5 + World::SeaLevel;
     }
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const override
     {
         for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
         {
