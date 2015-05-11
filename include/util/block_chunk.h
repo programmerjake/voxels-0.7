@@ -72,16 +72,70 @@ private:
     PositionI position;
     float time_left;
     BlockUpdateKind kind;
-    BlockUpdate(BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next = nullptr)
-        : chunk_prev(nullptr), chunk_next(nullptr), block_next(block_next), position(position), time_left(time_left), kind(kind)
+    BlockUpdate()
     {
+    }
+    void init(BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next)
+    {
+        this->chunk_prev = nullptr;
+        this->chunk_next = nullptr;
+        this->block_next = block_next;
+        this->position = position;
+        this->time_left = time_left;
+        this->kind = kind;
     }
     BlockUpdate(const BlockUpdate &) = delete;
     const BlockUpdate &operator =(const BlockUpdate &) = delete;
-public:
     ~BlockUpdate()
     {
     }
+    static void allocateAndFree(BlockUpdate *blockUpdateToFree, BlockUpdate **pBlockUpdateToAllocate)
+    {
+        static thread_local BlockUpdate *freeListHead = nullptr;
+        static thread_local std::size_t freeListSize = 0;
+        if(pBlockUpdateToAllocate)
+        {
+            if(blockUpdateToFree)
+            {
+                *pBlockUpdateToAllocate = blockUpdateToFree;
+            }
+            else if(freeListHead == nullptr)
+            {
+                *pBlockUpdateToAllocate = new BlockUpdate;
+            }
+            else
+            {
+                *pBlockUpdateToAllocate = freeListHead;
+                freeListHead = freeListHead->block_next;
+                freeListSize--;
+            }
+        }
+        else if(blockUpdateToFree)
+        {
+            if(freeListSize > static_cast<std::size_t>(1 << 20) / sizeof(BlockUpdate))
+            {
+                delete blockUpdateToFree;
+            }
+            else
+            {
+                blockUpdateToFree->block_next = freeListHead;
+                freeListHead = blockUpdateToFree;
+                freeListSize++;
+            }
+        }
+    }
+    static BlockUpdate *allocate(BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next = nullptr)
+    {
+        BlockUpdate *retval;
+        allocateAndFree(nullptr, &retval);
+        retval->init(kind, position, time_left, block_next);
+        return retval;
+    }
+    static void free(BlockUpdate *v)
+    {
+        allocateAndFree(v, nullptr);
+    }
+public:
     PositionI getPosition() const
     {
         return position;

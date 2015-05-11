@@ -14,3 +14,4 @@ gmon.out
 ValgrindOut.xml
 core
 *.log
+massif.out.*

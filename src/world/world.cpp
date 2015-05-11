@@ -694,7 +694,7 @@ void World::lightingThreadFn()
                     node = node->chunk_next;
                     if(node != nullptr)
                         node->chunk_prev = nullptr;
-                    delete deleteMe;
+                    BlockUpdate::free(deleteMe);
                 }
                 if(destructing)
                     break;
@@ -741,7 +741,7 @@ void World::blockUpdateThreadFn()
                     node = node->chunk_next;
                     if(node != nullptr)
                         node->chunk_prev = nullptr;
-                    delete deleteMe;
+                    BlockUpdate::free(deleteMe);
                 }
                 if(destructing)
                     break;

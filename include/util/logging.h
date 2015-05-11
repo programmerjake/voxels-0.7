@@ -72,7 +72,38 @@ inline LogStream &getDebugLog()
     static std::recursive_mutex theLock;
     static std::function<void(std::wstring)> postFunction = [](std::wstring str)
     {
-        std::wcout << str << std::flush;
+        while(!str.empty())
+        {
+            std::size_t pos = str.find_first_of(L"\r\n");
+            std::wstring currentLine;
+            if(pos == std::wstring::npos)
+            {
+                currentLine = str;
+                str.clear();
+            }
+            else
+            {
+                currentLine = str.substr(0, pos + 1);
+                str.erase(0, pos + 1);
+            }
+            assert(!currentLine.empty());
+            if(currentLine[currentLine.size() - 1] == L'\r')
+            {
+                currentLine.erase(currentLine.size() - 1);
+                currentLine += L"\x1b[K\r";
+            }
+            else if(currentLine[currentLine.size() - 1] == L'\n')
+            {
+                currentLine.erase(currentLine.size() - 1);
+                currentLine += L"\x1b[K\n";
+            }
+            else
+            {
+                currentLine += L"\x1b[K";
+            }
+            std::wcout << currentLine;
+        }
+        std::wcout << std::flush;
     };
     static thread_local std::unique_ptr<LogStream> theLogStream;
     if(theLogStream == nullptr)
@@ -91,6 +122,16 @@ struct postnl_t
 };
 
 constexpr postnl_t postnl = postnl_t{};
+
+struct postr_t
+{
+    friend void operator <<(std::wostream &os, postr_t)
+    {
+        os << L"\r" << post;
+    }
+};
+
+constexpr postr_t postr = postr_t{};
 }
 }
 

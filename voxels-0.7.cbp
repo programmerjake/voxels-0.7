@@ -69,7 +69,7 @@
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-g" />
-					<Add option="-march=native" />
+					<Add option="-march=k8" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 			</Target>

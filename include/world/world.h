@@ -204,7 +204,7 @@ public:
                         bi.chunk->chunkVariables.blockUpdateListTail = pnode->chunk_prev;
                     else
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
-                    delete pnode;
+                    BlockUpdate::free(pnode);
                 }
                 else
                 {
@@ -217,7 +217,7 @@ public:
         }
         if(updateTimeFromNow >= 0)
         {
-            pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
+            pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
             b.updateListHead = pnode;
             pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
             pnode->chunk_prev = nullptr;
@@ -256,7 +256,7 @@ public:
             ppnode = &pnode->block_next;
             pnode = *ppnode;
         }
-        pnode = new BlockUpdate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
+        pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, b.updateListHead);
         b.updateListHead = pnode;
         pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
         pnode->chunk_prev = nullptr;

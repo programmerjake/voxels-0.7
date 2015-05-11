@@ -33,7 +33,7 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
     {
         BlockUpdate *deleteMe = blockUpdateListHead;
         blockUpdateListHead = blockUpdateListHead->chunk_next;
-        delete deleteMe;
+        BlockUpdate::free(deleteMe);
     }
 }
 

@@ -501,9 +501,11 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             }
         }
     }
+    std::size_t renderedTriangles = 0;
     for(RenderLayer rl : enum_traits<RenderLayer>())
     {
         renderer << rl;
+        renderedTriangles += meshes->meshes[rl].size();
         if(meshes->meshBuffers[rl].empty())
         {
             renderer << transform(worldToCamera, meshes->meshes[rl]);
@@ -513,7 +515,9 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             renderer << transform(worldToCamera, meshes->meshBuffers[rl]);
         }
         renderer << transform(worldToCamera, entityMeshes[rl]);
+        renderedTriangles += entityMeshes[rl].size();
     }
+    getDebugLog() << "rendered " << renderedTriangles << L" triangles." << postr;
 }
 }
 }
