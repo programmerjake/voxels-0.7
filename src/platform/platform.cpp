@@ -1709,7 +1709,7 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         gotFinalSet = false;
         fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
         fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW_ARB);
-        bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_WRITE_ARB);
+        bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
         if(bufferMemory == nullptr)
         {
             cerr << "error : can't map opengl buffer\n" << flush;
@@ -1743,7 +1743,7 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         glLoadIdentity();
         if(!gotFinalSet)
         {
-            bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_READ_WRITE_ARB);
+            bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
             if(bufferMemory == nullptr)
             {
                 cerr << "error : can't map opengl buffer\n" << flush;

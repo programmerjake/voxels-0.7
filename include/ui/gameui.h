@@ -372,6 +372,27 @@ public:
             gameInput->hotBarSelect(args);
             return true;
         }
+        case KeyboardKey::F7:
+        case KeyboardKey::F8:
+        {
+            if(gameInput->paused.get())
+                return false;
+            std::int32_t viewDistance = viewPoint->getViewDistance();
+            if(event.key == KeyboardKey::F7)
+            {
+                viewDistance -= 16;
+                if(viewDistance < 16)
+                    viewDistance = 16;
+            }
+            else
+            {
+                viewDistance += 16;
+                if(viewDistance > 256)
+                    viewDistance = 256;
+            }
+            viewPoint->setViewDistance(viewDistance);
+            return true;
+        }
         default:
             return false;
         }

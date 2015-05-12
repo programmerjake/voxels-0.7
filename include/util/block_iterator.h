@@ -246,7 +246,8 @@ private:
 public:
     Block get(WorldLockManager &lock_manager) const
     {
-        return (Block)getBlock(lock_manager).block;
+        BlockChunkBlock &blockChunkBlock = getBlock(lock_manager);
+        return BlockChunk::getBlockFromArray(BlockChunk::getSubchunkRelativePosition(currentRelativePosition), blockChunkBlock, getSubchunk());
     }
     const BiomeProperties &getBiomeProperties(WorldLockManager &lock_manager) const
     {
@@ -255,7 +256,8 @@ public:
     }
     BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const
     {
-        return BlockUpdateIterator(getBlock(lock_manager).updateListHead);
+        updateLock(lock_manager);
+        return BlockUpdateIterator(getSubchunk().blockOptionalData.getUpdateListHead(BlockChunk::getSubchunkRelativePosition(currentRelativePosition)));
     }
     BlockUpdateIterator updatesEnd(WorldLockManager &) const
     {

@@ -446,14 +446,22 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
                 retval->chunk_prev = node;
             retval = node;
             node = next_node;
-            VectorI relativePos = BlockChunk::getChunkRelativePosition(retval->position);
-            for(BlockUpdate **pnode = &chunk->blocks[relativePos.x][relativePos.y][relativePos.z].updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
+            VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
+            VectorI subchunkRelativePosition = BlockChunk::getSubchunkRelativePosition(retval->position);
+            BlockChunkSubchunk &subchunk = chunk->subchunks[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
+            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
+            if(blockOptionalData != nullptr)
             {
-                if(*pnode == retval)
+                for(BlockUpdate **pnode = &blockOptionalData->updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
                 {
-                    *pnode = retval->block_next;
-                    break;
+                    if(*pnode == retval)
+                    {
+                        *pnode = retval->block_next;
+                        break;
+                    }
                 }
+                if(blockOptionalData->empty())
+                    subchunk.blockOptionalData.erase(subchunkRelativePosition);
             }
             retval->block_next = nullptr;
         }
@@ -501,14 +509,22 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
                 retval->chunk_prev = node;
             retval = node;
             node = next_node;
-            VectorI relativePos = BlockChunk::getChunkRelativePosition(retval->position);
-            for(BlockUpdate **pnode = &chunk->blocks[relativePos.x][relativePos.y][relativePos.z].updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
+            VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
+            VectorI subchunkRelativePosition = BlockChunk::getSubchunkRelativePosition(retval->position);
+            BlockChunkSubchunk &subchunk = chunk->subchunks[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
+            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
+            if(blockOptionalData != nullptr)
             {
-                if(*pnode == retval)
+                for(BlockUpdate **pnode = &blockOptionalData->updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
                 {
-                    *pnode = retval->block_next;
-                    break;
+                    if(*pnode == retval)
+                    {
+                        *pnode = retval->block_next;
+                        break;
+                    }
                 }
+                if(blockOptionalData->empty())
+                    subchunk.blockOptionalData.erase(subchunkRelativePosition);
             }
             retval->block_next = nullptr;
         }

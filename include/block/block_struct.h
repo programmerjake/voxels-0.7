@@ -101,6 +101,7 @@ public:
         : index(NullIndex)
     {
     }
+    BlockDescriptorIndex(BlockDescriptorPointer bd);
     const BlockDescriptor *get() const
     {
         if(index == NullIndex)
@@ -122,17 +123,21 @@ public:
     {
         return get();
     }
-    bool operator !() const
+    explicit operator bool() const
     {
         return index != NullIndex;
     }
+    bool operator !() const
+    {
+        return index == NullIndex;
+    }
     friend bool operator ==(std::nullptr_t, BlockDescriptorIndex v)
     {
-        return v.index == NullIndex;
+        return !v;
     }
     friend bool operator ==(BlockDescriptorIndex v, std::nullptr_t)
     {
-        return v.index == NullIndex;
+        return !v;
     }
     friend bool operator ==(const BlockDescriptor *a, BlockDescriptorIndex b)
     {
@@ -148,11 +153,11 @@ public:
     }
     friend bool operator !=(std::nullptr_t, BlockDescriptorIndex v)
     {
-        return v.index != NullIndex;
+        return static_cast<bool>(v);
     }
     friend bool operator !=(BlockDescriptorIndex v, std::nullptr_t)
     {
-        return v.index != NullIndex;
+        return static_cast<bool>(v);
     }
     friend bool operator !=(const BlockDescriptor *a, BlockDescriptorIndex b)
     {

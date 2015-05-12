@@ -89,6 +89,14 @@ PackedBlock::PackedBlock(const Block &b)
 }
 #endif
 
+BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd)
+{
+    if(bd == nullptr)
+        index = NullIndex;
+    else
+        index = bd->getBlockDescriptorIndex().index;
+}
+
 void Block::createNewLighting(Lighting oldLighting)
 {
     if(!good())
