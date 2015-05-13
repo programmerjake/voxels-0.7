@@ -21,7 +21,7 @@
 #include "block/builtin/redstone.h"
 #include "item/builtin/minerals.h"
 #include "item/builtin/torch.h"
-#include "entity/builtin/particles/smoke.h"
+#include "entity/builtin/particles/redstone.h"
 
 namespace programmerjake
 {
@@ -52,6 +52,24 @@ void RedstoneDust::onDisattach(World &world, const Block &block, BlockIterator b
     world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
+void RedstoneDust::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+{
+    if(signalStrength <= 0)
+        return;
+    const double generateRedstonePerSecond = 1.0;
+    double nextTime = currentTime + deltaTime;
+    std::uint32_t v = std::hash<PositionI>()(bi.position());
+    v *= 21793497;
+    float timeOffset = (float)v / 6127846.0f;
+    double currentRedstoneCount = std::floor(currentTime * generateRedstonePerSecond + timeOffset);
+    double nextRedstoneCount = std::floor(nextTime * generateRedstonePerSecond + timeOffset);
+    int generateRedstoneCount = limit<int>((int)(nextRedstoneCount - currentRedstoneCount), 0, 10);
+    for(int i = 0; i < generateRedstoneCount; i++)
+    {
+        Entities::builtin::particles::Redstone::addToWorld(world, lock_manager, bi.position() + VectorF(0.5f, 0.15f, 0.5f));
+    }
+}
+
 void RedstoneTorch::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), bi.position() + VectorF(0.5));
@@ -71,14 +89,19 @@ void RedstoneTorch::onDisattach(World &world, const Block &block, BlockIterator 
 
 void RedstoneTorch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
 {
-    const double generateSmokePerSecond = 1.0;
+    if(!isOn)
+        return;
+    const double generateRedstonePerSecond = 1.0;
     double nextTime = currentTime + deltaTime;
-    double currentSmokeCount = std::floor(currentTime * generateSmokePerSecond);
-    double nextSmokeCount = std::floor(nextTime * generateSmokePerSecond);
-    int generateSmokeCount = limit<int>((int)(nextSmokeCount - currentSmokeCount), 0, 10);
-    for(int i = 0; i < generateSmokeCount; i++)
+    std::uint32_t v = std::hash<PositionI>()(bi.position());
+    v *= 21793497;
+    float timeOffset = (float)v / 6127846.0f;
+    double currentRedstoneCount = std::floor(currentTime * generateRedstonePerSecond + timeOffset);
+    double nextRedstoneCount = std::floor(nextTime * generateRedstonePerSecond + timeOffset);
+    int generateRedstoneCount = limit<int>((int)(nextRedstoneCount - currentRedstoneCount), 0, 10);
+    for(int i = 0; i < generateRedstoneCount; i++)
     {
-        Entities::builtin::particles::Smoke::addToWorld(world, lock_manager, bi.position() + headPosition);
+        Entities::builtin::particles::Redstone::addToWorld(world, lock_manager, bi.position() + headPosition);
     }
 }
 

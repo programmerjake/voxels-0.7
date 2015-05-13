@@ -18,8 +18,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef PARTICLES_SMOKE_H_INCLUDED
-#define PARTICLES_SMOKE_H_INCLUDED
+#ifndef PARTICLES_REDSTONE_H_INCLUDED
+#define PARTICLES_REDSTONE_H_INCLUDED
 
 #include "entity/builtin/particle.h"
 #include "texture/texture_atlas.h"
@@ -37,9 +37,9 @@ namespace builtin
 namespace particles
 {
 
-class Smoke final : public Particle
+class Redstone final : public Particle
 {
-    friend class global_instance_maker<Smoke>;
+    friend class global_instance_maker<Redstone>;
 private:
     static std::vector<TextureDescriptor> makeFrames()
     {
@@ -51,23 +51,23 @@ private:
         }
         return std::move(retval);
     }
-    Smoke()
-        : Particle(L"builtin.particles.smoke", makeFrames(), 4.0f, false, true, VectorF(0, 0.7f, 0))
+    Redstone()
+        : Particle(L"builtin.particles.redstone", makeFrames(), 4.0f, false, true, VectorF(0, 0.2f, 0))
     {
     }
 protected:
-    virtual ColorF colorizeColor(const ParticleData &data) const override
+    virtual ColorF colorizeColor(const ParticleData &dataIn) const override
     {
-        return GrayscaleF(0.6f - 0.6f / (1.0f + data.getTime()));
+        return RGBF(0.75f, 0, 0);
     }
     virtual float getExistDuration(World &world) const override
     {
         return 0.2f / std::uniform_real_distribution<float>(0.1f, 1.0f)(world.getRandomGenerator());
     }
 public:
-    static const Smoke *pointer()
+    static const Redstone *pointer()
     {
-        return global_instance_maker<Smoke>::getInstance();
+        return global_instance_maker<Redstone>::getInstance();
     }
     static EntityDescriptorPointer descriptor()
     {
@@ -86,4 +86,4 @@ public:
 }
 }
 
-#endif // PARTICLES_SMOKE_H_INCLUDED
+#endif // PARTICLES_REDSTONE_H_INCLUDED

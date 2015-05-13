@@ -42,28 +42,43 @@ public:
     const bool collideWithBlocks;
     const VectorF gravity;
     const float extent;
-private:
-    struct ParticleData final
-    {
-        double time = 0.0f;
-    };
 protected:
+    struct ParticleData
+    {
+        friend class Particle;
+    private:
+        double time = 0.0f;
+    public:
+        double getTime() const
+        {
+            return time;
+        }
+        const float existDuration;
+        ParticleData(float existDuration)
+            : existDuration(existDuration)
+        {
+        }
+        virtual ~ParticleData() = default;
+    };
     std::vector<TextureDescriptor> frames;
     float framesPerSecond;
     bool loop;
-    float existDuration;
-    virtual ColorF colorizeColor(double time) const
+    virtual float getExistDuration(World &world) const
+    {
+        return frames.size() / framesPerSecond;
+    }
+    virtual ColorF colorizeColor(const ParticleData &data) const
     {
         return colorizeIdentity();
     }
-    double &getTime(std::shared_ptr<void> data) const
+    ParticleData &getParticleData(std::shared_ptr<void> data) const
     {
         assert(data != nullptr);
-        return static_cast<ParticleData *>(data.get())->time;
+        return *static_cast<ParticleData *>(data.get());
     }
 public:
-    Particle(std::wstring name, std::vector<TextureDescriptor> frames, float framesPerSecond, float existDuration, bool loop = false, bool collideWithBlocks = true, VectorF gravity = VectorF(0), float extent = 1.0f / 12.0f)
-        : EntityDescriptor(name), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop), existDuration(existDuration)
+    Particle(std::wstring name, std::vector<TextureDescriptor> frames, float framesPerSecond, bool loop = false, bool collideWithBlocks = true, VectorF gravity = VectorF(0), float extent = 1.0f / 12.0f)
+        : EntityDescriptor(name), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop)
     {
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
@@ -80,7 +95,7 @@ public:
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {
-        entity.data = std::shared_ptr<void>(new ParticleData);
+        entity.data = std::shared_ptr<void>(new ParticleData(getExistDuration(world)));
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
     {
@@ -88,9 +103,9 @@ public:
     }
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
     {
-        double &time = getTime(entity.data);
-        time += deltaTime;
-        if(time >= existDuration)
+        ParticleData &data = getParticleData(entity.data);
+        data.time += deltaTime;
+        if(data.time >= data.existDuration)
         {
             entity.destroy();
         }
@@ -99,7 +114,7 @@ public:
     {
         if(rl != RenderLayer::Opaque)
             return;
-        double time = getTime(entity.data);
+        double time = getParticleData(entity.data).getTime();
         std::size_t frameIndex = (std::size_t)(int)std::floor(time * framesPerSecond);
         if(loop)
             frameIndex %= frames.size();

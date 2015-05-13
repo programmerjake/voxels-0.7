@@ -459,13 +459,9 @@ public:
     }
     virtual bool generatesParticles() const override
     {
-        #warning add redstone dust particles
-        return false;
+        return signalStrength > 0;
     }
-    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const override
-    {
-        #warning add redstone dust particles
-    }
+    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const override;
     virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
     virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
     virtual float getHardness() const override
@@ -636,7 +632,7 @@ protected:
 public:
     virtual bool generatesParticles() const override
     {
-        return true;
+        return isOn;
     }
     virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const override;
     virtual RedstoneSignal getRedstoneSignal(BlockFace outputThroughBlockFace) const

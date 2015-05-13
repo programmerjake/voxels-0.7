@@ -141,6 +141,7 @@
 		<Unit filename="include/entity/builtin/falling_sand.h" />
 		<Unit filename="include/entity/builtin/item.h" />
 		<Unit filename="include/entity/builtin/particle.h" />
+		<Unit filename="include/entity/builtin/particles/redstone.h" />
 		<Unit filename="include/entity/builtin/particles/smoke.h" />
 		<Unit filename="include/entity/builtin/tile.h" />
 		<Unit filename="include/entity/entity.h" />

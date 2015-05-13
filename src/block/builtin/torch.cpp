@@ -54,8 +54,11 @@ void Torch::generateParticles(World &world, Block b, BlockIterator bi, WorldLock
 {
     const double generateSmokePerSecond = 1.0;
     double nextTime = currentTime + deltaTime;
-    double currentSmokeCount = std::floor(currentTime * generateSmokePerSecond);
-    double nextSmokeCount = std::floor(nextTime * generateSmokePerSecond);
+    std::uint32_t v = std::hash<PositionI>()(bi.position());
+    v *= 21793497;
+    float timeOffset = (float)v / 6127846.0f;
+    double currentSmokeCount = std::floor(currentTime * generateSmokePerSecond + timeOffset);
+    double nextSmokeCount = std::floor(nextTime * generateSmokePerSecond + timeOffset);
     int generateSmokeCount = limit<int>((int)(nextSmokeCount - currentSmokeCount), 0, 10);
     for(int i = 0; i < generateSmokeCount; i++)
     {
