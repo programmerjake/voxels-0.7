@@ -38,7 +38,8 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
 }
 
 BlockChunk::BlockChunk(PositionI basePosition)
-    : BasicBlockChunk(basePosition)
+    : BasicBlockChunk(basePosition),
+    objectCounter()
 {
     dumpStackTraceToDebugLog();
 }

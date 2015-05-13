@@ -39,6 +39,8 @@ namespace tools
 
 class SimplePickaxe : public Pickaxe
 {
+    SimplePickaxe(const SimplePickaxe &) = delete;
+    SimplePickaxe &operator =(const SimplePickaxe &) = delete;
 protected:
     const ToolLevel toolLevel;
     const float mineDurationFactor;
@@ -46,6 +48,8 @@ protected:
     const unsigned maxDamageValue;
     class SimplePickaxeRecipe : public Recipes::builtin::PatternRecipe<3, 3>
     {
+        SimplePickaxeRecipe(const SimplePickaxeRecipe &) = delete;
+        SimplePickaxeRecipe &operator =(const SimplePickaxeRecipe &) = delete;
     protected:
         const unsigned outputCount;
         const ItemDescriptorPointer itemDescriptor;
@@ -63,7 +67,9 @@ protected:
                 recipeMaterial, recipeMaterial, recipeMaterial,
                 Item(), Item(Items::builtin::Stick::descriptor()), Item(),
                 Item(), Item(Items::builtin::Stick::descriptor()), Item(),
-            }), outputCount(outputCount), itemDescriptor(itemDescriptor)
+            }),
+            outputCount(outputCount),
+            itemDescriptor(itemDescriptor)
         {
         }
     };
@@ -98,6 +104,8 @@ public:
 
 class SimpleAxe : public Axe
 {
+    SimpleAxe(const SimpleAxe &) = delete;
+    SimpleAxe &operator =(const SimpleAxe &) = delete;
 protected:
     const ToolLevel toolLevel;
     const float mineDurationFactor;
@@ -105,6 +113,8 @@ protected:
     const unsigned maxDamageValue;
     class SimpleAxeRecipe : public Recipes::builtin::PatternRecipe<2, 3>
     {
+        SimpleAxeRecipe(const SimpleAxeRecipe &) = delete;
+        SimpleAxeRecipe &operator =(const SimpleAxeRecipe &) = delete;
     protected:
         const unsigned outputCount;
         const ItemDescriptorPointer itemDescriptor;
@@ -157,6 +167,8 @@ public:
 
 class SimpleShovel : public Shovel
 {
+    SimpleShovel(const SimpleShovel &) = delete;
+    SimpleShovel &operator =(const SimpleShovel &) = delete;
 protected:
     const ToolLevel toolLevel;
     const float mineDurationFactor;
@@ -164,6 +176,8 @@ protected:
     const unsigned maxDamageValue;
     class SimpleShovelRecipe : public Recipes::builtin::PatternRecipe<1, 3>
     {
+        SimpleShovelRecipe(const SimpleShovelRecipe &) = delete;
+        SimpleShovelRecipe &operator =(const SimpleShovelRecipe &) = delete;
     protected:
         const unsigned outputCount;
         const ItemDescriptorPointer itemDescriptor;
@@ -216,6 +230,8 @@ public:
 
 class SimpleHoe : public Hoe
 {
+    SimpleHoe(const SimpleHoe &) = delete;
+    SimpleHoe &operator =(const SimpleHoe &) = delete;
 protected:
     const ToolLevel toolLevel;
     const float mineDurationFactor;
@@ -223,6 +239,8 @@ protected:
     const unsigned maxDamageValue;
     class SimpleHoeRecipe : public Recipes::builtin::PatternRecipe<2, 3>
     {
+        SimpleHoeRecipe(const SimpleHoeRecipe &) = delete;
+        SimpleHoeRecipe &operator =(const SimpleHoeRecipe &) = delete;
     protected:
         const unsigned outputCount;
         const ItemDescriptorPointer itemDescriptor;
@@ -314,11 +332,23 @@ protected:
     }
 public:
     SimpleToolset(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, const Pickaxe *pickaxe, const Axe *axe, const Shovel *shovel, const Hoe *hoe)
-        : toolsetName(toolsetName), toolLevel(toolLevel), mineDurationFactor(mineDurationFactor), pickaxe(pickaxe), axe(axe), shovel(shovel), hoe(hoe)
+        : toolsetName(toolsetName),
+        toolLevel(toolLevel),
+        mineDurationFactor(mineDurationFactor),
+        pickaxe(pickaxe),
+        axe(axe),
+        shovel(shovel),
+        hoe(hoe)
     {
     }
     SimpleToolset(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamage, Item recipeMaterial, TextureDescriptor pickaxeTexture, TextureDescriptor axeTexture, TextureDescriptor shovelTexture, TextureDescriptor hoeTexture)
-        : toolsetName(toolsetName), toolLevel(toolLevel), mineDurationFactor(mineDurationFactor)
+        : toolsetName(toolsetName),
+        toolLevel(toolLevel),
+        mineDurationFactor(mineDurationFactor),
+        pickaxe(),
+        axe(),
+        shovel(),
+        hoe()
     {
         pickaxe = makePickaxe(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, pickaxeTexture);
         axe = makeAxe(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, axeTexture);

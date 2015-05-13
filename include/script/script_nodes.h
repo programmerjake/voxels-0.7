@@ -33,6 +33,10 @@ namespace Scripting
 template<std::uint32_t size, typename ChildClass>
 struct NodeConstArgCount : public Node
 {
+    NodeConstArgCount()
+        : args()
+    {
+    }
     friend struct Node;
     checked_array<std::uint32_t, size> args;
 protected:
@@ -111,6 +115,10 @@ struct NodeCast : public Node
 {
     checked_array<std::uint32_t, 1> args;
     friend struct Node;
+    NodeCast()
+        : args()
+    {
+    }
 protected:
     static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount, std::shared_ptr<NodeCast> retval)
     {
@@ -2785,6 +2793,10 @@ struct NodeMakeTranslate final : public NodeConstArgCount<1, NodeMakeTranslate>
 };
 struct NodeBlock final : public Node
 {
+    NodeBlock()
+        : nodes()
+    {
+    }
     friend struct Node;
     std::vector<std::uint32_t> nodes;
     virtual Type type() const override
@@ -2825,6 +2837,10 @@ protected:
 };
 struct NodeListLiteral final : public Node
 {
+    NodeListLiteral()
+        : nodes()
+    {
+    }
     friend struct Node;
     std::vector<std::uint32_t> nodes;
     virtual Type type() const override

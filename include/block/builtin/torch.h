@@ -246,6 +246,7 @@ private:
         enum_array<Torch *, BlockFace> torches;
     public:
         TorchInstanceMaker()
+            : torches()
         {
             for(BlockFace bf : enum_traits<BlockFace>())
             {

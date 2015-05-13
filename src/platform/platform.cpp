@@ -74,6 +74,8 @@ struct RWOpsException : public stream::IOException
 
 class RWOpsReader final : public stream::Reader
 {
+    RWOpsReader(const RWOpsReader &) = delete;
+    RWOpsReader &operator =(const RWOpsReader &) = delete;
 private:
     SDL_RWops * rw;
 public:
@@ -252,6 +254,10 @@ static std::thread renderThread;
 static std::atomic_bool renderThreadRunning(false);
 struct RenderThreadFunction final
 {
+    RenderThreadFunction(const RenderThreadFunction &) = default;
+    RenderThreadFunction &operator =(const RenderThreadFunction &) = default;
+    RenderThreadFunction(RenderThreadFunction &&) = default;
+    RenderThreadFunction &operator =(RenderThreadFunction &&) = default;
     std::function<void()> fn;
     std::condition_variable *cond = nullptr;
     enum State
@@ -1577,12 +1583,14 @@ struct CachedMeshDataOpenGLBuffer : public CachedMeshData
     GLsizeiptrARB vertexSize, colorSize, textureCoordSize;
     GLsizei vertexCount;
     CachedMeshDataOpenGLBuffer(const Mesh & mesh)
-        : CachedMeshData(mesh.image), buffer(allocateBuffer()), vertexCount(3 * mesh.triangles.size())
+        : CachedMeshData(mesh.image),
+        buffer(allocateBuffer()),
+        vertexSize(mesh.triangles.size() * 3 * 3 * sizeof(float)),
+        colorSize(mesh.triangles.size() * 4 * 3 * sizeof(float)),
+        textureCoordSize(mesh.triangles.size() * 2 * 3 * sizeof(float)),
+        vertexCount(3 * mesh.triangles.size())
     {
         fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-        vertexSize = mesh.triangles.size() * 3 * 3 * sizeof(float);
-        colorSize = mesh.triangles.size() * 4 * 3 * sizeof(float);
-        textureCoordSize = mesh.triangles.size() * 2 * 3 * sizeof(float);
         fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, vertexSize + colorSize + textureCoordSize, nullptr, GL_STATIC_DRAW_ARB);
         void *bufferPtr = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
         if(bufferPtr == nullptr)
@@ -1696,17 +1704,18 @@ namespace
 {
 struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
 {
+    MeshBufferImpOpenGLBuffer(const MeshBufferImpOpenGLBuffer &) = delete;
+    MeshBufferImpOpenGLBuffer &operator =(const MeshBufferImpOpenGLBuffer &) = delete;
     GLuint buffer;
     Image image;
-    std::size_t allocatedTriangleCount, usedTriangleCount;
-    void *bufferMemory;
-    bool gotFinalSet;
+    std::size_t allocatedTriangleCount, usedTriangleCount = 0;
+    void *bufferMemory = nullptr;
+    bool gotFinalSet = false;
     MeshBufferImpOpenGLBuffer(std::size_t triangleCount)
+        : buffer(allocateBuffer()),
+        image(),
+        allocatedTriangleCount(triangleCount)
     {
-        buffer = allocateBuffer();
-        usedTriangleCount = 0;
-        allocatedTriangleCount = triangleCount;
-        gotFinalSet = false;
         fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
         fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW_ARB);
         bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
@@ -1785,9 +1794,10 @@ struct MeshBufferImpFallback final : public MeshBufferImp
     bool gotFinalSet;
     Mesh mesh;
     MeshBufferImpFallback(std::size_t triangleCount)
+        : allocatedTriangleCount(triangleCount),
+        gotFinalSet(false),
+        mesh()
     {
-        allocatedTriangleCount = triangleCount;
-        gotFinalSet = false;
         mesh.triangles.reserve(triangleCount);
     }
     virtual ~MeshBufferImpFallback()
@@ -1830,6 +1840,7 @@ std::size_t MeshBuffer::impCapacity(std::shared_ptr<MeshBufferImp> mesh)
 }
 
 MeshBuffer::MeshBuffer(std::size_t triangleCount)
+    : imp(), tform(Matrix::identity())
 {
     if(triangleCount == 0)
         imp = nullptr;

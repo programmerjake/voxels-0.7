@@ -156,8 +156,11 @@ public:
     {
         return elementCount == 0;
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator : public std::iterator<std::bidirectional_iterator_tag, T>
     {
+#pragma GCC diagnostic pop
         friend class intrusive_list;
     private:
         T *node;
@@ -209,8 +212,11 @@ public:
             return *this;
         }
     };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class const_iterator : public std::iterator<std::bidirectional_iterator_tag, const T>
     {
+#pragma GCC diagnostic pop
         friend class intrusive_list;
     private:
         const T *node;

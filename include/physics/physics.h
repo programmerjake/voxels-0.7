@@ -117,6 +117,10 @@ public:
 
 struct PhysicsConstraint final
 {
+    PhysicsConstraint(const PhysicsConstraint &) = default;
+    PhysicsConstraint &operator =(const PhysicsConstraint &) = default;
+    PhysicsConstraint(PhysicsConstraint &&) = default;
+    PhysicsConstraint &operator =(PhysicsConstraint &&) = default;
     const PhysicsConstraintDescriptor *descriptor;
     std::shared_ptr<PhysicsConstraintData> data;
     PhysicsConstraint(const PhysicsConstraintDescriptor *descriptor = nullptr, std::shared_ptr<PhysicsConstraintData> data = nullptr)
@@ -144,9 +148,12 @@ struct PhysicsConstraint final
 
 namespace stream
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <>
 struct read<PhysicsConstraint> : public read_base<PhysicsConstraint>
 {
+#pragma GCC diagnostic pop
     read(Reader &reader, VariableSet &variableSet)
         : read_base<PhysicsConstraint>(PhysicsConstraint::read(reader, variableSet))
     {
@@ -172,8 +179,11 @@ public:
     virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject, BlockIterator otherObject, WorldLockManager &lock_manager) = 0;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class PhysicsObject final : public std::enable_shared_from_this<PhysicsObject>
 {
+#pragma GCC diagnostic pop
     friend class PhysicsWorld;
 public:
     ObjectCounter<PhysicsObject, 0> objectCounter;
@@ -304,8 +314,11 @@ public:
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class PhysicsWorld final : public std::enable_shared_from_this<PhysicsWorld>
 {
+#pragma GCC diagnostic pop
     friend class PhysicsObject;
 private:
     mutable checked_recursive_lock<200> theLockImp;
@@ -321,7 +334,7 @@ private:
     }
 public:
     PhysicsWorld()
-        : theLock(theLockImp)
+        : theLockImp(), theLock(theLockImp), chunks(), objects(), eventsQueue(), eventsSet(), changedObjects()
     {
     }
     BlockChunkMap chunks; // not locked by theLock
@@ -388,7 +401,7 @@ private:
         ordered_weak_ptr<PhysicsObject> a, b;
         std::uint64_t aTag, bTag;
         CollisionEvent(double collisionTime, std::shared_ptr<PhysicsObject> a, std::shared_ptr<PhysicsObject> b)
-            : collisionTime(collisionTime), a(a), b(b), aTag(a->latestUpdateTag), bTag(b->latestUpdateTag)
+            : objectCounter(), collisionTime(collisionTime), a(a), b(b), aTag(a->latestUpdateTag), bTag(b->latestUpdateTag)
         {
         }
         bool operator ==(const CollisionEvent & rt) const
@@ -548,7 +561,8 @@ inline std::shared_ptr<const PhysicsObjectConstructor> PhysicsObjectConstructor:
 #endif
 
 inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool affectedByGravity, bool isStatic, VectorF extents, std::shared_ptr<PhysicsWorld> world, PhysicsProperties properties, Type type, std::shared_ptr<PhysicsCollisionHandler> collisionHandler)
-    : position{position, position},
+    : objectCounter(),
+    position{position, position},
     velocity{velocity, velocity},
     objectTime{world->getCurrentTime(), world->getCurrentTime()},
     affectedByGravity(affectedByGravity),
@@ -557,6 +571,7 @@ inline PhysicsObject::PhysicsObject(PositionF position, VectorF velocity, bool a
     extents(extents),
     world(world),
     properties(properties),
+    constraints(),
     collisionHandler(collisionHandler)
 {
 }

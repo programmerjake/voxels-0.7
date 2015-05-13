@@ -78,7 +78,7 @@ protected:
     std::shared_ptr<UiItem> selectedItem = nullptr;
 public:
     PlayerDialog(std::shared_ptr<Player> player, TextureDescriptor backgroundImage)
-        : player(player), backgroundImage(backgroundImage)
+        : backgroundImageElement(), player(player), backgroundImage(backgroundImage)
     {
     }
 protected:

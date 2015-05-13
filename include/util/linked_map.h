@@ -49,25 +49,27 @@ public:
 private:
     struct Node
     {
+        Node(const Node &) = delete;
+        Node &operator =(const Node &) = delete;
         value_type value;
         Node *hash_next;
         Node *list_next;
         Node *list_prev;
         const size_type cachedHash;
         Node(const key_type &key, const mapped_type &value, size_type cachedHash)
-            : value(key, value), cachedHash(cachedHash)
+            : value(key, value), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
         {
         }
         Node(const key_type &key, size_type cachedHash)
-            : value(key, mapped_type()), cachedHash(cachedHash)
+            : value(key, mapped_type()), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
         {
         }
         Node(const value_type &kv_pair, size_type cachedHash)
-            : value(kv_pair), cachedHash(cachedHash)
+            : value(kv_pair), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
         {
         }
         Node(const key_type &key, mapped_type &&value, size_type cachedHash)
-            : value(key, std::move(value)), cachedHash(cachedHash)
+            : value(key, std::move(value)), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
         {
         }
     };
@@ -212,9 +214,12 @@ public:
         bucket_count_ = new_bucket_count;
     }
 private:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     template <typename ValueT, typename DerivedType>
     struct iterator_base : public std::iterator<std::bidirectional_iterator_tag, ValueT>
     {
+#pragma GCC diagnostic pop
         friend class linked_map;
     protected:
         Node *pointer;
@@ -246,6 +251,8 @@ private:
         {
             return pointer->value;
         }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
         const DerivedType &operator ++()
         {
             if(pointer == nullptr)
@@ -302,10 +309,14 @@ private:
 
             return DerivedType(initial_pointer, container);
         }
+#pragma GCC diagnostic pop
     };
 public:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     struct iterator final : public iterator_base<value_type, iterator>
     {
+#pragma GCC diagnostic pop
         friend class linked_map;
         constexpr iterator()
         {
@@ -316,8 +327,11 @@ public:
         {
         }
     };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     struct const_iterator final : public iterator_base<const value_type, const_iterator>
     {
+#pragma GCC diagnostic pop
         friend class linked_map;
         constexpr const_iterator()
         {

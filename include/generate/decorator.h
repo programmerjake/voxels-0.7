@@ -41,8 +41,11 @@ namespace voxels
 {
 class World;
 class RandomSource;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class DecoratorInstance : public std::enable_shared_from_this<DecoratorInstance>
 {
+#pragma GCC diagnostic pop
     DecoratorInstance(const DecoratorInstance &) = delete;
     DecoratorInstance &operator =(const DecoratorInstance &) = delete;
 public:

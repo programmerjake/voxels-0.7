@@ -64,6 +64,10 @@ private:
     VectorI arrayOrigin, arraySize;
 public:
     TreeDescriptorPointer descriptor;
+    Tree(const Tree &) = default;
+    Tree &operator =(const Tree &) = default;
+    Tree(Tree &&) = default;
+    Tree &operator =(Tree &&) = default;
     VectorI getArrayMin() const
     {
         return arrayOrigin;
@@ -85,7 +89,7 @@ public:
         return descriptor != nullptr;
     }
     Tree()
-        : arrayOrigin(0), arraySize(0), descriptor(nullptr)
+        : blocksArray(), arrayOrigin(0), arraySize(0), descriptor(nullptr)
     {
     }
     Tree(TreeDescriptorPointer descriptor, VectorI arrayOrigin, VectorI arraySize)
@@ -274,8 +278,11 @@ public:
             return 0;
         return pNameMap->size();
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator final : public std::iterator<std::forward_iterator_tag, const WoodDescriptorPointer>
     {
+#pragma GCC diagnostic pop
     private:
         typename linked_map<std::wstring, WoodDescriptorPointer>::const_iterator iter;
     public:
@@ -284,6 +291,7 @@ public:
         {
         }
         iterator()
+            : iter()
         {
         }
         const WoodDescriptorPointer &operator *() const
@@ -334,7 +342,22 @@ public:
 static constexpr WoodDescriptors_t WoodDescriptors{};
 
 inline WoodDescriptor::WoodDescriptor(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
-    : name(name), trees(std::move(trees)), logTop(logTop), logSide(logSide), planks(planks), sapling(sapling), leaves(leaves), blockedLeaves(blockedLeaves)
+    : name(name),
+    trees(std::move(trees)),
+    logTop(logTop),
+    logSide(logSide),
+    planks(planks),
+    sapling(sapling),
+    leaves(leaves),
+    blockedLeaves(blockedLeaves),
+    logBlockDescriptors(),
+    planksBlockDescriptor(),
+    saplingBlockDescriptors(),
+    leavesBlockDescriptors(),
+    logItemDescriptor(),
+    planksItemDescriptor(),
+    saplingItemDescriptor(),
+    leavesItemDescriptor()
 {
     WoodDescriptors_t::add(this);
 }

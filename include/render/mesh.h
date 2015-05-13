@@ -172,7 +172,7 @@ struct Mesh
     {
     }
     Mesh(const Mesh & rt, Matrix tform)
-        : image(rt.image)
+        : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
         std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&tform](const Triangle & t)->Triangle
@@ -181,7 +181,7 @@ struct Mesh
         });
     }
     Mesh(const Mesh & rt, ColorF color)
-        : image(rt.image)
+        : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
         std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color](const Triangle & t)->Triangle
@@ -190,7 +190,7 @@ struct Mesh
         });
     }
     Mesh(const Mesh & rt, ColorF color, Matrix tform)
-        : image(rt.image)
+        : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
         std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color, &tform](const Triangle & t)->Triangle
@@ -199,7 +199,7 @@ struct Mesh
         });
     }
     Mesh(Mesh &&rt, Matrix tform)
-        : image(std::move(rt.image))
+        : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)
@@ -208,7 +208,7 @@ struct Mesh
         }
     }
     Mesh(Mesh &&rt, ColorF color)
-        : image(std::move(rt.image))
+        : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)
@@ -217,7 +217,7 @@ struct Mesh
         }
     }
     Mesh(Mesh &&rt, ColorF color, Matrix tform)
-        : image(std::move(rt.image))
+        : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)

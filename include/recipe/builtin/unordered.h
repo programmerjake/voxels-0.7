@@ -41,7 +41,8 @@ protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const = 0;
 public:
     UnorderedRecipe(std::initializer_list<std::pair<Item, std::size_t>> elements)
-        : RecipeDescriptor()
+        : RecipeDescriptor(),
+        itemCounts()
     {
         for(const std::pair<Item, std::size_t> &v : elements)
         {

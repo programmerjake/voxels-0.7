@@ -114,6 +114,8 @@ private:
     };
     struct data_t
     {
+        data_t(const data_t &) = delete;
+        data_t &operator =(const data_t &) = delete;
         std::uint8_t * const data;
         const unsigned w, h;
         RowOrder rowOrder;
@@ -121,11 +123,11 @@ private:
         bool textureValid;
         std::mutex lock;
         data_t(std::uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
-            : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false)
+            : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false), lock()
         {
         }
         data_t(std::uint8_t * data, std::shared_ptr<data_t> rt)
-            : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false)
+            : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false), lock()
         {
         }
         ~data_t();

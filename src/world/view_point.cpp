@@ -40,11 +40,18 @@ namespace
 {
 struct BlockLightingCacheBlock
 {
-    BlockLighting lighting;
+    BlockLighting lighting = BlockLighting();
     bool valid = false;
 };
 struct BlockLightingCacheChunk
 {
+    BlockLightingCacheChunk()
+        : basePosition(),
+        lruListIterator(),
+        wlp(),
+        blocks()
+    {
+    }
     PositionI basePosition;
     std::list<PositionI>::iterator lruListIterator;
     BlockChunkInvalidateCountType lastValidCount = 0;
@@ -80,7 +87,9 @@ private:
     }
 public:
     BlockLightingCache(std::size_t maxChunkCount = 1 << 14)
-        : maxChunkCount(maxChunkCount)
+        : chunks(),
+        lruList(),
+        maxChunkCount(maxChunkCount)
     {
     }
     BlockLighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, const WorldLightingProperties &wlp)
@@ -417,7 +426,16 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
     }
 }
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
-    : position(position), viewDistance(viewDistance), shuttingDown(false), blockRenderMeshes(nullptr), world(world)
+    : position(position),
+    viewDistance(viewDistance),
+    generateMeshesThreads(),
+    theLock(),
+    shuttingDown(false),
+    blockRenderMeshes(nullptr),
+    nextBlockRenderMeshes(nullptr),
+    world(world),
+    myPositionInViewPointsList(),
+    pLightingCache()
 {
     {
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);

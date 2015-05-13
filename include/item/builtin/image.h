@@ -40,9 +40,11 @@ namespace builtin
 {
 class ItemImage : public ItemDescriptor
 {
+    ItemImage(const ItemImage &) = delete;
+    ItemImage &operator =(const ItemImage &) = delete;
     Mesh mesh;
-    BlockDescriptorPointer block;
-    const Entities::builtin::EntityItem *entity;
+    BlockDescriptorPointer block = nullptr;
+    const Entities::builtin::EntityItem *entity = nullptr;
 public:
     static Mesh makeItemMesh(TextureDescriptor td)
     {

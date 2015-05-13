@@ -52,7 +52,9 @@ protected:
                     RayCasting::BlockCollisionMaskGround,
                     isFaceBlockedNX, isFaceBlockedPX,
                     isFaceBlockedNY, isFaceBlockedPY,
-                    isFaceBlockedNZ, isFaceBlockedPZ)
+                    isFaceBlockedNZ, isFaceBlockedPZ),
+        meshGrassFace(),
+        meshGrassCenter()
     {
         meshFace[BlockFace::NX] = makeFaceMeshNX(nxDirt);
         meshFace[BlockFace::PX] = makeFaceMeshPX(pxDirt);

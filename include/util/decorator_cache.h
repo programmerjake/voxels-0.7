@@ -39,8 +39,9 @@ private:
     struct ChunkKey final
     {
         PositionI position;
-        DecoratorDescriptorPointer descriptor = nullptr;
+        DecoratorDescriptorPointer descriptor;
         ChunkKey()
+            : position(), descriptor(nullptr)
         {
         }
         ChunkKey(PositionI position, DecoratorDescriptorPointer descriptor)
@@ -72,6 +73,12 @@ private:
         std::vector<std::shared_ptr<const DecoratorInstance>> decorators;
         bool empty = true;
         std::list<ChunkKey>::iterator chunksListIterator;
+        Chunk()
+            : key(),
+            decorators(),
+            chunksListIterator()
+        {
+        }
     };
     std::unordered_map<ChunkKey, Chunk, ChunkKeyHash, ChunkKeyEqual> chunks;
     std::list<ChunkKey> chunksList;
@@ -99,6 +106,11 @@ private:
         return retval;
     }
 public:
+    DecoratorCache()
+        : chunks(),
+        chunksList()
+    {
+    }
     class InstanceRange final
     {
     public:

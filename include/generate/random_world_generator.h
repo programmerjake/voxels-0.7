@@ -92,7 +92,8 @@ private:
             return random_generator(seed);
         }
         RandomCacheChunk(World::SeedType seed, RandomChunkKey key)
-            : key(key)
+            : values(),
+            key(key)
         {
             random_generator rg = makeRandomGenerator(seed, key);
             std::uniform_int_distribution<std::int32_t> distribution;
@@ -138,7 +139,8 @@ private:
     std::unordered_map<RandomChunkKey, RandomCacheChunk, RandomChunkKeyHasher> randomCache;
 public:
     RandomSource(World::SeedType seed)
-        : seed(seed)
+        : seed(seed),
+        randomCache()
     {
     }
     const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)

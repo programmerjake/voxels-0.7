@@ -143,6 +143,7 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
 }
 
 PngDecoder::PngDecoder(stream::Reader & reader)
+    : w(), h(), data()
 {
     string errorMsg;
     if(!LoadPNG(&reader, data, w, h, errorMsg))

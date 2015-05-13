@@ -51,17 +51,27 @@ namespace builtin
 
 class Furnace final : public FullBlock
 {
+    Furnace(const Furnace &) = delete;
+    Furnace &operator =(const Furnace &) = delete;
     friend class ui::builtin::FurnaceUi;
 private:
     struct FurnaceData final
     {
-        std::atomic_bool hasEntity = {false};
+        std::atomic_bool hasEntity;
         std::recursive_mutex lock;
         ItemStack outputStack;
         ItemStack inputStack;
         ItemStack fuelStack;
         float burnTimeLeft = 0.0f;
         float currentElapsedSmeltTime = 0.0f;
+        FurnaceData()
+            : hasEntity(false),
+            lock(),
+            outputStack(),
+            inputStack(),
+            fuelStack()
+        {
+        }
         unsigned transferToFuelStack(ItemStack &sourceStack, unsigned transferCount)
         {
             if(!sourceStack.good())
@@ -263,6 +273,7 @@ private:
     {
         enum_array<enum_array<Furnace *, bool>, BlockFace> furnaces;
         FurnaceMaker()
+            : furnaces()
         {
             for(BlockFace facing : enum_traits<BlockFace>())
             {

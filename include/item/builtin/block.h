@@ -40,9 +40,10 @@ namespace builtin
 {
 class ItemBlock : public ItemDescriptor
 {
+    ItemBlock(const ItemBlock &) = delete;
+    ItemBlock &operator =(const ItemBlock &) = delete;
     Mesh mesh;
     BlockDescriptorPointer block;
-    const Entities::builtin::EntityItem *entity;
     static Matrix getPreorientSelectionBoxTransform()
     {
         return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25f)).concat(Matrix::translate(0, -0.125f, 0));
@@ -55,7 +56,9 @@ class ItemBlock : public ItemDescriptor
     }
 protected:
     ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block)
-        : ItemDescriptor(name, makeMeshes(boxMesh), getPreorientSelectionBoxTransform()), block(block)
+        : ItemDescriptor(name, makeMeshes(boxMesh), getPreorientSelectionBoxTransform()),
+        mesh(),
+        block(block)
     {
         assert(block != nullptr);
         Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);

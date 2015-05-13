@@ -40,8 +40,12 @@ typedef const ItemDescriptor *ItemDescriptorPointer;
 /// @brief an item
 struct Item final
 {
+    Item(const Item &) = default;
+    Item(Item &&) = default;
+    Item &operator =(const Item &) = default;
+    Item &operator =(Item &&) = default;
     /// @brief the ItemDescriptor
-    ItemDescriptorPointer descriptor;
+    ItemDescriptorPointer descriptor = nullptr;
     /// @brief the associated data
     std::shared_ptr<void> data;
     /** @brief check if this Item is non-empty
@@ -109,6 +113,7 @@ struct ItemStack final
     }
     /// @brief construct an empty ItemStack
     ItemStack()
+        : item()
     {
     }
     /** @brief construct an ItemStack
@@ -214,6 +219,10 @@ template <std::size_t W, std::size_t H>
 class ItemStackArray final
 {
 public:
+    ItemStackArray()
+        : itemStacks()
+    {
+    }
     checked_array<checked_array<ItemStack, H>, W> itemStacks;
     /** @brief insert another item into this ItemStackArray
      * @param item the Item to insert

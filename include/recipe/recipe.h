@@ -68,10 +68,11 @@ public:
         return itemCounts;
     }
     RecipeInput()
+        : items(), recipeBlock(), itemCounts()
     {
     }
     RecipeInput(const ItemsArrayType &itemsIn, Item recipeBlock)
-        : items(itemsIn), recipeBlock(recipeBlock)
+        : items(itemsIn), recipeBlock(recipeBlock), itemCounts()
     {
         for(std::size_t x = 0; x < width; x++)
         {
@@ -170,6 +171,7 @@ struct RecipeOutput final
         return output.good();
     }
     RecipeOutput()
+        : items(), output()
     {
     }
     RecipeOutput(checked_array<checked_array<Item, 3>, 3> items, ItemStack output)

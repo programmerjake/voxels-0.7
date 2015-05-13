@@ -33,8 +33,11 @@ namespace ui
 {
 class Container;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class Element : public EventHandler, public std::enable_shared_from_this<Element>
 {
+#pragma GCC diagnostic pop
 public:
     Element(float minX, float maxX, float minY, float maxY);
     virtual ~Element();

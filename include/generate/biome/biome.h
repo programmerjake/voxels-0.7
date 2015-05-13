@@ -129,6 +129,7 @@ private:
     }
 public:
     BiomeMap()
+        : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
@@ -137,6 +138,7 @@ public:
         }
     }
     BiomeMap(const BiomeMap &rt)
+        : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
@@ -145,6 +147,7 @@ public:
         }
     }
     BiomeMap(BiomeMap &&rt)
+        : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
@@ -261,8 +264,11 @@ public:
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class BiomeWeights final : public BiomeMap<float>
 {
+#pragma GCC diagnostic pop
 public:
     void normalize()
     {
@@ -311,7 +317,7 @@ private:
         }
         return retval;
     }
-    ColorF grassColor, leavesColor, waterColor;
+    ColorF grassColor = ColorF(), leavesColor = ColorF(), waterColor = ColorF();
     BiomeDescriptorPointer dominantBiome = nullptr;
 public:
     const BiomeWeights &getWeights() const
@@ -336,6 +342,7 @@ public:
     }
     explicit BiomeProperties(BiomeWeights weights);
     BiomeProperties()
+        : weights()
     {
     }
     void swap(BiomeProperties &rt)
@@ -344,6 +351,10 @@ public:
         *this = std::move(rt);
         rt = std::move(temp);
     }
+    BiomeProperties(const BiomeProperties &) = default;
+    BiomeProperties(BiomeProperties &&) = default;
+    BiomeProperties &operator =(const BiomeProperties &) = default;
+    BiomeProperties &operator =(BiomeProperties &&) = default;
 };
 }
 }

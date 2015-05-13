@@ -62,9 +62,12 @@ private:
     std::unordered_map<std::size_t, std::shared_ptr<VariableBase>> variables;
     std::unordered_map<const void *, std::pair<size_t, std::weak_ptr<void>>> reverseMap;
 public:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     template <typename T>
     class Descriptor final : public VariableDescriptorBase
     {
+#pragma GCC diagnostic pop
         friend class VariableSet;
     private:
         std::uint64_t descriptorIndex;

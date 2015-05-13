@@ -32,6 +32,7 @@ namespace programmerjake
 namespace voxels
 {
 Image::Image(wstring resourceName)
+    : data()
 {
     try
     {
@@ -46,12 +47,14 @@ Image::Image(wstring resourceName)
 }
 
 Image::Image(unsigned w, unsigned h)
+    : data()
 {
     data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * w * h], w, h, TopToBottom));
     memset((void *)data->data, 0, BytesPerPixel * w * h);
 }
 
 Image::Image(ColorI c)
+    : data()
 {
     data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel], 1, 1, TopToBottom));
     setPixel(0, 0, c);

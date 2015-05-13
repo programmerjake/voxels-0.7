@@ -78,7 +78,7 @@ class BlockIterator final
     }
 public:
     BlockIterator(BlockChunkMap *chunks, PositionI position)
-        : chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
+        : chunk(), chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
         getChunk();

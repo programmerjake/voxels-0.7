@@ -35,6 +35,10 @@ class BlocksGenerateArray final
 private:
     checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> blocks;
 public:
+    BlocksGenerateArray()
+        : blocks()
+    {
+    }
     class IndexHelper1;
     class IndexHelper2 final
     {

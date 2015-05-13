@@ -62,8 +62,11 @@ public:
         makeMap();
         return list->size();
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator final : public std::iterator<std::forward_iterator_tag, const DecoratorDescriptorPointer>
     {
+#pragma GCC diagnostic pop
         friend class DecoratorDescriptors_t;
     private:
         std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter;

@@ -574,7 +574,7 @@ private:
         std::size_t count;
         bool generatorWait = true;
         explicit InitialChunkGenerateStruct(std::size_t count)
-            : count(count)
+            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count)
         {
         }
     };

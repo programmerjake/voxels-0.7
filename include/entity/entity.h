@@ -99,8 +99,11 @@ public:
             throw std::out_of_range("EntityDescriptor not found");
         return retval;
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator final : public std::iterator<std::forward_iterator_tag, const EntityDescriptorPointer>
     {
+#pragma GCC diagnostic pop
         friend class EntityDescriptors_t;
         MapType::const_iterator iter;
         bool empty;

@@ -100,7 +100,11 @@ namespace stream
 {
 
 CompressWriter::CompressWriter(Writer &writer)
-    : writer(writer), state(std::shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter))
+    : pwriter(),
+    writer(writer),
+    state(std::shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter)),
+    buffer(),
+    compressedBuffer()
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);
@@ -168,7 +172,11 @@ void CompressWriter::writeBuffer()
 }
 
 ExpandReader::ExpandReader(Reader &reader)
-    : reader(reader), state(std::shared_ptr<void>(makeInflateStream(), inflateDeleter))
+    : preader(),
+    reader(reader),
+    state(std::shared_ptr<void>(makeInflateStream(), inflateDeleter)),
+    buffer(),
+    compressedBuffer()
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);

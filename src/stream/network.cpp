@@ -52,7 +52,7 @@ private:
     int fd;
 public:
     NetworkWriter(int fd)
-        : fd(fd)
+        : buffer(), fd(fd)
     {
         int flag = 1;
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
@@ -92,6 +92,8 @@ public:
 }
 
 NetworkConnection::NetworkConnection(wstring url, uint16_t port)
+    : readerInternal(),
+    writerInternal()
 {
     string url_utf8 = string_cast<string>(url), port_str = to_string((unsigned)port);
     addrinfo *addrList = nullptr;
@@ -144,6 +146,7 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
 }
 
 NetworkServer::NetworkServer(uint16_t port)
+    : fd()
 {
     addrinfo hints;
     memset((void *)&hints, 0, sizeof(hints));

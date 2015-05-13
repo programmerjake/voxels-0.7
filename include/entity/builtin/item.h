@@ -42,6 +42,8 @@ namespace builtin
 {
 class EntityItem final : public EntityDescriptor
 {
+    EntityItem(const EntityItem &) = delete;
+    EntityItem &operator =(const EntityItem &) = delete;
 private:
     const enum_array<Mesh, RenderLayer> meshes;
     const bool renderDynamic;
@@ -77,6 +79,8 @@ public:
 private:
     struct ItemData final
     {
+        ItemData(const ItemData &) = delete;
+        ItemData &operator =(const ItemData &) = delete;
         float angle = 0, bobPhase = 0;
         double timeLeft = 5 * 60;
         double ignorePlayerTime = 0;

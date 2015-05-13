@@ -340,8 +340,11 @@ public:
 
         return retval;
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator final : public std::iterator<std::forward_iterator_tag, const BlockDescriptorPointer>
     {
+#pragma GCC diagnostic pop
         friend class BlockDescriptors_t;
         MapType::const_iterator iter;
         bool empty;

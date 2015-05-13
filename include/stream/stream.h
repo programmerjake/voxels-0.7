@@ -612,9 +612,12 @@ struct rw_class_traits<T, typename std::enable_if<std::is_enum<T>::value || std:
     typedef T value_type;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_pod>::type> : public read_base<typename rw_class_traits<T>::value_type>
 {
+#pragma GCC diagnostic pop
     read(Reader &reader)
         : read_base<typename rw_class_traits<T>::value_type>(T::read(reader))
     {
@@ -625,9 +628,12 @@ struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_trait
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_cached>::type> : public read_base<typename rw_class_traits<T>::value_type>
 {
+#pragma GCC diagnostic pop
     read(Reader &reader, VariableSet &variableSet)
         : read_base<typename rw_class_traits<T>::value_type>(rw_cached_helper<T>::read(reader, variableSet))
     {
@@ -659,18 +665,24 @@ struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_trai
 template <typename T, typename = void>
 struct read_finite;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct read_finite<T, typename std::enable_if<std::is_integral<T>::value>::type> : public stream::read<T>
 {
+#pragma GCC diagnostic pop
     read_finite(Reader & reader)
         : stream::read<T>(reader)
     {
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 inline typename rw_class_traits<T>::value_type read_checked(Reader & reader, std::function<bool(typename rw_class_traits<T>::value_type)> checkFn)
 {
+#pragma GCC diagnostic pop
     typename rw_class_traits<T>::value_type retval = stream::read<T>(reader);
     if(!checkFn(retval))
     {
@@ -784,6 +796,8 @@ struct write<typeName, void> \
     } \
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::uint8_t, U8)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::int8_t, S8)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::uint16_t, U16)
@@ -796,14 +810,18 @@ DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(float32_t, F32)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(float64_t, F64)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(std::wstring, String)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(bool, Bool)
+#pragma GCC diagnostic pop
 
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct read<T, typename std::enable_if<std::is_enum<T>::value>::type> : public read_base<T>
 {
+#pragma GCC diagnostic pop
     read(Reader &reader)
         : read_base<T>((T)(typename enum_traits<T>::rwtype)stream::read_limited<typename enum_traits<T>::rwtype>(reader, (typename enum_traits<T>::rwtype)enum_traits<T>::minimum, (typename enum_traits<T>::rwtype)enum_traits<T>::maximum))
     {
@@ -827,9 +845,12 @@ struct write<T, typename std::enable_if<std::is_enum<T>::value>::type>
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct read_nonnull : public read_base<std::shared_ptr<T>>
 {
+#pragma GCC diagnostic pop
     read_nonnull(Reader &reader, VariableSet &variableSet)
         : read_base<std::shared_ptr<T>>((std::shared_ptr<T>)read<T>(reader, variableSet))
     {
@@ -840,10 +861,13 @@ struct read_nonnull : public read_base<std::shared_ptr<T>>
 
 class FileReader final : public Reader
 {
+    FileReader(const FileReader &) = delete;
+    FileReader &operator =(const FileReader &) = delete;
 private:
     FILE * f;
 public:
     FileReader(std::wstring fileName)
+        : f(nullptr)
     {
         std::string str = string_cast<std::string>(fileName);
         f = std::fopen(str.c_str(), "rb");
@@ -874,10 +898,13 @@ public:
 
 class FileWriter final : public Writer
 {
+    FileWriter(const FileWriter &) = delete;
+    FileWriter &operator =(const FileWriter &) = delete;
 private:
     FILE * f;
 public:
     FileWriter(std::wstring fileName)
+        : f(nullptr)
     {
         std::string str = string_cast<std::string>(fileName);
         f = std::fopen(str.c_str(), "wb");
@@ -921,7 +948,7 @@ public:
     {
     }
     explicit MemoryReader(const std::vector<std::uint8_t> &mem)
-        : offset(0), length(mem.size())
+        : mem(), offset(0), length(mem.size())
     {
         std::uint8_t * memory = new std::uint8_t[mem.size()];
         for(std::size_t i = 0; i < mem.size(); i++)
@@ -955,9 +982,11 @@ private:
     std::vector<std::uint8_t> memory;
 public:
     MemoryWriter()
+        : memory()
     {
     }
     explicit MemoryWriter(std::size_t expectedLength)
+        : memory()
     {
         memory.reserve(expectedLength);
     }
@@ -1073,6 +1102,7 @@ private:
     std::shared_ptr<StreamRW> port1Internal, port2Internal;
 public:
     StreamBidirectionalPipe()
+        : pipe1(), pipe2(), port1Internal(), port2Internal()
     {
         port1Internal = std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe1.preader(), pipe2.pwriter()));
         port2Internal = std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe2.preader(), pipe1.pwriter()));

@@ -35,8 +35,11 @@ namespace voxels
 {
 class PositionF;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 struct PositionI : public VectorI
 {
+#pragma GCC diagnostic pop
     Dimension d;
     constexpr PositionI()
         : d(Dimension::Overworld)
@@ -179,8 +182,11 @@ namespace programmerjake
 {
 namespace voxels
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class PositionF : public VectorF
 {
+#pragma GCC diagnostic pop
 public:
     Dimension d;
     constexpr PositionF()

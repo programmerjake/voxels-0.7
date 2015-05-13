@@ -39,10 +39,13 @@ namespace
 {
 class SmallOakTree : public TreeDescriptor
 {
+    SmallOakTree(const SmallOakTree &) = delete;
+    SmallOakTree &operator =(const SmallOakTree &) = delete;
 public:
     DecoratorDescriptorPointer decorator;
     SmallOakTree()
-        : TreeDescriptor(L"builtin.small_oak", 1, true, 9)
+        : TreeDescriptor(L"builtin.small_oak", 1, true, 9),
+        decorator()
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
@@ -189,10 +192,13 @@ public:
 };
 class LargeOakTree : public TreeDescriptor
 {
+    LargeOakTree(const LargeOakTree &) = delete;
+    LargeOakTree &operator =(const LargeOakTree &) = delete;
 public:
     DecoratorDescriptorPointer decorator;
     LargeOakTree()
-        : TreeDescriptor(L"builtin.large_oak", 1, true, 1)
+        : TreeDescriptor(L"builtin.large_oak", 1, true, 1),
+        decorator()
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
@@ -441,11 +447,15 @@ public:
 };
 class BirchTree : public TreeDescriptor
 {
+    BirchTree(const BirchTree &) = delete;
+    BirchTree &operator =(const BirchTree &) = delete;
 public:
     DecoratorDescriptorPointer decorator;
     const bool isTallVariant;
     BirchTree(bool isTallVariant)
-        : TreeDescriptor(isTallVariant ? L"builtin.tall_birch" : L"builtin.birch", 1, !isTallVariant, 9), isTallVariant(isTallVariant)
+        : TreeDescriptor(isTallVariant ? L"builtin.tall_birch" : L"builtin.birch", 1, !isTallVariant, 9),
+        decorator(),
+        isTallVariant(isTallVariant)
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }

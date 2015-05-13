@@ -129,10 +129,20 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             constexpr std::size_t bigHashPrime = 14713, smallHashPrime = 91;
             struct HashNode final
             {
+                HashNode(const HashNode &) = delete;
+                HashNode &operator =(const HashNode &) = delete;
                 ObjectCounter<PhysicsWorld, 1> objectCounter;
                 HashNode * hashNext;
                 int x, z;
                 std::shared_ptr<PhysicsObject> object;
+                HashNode()
+                    : objectCounter(),
+                    hashNext(),
+                    x(),
+                    z(),
+                    object()
+                {
+                }
             };
             checked_array<HashNode *, bigHashPrime> overallHashTable;
             overallHashTable.fill(nullptr);

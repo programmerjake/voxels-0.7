@@ -72,7 +72,7 @@ protected:
 public:
     using Element::render;
     Container(float minX, float maxX, float minY, float maxY)
-        : Element(minX, maxX, minY, maxY)
+        : Element(minX, maxX, minY, maxY), elements(), touchElementMap()
     {
     }
     std::shared_ptr<Container> add(std::shared_ptr<Element> element)

@@ -40,6 +40,8 @@ namespace builtin
 {
 class WoodLog : public FullBlock
 {
+    WoodLog(const WoodLog &) = delete;
+    WoodLog &operator =(const WoodLog &) = delete;
 protected:
     const WoodDescriptorPointer woodDescriptor;
     const LogOrientation logOrientation;
@@ -158,6 +160,8 @@ public:
 
 class WoodPlanks : public FullBlock
 {
+    WoodPlanks(const WoodPlanks &) = delete;
+    WoodPlanks &operator =(const WoodPlanks &) = delete;
 protected:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -206,6 +210,8 @@ public:
 
 class WoodLeaves : public FullBlock
 {
+    WoodLeaves(const WoodLeaves &) = delete;
+    WoodLeaves &operator =(const WoodLeaves &) = delete;
 protected:
     const WoodDescriptorPointer woodDescriptor;
     const bool canDecay;
@@ -322,8 +328,14 @@ protected:
     }
 public:
     WoodLeaves(WoodDescriptorPointer woodDescriptor, bool canDecay)
-        : FullBlock(makeName(woodDescriptor, canDecay), LightProperties(Lighting(), Lighting::makeDirectOnlyLighting()), RayCasting::BlockCollisionMaskGround,
-                    false, false, false, false, false, false), woodDescriptor(woodDescriptor), canDecay(canDecay)
+        : FullBlock(makeName(woodDescriptor, canDecay),
+                    LightProperties(Lighting(),
+                                    Lighting::makeDirectOnlyLighting()),
+                    RayCasting::BlockCollisionMaskGround,
+                    false, false, false, false, false, false),
+        woodDescriptor(woodDescriptor),
+        canDecay(canDecay),
+        meshBlockedFace()
     {
         TextureDescriptor td = woodDescriptor->getLeavesTexture();
         meshFace[BlockFace::NX] = makeFaceMeshNX(td);
@@ -460,6 +472,8 @@ public:
 
 class Sapling : public Plant
 {
+    Sapling(const Sapling &) = delete;
+    Sapling &operator =(const Sapling &) = delete;
 protected:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor, unsigned frame)

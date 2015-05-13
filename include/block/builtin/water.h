@@ -42,6 +42,7 @@ private:
         friend class global_instance_maker<WaterConstructor>;
         checked_array<checked_array<Water *, 8>, 2> descriptors;
         WaterConstructor()
+            : descriptors()
         {
             for(int falling = 0; falling <= 1; falling++)
             {

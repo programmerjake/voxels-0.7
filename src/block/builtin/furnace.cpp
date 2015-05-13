@@ -35,6 +35,8 @@ namespace builtin
 {
 class FurnaceUi final : public PlayerDialog
 {
+    FurnaceUi(const FurnaceUi &) = delete;
+    FurnaceUi &operator =(const FurnaceUi &) = delete;
 private:
     std::shared_ptr<Blocks::builtin::Furnace::FurnaceData> furnaceData;
     PositionI blockPosition;

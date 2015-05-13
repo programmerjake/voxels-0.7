@@ -56,6 +56,7 @@ private:
     std::list<std::function<ReturnType (EventArguments &args)>> functions;
 public:
     explicit Event(std::function<ReturnType (EventArguments &args)> fn = nullptr)
+        : functions()
     {
         bind(fn);
     }

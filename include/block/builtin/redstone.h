@@ -261,6 +261,7 @@ private:
         checked_array<enum_array<enum_array<enum_array<enum_array<const RedstoneDust *, EdgeAttachedState>, EdgeAttachedState>, EdgeAttachedState>, EdgeAttachedState>, RedstoneSignal::maxSignalStrength + 1> descriptors;
     public:
         RedstoneDustConstructor()
+            : descriptors()
         {
             for(int signalStrength = 0; signalStrength <= RedstoneSignal::maxSignalStrength; signalStrength++)
             {
@@ -550,6 +551,7 @@ private:
         enum_array<enum_array<RedstoneTorch *, bool>, BlockFace> torches;
     public:
         RedstoneTorchInstanceMaker()
+            : torches()
         {
             for(BlockFace bf : enum_traits<BlockFace>())
             {

@@ -81,7 +81,7 @@ protected:
 };
 
 inline BiomeDescriptor::BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor)
-    : name(name), temperature(temperature), humidity(humidity), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
+    : index(), name(name), temperature(temperature), humidity(humidity), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
 {
     BiomeDescriptors.addBiome(this);
 }

@@ -60,7 +60,7 @@ struct blocking_spin_lock final
     std::condition_variable cond;
     std::mutex lockMutex;
     blocking_spin_lock()
-        : waitingCount(0)
+        : waitingCount(0), cond(), lockMutex()
     {
     }
     bool try_lock()

@@ -38,7 +38,10 @@ private:
     const VectorI baseOffset, theSize;
 public:
     PregeneratedDecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor, VectorI baseOffset, VectorI theSize)
-        : DecoratorInstance(position, descriptor), baseOffset(baseOffset), theSize(theSize)
+        : DecoratorInstance(position, descriptor),
+        blocks(),
+        baseOffset(baseOffset),
+        theSize(theSize)
     {
         blocks.resize(theSize.x * theSize.y * theSize.z);
     }

@@ -61,6 +61,8 @@ public:
 };
 class WoodLog final : public ItemBlock
 {
+    WoodLog(const WoodLog &) = delete;
+    WoodLog &operator =(const WoodLog &) = delete;
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -118,6 +120,8 @@ public:
 };
 class WoodPlanks final : public ItemBlock
 {
+    WoodPlanks(const WoodPlanks &) = delete;
+    WoodPlanks &operator =(const WoodPlanks &) = delete;
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -144,6 +148,8 @@ public:
 };
 class WoodLeaves final : public ItemBlock
 {
+    WoodLeaves(const WoodLeaves &) = delete;
+    WoodLeaves &operator =(const WoodLeaves &) = delete;
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -171,6 +177,8 @@ public:
 };
 class Sapling final : public ItemImage
 {
+    Sapling(const Sapling &) = delete;
+    Sapling &operator =(const Sapling &) = delete;
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)

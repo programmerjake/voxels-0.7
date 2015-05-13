@@ -55,7 +55,7 @@ struct Pipe
     size_t bufferSizes[2];
     uint8_t buffers[2][bufferSize];
     Pipe()
-        : bufferSizes{0, 0}
+        : lock(), cond(), bufferSizes{0, 0}
     {
     }
 };
@@ -181,6 +181,7 @@ public:
 }
 
 StreamPipe::StreamPipe()
+    : readerInternal(), writerInternal()
 {
     shared_ptr<Pipe> pipe = make_shared<Pipe>();
     readerInternal = shared_ptr<Reader>(new PipeReader(pipe));

@@ -28,14 +28,14 @@ namespace programmerjake
 namespace voxels
 {
 ItemDescriptor::ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform)
-    : name(name)
+    : name(name), entity()
 {
     entity = new Entities::builtin::EntityItem(this, entityPreorientSelectionBoxTransform);
     ItemDescriptors.add(this);
 }
 
 ItemDescriptor::ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform)
-    : name(name)
+    : name(name), entity()
 {
     entity = new Entities::builtin::EntityItem(this, entityMeshes, entityPreorientSelectionBoxTransform);
     ItemDescriptors.add(this);

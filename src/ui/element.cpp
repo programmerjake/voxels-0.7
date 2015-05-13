@@ -27,7 +27,7 @@ namespace voxels
 namespace ui
 {
 Element::Element(float minX, float maxX, float minY, float maxY)
-    : minX(minX), maxX(maxX), minY(minY), maxY(maxY)
+    : minX(minX), maxX(maxX), minY(minY), maxY(maxY), parent()
 {
     assert(minX < maxX && minY < maxY);
 }

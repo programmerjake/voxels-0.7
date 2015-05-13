@@ -41,11 +41,13 @@ struct Parser
     shared_ptr<Script> script;
     wstring code;
     Parser(wstring code)
-        : script(make_shared<Script>()), code(L"{ " + code + L" }")
+        : script(make_shared<Script>()),
+        code(L"{ " + code + L" }"),
+        wordTokens()
     {
         init();
     }
-    wint_t curChar = L' ', pushedChar;
+    wint_t curChar = L' ', pushedChar = 0;
     bool hasPushedChar = false;
     size_t nextStringIndex = 0;
     int curCol = 0, curLine = 1;
@@ -175,9 +177,9 @@ struct Parser
     TokenType tokenType = TokenType::Comma;
     wstring tokenText = L"";
     bool hasPutbackToken = false;
-    TokenType lastToken;
-    wstring lastTokenText;
-    int tokLine, tokCol;
+    TokenType lastToken = TokenType();
+    wstring lastTokenText = L"";
+    int tokLine = 0, tokCol = 0;
     unordered_map<wstring, TokenType> wordTokens;
 
     void init()

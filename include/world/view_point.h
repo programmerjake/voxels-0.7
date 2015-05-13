@@ -47,6 +47,10 @@ class ViewPoint final
     {
         enum_array<Mesh, RenderLayer> meshes;
         enum_array<MeshBuffer, RenderLayer> meshBuffers;
+        Meshes()
+            : meshes(), meshBuffers()
+        {
+        }
     };
     std::shared_ptr<Meshes> blockRenderMeshes;
     std::shared_ptr<Meshes> nextBlockRenderMeshes;

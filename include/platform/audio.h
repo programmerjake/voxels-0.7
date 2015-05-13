@@ -130,7 +130,7 @@ class ResampleAudioDecoder final : public AudioDecoder
     unsigned sampleRate, channels;
 public:
     ResampleAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned sampleRate)
-        : decoder(decoder), sampleRate(sampleRate), channels(decoder->channelCount())
+        : decoder(decoder), buffer(), sampleRate(sampleRate), channels(decoder->channelCount())
     {
         constexpr std::size_t size = 1024;
         buffer.resize(channels * size);
@@ -214,7 +214,7 @@ class RedistributeChannelsAudioDecoder final : public AudioDecoder
     std::vector<float> buffer;
 public:
     RedistributeChannelsAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned channelCountIn)
-        : decoder(decoder), channels(channelCountIn)
+        : decoder(decoder), channels(channelCountIn), buffer()
     {
     }
     virtual unsigned samplesPerSecond() override
@@ -719,7 +719,18 @@ class StreamBufferingAudioDecoder final : public AudioDecoder
     unsigned samplesPerSecondValue;
 public:
     StreamBufferingAudioDecoder(std::shared_ptr<AudioDecoder> decoder)
-        : decoder(decoder)
+        : decoder(decoder),
+        leftovers(),
+        fullBuffers(),
+        emptyBuffers(),
+        buffersListsLock(),
+        readerCond(),
+        writerCond(),
+        done(),
+        decoderThread(),
+        numSamplesValue(),
+        channelCountValue(),
+        samplesPerSecondValue()
     {
         numSamplesValue = decoder->numSamples();
         channelCountValue = decoder->channelCount();
@@ -798,7 +809,11 @@ class LoopingAudioDecoder final : public AudioDecoder
     bool isHighLatencySourceValue;
 public:
     LoopingAudioDecoder(std::function<std::shared_ptr<AudioDecoder>()> decoderFactory, bool isHighLatencySourceValue = true)
-        : decoderFactory(decoderFactory), isHighLatencySourceValue(isHighLatencySourceValue)
+        : decoder(),
+        decoderFactory(decoderFactory),
+        samplesPerSecondValue(),
+        channelCountValue(),
+        isHighLatencySourceValue(isHighLatencySourceValue)
     {
         decoder = decoderFactory();
         if(!decoder)

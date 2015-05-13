@@ -92,6 +92,7 @@ void dump(const checked_array<T, N> &v)
 }
 #endif
 BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
+    : lightValues()
 {
     checked_array<checked_array<checked_array<bool, 3>, 3>, 3> isOpaque, setOpaque;
     for(int x = 0; x < 3; x++)

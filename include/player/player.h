@@ -65,7 +65,7 @@ private:
     Mesh rightLeg;
     void generateMeshes();
     PlayerEntity()
-        : EntityDescriptor(L"builtin.player")
+        : EntityDescriptor(L"builtin.player"), head(), body(), leftArm(), rightArm(), leftLeg(), rightLeg()
     {
         generateMeshes();
     }
@@ -152,7 +152,16 @@ public:
     std::recursive_mutex itemsLock;
     bool setDialog(std::shared_ptr<ui::Ui> ui);
     Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi)
-        : gameInput(gameInput), gameUi(gameUi), name(name)
+        : playersListMembers(),
+        lastPosition(),
+        gameInput(gameInput),
+        playerEntity(),
+        gameInputMonitoring(),
+        gameUi(gameUi),
+        destructingPosition(),
+        name(name),
+        items(),
+        itemsLock()
     {
         assert(gameInput != nullptr);
         assert(gameUi != nullptr);

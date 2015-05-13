@@ -109,6 +109,8 @@ namespace builtin
 {
 class CraftingTableRecipe : PatternRecipe<2, 2>
 {
+    CraftingTableRecipe(CraftingTableRecipe &) = delete;
+    CraftingTableRecipe &operator =(CraftingTableRecipe &) = delete;
 private:
     WoodDescriptorPointer woodDescriptor;
 public:
@@ -132,6 +134,8 @@ protected:
 
 class WoodToPlanksRecipe final : public UnorderedRecipe
 {
+    WoodToPlanksRecipe(WoodToPlanksRecipe &) = delete;
+    WoodToPlanksRecipe &operator =(WoodToPlanksRecipe &) = delete;
 private:
     WoodDescriptorPointer woodDescriptor;
 public:
@@ -151,6 +155,8 @@ protected:
 
 class PlanksToSticksRecipe final : public PatternRecipe<1, 2>
 {
+    PlanksToSticksRecipe(PlanksToSticksRecipe &) = delete;
+    PlanksToSticksRecipe &operator =(PlanksToSticksRecipe &) = delete;
 private:
     WoodDescriptorPointer woodDescriptor;
 public:

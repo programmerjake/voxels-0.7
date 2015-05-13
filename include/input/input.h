@@ -53,6 +53,24 @@ struct GameInput
     MonitoredBool paused; // p esc
     MonitoredFloat viewTheta;
     MonitoredFloat viewPhi;
+    GameInput()
+        : isCreativeMode(),
+        jump(),
+        fly(),
+        moveDirectionPlayerRelative(),
+        attack(),
+        action(),
+        hotBarMoveLeft(),
+        hotBarMoveRight(),
+        hotBarSelect(),
+        sneak(),
+        drop(),
+        openInventory(),
+        paused(),
+        viewTheta(),
+        viewPhi()
+    {
+    }
 };
 }
 }

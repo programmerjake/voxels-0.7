@@ -40,8 +40,11 @@ namespace voxels
 {
 namespace Scripting
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     struct Data : public std::enable_shared_from_this<Data>
     {
+#pragma GCC diagnostic pop
         enum class Type : std::uint8_t
         {
             Boolean,
@@ -463,8 +466,11 @@ namespace Scripting
         }
     };
     struct State;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     struct Node : public std::enable_shared_from_this<Node>
     {
+#pragma GCC diagnostic pop
         enum class Type : std::uint16_t
         {
             Const,
@@ -562,8 +568,11 @@ namespace Scripting
     };
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class Script final : public std::enable_shared_from_this<Script>
 {
+#pragma GCC diagnostic pop
 public:
     std::vector<std::shared_ptr<Scripting::Node>> nodes;
     std::shared_ptr<Scripting::Data> evaluate(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const

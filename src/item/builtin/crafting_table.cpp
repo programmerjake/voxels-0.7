@@ -41,7 +41,11 @@ private:
     RecipeOutput recipeOutput;
 public:
     CraftingTableUi(std::shared_ptr<Player> player)
-        : PlayerDialog(player, TextureAtlas::WorkBenchUI.td())
+        : PlayerDialog(player, TextureAtlas::WorkBenchUI.td()),
+        recipeInput(),
+        inputItemStacks(),
+        output(),
+        recipeOutput()
     {
     }
 private:

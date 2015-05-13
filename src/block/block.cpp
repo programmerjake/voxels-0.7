@@ -32,7 +32,16 @@ std::size_t BlockDescriptorIndex::blockDescriptorTableSize = 0, BlockDescriptorI
 
 
 BlockDescriptor::BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer)
-    : name(name), blockShape(blockShape), lightProperties(lightProperties), blockRayCollisionMask(blockRayCollisionMask), isStaticMesh(isStaticMesh), staticRenderLayer(staticRenderLayer)
+    : bdIndex(),
+    name(name),
+    blockShape(blockShape),
+    lightProperties(lightProperties),
+    blockRayCollisionMask(blockRayCollisionMask),
+    isStaticMesh(isStaticMesh),
+    isFaceBlocked(),
+    meshCenter(),
+    meshFace(),
+    staticRenderLayer(staticRenderLayer)
 {
     isFaceBlocked[BlockFace::NX] = isFaceBlockedNX;
     isFaceBlocked[BlockFace::PX] = isFaceBlockedPX;
@@ -90,6 +99,7 @@ PackedBlock::PackedBlock(const Block &b)
 #endif
 
 BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd)
+    : index()
 {
     if(bd == nullptr)
         index = NullIndex;

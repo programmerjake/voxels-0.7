@@ -45,6 +45,10 @@ void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus
                 return false;
             return true;
         }
+        MyElementType()
+            : element(), depth(), hasFocus()
+        {
+        }
     };
     std::vector<MyElementType> myElements;
     myElements.reserve(elements.size());

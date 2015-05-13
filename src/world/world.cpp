@@ -66,6 +66,11 @@ private:
         checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> columns;
         std::list<PositionI>::iterator chunksListIterator;
         bool empty = true;
+        Chunk()
+            : columns(),
+            chunksListIterator()
+        {
+        }
     };
     std::unordered_map<PositionI, Chunk> chunks;
     std::list<PositionI> chunksList;
@@ -101,6 +106,11 @@ private:
         return retval;
     }
 public:
+    BiomesCache()
+        : chunks(),
+        chunksList()
+    {
+    }
     void fillWorldChunk(World &world, PositionI chunkBasePosition, WorldLockManager &lock_manager, RandomSource &randomSource)
     {
         Chunk &c = getChunk(chunkBasePosition, randomSource);
@@ -117,6 +127,12 @@ private:
         checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         std::list<PositionI>::iterator chunksListIterator;
         bool empty = true;
+        Chunk()
+            : blocks(),
+            groundHeights(),
+            chunksListIterator()
+        {
+        }
     };
     std::unordered_map<PositionI, Chunk> chunks;
     std::list<PositionI> chunksList;
@@ -159,6 +175,11 @@ private:
         return retval;
     }
 public:
+    GroundChunksCache()
+        : chunks(),
+        chunksList()
+    {
+    }
     template <typename T>
     void getChunk(PositionI chunkBasePosition, BlocksGenerateArray &blocks, checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights, T generateFn)
     {
@@ -411,7 +432,24 @@ World::SeedType makeRandomSeed()
 }
 
 World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag)
-    : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
+    : randomGenerator(seed),
+    randomGeneratorLock(),
+    wrng(*this),
+    physicsWorld(std::make_shared<PhysicsWorld>()),
+    worldGenerator(worldGenerator),
+    worldGeneratorSeed(seed),
+    lightingThreads(),
+    blockUpdateThreads(),
+    particleGeneratingThread(),
+    moveEntitiesThread(),
+    chunkGeneratingThreads(),
+    destructing(false),
+    lightingStable(false),
+    viewPointsLock(),
+    viewPoints(),
+    moveEntitiesThreadCond(),
+    moveEntitiesThreadLock(),
+    timeOfDayLock()
 {
 }
 
@@ -535,7 +573,24 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
 }
 
 World::World(SeedType seed, const WorldGenerator *worldGenerator)
-    : randomGenerator(seed), wrng(*this), physicsWorld(std::make_shared<PhysicsWorld>()), worldGenerator(worldGenerator), worldGeneratorSeed(seed), destructing(false), lightingStable(false)
+    : randomGenerator(seed),
+    randomGeneratorLock(),
+    wrng(*this),
+    physicsWorld(std::make_shared<PhysicsWorld>()),
+    worldGenerator(worldGenerator),
+    worldGeneratorSeed(seed),
+    lightingThreads(),
+    blockUpdateThreads(),
+    particleGeneratingThread(),
+    moveEntitiesThread(),
+    chunkGeneratingThreads(),
+    destructing(false),
+    lightingStable(false),
+    viewPointsLock(),
+    viewPoints(),
+    moveEntitiesThreadCond(),
+    moveEntitiesThreadLock(),
+    timeOfDayLock()
 {
     thread([&]()
     {

@@ -40,7 +40,11 @@ private:
     RecipeOutput recipeOutput;
 public:
     PlayerInventory(std::shared_ptr<Player> player)
-        : PlayerDialog(player, TextureAtlas::InventoryUI.td())
+        : PlayerDialog(player, TextureAtlas::InventoryUI.td()),
+        recipeInput(),
+        inputItemStacks(),
+        output(),
+        recipeOutput()
     {
     }
 private:

@@ -38,7 +38,7 @@ private:
     mutable std::atomic_size_t waitingCount;
 public:
     flag(bool value = false)
-        : value(value)
+        : lock(), cond(), value(value), waitingCount(0)
     {
     }
     const flag &operator =(bool v)

@@ -35,9 +35,13 @@ namespace builtin
 {
 class TileEntity final : public EntityDescriptor
 {
+    TileEntity(const TileEntity &) = delete;
+    TileEntity &operator =(const TileEntity &) = delete;
 private:
     struct TileData final
     {
+        TileData(const TileData &) = delete;
+        TileData &operator =(const TileData &) = delete;
         Block expectedBlock;
         PositionI expectedPosition;
         std::atomic_bool *hasEntity;

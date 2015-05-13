@@ -253,9 +253,12 @@ protected:
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
 struct BlockDataPointer : public BlockDataPointerBase
 {
+#pragma GCC diagnostic pop
     T *get() const
     {
         return static_cast<T *>(BlockDataPointerBase::get());
@@ -360,17 +363,21 @@ struct Block final
     Lighting lighting;
     BlockDataPointer<BlockData> data;
     Block()
-        : descriptor(nullptr), data(nullptr)
+        : descriptor(nullptr), lighting(), data(nullptr)
     {
     }
     Block(BlockDescriptorPointer descriptor, BlockDataPointer<BlockData> data = nullptr)
-        : descriptor(descriptor), data(data)
+        : descriptor(descriptor), lighting(), data(data)
     {
     }
     Block(BlockDescriptorPointer descriptor, Lighting lighting, BlockDataPointer<BlockData> data = nullptr)
         : descriptor(descriptor), lighting(lighting), data(data)
     {
     }
+    Block(const Block &rt) = default;
+    Block(Block &&rt) = default;
+    Block &operator =(const Block &rt) = default;
+    Block &operator =(Block &&rt) = default;
     bool good() const
     {
         return descriptor != nullptr;
@@ -400,6 +407,9 @@ struct PackedBlock final
     BlockDataPointer<BlockData> data;
     explicit PackedBlock(const Block &b);
     PackedBlock()
+        : descriptor(),
+        lighting(),
+        data()
     {
     }
     explicit operator Block() const

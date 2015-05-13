@@ -59,7 +59,7 @@ struct PlayingAudioData
     bool overallEOF = false;
     uint64_t playedSamples = 0;
     PlayingAudioData(shared_ptr<AudioData> audioData, float volume, bool looped)
-        : audioData(audioData), volume(volume), looped(looped)
+        : audioData(audioData), decoder(), bufferQueue(), volume(volume), looped(looped)
     {
         restartDecoder();
     }
@@ -248,6 +248,7 @@ double PlayingAudio::duration()
 }
 
 Audio::Audio(wstring resourceName, bool isStreaming)
+    : data()
 {
     if(isStreaming)
     {
@@ -293,6 +294,7 @@ Audio::Audio(wstring resourceName, bool isStreaming)
 }
 
 Audio::Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCount)
+    : data()
 {
     shared_ptr<MemoryAudioDecoder> memDecoder = make_shared<MemoryAudioDecoder>(data, sampleRate, channelCount);
     this->data = make_shared<AudioData>([memDecoder]()->shared_ptr<AudioDecoder>{memDecoder->reset(); return memDecoder;});

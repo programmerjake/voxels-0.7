@@ -91,9 +91,10 @@ public:
     }
     atomic_shared_ptr(const atomic_shared_ptr &) = delete;
     const atomic_shared_ptr &operator =(const atomic_shared_ptr &) = delete;
-    void operator =(std::shared_ptr<T> value)
+    atomic_shared_ptr &operator =(std::shared_ptr<T> value)
     {
         store(std::move(value));
+        return *this;
     }
     void store(std::shared_ptr<T> value)
     {
@@ -178,9 +179,10 @@ public:
     }
     atomic_shared_ptr(const atomic_shared_ptr &) = delete;
     const atomic_shared_ptr &operator =(const atomic_shared_ptr &) = delete;
-    void operator =(std::shared_ptr<T> value)
+    atomic_shared_ptr &operator =(std::shared_ptr<T> value)
     {
         store(std::move(value));
+        return *this;
     }
     void store(std::shared_ptr<T> value)
     {

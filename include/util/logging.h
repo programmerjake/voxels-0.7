@@ -41,6 +41,8 @@ struct post_t
 
 class LogStream : public std::wostringstream
 {
+    LogStream(const LogStream &) = delete;
+    LogStream &operator =(const LogStream &) = delete;
 private:
     std::function<void(std::wstring)> *const postFunction;
 public:

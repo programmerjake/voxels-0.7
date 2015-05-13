@@ -38,6 +38,8 @@ namespace ui
 {
 class UiItem : public Element
 {
+    UiItem(const UiItem &) = delete;
+    UiItem operator =(const UiItem &) = delete;
 private:
     std::shared_ptr<ItemStack> itemStack;
     std::recursive_mutex *itemStackLock;
@@ -98,6 +100,8 @@ protected:
 
 class UiItemWithBorder : public Element
 {
+    UiItemWithBorder(const UiItemWithBorder &) = delete;
+    UiItemWithBorder &operator =(const UiItemWithBorder &) = delete;
 private:
     std::shared_ptr<ItemStack> itemStack;
     std::recursive_mutex *itemStackLock;

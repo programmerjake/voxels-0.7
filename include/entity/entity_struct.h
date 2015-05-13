@@ -39,6 +39,10 @@ typedef const EntityDescriptor *EntityDescriptorPointer;
 
 struct Entity final
 {
+    Entity(const Entity &) = default;
+    Entity &operator =(const Entity &) = default;
+    Entity(Entity &&) = default;
+    Entity &operator =(Entity &&) = default;
     EntityDescriptorPointer descriptor;
     std::shared_ptr<PhysicsObject> physicsObject;
     std::shared_ptr<void> data;

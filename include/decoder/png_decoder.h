@@ -52,10 +52,8 @@ private:
 public:
     explicit PngDecoder(stream::Reader & reader);
     PngDecoder(PngDecoder && rt)
+        : w(rt.w), h(rt.h), data(rt.data)
     {
-        w = rt.w;
-        h = rt.h;
-        data = rt.data;
         rt.data = nullptr;
     }
     ~PngDecoder()

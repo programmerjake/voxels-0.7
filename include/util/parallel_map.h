@@ -233,8 +233,11 @@ private:
             }
             return true;
         }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
         void operator ++()
         {
+#pragma GCC diagnostic pop
             if(node == nullptr)
                 return;
             lock();
@@ -256,8 +259,11 @@ private:
                 node = buckets[bucket_index];
             }
         }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
         void operator ++(int)
         {
+#pragma GCC diagnostic pop
             operator ++();
         }
         bool operator ==(const iterator_imp &rt) const

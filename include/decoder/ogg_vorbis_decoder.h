@@ -88,7 +88,7 @@ private:
     }
 public:
     OggVorbisDecoder(std::shared_ptr<stream::Reader> reader)
-        : reader(reader)
+        : ovf(), reader(reader), samples(), channels(), sampleRate(), buffer()
     {
         ov_callbacks callbacks;
         callbacks.read_func = &read_fn;

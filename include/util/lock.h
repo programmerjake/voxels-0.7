@@ -118,7 +118,7 @@ private:
 public:
     template <typename T>
     explicit generic_lock_wrapper(T &theLock)
-        : pLock(static_cast<void *>(std::addressof(theLock)))
+        : pLock(static_cast<void *>(std::addressof(theLock))), lockFn(), try_lockFn(), unlockFn()
     {
         lockFn = [](void *pLock)->void
         {
@@ -154,6 +154,10 @@ private:
     {
         std::multiset<std::size_t> lock_levels;
         std::unordered_map<const void *, std::size_t> locks;
+        variables_t()
+            : lock_levels(), locks()
+        {
+        }
     };
     static variables_t &get_variables()
     {
@@ -214,6 +218,10 @@ class checked_lock final
 {
     std::mutex theLock;
 public:
+    checked_lock()
+        : theLock()
+    {
+    }
     static constexpr std::size_t lock_level = level;
 #ifdef DEBUG_LOCKS
     static constexpr bool DoCheck = true;
@@ -262,6 +270,10 @@ class checked_recursive_lock final
 {
     std::recursive_mutex theLock;
 public:
+    checked_recursive_lock()
+        : theLock()
+    {
+    }
     static constexpr std::size_t lock_level = level;
 #ifdef DEBUG_LOCKS
     static constexpr bool DoCheck = true;

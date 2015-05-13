@@ -296,7 +296,7 @@ private:
     static bool impIsEmpty(std::shared_ptr<MeshBufferImp> mesh);
     static std::size_t impCapacity(std::shared_ptr<MeshBufferImp> mesh);
     MeshBuffer(std::shared_ptr<MeshBufferImp> imp, Matrix tform)
-        : imp(imp), tform(tform)
+        : imp(std::move(imp)), tform(tform)
     {
     }
 public:

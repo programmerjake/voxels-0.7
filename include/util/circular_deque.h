@@ -47,8 +47,11 @@ private:
     value_type array[arraySize];
 public:
     friend class iterator;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class iterator final : public std::iterator<std::random_access_iterator_tag, value_type>
     {
+#pragma GCC diagnostic pop
         friend class circularDeque;
         friend class const_iterator;
     private:
@@ -220,8 +223,11 @@ public:
     };
 
     friend class const_iterator;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
     class const_iterator final : public std::iterator<std::random_access_iterator_tag, const value_type>
     {
+#pragma GCC diagnostic pop
         friend class circularDeque;
     private:
         const circularDeque *container;

@@ -42,7 +42,7 @@ public:
     Event onChange;
     template <typename ...Args>
     explicit MonitoredVariable(Args ...args)
-        : variable(std::forward<Args>(args)...)
+        : variable(std::forward<Args>(args)...), onChange()
     {
     }
     T &get()

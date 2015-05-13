@@ -39,6 +39,8 @@ namespace builtin
 {
 class TreeDecorator : public DecoratorDescriptor
 {
+    TreeDecorator(const TreeDecorator &) = delete;
+    TreeDecorator &operator =(const TreeDecorator &) = delete;
 public:
     const TreeDescriptorPointer treeDescriptor;
     TreeDecorator(TreeDescriptorPointer treeDescriptor)

@@ -44,6 +44,8 @@ namespace ui
 {
 class GameUi : public Ui
 {
+    GameUi(const GameUi &) = delete;
+    GameUi &operator =(const GameUi &) = delete;
 private:
     World &world;
     WorldLockManager &lock_manager;
@@ -83,7 +85,14 @@ private:
 public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
-        : world(world), lock_manager(lock_manager), gameInput(std::make_shared<GameInput>()), blockDestructProgress{-1.0f}
+        : world(world),
+        lock_manager(lock_manager),
+        viewPoint(),
+        gameInput(std::make_shared<GameInput>()),
+        player(),
+        playerEntity(),
+        newDialogLock(),
+        blockDestructProgress(-1.0f)
     {
         if(GameVersion::DEBUG)
             gameInput->paused.set(true);

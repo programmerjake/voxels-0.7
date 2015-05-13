@@ -44,6 +44,8 @@
 #include "util/linked_map.h"
 #include <vector>
 #include <chrono>
+#include <thread>
+#include <iostream>
 
 namespace programmerjake
 {
@@ -66,12 +68,12 @@ class BlockUpdate final
     friend class BlockUpdateIterator;
     friend struct BlockChunkChunkVariables;
 private:
-    BlockUpdate *chunk_prev;
-    BlockUpdate *chunk_next;
-    BlockUpdate *block_next;
-    PositionI position;
-    float time_left;
-    BlockUpdateKind kind;
+    BlockUpdate *chunk_prev = nullptr;
+    BlockUpdate *chunk_next = nullptr;
+    BlockUpdate *block_next = nullptr;
+    PositionI position = PositionI();
+    float time_left = 0;
+    BlockUpdateKind kind = BlockUpdateKind();
     BlockUpdate()
     {
     }
@@ -163,8 +165,11 @@ public:
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 class BlockUpdateIterator final : public std::iterator<std::forward_iterator_tag, const BlockUpdate>
 {
+#pragma GCC diagnostic pop
 private:
     friend class BlockIterator;
     friend class World;
@@ -251,12 +256,15 @@ class BlockOptionalDataHashTable;
 class BlockOptionalData final
 {
     friend class BlockOptionalDataHashTable;
+    BlockOptionalData(const BlockOptionalData &) = delete;
+    BlockOptionalData &operator =(const BlockOptionalData &) = delete;
 public:
     static constexpr int BlockChunkSubchunkShiftXYZ = 3;
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = 1 << BlockChunkSubchunkShiftXYZ;
 private:
-    BlockOptionalData *hashNext;
+    BlockOptionalData *hashNext = nullptr;
     BlockOptionalData()
+        : posX(), posY(), posZ(), data()
     {
     }
     ~BlockOptionalData()
@@ -270,6 +278,8 @@ private:
     }
     struct Allocator final
     {
+        Allocator(const Allocator &) = delete;
+        Allocator &operator =(const Allocator &) = delete;
     private:
         BlockOptionalData *freeListHead = nullptr;
         std::size_t freeListSize = 0;
@@ -339,6 +349,11 @@ public:
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = BlockOptionalData::BlockChunkSubchunkSizeXYZ;
 private:
     checked_array<BlockOptionalData *, (1 << 6)> table;
+    static std::thread::id getThreadId()
+    {
+        static thread_local std::thread::id retval = std::this_thread::get_id();
+        return retval;
+    }
     std::size_t hashPos(VectorI pos) const
     {
         assert(pos.x >= 0 && pos.x < BlockChunkSubchunkSizeXYZ);
@@ -398,6 +413,7 @@ public:
                 BlockOptionalData::free(node);
                 return;
             }
+            assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
     }
@@ -410,11 +426,14 @@ public:
             BlockOptionalData *node = *pNode;
             if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
             {
+                assert(node != node->hashNext);
                 *pNode = node->hashNext;
                 node->hashNext = *pTableEntry;
+                assert(node != node->hashNext);
                 *pTableEntry = node;
                 return node;
             }
+            assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
         BlockOptionalData *node = BlockOptionalData::allocate();
@@ -422,6 +441,7 @@ public:
         node->posY = pos.y;
         node->posZ = pos.z;
         node->hashNext = *pTableEntry;
+        assert(node != node->hashNext);
         *pTableEntry = node;
         return node;
     }
@@ -434,11 +454,14 @@ public:
             BlockOptionalData *node = *pNode;
             if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
             {
+                assert(node != node->hashNext);
                 *pNode = node->hashNext;
+                assert(node != node->hashNext);
                 node->hashNext = *pTableEntry;
                 *pTableEntry = node;
                 return node;
             }
+            assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
         return nullptr;
@@ -488,6 +511,10 @@ public:
 struct BlockChunkBiome final
 {
     BiomeProperties biomeProperties;
+    BlockChunkBiome()
+        : biomeProperties()
+    {
+    }
 };
 
 typedef std::uint64_t BlockChunkInvalidateCountType;
@@ -558,7 +585,8 @@ struct BlockChunkSubchunk final
         }
     }
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : lock(lockImp),
+        : lockImp(),
+          lock(lockImp),
           blockOptionalData(rt.blockOptionalData),
           blockKinds(rt.blockKinds),
           blockKindsMap(rt.blockKindsMap),
@@ -566,16 +594,22 @@ struct BlockChunkSubchunk final
           cachedMeshesUpToDate(false),
           entityList([](WrappedEntity *)
           {
-          })
+          }),
+          particleGeneratingSet()
     {
     }
     BlockChunkSubchunk()
-        : lock(lockImp),
+        : lockImp(),
+          lock(lockImp),
+          blockOptionalData(),
+          blockKinds(),
+          blockKindsMap(),
           cachedMeshes(nullptr),
           cachedMeshesUpToDate(false),
           entityList([](WrappedEntity *)
           {
-          })
+          }),
+          particleGeneratingSet()
     {
     }
     void invalidate()
@@ -587,23 +621,13 @@ struct BlockChunkSubchunk final
 
 struct BlockChunkChunkVariables final
 {
+    BlockChunkChunkVariables &operator =(const BlockChunkChunkVariables &) = delete;
     std::mutex cachedMeshesLock;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     bool generatingCachedMeshes = false;
     std::condition_variable cachedMeshesCond;
     std::atomic_bool cachedMeshesUpToDate;
     WorldLightingProperties wlp;
-    BlockChunkChunkVariables()
-        : cachedMeshes(nullptr), cachedMeshesUpToDate(false), entityList([](WrappedEntity *v)
-        {
-            delete v;
-        }), generated(false), generateStarted(false)
-    {
-    }
-    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
-        : BlockChunkChunkVariables()
-    {
-    }
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
@@ -617,10 +641,34 @@ struct BlockChunkChunkVariables final
     {
         cachedMeshesUpToDate = false;
     }
+    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
+        : BlockChunkChunkVariables()
+    {
+    }
+    BlockChunkChunkVariables()
+        : cachedMeshesLock(),
+          cachedMeshes(nullptr),
+          cachedMeshesCond(),
+          cachedMeshesUpToDate(false),
+          wlp(),
+          blockUpdateListLock(),
+          lastBlockUpdateTime(),
+          entityListLock(),
+          entityList([](WrappedEntity *v)
+          {
+              delete v;
+          }),
+          generated(false),
+          generateStarted(false)
+    {
+    }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiome, BlockChunkSubchunk, BlockChunkChunkVariables>
 {
+#pragma GCC diagnostic pop
     static_assert(BlockChunkBlock::blockKindBitWidth >= 3 * subchunkShiftXYZ, "BlockChunkBlock::blockKindBitWidth is too small");
     static_assert(BlockOptionalData::BlockChunkSubchunkShiftXYZ == subchunkShiftXYZ, "BlockOptionalData::BlockChunkSubchunkShiftXYZ is wrong value");
     ObjectCounter<BlockChunk, 0> objectCounter;
@@ -688,9 +736,11 @@ class BlockChunkFullLock final
             return std::move(retval);
         }
         SubchunkLockIterator()
+            : pos(), chunk()
         {
         }
         SubchunkLockIterator(VectorI pos, BlockChunk *chunk)
+            : pos(pos), chunk(chunk)
         {
         }
     };
@@ -751,9 +801,11 @@ class BlockChunkColumnLock final
             return std::move(retval);
         }
         SubchunkLockIterator()
+            : pos(), chunk()
         {
         }
         SubchunkLockIterator(VectorI pos, BlockChunk *chunk)
+            : pos(pos), chunk(chunk)
         {
         }
     };

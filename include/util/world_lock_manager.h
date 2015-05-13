@@ -89,6 +89,10 @@ struct WorldLockManager final
         }
     };
     LockManager<generic_lock_wrapper> block_biome_lock;
+    WorldLockManager()
+        : block_biome_lock()
+    {
+    }
     void clear()
     {
         block_biome_lock.clear();

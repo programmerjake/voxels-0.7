@@ -40,6 +40,8 @@ class TextureAtlas final
             : image(), fileName(fileName), width(width), height(height)
         {
         }
+        ImageDescriptor(const ImageDescriptor &) = default;
+        ImageDescriptor &operator =(const ImageDescriptor &) = delete;
     };
 	static checked_array<ImageDescriptor, 8> &textures();
     class TextureLoader final

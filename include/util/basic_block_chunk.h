@@ -66,7 +66,11 @@ struct BasicBlockChunk
     static_assert((subchunkSizeXYZ & (subchunkSizeXYZ - 1)) == 0, "subchunkSizeXYZ must be a power of 2");
     static_assert(subchunkSizeXYZ <= chunkSizeX && subchunkSizeXYZ <= chunkSizeY && subchunkSizeXYZ <= chunkSizeZ, "subchunkSizeXYZ must not be bigger than the chunk size");
     constexpr BasicBlockChunk(PositionI basePosition)
-        : basePosition(basePosition)
+        : basePosition(basePosition),
+        biomes(),
+        blocks(),
+        subchunks(),
+        chunkVariables()
     {
     }
     static constexpr PositionI getChunkBasePosition(PositionI pos)
@@ -284,9 +288,12 @@ struct BasicBlockChunk
     ChunkVariablesType chunkVariables;
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename BlockChunk>
 class BasicBlockChunkRelativePositionIterator final : public std::iterator<std::forward_iterator_tag, const VectorI>
 {
+#pragma GCC diagnostic pop
     VectorI pos;
     VectorI subchunkBasePos;
     VectorI subchunkRelativePos;
@@ -361,6 +368,8 @@ public:
     }
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
 template <typename ChunkType>
 class ChunkMap
 {
@@ -369,11 +378,13 @@ public:
 private:
     struct Node
     {
+        Node(const Node &) = delete;
+        Node &operator =(const Node &) = delete;
         value_type value;
         Node *hash_next;
         const std::size_t cachedHash;
         Node(PositionI chunkBasePosition, std::size_t cachedHash)
-            : value(chunkBasePosition), cachedHash(cachedHash)
+            : value(chunkBasePosition), hash_next(), cachedHash(cachedHash)
         {
         }
     };
@@ -739,7 +750,7 @@ public:
         }
     };
     explicit ChunkMap(std::size_t n)
-        : bucket_count(prime_ceiling(n))
+        : bucket_count(prime_ceiling(n)), buckets(), the_hasher()
     {
         buckets.resize(bucket_count);
         for(std::size_t i = 0; i < bucket_count; i++)
@@ -751,7 +762,7 @@ public:
     {
     }
     ChunkMap(const ChunkMap &r, std::size_t bucket_count)
-        : bucket_count(bucket_count), the_hasher(r.the_hasher)
+        : bucket_count(bucket_count), buckets(), the_hasher(r.the_hasher)
     {
         buckets.resize(bucket_count);
         for(std::size_t i = 0; i < bucket_count; i++)
@@ -1180,6 +1191,7 @@ public:
         return node_ptr();
     }
 };
+#pragma GCC diagnostic pop
 }
 }
 
