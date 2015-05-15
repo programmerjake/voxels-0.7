@@ -37,6 +37,6 @@ resurface.ogg        0.8  0.7  0.85  * 0.1
 shooting-stars.ogg  -0.8  0.7  0.75  * 0.1
 space-explorers.ogg -0.3  0.7  0.75  * 0.1
 spacial-winds.ogg    0.4  0.5  0.75  * 0.1
-sunrise.ogg         -0.2 20.0 -0.02  * 0.15
+sunrise.ogg         -0.2 20.0  0.98  * 0.15
 sunset.ogg          -0.2 20.0  0.52  * 0.15
 
