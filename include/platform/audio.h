@@ -914,6 +914,7 @@ public:
     {
         return play(1, looped);
     }
+    double duration();
 };
 }
 }

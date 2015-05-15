@@ -110,6 +110,7 @@
 			<Add library="z" />
 			<Add library="GL" />
 		</Linker>
+		<Unit filename="include/audio/audio_scheduler.h" />
 		<Unit filename="include/block/block.h" />
 		<Unit filename="include/block/block_struct.h" />
 		<Unit filename="include/block/builtin/air.h" />
@@ -206,6 +207,7 @@
 		<Unit filename="include/script/script.h" />
 		<Unit filename="include/script/script_nodes.h" />
 		<Unit filename="include/stream/compressed_stream.h" />
+		<Unit filename="include/stream/iostream.h" />
 		<Unit filename="include/stream/network.h" />
 		<Unit filename="include/stream/network_event.h" />
 		<Unit filename="include/stream/stream.h" />
@@ -269,12 +271,14 @@
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/variable_set.h" />
 		<Unit filename="include/util/vector.h" />
+		<Unit filename="include/util/wchar_bits.h" />
 		<Unit filename="include/util/wood_descriptor.h" />
 		<Unit filename="include/util/world_lock_manager.h" />
 		<Unit filename="include/util/wrapped_entity.h" />
 		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="include/world/world_generator.h" />
+		<Unit filename="src/audio/audio_scheduler.cpp" />
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
@@ -314,6 +318,7 @@
 		<Unit filename="src/render/text.cpp" />
 		<Unit filename="src/script/script.cpp" />
 		<Unit filename="src/stream/compressed_stream.cpp" />
+		<Unit filename="src/stream/iostream.cpp" />
 		<Unit filename="src/stream/network.cpp" />
 		<Unit filename="src/stream/stream.cpp" />
 		<Unit filename="src/texture/image.cpp" />

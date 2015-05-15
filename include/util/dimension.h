@@ -26,6 +26,7 @@
 #include "util/enum_traits.h"
 #include "util/color.h"
 #include "util/util.h"
+#include <string>
 
 namespace programmerjake
 {
@@ -113,6 +114,26 @@ inline bool hasMoon(Dimension d)
     {
     case Dimension::Overworld:
         return true;
+    }
+    UNREACHABLE();
+}
+
+inline float getDimensionalCreepiness(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return 0.0f;
+    }
+    UNREACHABLE();
+}
+
+inline std::wstring getDimensionName(Dimension d)
+{
+    switch(d)
+    {
+    case Dimension::Overworld:
+        return L"Overworld";
     }
     UNREACHABLE();
 }

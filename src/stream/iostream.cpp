@@ -18,35 +18,35 @@
  * MA 02110-1301, USA.
  *
  */
-#include "platform/platform.h"
-#include "platform/audio.h"
-#include "world/world.h"
-#include "util/logging.h"
-#include "ui/gameui.h"
-#include <vector>
-#include <string>
-#include <memory>
-#include "render/renderer.h"
-#include "render/render_settings.h"
+#include "stream/iostream.h"
+#include <iostream>
+#include "util/util.h"
+#include <cwchar>
+#include <cstdlib>
 
 namespace programmerjake
 {
 namespace voxels
 {
-int main(std::vector<std::wstring> args)
+namespace stream
 {
-    //globalRenderSettings.useFancyLeaves = true;
-    std::shared_ptr<World> world = std::make_shared<World>();
-    startGraphics();
-    Renderer renderer;
-    WorldLockManager lock_manager;
-    auto theUi = std::make_shared<ui::GameUi>(renderer, *world, lock_manager);
-    theUi->run(renderer);
-    theUi = nullptr;
-    endGraphics();
-    lock_manager.clear();
-    world = nullptr;
-    return 0;
+#if 0
+namespace
+{
+initializer init1([]()
+{
+    static const std::uint8_t a[] = "this is a test.\n";
+    MemoryReader reader(a);
+    ReaderIStream is(reader);
+    while(is.peek() != WEOF)
+    {
+        std::wcout << (wchar_t)is.peek() << L":" << (int)is.peek() << L"\n";
+        is.get();
+    }
+    std::exit(0);
+});
+}
+#endif
 }
 }
 }

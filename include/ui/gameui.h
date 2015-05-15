@@ -35,6 +35,7 @@
 #include <mutex>
 #include <sstream>
 #include <deque>
+#include "audio/audio_scheduler.h"
 
 namespace programmerjake
 {
@@ -47,6 +48,8 @@ class GameUi : public Ui
     GameUi(const GameUi &) = delete;
     GameUi &operator =(const GameUi &) = delete;
 private:
+    AudioScheduler audioScheduler;
+    std::shared_ptr<PlayingAudio> playingAudio;
     World &world;
     WorldLockManager &lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
@@ -85,7 +88,9 @@ private:
 public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
-        : world(world),
+        : audioScheduler(),
+        playingAudio(),
+        world(world),
         lock_manager(lock_manager),
         viewPoint(),
         gameInput(std::make_shared<GameInput>()),
@@ -100,6 +105,11 @@ public:
         viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 32 : 48);
         player = std::make_shared<Player>(L"default-player-name", gameInput, this);
         playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
+    }
+    ~GameUi()
+    {
+        if(playingAudio)
+            playingAudio->stop();
     }
     virtual void move(double deltaTime) override
     {
@@ -147,6 +157,17 @@ public:
             Display::grabMouse(!gameInput->paused.get());
             std::unique_lock<std::mutex> lockIt(newDialogLock);
             newDialog = nullptr;
+        }
+        if(playingAudio && !playingAudio->isPlaying())
+        {
+            playingAudio = nullptr;
+        }
+        if(!playingAudio)
+        {
+            PositionF p = player->getPosition();
+            float height = p.y;
+            float relativeHeight = height / World::SeaLevel;
+            playingAudio = audioScheduler.next(world.getTimeOfDayInSeconds(), world.dayDurationInSeconds, relativeHeight, p.d, 0.1f);
         }
     }
     bool setDialog(std::shared_ptr<Ui> newDialog)
@@ -454,6 +475,8 @@ public:
     virtual void reset() override
     {
         std::shared_ptr<Player> player = this->player;
+        World &world = this->world;
+        WorldLockManager &lock_manager = this->lock_manager;
         if(!addedUi)
         {
             addedUi = true;
@@ -470,7 +493,7 @@ public:
                     return player->currentItemIndex == i;
                 }, &player->itemsLock));
             }
-            add(std::make_shared<DynamicLabel>([](double deltaTime)->std::wstring
+            add(std::make_shared<DynamicLabel>([player, &world, &lock_manager](double deltaTime)->std::wstring
             {
                 static thread_local std::deque<double> samples;
                 samples.push_back(deltaTime);
@@ -497,14 +520,63 @@ public:
                 ss.width(5);
                 if(maxDeltaTime > 0)
                     ss << 1.0 / maxDeltaTime;
+                else
+                    ss << L"     ";
                 ss << L"/";
+                ss.width(5);
                 if(averageDeltaTime > 0)
                     ss << 1.0 / averageDeltaTime;
+                else
+                    ss << L"     ";
                 ss << L"/";
+                ss.width(5);
                 if(minDeltaTime > 0)
                     ss << 1.0 / minDeltaTime;
+                else
+                    ss << L"     ";
+                ss << L"\n";
+                RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+                if(c.valid())
+                {
+                    switch(c.type)
+                    {
+                    case RayCasting::Collision::Type::None:
+                        break;
+                    case RayCasting::Collision::Type::Block:
+                    {
+                        BlockIterator bi = world.getBlockIterator(c.blockPosition);
+                        Block b = bi.get(lock_manager);
+                        ss << L"Block :\n";
+                        if(b.good())
+                        {
+                            std::wstring v = b.descriptor->getDescription(bi, lock_manager);
+                            const wchar_t *const splittingCharacters = L",= ()_";
+                            const std::size_t lineLength = 30, lineLengthVariance = 5;
+                            const std::size_t searchStartPos = lineLength - lineLengthVariance;
+                            const std::size_t searchEndPos = lineLength + lineLengthVariance;
+                            while(v.size() > lineLength)
+                            {
+                                std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
+                                if(splitPos == std::wstring::npos || splitPos > searchEndPos)
+                                    splitPos = lineLength;
+                                ss << v.substr(0, splitPos + 1) << L"\n";
+                                v.erase(0, splitPos + 1);
+                            }
+                            v.resize(searchEndPos, L' ');
+                            ss << v;
+                        }
+                        else
+                        {
+                            ss << L"null_block";
+                        }
+                        break;
+                    }
+                    case RayCasting::Collision::Type::Entity:
+                        break;
+                    }
+                }
                 return ss.str();
-            }, -0.2f, 0.2f, 0.9f, 1, GrayscaleF(1)));
+            }, -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1)));
         }
         Ui::reset();
     }

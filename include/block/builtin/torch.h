@@ -106,16 +106,22 @@ protected:
         {
         case BlockFace::NX:
             retval += L"NX";
+            break;
         case BlockFace::PX:
             retval += L"PX";
+            break;
         case BlockFace::NZ:
             retval += L"NZ";
+            break;
         case BlockFace::PZ:
             retval += L"PZ";
+            break;
         case BlockFace::PY:
             retval += L"PY";
+            break;
         default: //     NY
             retval += L"NY";
+            break;
         }
         return retval + L")";
     }

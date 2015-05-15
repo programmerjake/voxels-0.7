@@ -107,6 +107,7 @@ public:
         channels = info->channels;
         buffer.reserve(channels * 8192);
         sampleRate = info->rate;
+        readBuffer();
         auto samples = ov_pcm_total(&ovf, -1);
         if(samples == OV_EINVAL)
             this->samples = Unknown;

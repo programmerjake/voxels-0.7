@@ -42,8 +42,9 @@ namespace voxels
 struct AudioData
 {
     function<shared_ptr<AudioDecoder>()> makeAudioDecoder;
+    double duration;
     AudioData(function<shared_ptr<AudioDecoder>()> makeAudioDecoder)
-        : makeAudioDecoder(makeAudioDecoder)
+        : makeAudioDecoder(makeAudioDecoder), duration(makeAudioDecoder()->lengthInSeconds())
     {
     }
 };
@@ -214,35 +215,47 @@ void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
 
 bool PlayingAudio::isPlaying()
 {
+    if(!data)
+        return false;
     unique_lock<mutex> lock(audioStateMutex);
     return audioRunning() && !data->hitEOF();
 }
 
 double PlayingAudio::currentTime()
 {
+    if(!data)
+        return 0;
     unique_lock<mutex> lock(audioStateMutex);
     return (double)data->playedSamples / data->decoder->samplesPerSecond();
 }
 
 void PlayingAudio::stop()
 {
+    if(!data)
+        return;
     stopAudioImp(data);
 }
 
 float PlayingAudio::volume()
 {
+    if(!data)
+        return 0;
     unique_lock<mutex> lock(audioStateMutex);
     return data->volume;
 }
 
 void PlayingAudio::volume(float v)
 {
+    if(!data)
+        return;
     unique_lock<mutex> lock(audioStateMutex);
     data->volume = limit(v, 0.0f, 1.0f);
 }
 
 double PlayingAudio::duration()
 {
+    if(!data)
+        return 0;
     unique_lock<mutex> lock(audioStateMutex);
     return data->decoder->lengthInSeconds();
 }
@@ -302,10 +315,19 @@ Audio::Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCou
 
 shared_ptr<PlayingAudio> Audio::play(float volume, bool looped)
 {
+    if(!data)
+        return shared_ptr<PlayingAudio>(new PlayingAudio(nullptr));
     programmerjake::voxels::startAudio();
     auto playingAudioData = make_shared<PlayingAudioData>(data, volume, looped);
     startAudioImp(playingAudioData);
     return shared_ptr<PlayingAudio>(new PlayingAudio(playingAudioData));
+}
+
+double Audio::duration()
+{
+    if(!data)
+        return 0;
+    return data->duration;
 }
 
 #if 0

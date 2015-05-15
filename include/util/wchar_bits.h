@@ -18,35 +18,30 @@
  * MA 02110-1301, USA.
  *
  */
-#include "platform/platform.h"
-#include "platform/audio.h"
-#include "world/world.h"
-#include "util/logging.h"
-#include "ui/gameui.h"
-#include <vector>
-#include <string>
-#include <memory>
-#include "render/renderer.h"
-#include "render/render_settings.h"
+#ifndef WCHAR_BITS_H_INCLUDED
+#define WCHAR_BITS_H_INCLUDED
 
-namespace programmerjake
-{
-namespace voxels
-{
-int main(std::vector<std::wstring> args)
-{
-    //globalRenderSettings.useFancyLeaves = true;
-    std::shared_ptr<World> world = std::make_shared<World>();
-    startGraphics();
-    Renderer renderer;
-    WorldLockManager lock_manager;
-    auto theUi = std::make_shared<ui::GameUi>(renderer, *world, lock_manager);
-    theUi->run(renderer);
-    theUi = nullptr;
-    endGraphics();
-    lock_manager.clear();
-    world = nullptr;
-    return 0;
-}
-}
-}
+#include <cstdint>
+#include <cwchar>
+
+#if WCHAR_MAX == 0xFFFFFFFFU && WCHAR_MIN == 0U
+#define WCHAR_BITS (32)
+#define WCHAR_SIGN unsigned
+#define UNSIGNED_WCHAR wchar_t
+#elif WCHAR_MAX == 0x7FFFFFFF && WCHAR_MIN == -0x80000000
+#define WCHAR_BITS (32)
+#define WCHAR_SIGN signed
+#define UNSIGNED_WCHAR std::uint_least32_t
+#elif WCHAR_MAX == 0xFFFFU && WCHAR_MIN == 0U
+#define WCHAR_BITS (16)
+#define WCHAR_SIGN unsigned
+#define UNSIGNED_WCHAR wchar_t
+#elif WCHAR_MAX == 0x7FFF && WCHAR_MIN == -0x8000
+#define WCHAR_BITS (16)
+#define WCHAR_SIGN signed
+#define UNSIGNED_WCHAR std::uint_least16_t
+#else
+#error can not detect number of bits in wchar_t
+#endif
+
+#endif // WCHAR_BITS_H_INCLUDED
