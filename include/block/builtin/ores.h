@@ -61,6 +61,13 @@ public:
     {
         return ToolLevel_Wood;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class IronOre final : public StoneBlock
@@ -90,6 +97,13 @@ public:
     {
         return ToolLevel_Stone;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class GoldOre final : public StoneBlock
@@ -118,6 +132,13 @@ public:
     virtual ToolLevel getToolLevel() const override
     {
         return ToolLevel_Iron;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 
@@ -150,6 +171,13 @@ public:
     {
         return ToolLevel_Iron;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class LitRedstoneOre final : public StoneBlock
@@ -180,6 +208,13 @@ public:
     {
         return ToolLevel_Iron;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class DiamondOre final : public StoneBlock
@@ -208,6 +243,13 @@ public:
     virtual ToolLevel getToolLevel() const override
     {
         return ToolLevel_Iron;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 
@@ -238,6 +280,13 @@ public:
     {
         return ToolLevel_Iron;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class LapisLazuliOre final : public StoneBlock
@@ -266,6 +315,13 @@ public:
     virtual ToolLevel getToolLevel() const override
     {
         return ToolLevel_Iron;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 

@@ -30,7 +30,6 @@
 #include <type_traits>
 #include "util/color.h"
 #include "stream/stream.h"
-#include "util/variable_set.h"
 
 namespace programmerjake
 {
@@ -45,8 +44,11 @@ public:
     }
 };
 
+struct SerializedImages;
+
 class Image final
 {
+    friend struct SerializedImages;
 public:
     explicit Image(std::wstring resourceName);
     explicit Image(unsigned w, unsigned h);
@@ -104,8 +106,8 @@ public:
     {
         return l.data != nullptr;
     }
-    void write(stream::Writer &writer, VariableSet &variableSet) const;
-    static Image read(stream::Reader &reader, VariableSet &variableSet);
+    void write(stream::Writer &writer) const;
+    static Image read(stream::Reader &reader);
 private:
     enum RowOrder
     {
@@ -137,24 +139,15 @@ private:
     void setRowOrder(RowOrder newRowOrder) const;
     void swapRows(unsigned y1, unsigned y2) const;
     void copyOnWrite();
-};
-
-namespace stream
-{
-template <>
-struct rw_cached_helper<Image>
-{
-    typedef Image value_type;
-    static value_type read(Reader &reader, VariableSet &variableSet)
+    struct Hasher final
     {
-        return Image::read(reader, variableSet);
-    }
-    static void write(Writer &writer, VariableSet &variableSet, value_type value)
-    {
-        value.write(writer, variableSet);
-    }
+        std::hash<std::shared_ptr<data_t>> hasher;
+        std::size_t operator()(const Image &image) const
+        {
+            return hasher(image.data);
+        }
+    };
 };
-}
 
 inline Image whiteTexture()
 {

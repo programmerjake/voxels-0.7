@@ -297,6 +297,8 @@ public:
     {
         return name;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const = 0;
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const = 0;
 };
 }
 }

@@ -141,6 +141,32 @@ private:
                 currentElapsedSmeltTime = 0;
             //getDebugLog() << L"smeltItem" << postnl;
         }
+        static std::shared_ptr<FurnaceData> read(stream::Reader &reader)
+        {
+            std::shared_ptr<FurnaceData> retval = std::make_shared<FurnaceData>();
+            retval->outputStack = stream::read<ItemStack>(reader);
+            retval->inputStack = stream::read<ItemStack>(reader);
+            retval->fuelStack = stream::read<ItemStack>(reader);
+            retval->burnTimeLeft = stream::read_limited<float32_t>(reader, 0, 100000);
+            retval->currentElapsedSmeltTime = stream::read_limited<float32_t>(reader, 0, 100);
+            return retval;
+        }
+        void write(stream::Writer &writer)
+        {
+            std::unique_lock<std::recursive_mutex> lockIt(lock);
+            ItemStack outputStack = this->outputStack;
+            ItemStack inputStack = this->inputStack;
+            ItemStack fuelStack = this->fuelStack;
+            float burnTimeLeft = this->burnTimeLeft;
+            float currentElapsedSmeltTime = this->currentElapsedSmeltTime;
+            lockIt.unlock();
+
+            stream::write<ItemStack>(writer, outputStack);
+            stream::write<ItemStack>(writer, inputStack);
+            stream::write<ItemStack>(writer, fuelStack);
+            stream::write<float32_t>(writer, burnTimeLeft);
+            stream::write<float32_t>(writer, currentElapsedSmeltTime);
+        }
     };
     struct FurnaceBlockData final : BlockData
     {
@@ -335,6 +361,23 @@ public:
         {
             tileEntity->addToWorld(world, lock_manager, blockIterator.position(), block, &data->hasEntity);
         }
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> blockData) const override
+    {
+        stream::write<bool>(writer, blockData == nullptr);
+        if(blockData == nullptr)
+            return;
+        std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(blockData.get())->data;
+        data->write(writer);
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        bool isNull = stream::read<bool>(reader);
+        if(isNull)
+            return nullptr;
+        std::shared_ptr<FurnaceData> furnaceData = FurnaceData::read(reader);
+        assert(furnaceData);
+        return BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(furnaceData));
     }
 };
 

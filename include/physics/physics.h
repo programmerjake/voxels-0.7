@@ -25,7 +25,6 @@
 #include "util/matrix.h"
 #include "util/position.h"
 #include "stream/stream.h"
-#include "util/variable_set.h"
 #include "script/script.h"
 #include "util/enum_traits.h"
 #include "util/block_chunk.h"
@@ -136,11 +135,11 @@ struct PhysicsConstraint final
     {
         return descriptor == nullptr;
     }
-    static PhysicsConstraint read(stream::Reader &reader, VariableSet &variableSet)
+    static PhysicsConstraint read(stream::Reader &reader)
     {
         throw stream::IOException("can't read a physics constraint");
     }
-    void write(stream::Writer &writer, VariableSet &variableSet) const
+    void write(stream::Writer &writer) const
     {
         throw stream::IOException("can't write a physics constraint");
     }
@@ -154,8 +153,8 @@ template <>
 struct read<PhysicsConstraint> : public read_base<PhysicsConstraint>
 {
 #pragma GCC diagnostic pop
-    read(Reader &reader, VariableSet &variableSet)
-        : read_base<PhysicsConstraint>(PhysicsConstraint::read(reader, variableSet))
+    read(Reader &reader)
+        : read_base<PhysicsConstraint>(PhysicsConstraint::read(reader))
     {
     }
 };
@@ -163,9 +162,9 @@ struct read<PhysicsConstraint> : public read_base<PhysicsConstraint>
 template <>
 struct write<PhysicsConstraint>
 {
-    write(Writer &writer, VariableSet &variableSet, PhysicsConstraint value)
+    write(Writer &writer, PhysicsConstraint value)
     {
-        value.write(writer, variableSet);
+        value.write(writer);
     }
 };
 }

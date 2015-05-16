@@ -156,6 +156,13 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class WoodPlanks : public FullBlock
@@ -205,6 +212,13 @@ public:
     virtual bool isHelpingToolKind(Item tool) const override
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 
@@ -468,6 +482,13 @@ public:
     {
         return false;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 
 class Sapling : public Plant
@@ -638,6 +659,13 @@ public:
     WoodDescriptorPointer getWoodDescriptor() const
     {
         return woodDescriptor;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 

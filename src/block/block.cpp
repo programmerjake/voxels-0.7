@@ -21,6 +21,7 @@
 #include "block/block.h"
 #include "item/builtin/tools/tool.h"
 #include <initializer_list>
+#include <unordered_map>
 
 using namespace std;
 namespace programmerjake
@@ -91,12 +92,10 @@ void BlockDescriptors_t::remove(BlockDescriptorPointer bd) const
     }
 }
 
-#ifdef PACK_BLOCK
 PackedBlock::PackedBlock(const Block &b)
     : descriptor(b.descriptor ? b.descriptor->getBlockDescriptorIndex() : BlockDescriptorIndex(nullptr)), lighting(b.lighting), data(b.data)
 {
 }
-#endif
 
 BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd)
     : index()
@@ -248,6 +247,101 @@ void BlockDescriptor::addRedstoneBlockUpdates(World &world, BlockIterator blockI
             }
         }
     }
+}
+
+namespace
+{
+struct StreamBlockDescriptors final
+{
+    typedef std::uint16_t Descriptor;
+    static constexpr Descriptor NullDescriptor = 0;
+    std::unordered_map<Descriptor, BlockDescriptorPointer> descriptorToBlockDescriptorPointerMap;
+    std::unordered_map<BlockDescriptorPointer, Descriptor> blockDescriptorPointerToDescriptorMap;
+    std::size_t descriptorCount = 0;
+    StreamBlockDescriptors()
+        : descriptorToBlockDescriptorPointerMap(),
+        blockDescriptorPointerToDescriptorMap()
+    {
+    }
+    static StreamBlockDescriptors &get(stream::Stream &stream)
+    {
+        struct tag_t
+        {
+        };
+        std::shared_ptr<StreamBlockDescriptors> retval = stream.getAssociatedValue<StreamBlockDescriptors, tag_t>();
+        if(retval)
+            return *retval;
+        retval = std::make_shared<StreamBlockDescriptors>();
+        stream.setAssociatedValue<StreamBlockDescriptors, tag_t>(retval);
+        return *retval;
+    }
+    static BlockDescriptorPointer read(stream::Reader &reader)
+    {
+        StreamBlockDescriptors &me = get(reader);
+        Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
+        if(upperLimit != me.descriptorCount + 1)
+            upperLimit = static_cast<Descriptor>(me.descriptorCount);
+        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        if(descriptor == NullDescriptor)
+            return nullptr;
+        if(descriptor <= me.descriptorCount)
+            return me.descriptorToBlockDescriptorPointerMap[descriptor];
+        assert(descriptor == me.descriptorCount + 1); // check for overflow
+        me.descriptorCount++;
+        std::wstring name = stream::read<std::wstring>(reader);
+        BlockDescriptorPointer retval = BlockDescriptors[name];
+        if(retval == nullptr)
+            throw stream::InvalidDataValueException("block name not found");
+        me.descriptorToBlockDescriptorPointerMap[descriptor] = retval;
+        me.blockDescriptorPointerToDescriptorMap[retval] = descriptor;
+        return retval;
+    }
+    static void write(stream::Writer &writer, BlockDescriptorPointer bd)
+    {
+        if(bd == nullptr)
+        {
+            stream::write<Descriptor>(writer, NullDescriptor);
+            return;
+        }
+        StreamBlockDescriptors &me = get(writer);
+        auto iter = me.blockDescriptorPointerToDescriptorMap.find(bd);
+        if(iter == me.blockDescriptorPointerToDescriptorMap.end())
+        {
+            Descriptor descriptor = ++me.descriptorCount;
+            assert(descriptor == me.descriptorCount); // check for overflow
+            me.blockDescriptorPointerToDescriptorMap[bd] = descriptor;
+            me.descriptorToBlockDescriptorPointerMap[descriptor] = bd;
+            stream::write<Descriptor>(writer, descriptor);
+            stream::write<std::wstring>(writer, bd->name);
+        }
+        else
+        {
+            stream::write<Descriptor>(writer, std::get<1>(*iter));
+        }
+    }
+};
+}
+
+Block Block::read(stream::Reader &reader)
+{
+    BlockDescriptorPointer descriptor = StreamBlockDescriptors::read(reader);
+    if(descriptor == nullptr)
+        return Block();
+    Lighting lighting = stream::read<Lighting>(reader);
+    BlockDataPointer<BlockData> data = descriptor->readBlockData(reader);
+    return Block(descriptor, lighting, data);
+}
+
+void Block::write(stream::Writer &writer) const
+{
+    if(!good())
+    {
+        StreamBlockDescriptors::write(writer, nullptr);
+        return;
+    }
+    StreamBlockDescriptors::write(writer, descriptor);
+    stream::write<Lighting>(writer, lighting);
+    descriptor->writeBlockData(writer, data);
 }
 }
 }

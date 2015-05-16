@@ -27,6 +27,7 @@
 #include <cassert>
 #include "render/mesh.h"
 #include "util/checked_array.h"
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -213,6 +214,16 @@ struct ItemStack final
         return transferCount;
     }
     void render(Mesh &dest, float minX, float maxX, float minY, float maxY) const;
+    static ItemStack read(stream::Reader &reader)
+    {
+        throw std::runtime_error("ItemStack::read not implemented");
+        #warning implement
+    }
+    void write(stream::Writer &writer)
+    {
+        throw std::runtime_error("ItemStack::write not implemented");
+        #warning implement
+    }
 };
 
 template <std::size_t W, std::size_t H>
@@ -281,6 +292,28 @@ public:
                 itemStacks[x][y] = ItemStack();
             }
         }
+    }
+    void write(stream::Writer &writer)
+    {
+        for(std::size_t y = 0; y < H; y++)
+        {
+            for(std::size_t x = 0; x < W; x++)
+            {
+                stream::write<ItemStack>(writer, itemStacks[x][y]);
+            }
+        }
+    }
+    static ItemStackArray read(stream::Reader &reader)
+    {
+        ItemStackArray retval;
+        for(std::size_t y = 0; y < H; y++)
+        {
+            for(std::size_t x = 0; x < W; x++)
+            {
+                retval[x][y] = stream::read<ItemStack>(reader);
+            }
+        }
+        return retval;
     }
 };
 }

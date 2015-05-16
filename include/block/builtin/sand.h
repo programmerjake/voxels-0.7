@@ -64,6 +64,13 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 protected:
     virtual Entity *makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const override;
 };
@@ -97,6 +104,13 @@ public:
     virtual bool isHelpingToolKind(Item tool) const override
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 protected:
     virtual Entity *makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const override;

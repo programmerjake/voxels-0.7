@@ -35,9 +35,10 @@ inline Mesh reverse(const Mesh &mesh)
     std::vector<Triangle> triangles = mesh.triangles;
     for(Triangle &tri : triangles)
     {
-        std::swap(tri.p1, tri.p2);
-        std::swap(tri.c1, tri.c2);
-        std::swap(tri.t1, tri.t2);
+        using std::swap;
+        swap(tri.p1, tri.p2);
+        swap(tri.c1, tri.c2);
+        swap(tri.t1, tri.t2);
         VectorF n1 = -tri.n2;
         VectorF n2 = -tri.n1;
         VectorF n3 = -tri.n3;

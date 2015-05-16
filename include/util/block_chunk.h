@@ -23,7 +23,6 @@
 
 #include "util/position.h"
 #include "stream/stream.h"
-#include "util/variable_set.h"
 #include "stream/compressed_stream.h"
 #include "util/basic_block_chunk.h"
 #include "render/mesh.h"

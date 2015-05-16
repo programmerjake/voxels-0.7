@@ -30,6 +30,7 @@
 #include "util/dimension.h"
 #include <array>
 #include <tuple>
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -185,6 +186,23 @@ public:
     constexpr bool operator !=(Lighting r) const
     {
         return !operator ==(r);
+    }
+    static Lighting read(stream::Reader &reader)
+    {
+        constexpr std::uint8_t maxLightU8 = maxLight;
+        static_assert(maxLightU8 == maxLight, "maxLight too big to fit in std::uint8_t");
+        std::uint8_t directSkylight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
+        std::uint8_t indirectSkylight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
+        std::uint8_t indirectArtificalLight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
+        return Lighting(directSkylight, indirectSkylight, indirectArtificalLight, MakeDirectOnly);
+    }
+    void write(stream::Writer &writer) const
+    {
+        constexpr std::uint8_t maxLightU8 = maxLight;
+        static_assert(maxLightU8 == maxLight, "maxLight too big to fit in std::uint8_t");
+        stream::write<std::uint8_t>(writer, static_cast<std::uint8_t>(directSkylight));
+        stream::write<std::uint8_t>(writer, static_cast<std::uint8_t>(indirectSkylight));
+        stream::write<std::uint8_t>(writer, static_cast<std::uint8_t>(indirectArtificalLight));
     }
 };
 

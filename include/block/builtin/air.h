@@ -76,6 +76,13 @@ public:
     {
         return false;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 private:
     Air()
         : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), (RayCasting::BlockCollisionMask)0, true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)

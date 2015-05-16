@@ -42,8 +42,7 @@
 #include "util/enum_traits.h"
 #include "util/block_update.h"
 #include "util/checked_array.h"
-
-#define PACK_BLOCK
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -397,9 +396,10 @@ struct Block final
     }
     void createNewLighting(Lighting oldLighting);
     static BlockLighting calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp);
+    static Block read(stream::Reader &reader);
+    void write(stream::Writer &writer) const;
 };
 
-#ifdef PACK_BLOCK
 struct PackedBlock final
 {
     BlockDescriptorIndex descriptor;
@@ -417,9 +417,6 @@ struct PackedBlock final
         return Block(descriptor.get(), (Lighting)lighting, data);
     }
 };
-#else
-typedef Block PackedBlock;
-#endif
 
 struct BlockShape final
 {

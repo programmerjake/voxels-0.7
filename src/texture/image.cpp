@@ -24,6 +24,7 @@
 #include <cstring>
 #include <iostream>
 #include "util/logging.h"
+#include <unordered_map>
 
 using namespace std;
 
@@ -215,22 +216,90 @@ void Image::copyOnWrite()
     data->lock.lock();
 }
 
-void Image::write(stream::Writer &writer, VariableSet &variableSet) const
+struct SerializedImages final
 {
-    if(!*this)
+public:
+    typedef std::uint64_t Descriptor;
+    static constexpr Descriptor NullDescriptor = 0;
+private:
+    Descriptor validDescriptorCount = 0;
+    std::unordered_map<Descriptor, Image> descriptorToImageMap;
+    std::unordered_map<Image, Descriptor, Image::Hasher> imageToDescriptorMap;
+    struct construct_tag_t
     {
-        VariableSet::Descriptor<data_t>::null().write(writer);
-        return;
-    }
-    pair<VariableSet::Descriptor<data_t>, bool> findOrMakeReturnValue = variableSet.findOrMake<data_t>(data);
-    get<0>(findOrMakeReturnValue).write(writer);
-    if(get<1>(findOrMakeReturnValue))
+    };
+public:
+    SerializedImages(construct_tag_t)
+        : descriptorToImageMap(),
+        imageToDescriptorMap()
     {
-        return;
     }
+private:
+    static SerializedImages &get(stream::Stream &stream)
+    {
+        struct tag_t
+        {
+        };
+        std::shared_ptr<SerializedImages> pretval = stream.getAssociatedValue<SerializedImages, tag_t>();
+        if(pretval == nullptr)
+        {
+            pretval = std::make_shared<SerializedImages>(construct_tag_t());
+            stream.setAssociatedValue<SerializedImages, tag_t>(pretval);
+        }
+        return *pretval;
+    }
+public:
+    static bool readDescriptor(stream::Reader &reader, Image &image, Descriptor &descriptor)
+    {
+        SerializedImages &me = get(reader);
+        descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, me.validDescriptorCount + 1);
+        if(descriptor == me.validDescriptorCount + 1)
+        {
+            ++me.validDescriptorCount;
+            return true;
+        }
+        image = me.descriptorToImageMap[descriptor];
+        return false;
+    }
+    static void setAfterRead(stream::Reader &reader, Descriptor descriptor, Image image)
+    {
+        SerializedImages &me = get(reader);
+        me.descriptorToImageMap[descriptor] = image;
+        me.imageToDescriptorMap[image] = descriptor;
+    }
+    static bool writeDescriptor(stream::Writer &writer, Image image)
+    {
+        if(image == nullptr)
+        {
+            stream::write<Descriptor>(writer, NullDescriptor);
+            return false;
+        }
+        SerializedImages &me = get(writer);
+        Descriptor descriptor;
+        auto iter = me.imageToDescriptorMap.find(image);
+        if(iter == me.imageToDescriptorMap.end())
+        {
+            descriptor = ++me.validDescriptorCount;
+            me.imageToDescriptorMap[image] = descriptor;
+            stream::write<Descriptor>(writer, descriptor);
+            return true;
+        }
+        else
+        {
+            descriptor = std::get<1>(*iter);
+            stream::write<Descriptor>(writer, descriptor);
+            return false;
+        }
+    }
+};
+
+void Image::write(stream::Writer &writer) const
+{
+    if(!SerializedImages::writeDescriptor(writer, *this))
+        return;
     getDebugLog() << L"Server : writing image" << postnl;
-    writer.writeU32(width());
-    writer.writeU32(height());
+    stream::write<std::uint32_t>(writer, width());
+    stream::write<std::uint32_t>(writer, height());
     vector<uint8_t> row;
     row.resize(width() * BytesPerPixel);
     for(size_t y = 0; y < height(); y++)
@@ -251,37 +320,27 @@ void Image::write(stream::Writer &writer, VariableSet &variableSet) const
             row[i++] = *prow++;
         }
         data->lock.unlock();
-        for(uint8_t v : row)
-        {
-            writer.writeU8(v);
-        }
+        writer.writeBytes(row.data(), row.size());
     }
 }
 
-Image Image::read(stream::Reader &reader, VariableSet &variableSet)
+Image Image::read(stream::Reader &reader)
 {
-    VariableSet::Descriptor<data_t> descriptor = VariableSet::Descriptor<data_t>::read(reader);
-    if(!descriptor)
-        return Image(nullptr);
     Image retval;
-    retval.data = variableSet.get(descriptor);
-    if(retval.data != nullptr)
-    {
-        DUMP_V(Image::read, "read old image");
+    SerializedImages::Descriptor descriptor;
+    if(!SerializedImages::readDescriptor(reader, retval, descriptor))
         return retval;
-    }
     getDebugLog() << L"Client : reading image" << postnl;
-    DUMP_V(Image::read, "reading new image");
-    uint32_t w, h;
-    w = reader.readU32();
-    h = reader.readU32();
+    std::uint32_t w, h;
+    w = stream::read<std::uint32_t>(reader);
+    h = stream::read<std::uint32_t>(reader);
     retval = Image(w, h);
     retval.setRowOrder(RowOrder::TopToBottom);
     for(size_t i = 0; i < BytesPerPixel * w * h; i++)
     {
         retval.data->data[i] = reader.readU8();
     }
-    variableSet.set(descriptor, retval.data);
+    SerializedImages::setAfterRead(reader, descriptor, retval);
     return retval;
 }
 }

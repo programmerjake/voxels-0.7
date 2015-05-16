@@ -469,11 +469,12 @@ public:
     }
     void swap(linked_map &r)
     {
-        std::swap(bucket_count_, r.bucket_count_);
-        std::swap(buckets, r.buckets);
-        std::swap(node_count, r.node_count);
-        std::swap(list_head, r.list_head);
-        std::swap(list_tail, r.list_tail);
+        using std::swap;
+        swap(bucket_count_, r.bucket_count_);
+        swap(buckets, r.buckets);
+        swap(node_count, r.node_count);
+        swap(list_head, r.list_head);
+        swap(list_tail, r.list_tail);
     }
     const linked_map &operator =(linked_map && r)
     {

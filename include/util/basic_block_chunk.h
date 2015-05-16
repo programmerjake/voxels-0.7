@@ -506,12 +506,13 @@ private:
         }
         const iterator_imp &operator =(iterator_imp &&rt)
         {
-            std::swap(node, rt.node);
-            std::swap(bucket_index, rt.bucket_index);
-            std::swap(bucket_count, rt.bucket_count);
-            std::swap(pbuckets, rt.pbuckets);
-            std::swap(bucket_locks, rt.bucket_locks);
-            std::swap(locked, rt.locked);
+            using std::swap;
+            swap(node, rt.node);
+            swap(bucket_index, rt.bucket_index);
+            swap(bucket_count, rt.bucket_count);
+            swap(pbuckets, rt.pbuckets);
+            swap(bucket_locks, rt.bucket_locks);
+            swap(locked, rt.locked);
             return *this;
         }
         ~iterator_imp()
@@ -831,9 +832,10 @@ public:
     }
     void swap(ChunkMap &r)
     {
-        std::swap(bucket_count, r.bucket_count);
-        std::swap(buckets, r.buckets);
-        std::swap(bucket_locks, r.bucket_locks);
+        using std::swap;
+        swap(bucket_count, r.bucket_count);
+        swap(buckets, r.buckets);
+        swap(bucket_locks, r.bucket_locks);
     }
     const ChunkMap &operator =(ChunkMap &&r)
     {

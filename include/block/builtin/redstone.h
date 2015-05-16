@@ -532,6 +532,13 @@ public:
     {
         return false;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 protected:
     virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
 };
@@ -665,6 +672,13 @@ public:
             return;
         }
         AttachedBlock::tick(world, block, blockIterator, lock_manager, kind);
+    }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
     }
 };
 

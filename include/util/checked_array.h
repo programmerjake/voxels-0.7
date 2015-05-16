@@ -182,10 +182,18 @@ public:
         for(std::size_t i = 0; i < N; i++)
             array_helper::deref(m_data, i) = value;
     }
-    void swap(checked_array &other) noexcept(noexcept(std::swap(std::declval<T &>(), std::declval<T &>())))
+private:
+    static constexpr bool is_swap_noexcept()
     {
+        using std::swap;
+        return noexcept(std::swap(std::declval<T &>(), std::declval<T &>()));
+    }
+public:
+    void swap(checked_array &other) noexcept(is_swap_noexcept())
+    {
+        using std::swap;
         for(std::size_t i = 0; i < N; i++)
-            std::swap(array_helper::deref(m_data, i), array_helper::deref(other.m_data, i));
+            swap(array_helper::deref(m_data, i), array_helper::deref(other.m_data, i));
     }
 };
 }

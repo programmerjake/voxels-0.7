@@ -260,7 +260,8 @@ public:
     }
     void swap(BiomeMap &rt)
     {
-        std::swap(elements, rt.elements);
+        using std::swap;
+        swap(elements, rt.elements);
     }
 };
 

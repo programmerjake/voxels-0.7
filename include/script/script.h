@@ -26,7 +26,6 @@
 #include "stream/stream.h"
 #include "render/mesh.h"
 #include <unordered_map>
-#include "util/variable_set.h"
 #include "util/enum_traits.h"
 #include <sstream>
 #include <cmath>
@@ -638,7 +637,7 @@ public:
         return std::dynamic_pointer_cast<Scripting::DataBoolean>(retval)->value;
     }
     static std::shared_ptr<Script> parse(std::wstring code);
-    static std::shared_ptr<Script> read(stream::Reader &reader, VariableSet &)
+    static std::shared_ptr<Script> read(stream::Reader &reader)
     {
         std::uint32_t nodeCount = reader.readU32();
         auto retval = std::make_shared<Script>();
@@ -649,7 +648,7 @@ public:
         }
         return retval;
     }
-    void write(stream::Writer &writer, VariableSet &)
+    void write(stream::Writer &writer)
     {
         writer.writeU32(nodes.size());
         for(auto n : nodes)

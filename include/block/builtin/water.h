@@ -93,6 +93,13 @@ protected:
     {
         return bi.getBiomeProperties(lock_manager).getWaterColor();
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 }
 }

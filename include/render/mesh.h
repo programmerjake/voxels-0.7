@@ -25,7 +25,6 @@
 #include "util/matrix.h"
 #include "texture/image.h"
 #include "stream/stream.h"
-#include "util/variable_set.h"
 #include "render/render_layer.h"
 #include <vector>
 #include <cassert>
@@ -350,7 +349,7 @@ struct Mesh
         triangles.clear();
         image = nullptr;
     }
-    static std::shared_ptr<Mesh> read(stream::Reader &reader, VariableSet &variableSet)
+    static Mesh read(stream::Reader &reader)
     {
         std::uint32_t triangleCount = stream::read<std::uint32_t>(reader);
         std::vector<Triangle> triangles;
@@ -359,10 +358,10 @@ struct Mesh
         {
             triangles.push_back((Triangle)stream::read<Triangle>(reader));
         }
-        Image image = stream::read<Image>(reader, variableSet);
-        return std::make_shared<Mesh>(triangles, image);
+        Image image = stream::read<Image>(reader);
+        return Mesh(triangles, image);
     }
-    void write(stream::Writer &writer, VariableSet &variableSet) const
+    void write(stream::Writer &writer) const
     {
         std::uint32_t triangleCount = triangles.size();
         assert(triangleCount == triangles.size());
@@ -371,7 +370,7 @@ struct Mesh
         {
             stream::write<Triangle>(writer, tri);
         }
-        stream::write<Image>(writer, variableSet, image);
+        stream::write<Image>(writer, image);
     }
     bool operator ==(const Mesh &rt) const
     {

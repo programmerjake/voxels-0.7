@@ -411,8 +411,9 @@ public:
     }
     void swap(reader_lock<T> &rt) noexcept
     {
-        std::swap(theLock, rt.theLock);
-        std::swap(locked, rt.locked);
+        using std::swap;
+        swap(theLock, rt.theLock);
+        swap(locked, rt.locked);
     }
     T *release() noexcept
     {
@@ -502,8 +503,9 @@ public:
     }
     void swap(writer_lock<T> &rt) noexcept
     {
-        std::swap(theLock, rt.theLock);
-        std::swap(locked, rt.locked);
+        using std::swap;
+        swap(theLock, rt.theLock);
+        swap(locked, rt.locked);
     }
     T *release() noexcept
     {

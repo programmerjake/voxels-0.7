@@ -97,7 +97,8 @@ public:
     void swap(ordered_weak_ptr &r)
     {
         v.swap(r.v);
-        std::swap(compareValue, r.compareValue);
+        using std::swap;
+        swap(compareValue, r.compareValue);
     }
     long use_count() const
     {

@@ -34,6 +34,9 @@
 #include <type_traits>
 #include <cassert>
 #include <vector>
+#include <unordered_map>
+#include <atomic>
+#include <utility>
 #include "util/string_cast.h"
 #include "util/enum_traits.h"
 #include "util/circular_deque.h"
@@ -50,8 +53,6 @@ namespace voxels
 {
 typedef float float32_t;
 typedef double float64_t;
-
-class VariableSet;
 
 namespace stream
 {
@@ -111,7 +112,43 @@ public:
     }
 };
 
-class Reader
+class Stream
+{
+    Stream(const Stream &) = delete;
+    Stream &operator =(const Stream &) = delete;
+private:
+    std::unordered_map<std::size_t, std::shared_ptr<void>> valueMap;
+    static std::size_t allocateIndex()
+    {
+        static std::atomic_size_t retval(0);
+        return retval++;
+    }
+    template <typename T, typename TagType>
+    static std::size_t getIndex()
+    {
+        static const std::size_t retval = allocateIndex();
+        return retval;
+    }
+protected:
+    Stream()
+        : valueMap()
+    {
+    }
+    virtual ~Stream() = default;
+public:
+    template <typename T, typename TagType>
+    std::shared_ptr<T> getAssociatedValue()
+    {
+        return std::static_pointer_cast<T>(valueMap[getIndex<T, TagType>()]);
+    }
+    template <typename T, typename TagType>
+    void setAssociatedValue(std::shared_ptr<T> value)
+    {
+        valueMap[getIndex<T, TagType>()] = std::static_pointer_cast<void>(value);
+    }
+};
+
+class Reader : public Stream
 {
 private:
     template <typename T>
@@ -228,59 +265,59 @@ public:
     }
     std::wstring readString()
     {
-        std::wstring retval = L"";
+        std::string retval = "";
         for(;;)
         {
             std::uint32_t b1 = readU8();
             if(b1 == 0)
             {
-                DUMP_V(readString, "\"" + wcsrtombs(retval) + "\"");
-                return retval;
+                return string_cast<std::wstring>(retval);
             }
             else if((b1 & 0x80) == 0)
             {
-                retval += (wchar_t)b1;
+                retval += (char)b1;
             }
             else if((b1 & 0xE0) == 0xC0)
             {
+                retval += (char)b1;
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                std::uint32_t v = b2 & 0x3F;
-                v |= (b1 & 0x1F) << 6;
-                retval += (wchar_t)v;
+                retval += (char)b2;
             }
             else if((b1 & 0xF0) == 0xE0)
             {
+                retval += (char)b1;
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
+                retval += (char)b2;
                 std::uint32_t b3 = readU8();
                 if((b3 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                std::uint32_t v = b3 & 0x3F;
-                v |= (b2 & 0x3F) << 6;
-                v |= (b1 & 0xF) << 12;
-                retval += (wchar_t)v;
+                retval += (char)b3;
             }
             else if((b1 & 0xF8) == 0xF0)
             {
+                retval += (char)b1;
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
+                retval += (char)b2;
                 std::uint32_t b3 = readU8();
                 if((b3 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
+                retval += (char)b3;
                 std::uint32_t b4 = readU8();
                 if((b4 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
+                retval += (char)b4;
                 std::uint32_t v = b4 & 0x3F;
                 v |= (b3 & 0x3F) << 6;
                 v |= (b2 & 0x3F) << 12;
                 v |= (b1 & 0x7) << 18;
                 if(v >= 0x10FFFF)
                     throw UTFDataFormatException();
-                retval += (wchar_t)v;
             }
             else
                 throw UTFDataFormatException();
@@ -346,7 +383,7 @@ public:
     }
 };
 
-class Writer
+class Writer : public Stream
 {
 public:
     Writer()
@@ -433,30 +470,17 @@ public:
     }
     void writeString(std::wstring v)
     {
-        for(size_t i = 0; i < v.length(); i++)
+        std::string str = string_cast<std::string>(v);
+        for(char ch : str)
         {
-            std::uint32_t ch = v[i];
-            if(ch != 0 && ch < 0x80)
+            if(ch != 0)
             {
                 writeU8(ch);
             }
-            else if(ch < 0x800)
-            {
-                writeU8(0xC0 | ((ch >> 6) & 0x1F));
-                writeU8(0x80 | ((ch) & 0x3F));
-            }
-            else if(ch < 0x1000)
-            {
-                writeU8(0xE0 | ((ch >> 12) & 0xF));
-                writeU8(0x80 | ((ch >> 6) & 0x3F));
-                writeU8(0x80 | ((ch) & 0x3F));
-            }
             else
             {
-                writeU8(0xF0 | ((ch >> 18) & 0x7));
-                writeU8(0x80 | ((ch >> 12) & 0x3F));
-                writeU8(0x80 | ((ch >> 6) & 0x3F));
-                writeU8(0x80 | ((ch) & 0x3F));
+                writeU8(0xC0);
+                writeU8(0x80);
             }
         }
         writeU8(0);
@@ -487,7 +511,7 @@ struct read;
 template <typename T>
 struct is_value_changed
 {
-    constexpr bool operator ()(std::shared_ptr<const T>, VariableSet &) const
+    constexpr bool operator ()(std::shared_ptr<const T>, Stream &) const
     {
         return false;
     }
@@ -496,169 +520,47 @@ struct is_value_changed
 template <typename T, typename = void>
 struct write;
 
-struct rw_class_traits_helper
-{
-    static Reader & readerRef();
-    static Writer & writerRef();
-    static VariableSet & variableSetRef();
-};
-
-template <typename T, typename = void>
-struct rw_class_traits_helper_has_read_with_VariableSet_helper;
-template <typename T>
-struct rw_class_traits_helper_has_read_with_VariableSet_helper<T, typename std::enable_if<std::is_class<T>::value>::type>
-{
-private:
-    struct yes
-    {
-    };
-    struct no
-    {
-    };
-    template <std::shared_ptr<T> (*)(Reader &, VariableSet &) = &T::read>
-    static yes f(const T *);
-    static no f(...);
-public:
-    static constexpr bool value = std::is_same<yes, decltype(f((const T *)nullptr))>::value;
-};
-
-template <typename T>
-struct rw_class_traits_helper_has_read_with_VariableSet_helper<T, typename std::enable_if<!std::is_class<T>::value>::type>
-{
-    static constexpr bool value = false;
-};
-
-template <typename T, bool = rw_class_traits_helper_has_read_with_VariableSet_helper<T>::value>
-struct rw_class_traits_helper_has_read_with_VariableSet;
-
-template <typename T>
-struct rw_class_traits_helper_has_read_with_VariableSet<T, false>
-{
-    static constexpr bool value = false;
-    typedef void value_type;
-};
-
-template <typename T>
-struct rw_class_traits_helper_has_read_with_VariableSet<T, true>
-{
-    static constexpr bool value = true;
-    typedef decltype(T::read(rw_class_traits_helper::readerRef(), rw_class_traits_helper::variableSetRef())) value_type;
-};
-
-template <typename T, bool = std::is_class<T>::value && !std::is_abstract<T>::value>
-struct rw_class_traits_helper_has_read_without_VariableSet_helper;
-template <typename T>
-struct rw_class_traits_helper_has_read_without_VariableSet_helper<T, true>
-{
-private:
-    struct yes
-    {
-    };
-    struct no
-    {
-    };
-    template <T (*)(Reader &) = &T::read>
-    static yes f(const T *);
-    static no f(...);
-public:
-    static constexpr bool value = std::is_same<yes, decltype(f((const T *)nullptr))>::value;
-};
-
-template <typename T>
-struct rw_class_traits_helper_has_read_without_VariableSet_helper<T, false>
-{
-    static constexpr bool value = false;
-};
-
-template <typename T, bool = rw_class_traits_helper_has_read_without_VariableSet_helper<T>::value>
-struct rw_class_traits_helper_has_read_without_VariableSet;
-
-template <typename T>
-struct rw_class_traits_helper_has_read_without_VariableSet<T, false>
-{
-    static constexpr bool value = false;
-    typedef void value_type;
-};
-
-template <typename T>
-struct rw_class_traits_helper_has_read_without_VariableSet<T, true>
-{
-    static constexpr bool value = true;
-    typedef decltype(T::read(rw_class_traits_helper::readerRef())) value_type;
-};
-
-template <typename T, typename = void>
-struct rw_cached_helper
-{
-    typedef void value_type;
-};
-
 template <typename T, typename = void>
 struct rw_class_traits;
+
 template <typename T>
-struct rw_class_traits<T, typename std::enable_if<std::is_class<T>::value>::type>
+struct rw_class_traits<T, typename std::enable_if<std::is_class<T>::value>::type> final
 {
-    static constexpr bool has_pod = rw_class_traits_helper_has_read_without_VariableSet<T>::value;
-    static constexpr bool has_cached = !std::is_same<typename rw_cached_helper<T>::value_type, void>::value;
-    typedef typename std::conditional<rw_class_traits_helper_has_read_without_VariableSet<T>::value, typename rw_class_traits_helper_has_read_without_VariableSet<T>::value_type, typename rw_cached_helper<T>::value_type>::type value_type;
-    static_assert(!has_pod || !has_cached, "can't define both T::read(Reader &) and T::read(Reader &, VariableSet &)");
+private:
+    template <typename T2>
+    static decltype(T2::read(std::declval<Reader &>())) f(decltype(std::declval<T2 &>().write(std::declval<Writer &>())) *);
+    template <typename T2>
+    static void f(...);
+public:
+    typedef decltype(f<T>(nullptr)) value_type;
+    static constexpr bool has_rw = !std::is_same<void, value_type>::value && std::is_move_constructible<T>::value;
 };
 
 template <typename T>
 struct rw_class_traits<T, typename std::enable_if<std::is_enum<T>::value || std::is_arithmetic<T>::value>::type>
 {
-    static constexpr bool has_pod = true;
-    static constexpr bool has_cached = false;
+    static constexpr bool has_rw = true;
     typedef T value_type;
 };
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
-struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_pod>::type> : public read_base<typename rw_class_traits<T>::value_type>
+struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type> : public read_base<typename rw_class_traits<T>::value_type>
 {
 #pragma GCC diagnostic pop
     read(Reader &reader)
         : read_base<typename rw_class_traits<T>::value_type>(T::read(reader))
     {
     }
-    read(Reader &reader, VariableSet &)
-        : read(reader)
-    {
-    }
-};
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-template <typename T>
-struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_cached>::type> : public read_base<typename rw_class_traits<T>::value_type>
-{
-#pragma GCC diagnostic pop
-    read(Reader &reader, VariableSet &variableSet)
-        : read_base<typename rw_class_traits<T>::value_type>(rw_cached_helper<T>::read(reader, variableSet))
-    {
-    }
 };
 
 template <typename T>
-struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_pod>::type>
+struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type>
 {
     write(Writer &writer, typename rw_class_traits<T>::value_type value)
     {
         value.write(writer);
-    }
-    write(Writer &writer, VariableSet &, typename rw_class_traits<T>::value_type value)
-    {
-        value.write(writer);
-    }
-};
-
-template <typename T>
-struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_cached>::type>
-{
-    write(Writer &writer, VariableSet &variableSet, typename rw_class_traits<T>::value_type value)
-    {
-        rw_cached_helper<T>::write(writer, variableSet, value);
     }
 };
 
@@ -702,10 +604,6 @@ struct read<typeName, void> : public read_base<typeName> \
         : read_base<typeName>(reader.read ## functionSuffix()) \
     { \
     } \
-    read(Reader &reader, VariableSet &) \
-        : read(reader) \
-    { \
-    } \
 }; \
 template <> \
 struct read_limited<typeName> : public read_base<typeName> \
@@ -722,10 +620,6 @@ struct write<typeName, void> \
     { \
         writer.write ## functionSuffix(value); \
     } \
-    write(Writer &writer, VariableSet &, typeName value) \
-        : write(writer, value) \
-    { \
-    } \
 };
 
 #define DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(typeName, functionSuffix) \
@@ -734,10 +628,6 @@ struct read<typeName, void> : public read_base<typeName> \
 { \
     read(Reader & reader) \
         : read_base<typeName>(reader.read ## functionSuffix()) \
-    { \
-    } \
-    read(Reader &reader, VariableSet &) \
-        : read(reader) \
     { \
     } \
 }; \
@@ -764,10 +654,6 @@ struct write<typeName, void> \
     { \
         writer.write ## functionSuffix(value); \
     } \
-    write(Writer &writer, VariableSet &, typeName value) \
-        : write(writer, value) \
-    { \
-    } \
 };
 
 #define DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(typeName, functionSuffix) \
@@ -778,10 +664,6 @@ struct read<typeName, void> : public read_base<typeName> \
         : read_base<typeName>(reader.read ## functionSuffix()) \
     { \
     } \
-    read(Reader &reader, VariableSet &) \
-        : read(reader) \
-    { \
-    } \
 }; \
 template <> \
 struct write<typeName, void> \
@@ -789,10 +671,6 @@ struct write<typeName, void> \
     write(Writer & writer, typeName value) \
     { \
         writer.write ## functionSuffix(value); \
-    } \
-    write(Writer &writer, VariableSet &, typeName value) \
-        : write(writer, value) \
-    { \
     } \
 };
 
@@ -826,10 +704,6 @@ struct read<T, typename std::enable_if<std::is_enum<T>::value>::type> : public r
         : read_base<T>((T)(typename enum_traits<T>::rwtype)stream::read_limited<typename enum_traits<T>::rwtype>(reader, (typename enum_traits<T>::rwtype)enum_traits<T>::minimum, (typename enum_traits<T>::rwtype)enum_traits<T>::maximum))
     {
     }
-    read(Reader &reader, VariableSet &)
-        : read(reader)
-    {
-    }
 };
 
 template <typename T>
@@ -839,20 +713,16 @@ struct write<T, typename std::enable_if<std::is_enum<T>::value>::type>
     {
         stream::write<typename enum_traits<T>::rwtype>(writer, (typename enum_traits<T>::rwtype)value);
     }
-    write(Writer &writer, VariableSet &, T value)
-        : write(writer, value)
-    {
-    }
 };
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
 template <typename T>
-struct read_nonnull : public read_base<std::shared_ptr<T>>
+struct read_nonnull : public read_base<typename rw_class_traits<T>::value_type>
 {
 #pragma GCC diagnostic pop
-    read_nonnull(Reader &reader, VariableSet &variableSet)
-        : read_base<std::shared_ptr<T>>((std::shared_ptr<T>)read<T>(reader, variableSet))
+    read_nonnull(Reader &reader)
+        : read_base<typename rw_class_traits<T>::value_type>((std::shared_ptr<T>)read<T>(reader))
     {
         if(this->value == nullptr)
             throw InvalidDataValueException("read null pointer in read_nonnull");
@@ -1244,4 +1114,3 @@ public:
 }
 
 #endif // STREAM_H
-#include "util/variable_set.h"

@@ -78,6 +78,13 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
+    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    {
+    }
+    virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 }
 }
