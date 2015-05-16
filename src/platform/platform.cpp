@@ -39,6 +39,7 @@
 #include <functional>
 #include <deque>
 #include <condition_variable>
+#include <cctype>
 #include "platform/audio.h"
 #include "platform/thread_priority.h"
 #include "util/logging.h"

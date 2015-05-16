@@ -122,6 +122,22 @@ public:
             return tool;
         return descriptor->incrementDamage(tool, blockDescriptor->isHelpingToolKind(tool), blockDescriptor->isMatchingTool(tool), blockDescriptor->getBreakDuration(tool) == 0);
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        assert(static_cast<std::uint16_t>(maxDamage()) == maxDamage());
+        std::uint16_t damage = stream::read_limited<std::uint16_t>(reader, 0, maxDamage());
+        if(damage == 0)
+            return nullptr;
+        return std::static_pointer_cast<void>(std::make_shared<ToolData>(damage));
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+        assert(static_cast<std::uint16_t>(maxDamage()) == maxDamage());
+        std::uint16_t damage = 0;
+        if(data != nullptr)
+            damage = static_cast<const ToolData *>(data.get())->damage;
+        stream::write<std::uint16_t>(writer, damage);
+    }
 };
 }
 }

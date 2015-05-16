@@ -51,6 +51,13 @@ public:
     {
         return pointer();
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 }
 }

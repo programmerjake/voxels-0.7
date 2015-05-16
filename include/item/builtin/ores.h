@@ -56,6 +56,13 @@ public:
     {
         return Item(Coal::descriptor());
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 
 class IronOre final : public ItemBlock
@@ -78,6 +85,13 @@ public:
     virtual Item getSmeltedItem(Item item) const
     {
         return Item(IronIngot::descriptor());
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 
@@ -102,6 +116,13 @@ public:
     {
         return Item(GoldIngot::descriptor());
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 
 class LapisLazuliOre final : public ItemBlock
@@ -124,6 +145,13 @@ public:
     virtual Item getSmeltedItem(Item item) const
     {
         return Item(LapisLazuli::descriptor());
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 
@@ -148,6 +176,13 @@ public:
     {
         return Item(Diamond::descriptor());
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 
 class RedstoneOre final : public ItemBlock
@@ -171,6 +206,13 @@ public:
     {
         return Item(RedstoneDust::descriptor());
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 
 class EmeraldOre final : public ItemBlock
@@ -193,6 +235,13 @@ public:
     virtual Item getSmeltedItem(Item item) const
     {
         return Item(Emerald::descriptor());
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 

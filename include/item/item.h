@@ -105,6 +105,8 @@ public:
     }
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity = VectorF(0.0f));
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, const Player *player, double ignoreTime = 1);
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const = 0;
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const = 0;
 };
 
 inline unsigned Item::getMaxStackCount() const

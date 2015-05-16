@@ -99,6 +99,8 @@ public:
         return descriptor != rt.descriptor || !dataEqual(rt);
     }
     unsigned getMaxStackCount() const;
+    static Item read(stream::Reader &reader);
+    void write(stream::Writer &writer) const;
 };
 
 struct ItemStack final
@@ -216,13 +218,26 @@ struct ItemStack final
     void render(Mesh &dest, float minX, float maxX, float minY, float maxY) const;
     static ItemStack read(stream::Reader &reader)
     {
-        throw std::runtime_error("ItemStack::read not implemented");
-        #warning implement
+        std::uint8_t count = stream::read<std::uint8_t>(reader);
+        if(count == 0)
+            return ItemStack();
+        Item item = stream::read<Item>(reader);
+        if(!item.good())
+            throw stream::InvalidDataValueException("read empty item after non-zero count for ItemStack");
+        if(count > item.getMaxStackCount())
+            throw stream::InvalidDataValueException("count too high for item");
+        return ItemStack(item, count);
     }
-    void write(stream::Writer &writer)
+    void write(stream::Writer &writer) const
     {
-        throw std::runtime_error("ItemStack::write not implemented");
-        #warning implement
+        assert(static_cast<std::uint8_t>(getMaxCount()) == getMaxCount());
+        std::uint8_t count = this->count;
+        if(!good())
+            count = 0;
+        stream::write<std::uint8_t>(writer, static_cast<std::uint8_t>(count));
+        if(count == 0)
+            return;
+        stream::write<Item>(writer, item);
     }
 };
 

@@ -87,5 +87,98 @@ void ItemDescriptors_t::remove(ItemDescriptorPointer bd) const
         itemsMap = nullptr;
     }
 }
+
+namespace
+{
+struct StreamItemDescriptors final
+{
+    typedef std::uint16_t Descriptor;
+    static constexpr Descriptor NullDescriptor = 0;
+    std::unordered_map<Descriptor, ItemDescriptorPointer> descriptorToItemDescriptorPointerMap;
+    std::unordered_map<ItemDescriptorPointer, Descriptor> itemDescriptorPointerToDescriptorMap;
+    std::size_t descriptorCount = 0;
+    StreamItemDescriptors()
+        : descriptorToItemDescriptorPointerMap(),
+        itemDescriptorPointerToDescriptorMap()
+    {
+    }
+    static StreamItemDescriptors &get(stream::Stream &stream)
+    {
+        struct tag_t
+        {
+        };
+        std::shared_ptr<StreamItemDescriptors> retval = stream.getAssociatedValue<StreamItemDescriptors, tag_t>();
+        if(retval)
+            return *retval;
+        retval = std::make_shared<StreamItemDescriptors>();
+        stream.setAssociatedValue<StreamItemDescriptors, tag_t>(retval);
+        return *retval;
+    }
+    static ItemDescriptorPointer read(stream::Reader &reader)
+    {
+        StreamItemDescriptors &me = get(reader);
+        Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
+        if(upperLimit != me.descriptorCount + 1)
+            upperLimit = static_cast<Descriptor>(me.descriptorCount);
+        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        if(descriptor == NullDescriptor)
+            return nullptr;
+        if(descriptor <= me.descriptorCount)
+            return me.descriptorToItemDescriptorPointerMap[descriptor];
+        assert(descriptor == me.descriptorCount + 1); // check for overflow
+        me.descriptorCount++;
+        std::wstring name = stream::read<std::wstring>(reader);
+        ItemDescriptorPointer retval = ItemDescriptors[name];
+        if(retval == nullptr)
+            throw stream::InvalidDataValueException("item name not found");
+        me.descriptorToItemDescriptorPointerMap[descriptor] = retval;
+        me.itemDescriptorPointerToDescriptorMap[retval] = descriptor;
+        return retval;
+    }
+    static void write(stream::Writer &writer, ItemDescriptorPointer id)
+    {
+        if(id == nullptr)
+        {
+            stream::write<Descriptor>(writer, NullDescriptor);
+            return;
+        }
+        StreamItemDescriptors &me = get(writer);
+        auto iter = me.itemDescriptorPointerToDescriptorMap.find(id);
+        if(iter == me.itemDescriptorPointerToDescriptorMap.end())
+        {
+            Descriptor descriptor = ++me.descriptorCount;
+            assert(descriptor == me.descriptorCount); // check for overflow
+            me.itemDescriptorPointerToDescriptorMap[id] = descriptor;
+            me.descriptorToItemDescriptorPointerMap[descriptor] = id;
+            stream::write<Descriptor>(writer, descriptor);
+            stream::write<std::wstring>(writer, id->name);
+        }
+        else
+        {
+            stream::write<Descriptor>(writer, std::get<1>(*iter));
+        }
+    }
+};
+}
+
+Item Item::read(stream::Reader &reader)
+{
+    ItemDescriptorPointer descriptor = StreamItemDescriptors::read(reader);
+    if(descriptor == nullptr)
+        return Item();
+    std::shared_ptr<void> data = descriptor->readItemData(reader);
+    return Item(descriptor, data);
+}
+
+void Item::write(stream::Writer &writer) const
+{
+    if(!good())
+    {
+        StreamItemDescriptors::write(writer, nullptr);
+        return;
+    }
+    StreamItemDescriptors::write(writer, descriptor);
+    descriptor->writeItemData(writer, data);
+}
 }
 }

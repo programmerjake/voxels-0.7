@@ -58,6 +58,13 @@ public:
     {
         return 5.0f;
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 class WoodLog final : public ItemBlock
 {
@@ -117,6 +124,13 @@ public:
     {
         return 15.0f;
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 class WoodPlanks final : public ItemBlock
 {
@@ -144,6 +158,13 @@ public:
     virtual float getFurnaceBurnTime() const override
     {
         return 15.0f;
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 class WoodLeaves final : public ItemBlock
@@ -174,6 +195,13 @@ public:
     {
         return woodDescriptor;
     }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 class Sapling final : public ItemImage
 {
@@ -200,6 +228,13 @@ public:
     virtual float getFurnaceBurnTime() const override
     {
         return 5.0f;
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 }

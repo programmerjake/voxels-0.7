@@ -47,6 +47,13 @@ public:
         return pointer();
     }
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
 };
 class WaterBucket final : public ItemImage
 {
@@ -66,6 +73,13 @@ public:
     static ItemDescriptorPointer descriptor()
     {
         return pointer();
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
     }
 };
 }

@@ -373,6 +373,7 @@ void setStackTraceDumpingEnabled(bool v);
 bool getStackTraceDumpingEnabled();
 std::uint32_t allocateTexture();
 void freeTexture(std::uint32_t texture);
+
 }
 }
 
