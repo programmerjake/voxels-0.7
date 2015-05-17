@@ -51,10 +51,8 @@ private:
         if(decoder.seekFailed)
         {
             errno = EIO;
-            getDebugLog() << L"read_fn: seek failed" << postnl;
             return 0;
         }
-        getDebugLog() << L"read_fn: blockSize=" << blockSize << L" numBlocks=" << numBlocks << L" ";
         std::size_t readCount = 0;
         try
         {
@@ -64,13 +62,11 @@ private:
                 std::size_t currentBlockSize = decoder.reader->readBytes(dataPtr, blockSize);
                 if(currentBlockSize == 0)
                 {
-                    getDebugLog() << L"return=" << readCount << postnl;
                     return readCount;
                 }
                 if(currentBlockSize != blockSize)
                 {
                     errno = EIO;
-                    getDebugLog() << L"return=error" << postnl;
                     return 0;
                 }
                 dataPtr += blockSize;
@@ -79,10 +75,8 @@ private:
         catch(stream::IOException & e)
         {
             errno = EIO;
-            getDebugLog() << L"return=error" << postnl;
             return 0;
         }
-        getDebugLog() << L"return=" << readCount << postnl;
         return readCount;
     }
     static long tell_fn(void *dataSource)
@@ -91,13 +85,11 @@ private:
         try
         {
             std::int64_t retval = decoder.reader->tell();
-            getDebugLog() << L"tell_fn: return=" << retval << postnl;
             return retval;
         }
         catch(stream::IOException &)
         {
             errno = EIO;
-            getDebugLog() << L"tell_fn: return=error" << postnl;
             return -1;
         }
     }
@@ -106,20 +98,16 @@ private:
         OggVorbisDecoder &decoder = *(OggVorbisDecoder *)dataSource;
         stream::SeekPosition seekPosition;
         decoder.seekFailed = false;
-        getDebugLog() << L"seek_fn: offset=" << offset << L" whence=";
         switch(whence)
         {
         case SEEK_SET:
             seekPosition = stream::SeekPosition::Start;
-            getDebugLog() << L"start ";
             break;
         case SEEK_CUR:
             seekPosition = stream::SeekPosition::Current;
-            getDebugLog() << L"current ";
             break;
         case SEEK_END:
             seekPosition = stream::SeekPosition::End;
-            getDebugLog() << L"end ";
             break;
         default:
             decoder.seekFailed = true;
@@ -132,10 +120,8 @@ private:
         catch(stream::IOException &)
         {
             decoder.seekFailed = true;
-            getDebugLog() << L"failed" << postnl;
             return 0;
         }
-        getDebugLog() << L"success" << postnl;
         return 0;
     }
     inline void readBuffer()

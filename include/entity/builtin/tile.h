@@ -101,6 +101,17 @@ public:
     {
         world.addEntity(this, (PositionF)position, VectorF(0), lock_manager, std::shared_ptr<void>(new TileData(block, position, hasEntity)));
     }
+    virtual bool shouldWrite() const override
+    {
+        return false;
+    }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
 };
 }
 }

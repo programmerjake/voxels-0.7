@@ -31,6 +31,7 @@
 #include "util/world_lock_manager.h"
 #include "render/mesh.h"
 #include "render/render_layer.h"
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -69,6 +70,12 @@ public:
         return false;
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const = 0;
+    virtual bool shouldWrite() const
+    {
+        return true;
+    }
+    virtual void write(const Entity &entity, stream::Writer &writer) const = 0;
+    virtual Entity *read(stream::Reader &reader) const = 0;
 };
 
 class EntityDescriptors_t final

@@ -49,6 +49,16 @@ public:
     {
         return pointer();
     }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
+    }
 };
 class FallingGravel final : public FallingBlock
 {
@@ -66,6 +76,16 @@ public:
     static EntityDescriptorPointer descriptor()
     {
         return pointer();
+    }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
     }
 };
 }

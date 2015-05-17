@@ -78,6 +78,24 @@ public:
         VectorF v = VectorF::random(world.getRandomGenerator()) * 0.25f;
         return world.addEntity(descriptor(), position, v, lock_manager);
     }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        PositionF position = entity.physicsObject->getPosition();
+        VectorF velocity = entity.physicsObject->getVelocity();
+        ParticleData data = getParticleData(entity.data);
+        stream::write<PositionF>(writer, position);
+        stream::write<VectorF>(writer, velocity);
+        stream::write<ParticleData>(writer, data);
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        PositionF position = stream::read<PositionF>(reader);
+        VectorF velocity = stream::read<VectorF>(reader);
+        ParticleData data = stream::read<ParticleData>(reader);
+        World::StreamWorld streamWorld = World::getStreamWorld(reader);
+        assert(streamWorld);
+        return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::shared_ptr<void>(new ParticleData(data)));
+    }
 };
 
 }

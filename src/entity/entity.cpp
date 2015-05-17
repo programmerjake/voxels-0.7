@@ -35,6 +35,105 @@ void Entity::destroy()
     *this = Entity();
 }
 
+bool Entity::shouldWrite() const
+{
+    if(!good())
+        return false;
+    return descriptor->shouldWrite();
+}
+
+namespace
+{
+struct StreamEntityDescriptors final
+{
+    typedef std::uint16_t Descriptor;
+    static constexpr Descriptor NullDescriptor = 0;
+    std::unordered_map<Descriptor, EntityDescriptorPointer> descriptorToEntityDescriptorPointerMap;
+    std::unordered_map<EntityDescriptorPointer, Descriptor> entityDescriptorPointerToDescriptorMap;
+    std::size_t descriptorCount = 0;
+    StreamEntityDescriptors()
+        : descriptorToEntityDescriptorPointerMap(),
+        entityDescriptorPointerToDescriptorMap()
+    {
+    }
+    static StreamEntityDescriptors &get(stream::Stream &stream)
+    {
+        struct tag_t
+        {
+        };
+        std::shared_ptr<StreamEntityDescriptors> retval = stream.getAssociatedValue<StreamEntityDescriptors, tag_t>();
+        if(retval)
+            return *retval;
+        retval = std::make_shared<StreamEntityDescriptors>();
+        stream.setAssociatedValue<StreamEntityDescriptors, tag_t>(retval);
+        return *retval;
+    }
+    static EntityDescriptorPointer read(stream::Reader &reader)
+    {
+        StreamEntityDescriptors &me = get(reader);
+        Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
+        if(upperLimit != me.descriptorCount + 1)
+            upperLimit = static_cast<Descriptor>(me.descriptorCount);
+        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        if(descriptor == NullDescriptor)
+            return nullptr;
+        if(descriptor <= me.descriptorCount)
+            return me.descriptorToEntityDescriptorPointerMap[descriptor];
+        assert(descriptor == me.descriptorCount + 1); // check for overflow
+        me.descriptorCount++;
+        std::wstring name = stream::read<std::wstring>(reader);
+        EntityDescriptorPointer retval = EntityDescriptors[name];
+        if(retval == nullptr)
+            throw stream::InvalidDataValueException("entity name not found");
+        me.descriptorToEntityDescriptorPointerMap[descriptor] = retval;
+        me.entityDescriptorPointerToDescriptorMap[retval] = descriptor;
+        return retval;
+    }
+    static void write(stream::Writer &writer, EntityDescriptorPointer ed)
+    {
+        if(ed == nullptr)
+        {
+            stream::write<Descriptor>(writer, NullDescriptor);
+            return;
+        }
+        StreamEntityDescriptors &me = get(writer);
+        auto iter = me.entityDescriptorPointerToDescriptorMap.find(ed);
+        if(iter == me.entityDescriptorPointerToDescriptorMap.end())
+        {
+            Descriptor descriptor = ++me.descriptorCount;
+            assert(descriptor == me.descriptorCount); // check for overflow
+            me.entityDescriptorPointerToDescriptorMap[ed] = descriptor;
+            me.descriptorToEntityDescriptorPointerMap[descriptor] = ed;
+            stream::write<Descriptor>(writer, descriptor);
+            stream::write<std::wstring>(writer, ed->name);
+        }
+        else
+        {
+            stream::write<Descriptor>(writer, std::get<1>(*iter));
+        }
+    }
+};
+}
+
+void Entity::write(stream::Writer &writer) const
+{
+    if(!good())
+    {
+        StreamEntityDescriptors::write(writer, nullptr);
+        return;
+    }
+    StreamEntityDescriptors::write(writer, descriptor);
+    descriptor->write(*this, writer);
+}
+
+Entity *Entity::read(stream::Reader &reader)
+{
+    EntityDescriptorPointer descriptor = StreamEntityDescriptors::read(reader);
+    if(descriptor == nullptr)
+        return nullptr;
+    return descriptor->read(reader);
+}
+
 EntityDescriptor::EntityDescriptor(wstring name)
     : name(name)
 {

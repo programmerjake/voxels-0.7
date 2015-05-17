@@ -152,6 +152,16 @@ public:
         return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
     }
     static constexpr float dropSpeed = 3;
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        throw std::runtime_error("EntityItem read/write not implemented");
+        #warning implement
+    }
 };
 }
 }

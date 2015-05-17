@@ -49,6 +49,7 @@
 #include <algorithm>
 #include <random>
 #include "util/math_constants.h"
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -79,6 +80,92 @@ public:
     }
     static constexpr std::int32_t SeaLevel = 64;
 private:
+    struct stream_world_tag_t final
+    {
+    };
+public:
+    class StreamWorld final
+    {
+    private:
+        World *pworld = nullptr;
+        WorldLockManager *plock_manager = nullptr;
+    public:
+        StreamWorld()
+        {
+        }
+        StreamWorld(World &world_, WorldLockManager &lock_manager_)
+            : pworld(&world_), plock_manager(&lock_manager_)
+        {
+        }
+        StreamWorld(const StreamWorld &) = default;
+        StreamWorld &operator =(const StreamWorld &) = default;
+        StreamWorld(StreamWorld &&) = default;
+        StreamWorld &operator =(StreamWorld &&) = default;
+        ~StreamWorld() = default;
+        bool good() const
+        {
+            return pworld != nullptr && plock_manager != nullptr;
+        }
+        explicit operator bool() const
+        {
+            return good();
+        }
+        bool operator !() const
+        {
+            return !good();
+        }
+        World &world() const
+        {
+            assert(good());
+            return *pworld;
+        }
+        WorldLockManager &lock_manager() const
+        {
+            assert(good());
+            return *plock_manager;
+        }
+    };
+    static StreamWorld getStreamWorld(stream::Stream &stream)
+    {
+        std::shared_ptr<StreamWorld> retval = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
+        if(retval == nullptr)
+            return StreamWorld();
+        return *retval;
+    }
+private:
+    static void setStreamWorld(stream::Stream &stream, StreamWorld streamWorld)
+    {
+        std::shared_ptr<StreamWorld> p = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
+        if(p == nullptr && streamWorld)
+        {
+            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(std::make_shared<StreamWorld>(streamWorld));
+        }
+        else if(p != nullptr && !streamWorld)
+        {
+            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(nullptr);
+        }
+        else if(p != nullptr)
+        {
+            *p = streamWorld;
+        }
+    }
+    class StreamWorldGuard final
+    {
+        StreamWorldGuard(const StreamWorldGuard &) = delete;
+        StreamWorldGuard &operator =(const StreamWorldGuard &) = delete;
+    private:
+        stream::Stream &stream;
+    public:
+        StreamWorldGuard(stream::Stream &stream, World &world, WorldLockManager &lock_manager)
+            : stream(stream)
+        {
+            setStreamWorld(stream, StreamWorld(world, lock_manager));
+        }
+        ~StreamWorldGuard()
+        {
+            setStreamWorld(stream, StreamWorld());
+        }
+    };
     std::mt19937 randomGenerator;
     std::mutex randomGeneratorLock;
 public:

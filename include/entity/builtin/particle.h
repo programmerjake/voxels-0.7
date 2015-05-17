@@ -59,6 +59,19 @@ protected:
         {
         }
         virtual ~ParticleData() = default;
+        void write(stream::Writer &writer) const
+        {
+            stream::write<float32_t>(writer, existDuration);
+            stream::write<float64_t>(writer, time);
+        }
+        static ParticleData read(stream::Reader &reader)
+        {
+            float existDuration = stream::read_limited<float32_t>(reader, 0, 1e6);
+            double time = stream::read_limited<float64_t>(reader, 0, existDuration + 1);
+            ParticleData retval(existDuration);
+            retval.time = time;
+            return retval;
+        }
     };
     std::vector<TextureDescriptor> frames;
     float framesPerSecond;
@@ -95,7 +108,8 @@ public:
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
     {
-        entity.data = std::shared_ptr<void>(new ParticleData(getExistDuration(world)));
+        if(!entity.data)
+            entity.data = std::shared_ptr<void>(new ParticleData(getExistDuration(world)));
     }
     virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
     {

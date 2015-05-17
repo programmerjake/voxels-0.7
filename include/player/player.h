@@ -92,6 +92,16 @@ public:
         return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25, 1.8, 0.25)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override;
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        throw std::runtime_error("Player read/write not implemented");
+        #warning implement
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        throw std::runtime_error("Player read/write not implemented");
+        #warning implement
+    }
 };
 }
 }

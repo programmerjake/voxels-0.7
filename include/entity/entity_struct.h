@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include <cstdint>
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -67,6 +68,9 @@ struct Entity final
         return !good();
     }
     void destroy();
+    bool shouldWrite() const;
+    void write(stream::Writer &writer) const;
+    static Entity *read(stream::Reader &reader);
 };
 }
 }
