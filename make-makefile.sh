@@ -138,7 +138,7 @@ echo
 echo ".PHONY: all build clean prebuild"
 echo
 echo "all: build"
-echo 
+echo
 echo "clean:"
 echo $'\t'rm -rf "${object_output_dir%/}"
 echo $'\t'rm -f "$output_executable_name"
@@ -146,31 +146,33 @@ echo
 echo "build: prebuild $output_executable_name"
 echo
 echo "prebuild:"
-printf "\tmkdir -p %s\n" "${object_directories[@]}"
+printf "\t@mkdir -p %s\n" "${object_directories[@]}"
 if [[ "$output_executable_name" =~ ^(.+)/[^/]*$ ]]; then
-    printf "\tmkdir -p %s\n" "${BASH_REMATCH[1]}"
+    printf "\t@mkdir -p %s\n" "${BASH_REMATCH[1]}"
 fi
 echo
-echo "$output_executable_name: prebuild ${objects[@]}"
-echo $'\t''$(LD)' "${objects[@]}" -o "$output_executable_name" "${linker_command_line[@]}"
+echo "$output_executable_name: ${objects[@]} | prebuild"
+echo $'\t'"@printf '\x1b[0;1;34mLinking\x1b[m\n'"
+echo $'\t''@$(LD)' "${objects[@]}" -o "$output_executable_name" "${linker_command_line[@]}"
 echo
 index=0
 max_index=${#objects[@]}
-pound_line="####################################"
-space_line="                                    "
+pound_line="##############################"
+space_line="                              "
 for source in "${!objects[@]}"; do
     index=$((index + 1))
     printf "processing dependencies |%s%s| %i%% (%s)\x1b[K\r" "${pound_line::index * ${#pound_line} / max_index}" "${space_line:index * ${#pound_line} / max_index}" $((index * 100 / max_index)) "$source" >&2
-    printf "%s: prebuild " "${objects["$source"]}"
+    printf "%s: " "${objects["$source"]}"
     gcc_executable="g++"
     compiler_line_start=""
     if [ "${source%.c}" != "${source}" ]; then
-        compiler_line_start=$'\t$(CC)'
+        compiler_line_start=$'\t@$(CC)'
         gcc_executable="gcc"
     else
-        compiler_line_start=$'\t$(CXX)'
+        compiler_line_start=$'\t@$(CXX)'
     fi
-    (bash -c "$gcc_executable ${compiler_command_line[*]} $source -M" | sed '{s/^ *//; s/ \\$//g; s/ \([^ \\]\)/\n\1/g}' | sed '{s/^[^/].*[^:]$/&/p; d}' | tr $'\n' ' ' | sed '{s/^\(.*\) $/\1\n/}') 2> >(while read v || [ ! -z "$v" ]; do printf "\r%s\x1b[K\n" "$v" >&2; done) 
+    (bash -c "$gcc_executable ${compiler_command_line[*]} $source -M" | sed '{s/^ *//; s/ \\$//g; s/ \([^ \\]\)/\n\1/g}' | sed '{s/^[^/].*[^:]$/&/p; d}' | tr $'\n' ' ' | sed '{s/^\(.*[^ ]\) *$/\1\n/}' | sed '{s/.*/& | prebuild/}') 2> >(while read v || [ ! -z "$v" ]; do printf "\r%s\x1b[K\n" "$v" >&2; done) 
+    echo $'\t'"@printf '\x1b[0;1;34mCompiling ${source}\x1b[m\n'"
     echo "$compiler_line_start" -c -o "${objects["$source"]}" "${compiler_command_line[@]}" "$source"
     echo
 done
