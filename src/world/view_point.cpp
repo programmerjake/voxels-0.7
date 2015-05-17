@@ -31,6 +31,7 @@
 #include <list>
 #include "util/lock.h"
 #include "util/iterator.h"
+#include <algorithm>
 
 namespace programmerjake
 {
@@ -488,6 +489,8 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             if(size < minSize)
                 size = minSize;
             size = size * 2;
+            if(rl == RenderLayer::Translucent)
+                continue;
             nextBlockRenderMeshes->meshBuffers[rl] = MeshBuffer(size);
         }
     }
@@ -553,13 +556,48 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             }
         }
     }
-    std::size_t renderedTriangles = 0, renderedTranslucentTriangles = 0;
+    const std::size_t renderedTranslucentTriangles = meshes->meshes[RenderLayer::Translucent].size() + entityMeshes[RenderLayer::Translucent].size();
+    static thread_local std::vector<std::pair<const Triangle *, float>> triangleIndirectArray;
+    triangleIndirectArray.clear();
+    triangleIndirectArray.reserve(renderedTranslucentTriangles);
+    VectorF cameraPosition = cameraToWorld.apply(VectorF(0));
+    for(const Triangle &tri : meshes->meshes[RenderLayer::Translucent].triangles)
+    {
+        VectorF averagePosition = (tri.p1 + tri.p2 + tri.p3) * (1.0f / 3);
+        float distanceSquared = absSquared(cameraPosition - averagePosition);
+        triangleIndirectArray.emplace_back(&tri, distanceSquared);
+    }
+    for(const Triangle &tri : entityMeshes[RenderLayer::Translucent].triangles)
+    {
+        VectorF averagePosition = (tri.p1 + tri.p2 + tri.p3) * (1.0f / 3);
+        float distanceSquared = absSquared(cameraPosition - averagePosition);
+        triangleIndirectArray.emplace_back(&tri, distanceSquared);
+    }
+    std::sort(triangleIndirectArray.begin(), triangleIndirectArray.end(), [](std::pair<const Triangle *, float> a, std::pair<const Triangle *, float> b)->bool
+    {
+        return std::get<1>(a) > std::get<1>(b);
+    });
+    static thread_local Mesh translucentMesh;
+    translucentMesh.clear();
+    translucentMesh.triangles.reserve(renderedTranslucentTriangles);
+    for(std::pair<const Triangle *, float> tri : triangleIndirectArray)
+    {
+        translucentMesh.triangles.push_back(*std::get<0>(tri));
+    }
+    triangleIndirectArray.clear();
+    translucentMesh.image = meshes->meshes[RenderLayer::Translucent].image;
+    if(!translucentMesh.image)
+        translucentMesh.image = entityMeshes[RenderLayer::Translucent].image;
+    std::size_t renderedTriangles = renderedTranslucentTriangles;
     for(RenderLayer rl : enum_traits<RenderLayer>())
     {
         renderer << rl;
-        renderedTriangles += meshes->meshes[rl].size();
         if(rl == RenderLayer::Translucent)
-            renderedTranslucentTriangles += meshes->meshes[rl].size();
+        {
+            renderer << transform(worldToCamera, translucentMesh);
+            continue;
+        }
+        renderedTriangles += meshes->meshes[rl].size();
         if(meshes->meshBuffers[rl].empty())
         {
             renderer << transform(worldToCamera, meshes->meshes[rl]);
@@ -570,8 +608,6 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         }
         renderer << transform(worldToCamera, entityMeshes[rl]);
         renderedTriangles += entityMeshes[rl].size();
-        if(rl == RenderLayer::Translucent)
-            renderedTranslucentTriangles += entityMeshes[rl].size();
     }
     getDebugLog() << L"rendered " << renderedTriangles << L"/" << renderedTranslucentTriangles << L" triangles." << postr;
 }

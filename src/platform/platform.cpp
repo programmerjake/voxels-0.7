@@ -1467,7 +1467,10 @@ void setupRenderLayers()
     if(renderLayerTextureH <= 0)
         renderLayerTextureH = 1;
     usingOpenGLFramebuffers = haveOpenGLFramebuffers;
-    if(haveOpenGLFramebuffers)
+#if 1
+    usingOpenGLFramebuffers = false;
+#endif
+    if(usingOpenGLFramebuffers)
     {
         for(auto i = enum_traits<RenderLayer>::begin(); i != enum_traits<RenderLayer>::end(); ++i)
         {
