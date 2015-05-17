@@ -336,10 +336,7 @@ Image Image::read(stream::Reader &reader)
     h = stream::read<std::uint32_t>(reader);
     retval = Image(w, h);
     retval.setRowOrder(RowOrder::TopToBottom);
-    for(size_t i = 0; i < BytesPerPixel * w * h; i++)
-    {
-        retval.data->data[i] = reader.readU8();
-    }
+    reader.readAllBytes(&retval.data->data[0], BytesPerPixel * w * h);
     SerializedImages::setAfterRead(reader, descriptor, retval);
     return retval;
 }

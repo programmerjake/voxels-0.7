@@ -27,6 +27,7 @@
 #include <cerrno>
 #include <iostream>
 #include <endian.h>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -37,35 +38,105 @@ class OggVorbisDecoder final : public AudioDecoder
 private:
     OggVorbis_File ovf;
     std::shared_ptr<stream::Reader> reader;
+    bool seekFailed = false;
     std::uint64_t samples;
     unsigned channels;
     unsigned sampleRate;
     std::uint64_t curPos = 0;
     std::vector<float> buffer;
     std::size_t currentBufferPos = 0;
-    static std::size_t read_fn(void * dataPtr_in, std::size_t blockSize, std::size_t numBlocks, void * dataSource)
+    static std::size_t read_fn(void *dataPtr_in, std::size_t blockSize, std::size_t numBlocks, void *dataSource)
     {
-        OggVorbisDecoder & decoder = *(OggVorbisDecoder *)dataSource;
+        OggVorbisDecoder &decoder = *(OggVorbisDecoder *)dataSource;
+        if(decoder.seekFailed)
+        {
+            errno = EIO;
+            getDebugLog() << L"read_fn: seek failed" << postnl;
+            return 0;
+        }
+        getDebugLog() << L"read_fn: blockSize=" << blockSize << L" numBlocks=" << numBlocks << L" ";
         std::size_t readCount = 0;
         try
         {
             std::uint8_t * dataPtr = (std::uint8_t *)dataPtr_in;
             for(std::size_t i = 0; i < numBlocks; i++, readCount++)
             {
-                decoder.reader->readBytes(dataPtr, blockSize);
+                std::size_t currentBlockSize = decoder.reader->readBytes(dataPtr, blockSize);
+                if(currentBlockSize == 0)
+                {
+                    getDebugLog() << L"return=" << readCount << postnl;
+                    return readCount;
+                }
+                if(currentBlockSize != blockSize)
+                {
+                    errno = EIO;
+                    getDebugLog() << L"return=error" << postnl;
+                    return 0;
+                }
                 dataPtr += blockSize;
             }
-        }
-        catch(stream::EOFException & e)
-        {
-            return readCount;
         }
         catch(stream::IOException & e)
         {
             errno = EIO;
-            return readCount;
+            getDebugLog() << L"return=error" << postnl;
+            return 0;
         }
+        getDebugLog() << L"return=" << readCount << postnl;
         return readCount;
+    }
+    static long tell_fn(void *dataSource)
+    {
+        OggVorbisDecoder &decoder = *(OggVorbisDecoder *)dataSource;
+        try
+        {
+            std::int64_t retval = decoder.reader->tell();
+            getDebugLog() << L"tell_fn: return=" << retval << postnl;
+            return retval;
+        }
+        catch(stream::IOException &)
+        {
+            errno = EIO;
+            getDebugLog() << L"tell_fn: return=error" << postnl;
+            return -1;
+        }
+    }
+    static int seek_fn(void *dataSource, ogg_int64_t offset, int whence)
+    {
+        OggVorbisDecoder &decoder = *(OggVorbisDecoder *)dataSource;
+        stream::SeekPosition seekPosition;
+        decoder.seekFailed = false;
+        getDebugLog() << L"seek_fn: offset=" << offset << L" whence=";
+        switch(whence)
+        {
+        case SEEK_SET:
+            seekPosition = stream::SeekPosition::Start;
+            getDebugLog() << L"start ";
+            break;
+        case SEEK_CUR:
+            seekPosition = stream::SeekPosition::Current;
+            getDebugLog() << L"current ";
+            break;
+        case SEEK_END:
+            seekPosition = stream::SeekPosition::End;
+            getDebugLog() << L"end ";
+            break;
+        default:
+            decoder.seekFailed = true;
+            return 0;
+        }
+        try
+        {
+            decoder.reader->seek(offset, seekPosition);
+        }
+        catch(stream::IOException &)
+        {
+            decoder.seekFailed = true;
+            getDebugLog() << L"failed" << postnl;
+            return 0;
+        }
+        getDebugLog() << L"success" << postnl;
+        return 0;
     }
     inline void readBuffer()
     {
@@ -92,9 +163,18 @@ public:
     {
         ov_callbacks callbacks;
         callbacks.read_func = &read_fn;
-        callbacks.seek_func = nullptr;
         callbacks.close_func = nullptr;
-        callbacks.tell_func = nullptr;
+        callbacks.seek_func = &seek_fn;
+        callbacks.tell_func = &tell_fn;
+        try
+        {
+            reader->tell();
+        }
+        catch(stream::NonSeekableException &)
+        {
+            callbacks.seek_func = nullptr;
+            callbacks.tell_func = nullptr;
+        }
         int openRetval = ov_open_callbacks((void *)this, &ovf, NULL, 0, callbacks);
         switch(openRetval)
         {

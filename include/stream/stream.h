@@ -40,6 +40,7 @@
 #include "util/string_cast.h"
 #include "util/enum_traits.h"
 #include "util/circular_deque.h"
+#include "util/util.h"
 #ifdef DEBUG_STREAM
 #include <iostream>
 #define DUMP_V(fn, v) do {std::cerr << #fn << ": read " << v << std::endl;} while(false)
@@ -73,6 +74,10 @@ public:
     explicit IOException(std::exception & e, bool deleteIt = false)
         : IOException(&e, deleteIt)
     {
+    }
+    static void throwErrorFromErrno(std::string functionName)
+    {
+        throw IOException(functionName + " failed: " + std::strerror(errno));
     }
 };
 
@@ -108,6 +113,24 @@ class InvalidDataValueException final : public IOException
 public:
     explicit InvalidDataValueException(std::string msg)
         : IOException(msg)
+    {
+    }
+};
+
+class NonSeekableException final : public IOException
+{
+public:
+    NonSeekableException()
+        : IOException("IO Error : non-seekable stream")
+    {
+    }
+};
+
+class SeekOutOfRangeException final : public IOException
+{
+public:
+    SeekOutOfRangeException()
+        : IOException("IO Error : seek out-of-range")
     {
     }
 };
@@ -148,6 +171,13 @@ public:
     }
 };
 
+enum class SeekPosition
+{
+    Start,
+    Current,
+    End
+};
+
 class Reader : public Stream
 {
 private:
@@ -175,11 +205,54 @@ public:
     {
         return false;
     }
-    void readBytes(std::uint8_t * array, std::size_t count)
+    virtual std::int64_t tell()
     {
-        for(size_t i = 0; i < count; i++)
+        throw NonSeekableException();
+    }
+    virtual void seek(std::int64_t offset, SeekPosition seekPosition)
+    {
+        throw NonSeekableException();
+    }
+    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount)
+    {
+        std::size_t retval;
+        try
         {
-            array[i] = readByte();
+            for(retval = 0; retval < maxCount; retval++)
+            {
+                if(!dataAvailable())
+                    return retval;
+                *array++ = readByte();
+            }
+        }
+        catch(EOFException &)
+        {
+            return retval;
+        }
+        return retval;
+    }
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount)
+    {
+        std::size_t retval;
+        try
+        {
+            for(retval = 0; retval < maxCount; retval++)
+            {
+                *array++ = readByte();
+            }
+        }
+        catch(EOFException &)
+        {
+            return retval;
+        }
+        return retval;
+    }
+    void readAllBytes(std::uint8_t *array, std::size_t count)
+    {
+        std::size_t readCount = readBytes(array, count);
+        if(readCount < count)
+        {
+            throw EOFException();
         }
     }
     std::uint8_t readU8()
@@ -402,7 +475,7 @@ public:
     {
         return true;
     }
-    void writeBytes(const std::uint8_t * array, std::size_t count)
+    virtual void writeBytes(const std::uint8_t * array, std::size_t count)
     {
         for(size_t i = 0; i < count; i++)
             writeByte(array[i]);
@@ -736,14 +809,7 @@ class FileReader final : public Reader
 private:
     FILE * f;
 public:
-    FileReader(std::wstring fileName)
-        : f(nullptr)
-    {
-        std::string str = string_cast<std::string>(fileName);
-        f = std::fopen(str.c_str(), "rb");
-        if(f == nullptr)
-            throw stream::IOException(std::string("IO Error : ") + std::strerror(errno));
-    }
+    explicit FileReader(std::wstring fileName);
     explicit FileReader(FILE * f)
         : f(f)
     {
@@ -764,6 +830,9 @@ public:
         }
         return ch;
     }
+    virtual std::int64_t tell() override;
+    virtual void seek(std::int64_t offset, SeekPosition seekPosition) override;
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override;
 };
 
 class FileWriter final : public Writer
@@ -773,7 +842,7 @@ class FileWriter final : public Writer
 private:
     FILE * f;
 public:
-    FileWriter(std::wstring fileName)
+    explicit FileWriter(std::wstring fileName)
         : f(nullptr)
     {
         std::string str = string_cast<std::string>(fileName);
@@ -800,6 +869,7 @@ public:
         if(EOF == fflush(f))
             throw IOException("IO Error : can't write to file");
     }
+    virtual void writeBytes(const std::uint8_t *array, std::size_t count) override;
 };
 
 class MemoryReader final : public Reader
@@ -844,6 +914,43 @@ public:
             throw EOFException();
         return mem.get()[offset++];
     }
+    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        if(maxCount > length - offset)
+            maxCount = length - offset;
+        for(std::size_t i = 0; i < maxCount; i++)
+        {
+            *array++ = mem.get()[offset++];
+        }
+        return maxCount;
+    }
+    virtual std::int64_t tell() override
+    {
+        return offset;
+    }
+    virtual void seek(std::int64_t o, SeekPosition seekPosition) override
+    {
+        switch(seekPosition)
+        {
+        case SeekPosition::Start:
+            if(static_cast<std::size_t>(o) > length || o < 0)
+                throw SeekOutOfRangeException();
+            offset = o;
+            break;
+        case SeekPosition::Current:
+            if(static_cast<std::size_t>(o + offset) > length || static_cast<std::int64_t>(o + offset) < 0)
+                throw SeekOutOfRangeException();
+            offset += o;
+            break;
+        case SeekPosition::End:
+            if(o > 0 || static_cast<std::uint64_t>(-o) > length)
+                throw SeekOutOfRangeException();
+            offset = length + o;
+            break;
+        default:
+            UNREACHABLE();
+        }
+    }
 };
 
 class MemoryWriter final : public Writer
@@ -875,6 +982,12 @@ public:
     virtual bool writeWaits() override
     {
         return false;
+    }
+    virtual void writeBytes(const std::uint8_t *array, std::size_t count) override
+    {
+        if(count == 0)
+            return;
+        memory.insert(memory.end(), array, array + count);
     }
 };
 

@@ -37,9 +37,6 @@ namespace voxels
 template <typename T>
 void lock_all(T begin, T end)
 {
-    struct failure_t
-    {
-    };
     auto start_lock = begin;
     if(begin == end) // lock nothing
         return;
@@ -51,12 +48,7 @@ retry:
             continue;
         try
         {
-            try
-            {
-                if(!i->try_lock())
-                    throw failure_t();
-            }
-            catch(...)
+            if(!i->try_lock())
             {
                 for(auto j = begin; j != i; j++)
                 {
@@ -65,13 +57,20 @@ retry:
                     j->unlock();
                 }
                 start_lock->unlock();
-                throw;
+                start_lock = i;
+                goto retry;
             }
         }
-        catch(failure_t &)
+        catch(...)
         {
-            start_lock = i;
-            goto retry;
+            for(auto j = begin; j != i; j++)
+            {
+                if(start_lock == j)
+                    continue;
+                j->unlock();
+            }
+            start_lock->unlock();
+            throw;
         }
     }
 }
@@ -79,30 +78,26 @@ retry:
 template <typename T>
 bool try_lock_all(T begin, T end)
 {
-    struct failure_t
-    {
-    };
     for(auto i = begin; i != end; i++)
     {
         try
         {
-            try
-            {
-                if(!i->try_lock())
-                    throw failure_t();
-            }
-            catch(...)
+            if(!i->try_lock())
             {
                 for(auto j = begin; j != i; j++)
                 {
                     j->unlock();
                 }
-                throw;
+                return false;
             }
         }
-        catch(failure_t &)
+        catch(...)
         {
-            return false;
+            for(auto j = begin; j != i; j++)
+            {
+                j->unlock();
+            }
+            throw;
         }
     }
     return true;

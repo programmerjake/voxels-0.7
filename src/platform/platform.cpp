@@ -100,9 +100,52 @@ public:
         }
         return retval;
     }
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        SDL_ClearError(); // for error detection
+        std::size_t count = SDL_RWread(rw, static_cast<void *>(array), sizeof(std::uint8_t), maxCount);
+        if(0 == count)
+        {
+            const char * str = SDL_GetError();
+            if(str[0]) // non-empty string : error
+                throw RWOpsException(str);
+        }
+        return count;
+    }
     ~RWOpsReader()
     {
         SDL_RWclose(rw);
+    }
+    virtual std::int64_t tell() override
+    {
+        if(rw->seek == nullptr)
+            throw stream::NonSeekableException();
+        std::int64_t retval = SDL_RWtell(rw);
+        if(retval < 0)
+            throw stream::IOException(std::string("SDL_RWtell failed on seekable stream: ") + SDL_GetError());
+        return retval;
+    }
+    virtual void seek(std::int64_t offset, stream::SeekPosition seekPosition) override
+    {
+        if(rw->seek == nullptr)
+            throw stream::NonSeekableException();
+        int whence;
+        switch(seekPosition)
+        {
+        case stream::SeekPosition::Start:
+            whence = RW_SEEK_SET;
+            break;
+        case stream::SeekPosition::Current:
+            whence = RW_SEEK_CUR;
+            break;
+        case stream::SeekPosition::End:
+            whence = RW_SEEK_END;
+            break;
+        default:
+            UNREACHABLE();
+        }
+        if(SDL_RWseek(rw, offset, whence) < 0)
+            throw stream::IOException(std::string("SDL_RWseek failed on seekable stream: ") + SDL_GetError());
     }
 };
 }
@@ -111,7 +154,6 @@ static void startSDL();
 
 #ifdef _WIN64
 #error implement getResourceReader for Win64
-#error implement setThreadPriority for Win64
 #elif _WIN32
 #include <cstring>
 #include <cwchar>

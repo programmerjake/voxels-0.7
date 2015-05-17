@@ -25,6 +25,8 @@
 #include <thread>
 #include <cstdlib>
 #include "util/util.h"
+#include <stdio.h>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -194,6 +196,96 @@ uint8_t DumpingReader::readByte()
     cerr << "Read Byte : " << (unsigned)retval << "\n";
     return retval;
 }
+
+using namespace std;
+
+#if defined(_WIN64) || defined(_WIN32)
+#define FILE_SEEK _fseeki64
+#define FILE_TELL _ftelli64
+#define FILE_OPEN fopen
+#elif defined(__ANDROID) || defined(__APPLE__)
+#define FILE_SEEK fseeko
+#define FILE_TELL ftello
+#define FILE_OPEN fopen
+#elif defined(__linux)
+#define FILE_SEEK fseeko64
+#define FILE_TELL ftello64
+#define FILE_OPEN fopen64
+#elif defined(__unix) || defined(__posix)
+#define FILE_SEEK fseeko
+#define FILE_TELL ftello
+#define FILE_OPEN fopen
+#else
+#define FILE_SEEK fseek
+#define FILE_TELL ftell
+#define FILE_OPEN fopen
+#endif
+
+FileReader::FileReader(std::wstring fileName)
+    : f(nullptr)
+{
+    std::string str = string_cast<std::string>(fileName);
+    errno = 0;
+    f = FILE_OPEN(str.c_str(), "rb");
+    if(f == nullptr)
+        IOException::throwErrorFromErrno("fopen");
+}
+
+std::int64_t FileReader::tell()
+{
+    errno = 0;
+    std::int64_t retval = FILE_TELL(f);
+    if(retval < 0)
+        IOException::throwErrorFromErrno("ftell");
+    return retval;
+}
+
+void FileReader::seek(std::int64_t offset, SeekPosition seekPosition)
+{
+    int whence;
+    switch(seekPosition)
+    {
+    case SeekPosition::Start:
+        whence = SEEK_SET;
+        break;
+    case SeekPosition::Current:
+        whence = SEEK_CUR;
+        break;
+    case SeekPosition::End:
+        whence = SEEK_END;
+        break;
+    default:
+        UNREACHABLE();
+    }
+    errno = 0;
+    if(0 != FILE_SEEK(f, offset, whence))
+        IOException::throwErrorFromErrno("fseek");
+}
+
+std::size_t FileReader::readBytes(std::uint8_t *array, std::size_t maxCount)
+{
+    if(maxCount == 0)
+        return 0;
+    errno = 0;
+    std::size_t retval = fread(static_cast<void *>(array), sizeof(std::uint8_t), maxCount, f);
+    if(retval < maxCount)
+    {
+        if(ferror(f))
+            IOException::throwErrorFromErrno("fread");
+    }
+    return retval;
+}
+
+void FileWriter::writeBytes(const std::uint8_t *array, std::size_t count)
+{
+    errno = 0;
+    fwrite(static_cast<const void *>(array), sizeof(std::uint8_t), count, f);
+    if(ferror(f))
+    {
+        IOException::throwErrorFromErrno("fwrite");
+    }
+}
+
 
 #if 0
 namespace
