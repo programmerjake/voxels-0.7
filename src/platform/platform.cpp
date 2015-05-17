@@ -43,6 +43,7 @@
 #include "platform/audio.h"
 #include "platform/thread_priority.h"
 #include "util/logging.h"
+#include "render/generate.h"
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -504,6 +505,11 @@ bool audioRunning()
     return validAudio;
 }
 
+namespace
+{
+void setupRenderLayers();
+}
+
 void endGraphics()
 {
     if(runningGraphics.exchange(false))
@@ -574,6 +580,7 @@ void startGraphics()
         exit(1);
     }
     getExtensions();
+    setupRenderLayers();
 }
 
 static volatile double lastFlipTime = 0;
@@ -643,9 +650,16 @@ static float averageFPS()
     return averageFPSInternal;
 }
 
+namespace
+{
+void finishDrawingRenderLayers();
+}
+
 static void flipDisplay(float fps)
 {
-    double sleepTime;
+    finishDrawingRenderLayers();
+    double sleepTime = -1;
+    if(fps > 0)
     {
         FlipTimeLocker lock;
         double curTime = Display::realtimeTimer();
@@ -1298,48 +1312,6 @@ float Display::scaleY()
     return scaleYInternal;
 }
 
-void Display::initFrame()
-{
-    SDL_GetWindowSize(window, &xResInternal, &yResInternal);
-    if(width() > height())
-    {
-        scaleXInternal = static_cast<float>(width()) / height();
-        scaleYInternal = 1.0;
-    }
-    else
-    {
-        scaleXInternal = 1.0;
-        scaleYInternal = static_cast<float>(height()) / width();
-    }
-    //glDisable(GL_DEPTH_TEST);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_ALPHA_TEST);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glDepthFunc(GL_LEQUAL);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    glAlphaFunc(GL_GREATER, 0.0f);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-    glViewport(0, 0, width(), height());
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    const float minDistance = 5e-2f, maxDistance = 200.0f;
-    glFrustum(-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-}
-
-void Display::initOverlay()
-{
-    glDepthMask(GL_TRUE);
-    glClear(GL_DEPTH_BUFFER_BIT);
-}
-
 static bool grabMouse_ = false;
 
 bool Display::grabMouse()
@@ -1435,87 +1407,6 @@ void renderInternal(const Mesh & m)
 #endif
     glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
 }
-}
-
-void Display::render(const Mesh & m, Matrix tform, bool enableDepthBuffer)
-{
-    m.image.bind();
-    glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadMatrix(tform);
-    renderInternal(m);
-    glPopMatrix();
-}
-
-void Display::clear(ColorF color)
-{
-    glDepthMask(GL_TRUE);
-    glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    initFrame();
-}
-
-namespace
-{
-
-struct CachedMeshData
-{
-    Image image;
-    CachedMeshData(const Image & image)
-        : image(image)
-    {
-    }
-    virtual ~CachedMeshData()
-    {
-    }
-    virtual void render(Matrix tform, bool enableDepthBuffer) = 0;
-};
-
-vector<GLuint> freeDisplayLists;
-mutex freeDisplayListsLock;
-GLuint allocateDisplayList()
-{
-    freeDisplayListsLock.lock();
-    if(freeDisplayLists.empty())
-    {
-        freeDisplayListsLock.unlock();
-        return glGenLists(1);
-    }
-    GLuint retval = freeDisplayLists.back();
-    freeDisplayLists.pop_back();
-    freeDisplayListsLock.unlock();
-    return retval;
-}
-void freeDisplayList(GLuint displayList)
-{
-    lock_guard<mutex> lockGuard(freeDisplayListsLock);
-    freeDisplayLists.push_back(displayList);
-}
-struct CachedMeshDataDisplayList : public CachedMeshData
-{
-    GLuint displayList;
-    CachedMeshDataDisplayList(const Mesh & mesh)
-        : CachedMeshData(mesh.image), displayList(allocateDisplayList())
-    {
-        glNewList(displayList, GL_COMPILE);
-        renderInternal(mesh);
-        glEndList();
-    }
-    virtual ~CachedMeshDataDisplayList()
-    {
-        freeDisplayList(displayList);
-    }
-    virtual void render(Matrix tform, bool enableDepthBuffer) override
-    {
-        image.bind();
-        glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadMatrix(tform);
-        glCallList(displayList);
-        glLoadIdentity();
-    }
-};
 
 PFNGLBINDBUFFERARBPROC fnGLBindBufferARB = nullptr;
 PFNGLDELETEBUFFERSARBPROC fnGLDeleteBuffersARB = nullptr;
@@ -1524,6 +1415,275 @@ PFNGLBUFFERDATAARBPROC fnGLBufferDataARB = nullptr;
 PFNGLMAPBUFFERARBPROC fnGLMapBufferARB = nullptr;
 PFNGLUNMAPBUFFERARBPROC fnGLUnmapBufferARB = nullptr;
 bool haveOpenGLBuffers = false;
+PFNGLGENFRAMEBUFFERSEXTPROC fnGlGenFramebuffersEXT = nullptr;
+PFNGLDELETEFRAMEBUFFERSEXTPROC fnGlDeleteFramebuffersEXT = nullptr;
+PFNGLGENRENDERBUFFERSEXTPROC fnGlGenRenderbuffersEXT = nullptr;
+PFNGLDELETERENDERBUFFERSEXTPROC fnGlDeleteRenderbuffersEXT = nullptr;
+PFNGLBINDFRAMEBUFFEREXTPROC fnGlBindFramebufferEXT = nullptr;
+PFNGLBINDRENDERBUFFEREXTPROC fnGlBindRenderbufferEXT = nullptr;
+PFNGLFRAMEBUFFERTEXTURE2DEXTPROC fnGlFramebufferTexture2DEXT = nullptr;
+PFNGLRENDERBUFFERSTORAGEEXTPROC fnGlRenderbufferStorageEXT = nullptr;
+PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC fnGlFramebufferRenderbufferEXT = nullptr;
+PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC fnGlCheckFramebufferStatusEXT = nullptr;
+bool haveOpenGLFramebuffers = false;
+enum_array<GLuint, RenderLayer> renderLayerFramebuffer = {};
+enum_array<GLuint, RenderLayer> renderLayerRenderbuffer = {};
+enum_array<GLuint, RenderLayer> renderLayerTexture = {};
+int renderLayerTextureW = 1, renderLayerTextureH = 1;
+bool haveOpenGLArbitraryTextureSize = false;
+
+bool renderLayerNeedsSeperateRenderTarget(RenderLayer rl)
+{
+    switch(rl)
+    {
+    case RenderLayer::Opaque:
+        return false;
+    case RenderLayer::Translucent:
+        return true;
+    }
+    UNREACHABLE();
+    return false;
+}
+
+bool usingOpenGLFramebuffers = false;
+
+void setupRenderLayers()
+{
+    renderLayerTextureW = xResInternal;
+    renderLayerTextureH = yResInternal;
+    if(!haveOpenGLArbitraryTextureSize)
+    {
+        renderLayerTextureW = 1;
+        while(renderLayerTextureW < xResInternal && renderLayerTextureW > 0)
+            renderLayerTextureW <<= 1;
+        assert(renderLayerTextureW > 0);
+        renderLayerTextureH = 1;
+        while(renderLayerTextureH < yResInternal && renderLayerTextureH > 0)
+            renderLayerTextureH <<= 1;
+        assert(renderLayerTextureH > 0);
+    }
+    if(renderLayerTextureW <= 0)
+        renderLayerTextureW = 1;
+    if(renderLayerTextureH <= 0)
+        renderLayerTextureH = 1;
+    usingOpenGLFramebuffers = haveOpenGLFramebuffers;
+    if(haveOpenGLFramebuffers)
+    {
+        for(auto i = enum_traits<RenderLayer>::begin(); i != enum_traits<RenderLayer>::end(); ++i)
+        {
+            RenderLayer rl = *i;
+            renderLayerFramebuffer[rl] = 0;
+            renderLayerRenderbuffer[rl] = 0;
+            renderLayerTexture[rl] = 0;
+            if(!renderLayerNeedsSeperateRenderTarget(rl))
+                continue;
+            glGenTextures(1, &renderLayerTexture[rl]);
+            glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderLayerTextureW, renderLayerTextureH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            fnGlGenFramebuffersEXT(1, &renderLayerFramebuffer[rl]);
+            fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, renderLayerFramebuffer[rl]);
+            fnGlFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, renderLayerTexture[rl], 0);
+            fnGlGenRenderbuffersEXT(1, &renderLayerRenderbuffer[rl]);
+            bool good = false;
+            for(GLenum depthComponent : {GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT16})
+            {
+                fnGlBindRenderbufferEXT(GL_RENDERBUFFER_EXT, renderLayerRenderbuffer[rl]);
+                fnGlRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, depthComponent, renderLayerTextureW, renderLayerTextureH);
+                fnGlFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, renderLayerRenderbuffer[rl]);
+                if(fnGlCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE_EXT)
+                {
+                    continue;
+                }
+                good = true;
+                break;
+            }
+            if(!good)
+            {
+                fnGlBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+                fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                fnGlDeleteFramebuffersEXT(1, &renderLayerFramebuffer[rl]);
+                fnGlDeleteRenderbuffersEXT(1, &renderLayerRenderbuffer[rl]);
+                glDeleteTextures(1, &renderLayerTexture[rl]);
+                while(i != enum_traits<RenderLayer>::begin())
+                {
+                    --i;
+                    rl = *i;
+                    if(!renderLayerNeedsSeperateRenderTarget(rl))
+                        continue;
+                    fnGlDeleteFramebuffersEXT(1, &renderLayerFramebuffer[rl]);
+                    fnGlDeleteRenderbuffersEXT(1, &renderLayerRenderbuffer[rl]);
+                    glDeleteTextures(1, &renderLayerTexture[rl]);
+                }
+                usingOpenGLFramebuffers = false;
+                break;
+            }
+        }
+        if(usingOpenGLFramebuffers)
+        {
+            glDisable(GL_BLEND);
+        }
+        else
+        {
+            glEnable(GL_BLEND);
+        }
+    }
+}
+
+void teardownRenderLayers()
+{
+    if(usingOpenGLFramebuffers)
+    {
+        fnGlBindRenderbufferEXT(GL_RENDERBUFFER_EXT, 0);
+        fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            if(!renderLayerNeedsSeperateRenderTarget(rl))
+                continue;
+            fnGlDeleteFramebuffersEXT(1, &renderLayerFramebuffer[rl]);
+            fnGlDeleteRenderbuffersEXT(1, &renderLayerRenderbuffer[rl]);
+            glDeleteTextures(1, &renderLayerTexture[rl]);
+        }
+        usingOpenGLFramebuffers = false;
+        glEnable(GL_BLEND);
+    }
+}
+
+void updateRenderLayersSize()
+{
+    if(usingOpenGLFramebuffers)
+    {
+        if(xResInternal > renderLayerTextureW || yResInternal > renderLayerTextureH)
+        {
+            teardownRenderLayers();
+            setupRenderLayers();
+        }
+    }
+}
+
+void clearRenderLayers(bool depthOnly)
+{
+    if(usingOpenGLFramebuffers)
+    {
+        fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        if(depthOnly)
+        {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            if(!renderLayerNeedsSeperateRenderTarget(rl))
+                continue;
+            fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, renderLayerFramebuffer[rl]);
+            if(depthOnly)
+            {
+                glClear(GL_DEPTH_BUFFER_BIT);
+            }
+            else
+            {
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
+        }
+    }
+    else
+    {
+        if(depthOnly)
+        {
+            glClear(GL_DEPTH_BUFFER_BIT);
+        }
+        else
+        {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
+    }
+}
+
+template <typename F>
+void renderToRenderLayer(RenderLayer rl, F drawFn)
+{
+    switch(rl)
+    {
+    case RenderLayer::Opaque:
+    {
+        if(usingOpenGLFramebuffers)
+        {
+            glEnable(GL_BLEND);
+            fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            drawFn();
+            for(RenderLayer i : enum_traits<RenderLayer>())
+            {
+                if(!renderLayerNeedsSeperateRenderTarget(i))
+                    continue;
+                fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, renderLayerFramebuffer[i]);
+                drawFn();
+            }
+            glDisable(GL_BLEND);
+        }
+        else
+        {
+            drawFn();
+        }
+        return;
+    }
+    case RenderLayer::Translucent:
+    {
+        if(usingOpenGLFramebuffers)
+        {
+            fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, renderLayerFramebuffer[rl]);
+            drawFn();
+        }
+        else
+        {
+            glDepthMask(GL_FALSE);
+            drawFn();
+            glDepthMask(GL_TRUE);
+        }
+        return;
+    }
+    }
+    UNREACHABLE();
+}
+
+void finishDrawingRenderLayers()
+{
+    if(usingOpenGLFramebuffers)
+    {
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        glOrtho(-1, 1, -1, 1, -1, 1);
+        fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        for(RenderLayer rl : enum_traits<RenderLayer>())
+        {
+            if(!renderLayerNeedsSeperateRenderTarget(rl))
+                continue;
+            glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
+            ColorF colorizeColor = GrayscaleAF(1, 1);
+            Mesh mesh = Generate::quadrilateral(TextureDescriptor(Image(), 0, (float)xResInternal / renderLayerTextureW, 0, (float)yResInternal / renderLayerTextureH),
+                                                VectorF(-1, -1, 0), colorizeColor,
+                                                VectorF(1, -1, 0), colorizeColor,
+                                                VectorF(1, 1, 0), colorizeColor,
+                                                VectorF(-1, 1, 0), colorizeColor);
+            renderInternal(mesh);
+        }
+        glPopMatrix();
+        glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+}
 
 void getOpenGLBuffersExtension()
 {
@@ -1537,6 +1697,21 @@ void getOpenGLBuffersExtension()
         fnGLMapBufferARB = (PFNGLMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glMapBufferARB");
         fnGLUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
     }
+    haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_EXT_framebuffer_object");
+    if(haveOpenGLFramebuffers)
+    {
+        fnGlGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersEXT");
+        fnGlDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersEXT");
+        fnGlGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersEXT");
+        fnGlDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersEXT");
+        fnGlBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferEXT");
+        fnGlBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferEXT");
+        fnGlFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DEXT");
+        fnGlRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageEXT");
+        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferEXT");
+        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
+    }
+    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two");
 }
 
 struct FreeBuffer final
@@ -1578,123 +1753,11 @@ void freeBuffer(GLuint displayList, bool unmap)
     lock_guard<mutex> lockGuard(freeBuffersLock);
     freeBuffers.push_back(displayList);
 }
-struct CachedMeshDataOpenGLBuffer : public CachedMeshData
-{
-    GLuint buffer;
-    GLsizeiptrARB vertexSize, colorSize, textureCoordSize;
-    GLsizei vertexCount;
-    CachedMeshDataOpenGLBuffer(const Mesh & mesh)
-        : CachedMeshData(mesh.image),
-        buffer(allocateBuffer()),
-        vertexSize(mesh.triangles.size() * 3 * 3 * sizeof(float)),
-        colorSize(mesh.triangles.size() * 4 * 3 * sizeof(float)),
-        textureCoordSize(mesh.triangles.size() * 2 * 3 * sizeof(float)),
-        vertexCount(3 * mesh.triangles.size())
-    {
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-        fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, vertexSize + colorSize + textureCoordSize, nullptr, GL_STATIC_DRAW_ARB);
-        void *bufferPtr = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-        if(bufferPtr == nullptr)
-        {
-            cerr << "error : can't map opengl buffer\n" << flush;
-            abort();
-        }
-        float *vertexArray = (float *)(char *)bufferPtr;
-        float *colorArray = (float *)((char *)bufferPtr + vertexSize);
-        float *textureCoordArray = (float *)((char *)bufferPtr + vertexSize + colorSize);
-        for(size_t i = 0; i < mesh.triangles.size(); i++)
-        {
-            Triangle tri = mesh.triangles[i];
-            vertexArray[i * 3 * 3 + 0 * 3 + 0] = tri.p1.x;
-            vertexArray[i * 3 * 3 + 0 * 3 + 1] = tri.p1.y;
-            vertexArray[i * 3 * 3 + 0 * 3 + 2] = tri.p1.z;
-            vertexArray[i * 3 * 3 + 1 * 3 + 0] = tri.p2.x;
-            vertexArray[i * 3 * 3 + 1 * 3 + 1] = tri.p2.y;
-            vertexArray[i * 3 * 3 + 1 * 3 + 2] = tri.p2.z;
-            vertexArray[i * 3 * 3 + 2 * 3 + 0] = tri.p3.x;
-            vertexArray[i * 3 * 3 + 2 * 3 + 1] = tri.p3.y;
-            vertexArray[i * 3 * 3 + 2 * 3 + 2] = tri.p3.z;
-            textureCoordArray[i * 3 * 2 + 0 * 2 + 0] = tri.t1.u;
-            textureCoordArray[i * 3 * 2 + 0 * 2 + 1] = tri.t1.v;
-            textureCoordArray[i * 3 * 2 + 1 * 2 + 0] = tri.t2.u;
-            textureCoordArray[i * 3 * 2 + 1 * 2 + 1] = tri.t2.v;
-            textureCoordArray[i * 3 * 2 + 2 * 2 + 0] = tri.t3.u;
-            textureCoordArray[i * 3 * 2 + 2 * 2 + 1] = tri.t3.v;
-            colorArray[i * 3 * 4 + 0 * 4 + 0] = tri.c1.r;
-            colorArray[i * 3 * 4 + 0 * 4 + 1] = tri.c1.g;
-            colorArray[i * 3 * 4 + 0 * 4 + 2] = tri.c1.b;
-            colorArray[i * 3 * 4 + 0 * 4 + 3] = tri.c1.a;
-            colorArray[i * 3 * 4 + 1 * 4 + 0] = tri.c2.r;
-            colorArray[i * 3 * 4 + 1 * 4 + 1] = tri.c2.g;
-            colorArray[i * 3 * 4 + 1 * 4 + 2] = tri.c2.b;
-            colorArray[i * 3 * 4 + 1 * 4 + 3] = tri.c2.a;
-            colorArray[i * 3 * 4 + 2 * 4 + 0] = tri.c3.r;
-            colorArray[i * 3 * 4 + 2 * 4 + 1] = tri.c3.g;
-            colorArray[i * 3 * 4 + 2 * 4 + 2] = tri.c3.b;
-            colorArray[i * 3 * 4 + 2 * 4 + 3] = tri.c3.a;
-        }
-        fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
-    }
-    virtual ~CachedMeshDataOpenGLBuffer()
-    {
-        freeBuffer(buffer, false);
-    }
-    virtual void render(Matrix tform, bool enableDepthBuffer) override
-    {
-        image.bind();
-        glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadMatrix(tform);
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-        glVertexPointer(3, GL_FLOAT, 0, (const void *)(GLintptrARB)0);
-        glTexCoordPointer(2, GL_FLOAT, 0, (const void *)(GLintptrARB)(vertexSize + colorSize));
-        glColorPointer(4, GL_FLOAT, 0, (const void *)(GLintptrARB)vertexSize);
-        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-        glLoadIdentity();
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
-    }
-};
-
-shared_ptr<CachedMeshData> makeCachedMeshData(const Mesh &mesh)
-{
-    if(haveOpenGLBuffers)
-        return make_shared<CachedMeshDataOpenGLBuffer>(mesh);
-    return make_shared<CachedMeshDataDisplayList>(mesh);
-}
-}
-
-struct CachedMesh
-{
-    Matrix tform;
-    shared_ptr<CachedMeshData> data;
-    CachedMesh(Matrix tform, shared_ptr<CachedMeshData> data)
-        : tform(tform), data(data)
-    {
-    }
-};
-
-shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh)
-{
-    if(mesh.triangles.empty())
-        return make_shared<CachedMesh>(Matrix::identity(), nullptr);
-    return make_shared<CachedMesh>(Matrix::identity(), makeCachedMeshData(mesh));
-}
-
-shared_ptr<CachedMesh> transform(const Matrix & m, shared_ptr<CachedMesh> mesh)
-{
-    return make_shared<CachedMesh>(transform(m, mesh->tform), mesh->data);
-}
-
-void Display::render(shared_ptr<CachedMesh> m, bool enableDepthBuffer)
-{
-    if(m->data)
-        m->data->render(m->tform, enableDepthBuffer);
 }
 
 struct MeshBufferImp
 {
-    virtual void render(Matrix tform, bool enableDepthBuffer) = 0;
+    virtual void render(Matrix tform, RenderLayer rl) = 0;
     virtual ~MeshBufferImp() = default;
     virtual bool set(const Mesh &mesh, bool isFinal) = 0;
     virtual bool empty() const = 0;
@@ -1731,12 +1794,11 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
     {
         freeBuffer(buffer, bufferMemory != nullptr);
     }
-    virtual void render(Matrix tform, bool enableDepthBuffer) override
+    virtual void render(Matrix tform, RenderLayer rl) override
     {
         if(usedTriangleCount == 0)
             return;
         image.bind();
-        glDepthMask(enableDepthBuffer ? GL_TRUE : GL_FALSE);
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrix(tform);
         fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
@@ -1745,11 +1807,15 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
             fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
             bufferMemory = nullptr;
         }
-        const char *array_start = (const char *)0;
-        glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
-        glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
-        glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
-        glDrawArrays(GL_TRIANGLES, 0, (GLint)usedTriangleCount * 3);
+        GLint vertexCount = usedTriangleCount * 3;
+        renderToRenderLayer(rl, [vertexCount]()
+        {
+            const char *array_start = (const char *)0;
+            glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
+            glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
+            glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
+            glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        });
         glLoadIdentity();
         if(!gotFinalSet)
         {
@@ -1804,9 +1870,9 @@ struct MeshBufferImpFallback final : public MeshBufferImp
     virtual ~MeshBufferImpFallback()
     {
     }
-    virtual void render(Matrix tform, bool enableDepthBuffer) override
+    virtual void render(Matrix tform, RenderLayer rl) override
     {
-        Display::render(mesh, tform, enableDepthBuffer);
+        Display::render(mesh, tform, rl);
     }
     virtual bool set(const Mesh &mesh, bool isFinal) override
     {
@@ -1828,6 +1894,74 @@ struct MeshBufferImpFallback final : public MeshBufferImp
         return allocatedTriangleCount;
     }
 };
+}
+
+void Display::render(const Mesh & m, Matrix tform, RenderLayer rl)
+{
+    m.image.bind();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadMatrix(tform);
+    renderToRenderLayer(rl, [&m]()
+    {
+        renderInternal(m);
+    });
+    glPopMatrix();
+}
+
+void Display::initFrame()
+{
+    SDL_GetWindowSize(window, &xResInternal, &yResInternal);
+    if(width() > height())
+    {
+        scaleXInternal = static_cast<float>(width()) / height();
+        scaleYInternal = 1.0;
+    }
+    else
+    {
+        scaleXInternal = 1.0;
+        scaleYInternal = static_cast<float>(height()) / width();
+    }
+    updateRenderLayersSize();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ALPHA_TEST);
+    glEnable(GL_CULL_FACE);
+    if(usingOpenGLFramebuffers)
+    {
+        glDisable(GL_BLEND);
+    }
+    else
+    {
+        glEnable(GL_BLEND);
+    }
+    glDepthFunc(GL_LEQUAL);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    glAlphaFunc(GL_GREATER, 0.0f);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glViewport(0, 0, width(), height());
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    const float minDistance = 5e-2f, maxDistance = 200.0f;
+    glFrustum(-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+}
+
+void Display::clear(ColorF color)
+{
+    initFrame();
+    glClearColor(color.r, color.g, color.b, color.a);
+    clearRenderLayers(false);
+}
+
+void Display::initOverlay()
+{
+    clearRenderLayers(true);
 }
 
 bool MeshBuffer::impIsEmpty(std::shared_ptr<MeshBufferImp> mesh)
@@ -1871,11 +2005,11 @@ float Display::screenRefreshRate()
     return mode.refresh_rate;
 }
 
-void Display::render(const MeshBuffer &m, bool enableDepthBuffer)
+void Display::render(const MeshBuffer &m, RenderLayer rl)
 {
     if(!m.imp)
         return;
-    m.imp->render(m.tform, enableDepthBuffer);
+    m.imp->render(m.tform, rl);
 }
 
 static void getExtensions()

@@ -275,17 +275,12 @@ namespace programmerjake
 {
 namespace voxels
 {
-struct CachedMesh;
-
-std::shared_ptr<CachedMesh> makeCachedMesh(const Mesh & mesh);
-std::shared_ptr<CachedMesh> transform(const Matrix & m, std::shared_ptr<CachedMesh> mesh);
-
 struct MeshBufferImp;
 class MeshBuffer;
 
 namespace Display
 {
-    void render(const MeshBuffer &m, bool enableDepthBuffer);
+    void render(const MeshBuffer &m, RenderLayer rl);
 }
 
 class MeshBuffer final
@@ -322,7 +317,7 @@ public:
     {
         return MeshBuffer(imp, transform(m, tform));
     }
-    friend void Display::render(const MeshBuffer &m, bool enableDepthBuffer);
+    friend void Display::render(const MeshBuffer &m, RenderLayer rl);
 };
 
 inline MeshBuffer transform(const Matrix &m, const MeshBuffer &meshBuffer)
@@ -354,8 +349,7 @@ namespace Display
     VectorF transformTouchTo3D(float x, float y, float depth = 1.0f);
     VectorF transform3DToMouse(VectorF pos);
     VectorF transform3DToTouch(VectorF pos);
-    void render(const Mesh & m, Matrix tform, bool enableDepthBuffer);
-    void render(std::shared_ptr<CachedMesh> m, bool enableDepthBuffer);
+    void render(const Mesh & m, Matrix tform, RenderLayer rl);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
     float screenRefreshRate();
 }

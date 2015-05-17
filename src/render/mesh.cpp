@@ -33,7 +33,7 @@ namespace voxels
 {
 void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
 {
-    Display::render(m, tform, depthBufferEnabled);
+    Display::render(m, tform, currentRenderLayer);
 }
 
 namespace Generate

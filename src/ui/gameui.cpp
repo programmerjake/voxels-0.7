@@ -168,7 +168,7 @@ void GameUi::clear(Renderer &renderer)
         }
     }
     viewPoint->render(renderer, tform, lock_manager);
-    renderer << start_overlay << enable_depth_buffer;
+    renderer << start_overlay << reset_render_layer;
 }
 void GameUi::startInventoryDialog()
 {
