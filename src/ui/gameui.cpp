@@ -81,6 +81,7 @@ void renderSunOrMoon(Renderer &renderer, Matrix orientationTransform, VectorF po
 }
 void GameUi::clear(Renderer &renderer)
 {
+    std::shared_ptr<Player> player = playerW.lock();
     PositionF playerPosition = player->getPosition();
     background = world.getSkyColor(playerPosition);
     Ui::clear(renderer);
@@ -172,7 +173,7 @@ void GameUi::clear(Renderer &renderer)
 }
 void GameUi::startInventoryDialog()
 {
-    setDialog(std::make_shared<PlayerInventory>(player));
+    setDialog(std::make_shared<PlayerInventory>(playerW.lock()));
 }
 void GameUi::setDialogWorldAndLockManager()
 {

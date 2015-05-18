@@ -54,7 +54,7 @@ private:
     WorldLockManager &lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
     std::shared_ptr<GameInput> gameInput;
-    std::shared_ptr<Player> player;
+    std::weak_ptr<Player> playerW;
     bool addedUi = false;
     const Entity *playerEntity;
     std::shared_ptr<Ui> dialog = nullptr;
@@ -94,7 +94,7 @@ public:
         lock_manager(lock_manager),
         viewPoint(),
         gameInput(std::make_shared<GameInput>()),
-        player(),
+        playerW(),
         playerEntity(),
         newDialogLock(),
         blockDestructProgress(-1.0f)
@@ -103,8 +103,8 @@ public:
             gameInput->paused.set(true);
         PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
         viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 32 : 48);
-        player = std::make_shared<Player>(L"default-player-name", gameInput, this);
-        playerEntity = world.addEntity(Entities::builtin::PlayerEntity::descriptor(), startingPosition, VectorF(0), lock_manager, std::static_pointer_cast<void>(player));
+        playerW = Player::make(L"default-player-name", gameInput, this, world);
+        playerEntity = Entities::builtin::PlayerEntity::addToWorld(world, lock_manager, startingPosition, playerW.lock());
     }
     ~GameUi()
     {
@@ -164,7 +164,7 @@ public:
         }
         if(!playingAudio)
         {
-            PositionF p = player->getPosition();
+            PositionF p = playerW.lock()->getPosition();
             float height = p.y;
             float relativeHeight = height / World::SeaLevel;
             playingAudio = audioScheduler.next(world.getTimeOfDayInSeconds(), world.dayDurationInSeconds, relativeHeight, p.d, 0.1f);
@@ -474,7 +474,7 @@ public:
     }
     virtual void reset() override
     {
-        std::shared_ptr<Player> player = this->player;
+        std::shared_ptr<Player> player = playerW.lock();
         World &world = this->world;
         WorldLockManager &lock_manager = this->lock_manager;
         if(!addedUi)

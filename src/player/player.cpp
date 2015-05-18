@@ -50,7 +50,7 @@ void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cam
 }
 void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
 {
-    std::shared_ptr<Player> player = std::static_pointer_cast<Player>(entity.data);
+    std::shared_ptr<Player> player = getPlayer(entity);
     if(player == nullptr)
     {
         entity.destroy();
@@ -216,7 +216,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
 }
 void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
 {
-    std::shared_ptr<Player> player = std::static_pointer_cast<Player>(entity.data);
+    std::shared_ptr<Player> player = getPlayer(entity);
     if(player == nullptr)
     {
         entity.destroy();
@@ -224,6 +224,10 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
     }
     player->lastPosition = entity.physicsObject->getPosition();
     player->playerEntity = &entity;
+}
+Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity)
+{
+    return world.addEntity(descriptor(), position, velocity, lock_manager, std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
 }
 }
 }
@@ -246,12 +250,12 @@ void Player::addToPlayersList()
         addItem(Item(Items::builtin::RedstoneDust::descriptor()));
     }
 #endif // DEBUG_VERSION
-    Players.addPlayer(this);
+    world.players().addPlayer(shared_from_this());
 }
 
 void Player::removeFromPlayersList()
 {
-    Players.removePlayer(this);
+    world.players().removePlayer(name);
 }
 
 bool Player::setDialog(std::shared_ptr<ui::Ui> ui)
@@ -304,56 +308,17 @@ bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLoc
     return false;
 }
 
-Players_t::ListType *Players_t::pPlayers = nullptr;
-std::recursive_mutex Players_t::playersLock;
-void Players_t::addPlayer(Player *player)
+void PlayerList::addPlayer(std::shared_ptr<Player> player)
 {
     std::unique_lock<std::recursive_mutex> theLock(playersLock);
-    if(pPlayers == nullptr)
-    {
-        pPlayers = new ListType([](Player *)
-        {
-        });
-    }
-    pPlayers->push_front(player);
+    assert(players.count(player->name) == 0);
+    players.emplace(player->name, player);
 }
-void Players_t::removePlayer(Player *player)
+
+void PlayerList::removePlayer(std::wstring name)
 {
     std::unique_lock<std::recursive_mutex> theLock(playersLock);
-    if(pPlayers == nullptr)
-    {
-        pPlayers = new ListType([](Player *)
-        {
-        });
-    }
-    pPlayers->erase(pPlayers->to_iterator(player));
+    players.erase(name);
 }
-Players_t::ListType::iterator Players_t::begin()
-{
-    std::unique_lock<std::recursive_mutex> theLock(playersLock);
-    if(pPlayers == nullptr)
-    {
-        pPlayers = new ListType([](Player *)
-        {
-        });
-    }
-    return pPlayers->begin();
-}
-Players_t::ListType::iterator Players_t::end()
-{
-    std::unique_lock<std::recursive_mutex> theLock(playersLock);
-    if(pPlayers == nullptr)
-    {
-        pPlayers = new ListType([](Player *)
-        {
-        });
-    }
-    return pPlayers->end();
-}
-LockedPlayers Players_t::lock()
-{
-    return LockedPlayers();
-}
-Players_t Players;
 }
 }

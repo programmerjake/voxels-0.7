@@ -84,7 +84,7 @@ private:
         float angle = 0, bobPhase = 0;
         double timeLeft = 5 * 60;
         double ignorePlayerTime = 0;
-        const Player *ignorePlayer = nullptr;
+        std::weak_ptr<Player> ignorePlayer = std::weak_ptr<Player>();
         bool followingPlayer = false;
         ItemStack itemStack;
         void init(uint32_t seed)
@@ -100,7 +100,7 @@ private:
         {
             init(seed);
         }
-        ItemData(uint32_t seed, ItemStack itemStack, const Player *ignorePlayer, double ignorePlayerTime)
+        ItemData(uint32_t seed, ItemStack itemStack, std::weak_ptr<Player> ignorePlayer, double ignorePlayerTime)
             : ignorePlayerTime(ignorePlayerTime), ignorePlayer(ignorePlayer), itemStack(itemStack)
         {
             init(seed);
@@ -116,10 +116,10 @@ private:
     {
         return Matrix::rotateY(data->angle).concat(Matrix::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
     }
-    bool ignorePlayer(Entity &entity, const Player *player) const
+    bool ignorePlayer(Entity &entity, std::shared_ptr<Player> player) const
     {
         std::shared_ptr<ItemData> data = getItemData(entity);
-        if(data->ignorePlayerTime > 0 && data->ignorePlayer == player)
+        if(data->ignorePlayerTime > 0 && data->ignorePlayer.lock() == player)
             return true;
         return false;
     }
@@ -147,7 +147,7 @@ public:
     {
         return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack));
     }
-    static std::shared_ptr<void> makeItemDataIgnorePlayer(ItemStack itemStack, World &world, const Player *player, double ignoreTime = 1)
+    static std::shared_ptr<void> makeItemDataIgnorePlayer(ItemStack itemStack, World &world, std::weak_ptr<Player> player, double ignoreTime = 1)
     {
         return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
     }

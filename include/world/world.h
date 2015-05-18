@@ -57,33 +57,83 @@ namespace voxels
 {
 class WorldGenerator;
 class ViewPoint;
+class PlayerList;
 
 class World final
 {
     friend class ViewPoint;
     World(const World &) = delete;
     const World &operator =(const World &) = delete;
-public:
-    typedef std::uint64_t SeedType;
-    static SeedType makeSeed(std::wstring seed)
-    {
-        SeedType retval = ((SeedType)0xF9CCC7E0 << 32) + 0x987EEEE5; // large prime number
-        for(wchar_t ch : seed)
-        {
-            retval = 23 * retval + (SeedType)ch;
-        }
-        return retval;
-    }
-    SeedType getWorldGeneratorSeed() const
-    {
-        return worldGeneratorSeed;
-    }
-    static constexpr std::int32_t SeaLevel = 64;
 private:
+    // private types
+    struct internal_construct_flag
+    {
+    };
     struct stream_world_tag_t final
     {
     };
+    class StreamWorldGuard final
+    {
+        StreamWorldGuard(const StreamWorldGuard &) = delete;
+        StreamWorldGuard &operator =(const StreamWorldGuard &) = delete;
+    private:
+        stream::Stream &stream;
+    public:
+        StreamWorldGuard(stream::Stream &stream, World &world, WorldLockManager &lock_manager)
+            : stream(stream)
+        {
+            setStreamWorld(stream, StreamWorld(world, lock_manager));
+        }
+        ~StreamWorldGuard()
+        {
+            setStreamWorld(stream, StreamWorld());
+        }
+    };
+    struct InitialChunkGenerateStruct final
+    {
+        std::mutex lock;
+        std::condition_variable initialGenerationDoneCond;
+        std::condition_variable generatorWaitDoneCond;
+        std::size_t count;
+        bool generatorWait = true;
+        explicit InitialChunkGenerateStruct(std::size_t count)
+            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count)
+        {
+        }
+    };
 public:
+    // public types
+    typedef std::uint64_t SeedType;
+    struct WorldRandomNumberGenerator final
+    {
+        friend class World;
+    private:
+        World &world;
+        WorldRandomNumberGenerator(World &world)
+            : world(world)
+        {
+        }
+    public:
+        typedef std::mt19937::result_type result_type;
+        static result_type min()
+        {
+            return std::mt19937::min();
+        }
+        static result_type max()
+        {
+            return std::mt19937::max();
+        }
+        result_type operator ()() const
+        {
+            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            return world.randomGenerator();
+        }
+        void discard(unsigned long long count) const
+        {
+            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            world.randomGenerator.discard(count);
+        }
+    };
     class StreamWorld final
     {
     private:
@@ -125,6 +175,30 @@ public:
             return *plock_manager;
         }
     };
+public:
+    // public variables
+    static constexpr std::int32_t SeaLevel = 64;
+    static constexpr float dayDurationInSeconds = 1200.0f;
+    static constexpr int moonPhaseCount = 8;
+    static constexpr float timeOfDayDayStart = 0;
+    static constexpr float timeOfDayDuskStart = 600.0f;
+    static constexpr float timeOfDayNightStart = 690.0f;
+    static constexpr float timeOfDayDawnStart = 1110.0f;
+public:
+    // public functions
+    static SeedType makeSeed(std::wstring seed)
+    {
+        SeedType retval = ((SeedType)0xF9CCC7E0 << 32) + 0x987EEEE5; // large prime number
+        for(wchar_t ch : seed)
+        {
+            retval = 23 * retval + (SeedType)ch;
+        }
+        return retval;
+    }
+    SeedType getWorldGeneratorSeed() const
+    {
+        return worldGeneratorSeed;
+    }
     static StreamWorld getStreamWorld(stream::Stream &stream)
     {
         std::shared_ptr<StreamWorld> retval = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
@@ -132,86 +206,10 @@ public:
             return StreamWorld();
         return *retval;
     }
-private:
-    static void setStreamWorld(stream::Stream &stream, StreamWorld streamWorld)
-    {
-        std::shared_ptr<StreamWorld> p = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
-        if(p == nullptr && streamWorld)
-        {
-            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(std::make_shared<StreamWorld>(streamWorld));
-        }
-        else if(p != nullptr && !streamWorld)
-        {
-            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(nullptr);
-        }
-        else if(p != nullptr)
-        {
-            *p = streamWorld;
-        }
-    }
-    class StreamWorldGuard final
-    {
-        StreamWorldGuard(const StreamWorldGuard &) = delete;
-        StreamWorldGuard &operator =(const StreamWorldGuard &) = delete;
-    private:
-        stream::Stream &stream;
-    public:
-        StreamWorldGuard(stream::Stream &stream, World &world, WorldLockManager &lock_manager)
-            : stream(stream)
-        {
-            setStreamWorld(stream, StreamWorld(world, lock_manager));
-        }
-        ~StreamWorldGuard()
-        {
-            setStreamWorld(stream, StreamWorld());
-        }
-    };
-    std::mt19937 randomGenerator;
-    std::mutex randomGeneratorLock;
-public:
-    struct WorldRandomNumberGenerator final
-    {
-        friend class World;
-    private:
-        World &world;
-        WorldRandomNumberGenerator(World &world)
-            : world(world)
-        {
-        }
-    public:
-        typedef std::mt19937::result_type result_type;
-        static result_type min()
-        {
-            return std::mt19937::min();
-        }
-        static result_type max()
-        {
-            return std::mt19937::max();
-        }
-        result_type operator ()() const
-        {
-            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
-            return world.randomGenerator();
-        }
-        void discard(unsigned long long count) const
-        {
-            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
-            world.randomGenerator.discard(count);
-        }
-    };
-private:
-    WorldRandomNumberGenerator wrng;
-public:
     WorldRandomNumberGenerator &getRandomGenerator()
     {
         return wrng;
     }
-private:
-    struct internal_construct_flag
-    {
-    };
-    World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag);
-public:
     /** @brief construct a world
      *
      * @param seed the world seed to use
@@ -387,47 +385,6 @@ public:
     {
         return rescheduleBlockUpdate(bi, lock_manager, kind, -1);
     }
-private:
-    void invalidateBlock(BlockIterator bi, WorldLockManager &lock_manager)
-    {
-        BlockChunkBlock &b = bi.getBlock(lock_manager);
-        b.invalidate();
-        bi.getSubchunk().invalidate();
-        bi.chunk->chunkVariables.invalidate();
-        for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
-        {
-            float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
-            if(defaultPeriod == 0)
-                addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
-        }
-    }
-    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
-    {
-        BlockIterator biX = bi;
-        biX.moveTo(minCorner);
-        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
-        {
-            BlockIterator biXY = biX;
-            for(p.y = minCorner.y; p.y <= maxCorner.y; p.y++, biXY.moveTowardPY())
-            {
-                BlockIterator biXYZ = biXY;
-                for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXYZ.moveTowardPZ())
-                {
-                    BlockChunkBlock &b = biXYZ.getBlock(lock_manager);
-                    b.invalidate();
-                    biXYZ.getSubchunk().invalidate();
-                    biXYZ.chunk->chunkVariables.invalidate();
-                    for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
-                    {
-                        float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
-                        if(defaultPeriod == 0)
-                            addBlockUpdate(biXYZ, lock_manager, kind, defaultPeriod);
-                    }
-                }
-            }
-        }
-    }
-public:
     /** @brief set a block
      *
      * @param bi a <code>BlockIterator</code> to the block to set
@@ -633,54 +590,6 @@ public:
     Entity *addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
     RayCasting::Collision castRay(RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskDefault, const Entity *ignoreEntity = nullptr);
     void move(double deltaTime, WorldLockManager &lock_manager);
-private:
-    std::uint64_t entityRunCount = 0; // number of times all entities have moved
-    std::shared_ptr<PhysicsWorld> physicsWorld;
-    const WorldGenerator *worldGenerator;
-    SeedType worldGeneratorSeed;
-    std::list<std::thread> lightingThreads;
-    std::list<std::thread> blockUpdateThreads;
-    std::thread particleGeneratingThread;
-    std::thread moveEntitiesThread;
-    std::list<std::thread> chunkGeneratingThreads;
-    std::atomic_bool destructing, lightingStable;
-    std::mutex viewPointsLock;
-    std::list<ViewPoint *> viewPoints;
-    std::condition_variable moveEntitiesThreadCond;
-    std::mutex moveEntitiesThreadLock;
-    bool waitingForMoveEntities = false;
-    double moveEntitiesDeltaTime = 1 / 60.0;
-    void lightingThreadFn();
-    void blockUpdateThreadFn();
-    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
-    struct InitialChunkGenerateStruct final
-    {
-        std::mutex lock;
-        std::condition_variable initialGenerationDoneCond;
-        std::condition_variable generatorWaitDoneCond;
-        std::size_t count;
-        bool generatorWait = true;
-        explicit InitialChunkGenerateStruct(std::size_t count)
-            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count)
-        {
-        }
-    };
-    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct);
-    void particleGeneratingThreadFn();
-    void moveEntitiesThreadFn();
-    static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
-    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
-    static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
-    float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
-    bool isInitialGenerateChunk(PositionI position);
-    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
-    void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
-    std::recursive_mutex timeOfDayLock;
-    float timeOfDayInSeconds = 0.0;
-    int moonPhase = 0;
-public:
-    static constexpr float dayDurationInSeconds = 1200.0f;
-    static constexpr int moonPhaseCount = 8;
     bool isLightingStable()
     {
         return lightingStable;
@@ -695,10 +604,6 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds / dayDurationInSeconds;
     }
-    static constexpr float timeOfDayDayStart = 0;
-    static constexpr float timeOfDayDuskStart = 600.0f;
-    static constexpr float timeOfDayNightStart = 690.0f;
-    static constexpr float timeOfDayDawnStart = 1110.0f;
     bool isDaytime()
     {
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
@@ -831,6 +736,105 @@ public:
     {
         int phase = getVisibleMoonPhase();
         return 1.0f - 2.0f / (float)moonPhaseCount * std::abs(phase - moonPhaseCount / 2);
+    }
+    PlayerList &players()
+    {
+        return *playerList;
+    }
+private:
+    // private variables
+    std::mt19937 randomGenerator;
+    std::mutex randomGeneratorLock;
+    WorldRandomNumberGenerator wrng;
+    std::uint64_t entityRunCount = 0; // number of times all entities have moved
+    std::shared_ptr<PhysicsWorld> physicsWorld;
+    const WorldGenerator *worldGenerator;
+    SeedType worldGeneratorSeed;
+    std::list<std::thread> lightingThreads;
+    std::list<std::thread> blockUpdateThreads;
+    std::thread particleGeneratingThread;
+    std::thread moveEntitiesThread;
+    std::list<std::thread> chunkGeneratingThreads;
+    std::atomic_bool destructing, lightingStable;
+    std::mutex viewPointsLock;
+    std::list<ViewPoint *> viewPoints;
+    std::condition_variable moveEntitiesThreadCond;
+    std::mutex moveEntitiesThreadLock;
+    bool waitingForMoveEntities = false;
+    double moveEntitiesDeltaTime = 1 / 60.0;
+    std::recursive_mutex timeOfDayLock;
+    float timeOfDayInSeconds = 0.0;
+    int moonPhase = 0;
+    std::shared_ptr<PlayerList> playerList;
+    // private functions
+    void lightingThreadFn();
+    void blockUpdateThreadFn();
+    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
+    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct);
+    void particleGeneratingThreadFn();
+    void moveEntitiesThreadFn();
+    static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
+    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
+    static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
+    float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
+    bool isInitialGenerateChunk(PositionI position);
+    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
+    void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
+    static void setStreamWorld(stream::Stream &stream, StreamWorld streamWorld)
+    {
+        std::shared_ptr<StreamWorld> p = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
+        if(p == nullptr && streamWorld)
+        {
+            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(std::make_shared<StreamWorld>(streamWorld));
+        }
+        else if(p != nullptr && !streamWorld)
+        {
+            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(nullptr);
+        }
+        else if(p != nullptr)
+        {
+            *p = streamWorld;
+        }
+    }
+    World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag);
+    void invalidateBlock(BlockIterator bi, WorldLockManager &lock_manager)
+    {
+        BlockChunkBlock &b = bi.getBlock(lock_manager);
+        b.invalidate();
+        bi.getSubchunk().invalidate();
+        bi.chunk->chunkVariables.invalidate();
+        for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+        {
+            float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+            if(defaultPeriod == 0)
+                addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+        }
+    }
+    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
+    {
+        BlockIterator biX = bi;
+        biX.moveTo(minCorner);
+        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
+        {
+            BlockIterator biXY = biX;
+            for(p.y = minCorner.y; p.y <= maxCorner.y; p.y++, biXY.moveTowardPY())
+            {
+                BlockIterator biXYZ = biXY;
+                for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXYZ.moveTowardPZ())
+                {
+                    BlockChunkBlock &b = biXYZ.getBlock(lock_manager);
+                    b.invalidate();
+                    biXYZ.getSubchunk().invalidate();
+                    biXYZ.chunk->chunkVariables.invalidate();
+                    for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+                    {
+                        float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
+                        if(defaultPeriod == 0)
+                            addBlockUpdate(biXYZ, lock_manager, kind, defaultPeriod);
+                    }
+                }
+            }
+        }
     }
 };
 }

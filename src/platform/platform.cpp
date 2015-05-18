@@ -701,18 +701,16 @@ static void flipDisplay(float fps)
 {
     finishDrawingRenderLayers();
     double sleepTime = -1;
+    FlipTimeLocker lock;
+    double curTime = Display::realtimeTimer();
     if(fps > 0)
-    {
-        FlipTimeLocker lock;
-        double curTime = Display::realtimeTimer();
         sleepTime = 1 / fps - (curTime - lastFlipTime);
-        if(sleepTime <= eps)
-        {
-            oldLastFlipTime = lastFlipTime;
-            lastFlipTime = curTime;
-            averageFPSInternal *= 1 - FPSUpdateFactor;
-            averageFPSInternal += FPSUpdateFactor * instantaneousFPS();
-        }
+    if(sleepTime <= eps)
+    {
+        oldLastFlipTime = lastFlipTime;
+        lastFlipTime = curTime;
+        averageFPSInternal *= 1 - FPSUpdateFactor;
+        averageFPSInternal += FPSUpdateFactor * instantaneousFPS();
     }
     if(sleepTime > eps)
     {

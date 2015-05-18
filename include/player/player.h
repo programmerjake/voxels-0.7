@@ -33,6 +33,7 @@
 #include <atomic>
 #include <mutex>
 #include <iterator>
+#include <unordered_map>
 #include "util/intrusive_list.h"
 #include "item/item_struct.h"
 #include "entity/builtin/item.h"
@@ -69,9 +70,9 @@ private:
     {
         generateMeshes();
     }
-    Player *getPlayer(Entity &entity) const
+    std::shared_ptr<Player> getPlayer(Entity &entity) const
     {
-        return static_cast<Player *>(entity.data.get());
+        return std::static_pointer_cast<std::weak_ptr<Player>>(entity.data)->lock();
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
@@ -102,18 +103,21 @@ public:
         throw std::runtime_error("Player read/write not implemented");
         #warning implement
     }
+    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity = VectorF(0));
 };
 }
 }
 
-class Player final
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
+class Player final : public std::enable_shared_from_this<Player>
 {
+#pragma GCC diagnostic pop
     friend class Entities::builtin::PlayerEntity;
     friend class Players_t;
     Player(const Player &) = delete;
     Player &operator =(const Player &) = delete;
 private:
-    intrusive_list_members<Player> playersListMembers;
     void addToPlayersList();
     void removeFromPlayersList();
     PositionF lastPosition;
@@ -151,24 +155,15 @@ private:
     std::atomic<float> &getBlockDestructProgress(); /// the amount that a block is destroyed (ex. 0 means just started, and 0.9 means almost done). negative numbers mean no block is being destroyed
     float destructingTime = 0, cooldownTimeLeft = 0;
     PositionI destructingPosition;
-public:
-    Entity *getPlayerEntity() const
-    {
-        return playerEntity;
-    }
-    const std::wstring name;
-    std::size_t currentItemIndex = 0;
-    ItemStackArray<9, 4> items;
-    std::recursive_mutex itemsLock;
-    bool setDialog(std::shared_ptr<ui::Ui> ui);
-    Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi)
-        : playersListMembers(),
-        lastPosition(),
+    World &world;
+    Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi, World &world)
+        : lastPosition(),
         gameInput(gameInput),
         playerEntity(),
         gameInputMonitoring(),
         gameUi(gameUi),
         destructingPosition(),
+        world(world),
         name(name),
         items(),
         itemsLock()
@@ -217,7 +212,22 @@ public:
             currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
             return Event::ReturnType::Propagate;
         });
-        addToPlayersList();
+    }
+public:
+    Entity *getPlayerEntity() const
+    {
+        return playerEntity;
+    }
+    const std::wstring name;
+    std::size_t currentItemIndex = 0;
+    ItemStackArray<9, 4> items;
+    std::recursive_mutex itemsLock;
+    bool setDialog(std::shared_ptr<ui::Ui> ui);
+    static std::shared_ptr<Player> make(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi, World &world)
+    {
+        auto retval = std::shared_ptr<Player>(new Player(name, gameInput, gameUi, world));
+        retval->addToPlayersList();
+        return retval;
     }
     ~Player()
     {
@@ -276,7 +286,7 @@ public:
     {
         assert(itemStack.good());
         RayCasting::Ray ray = getViewRay();
-        return ItemDescriptor::addToWorld(world, lock_manager, itemStack, ray.startPosition, normalize(ray.direction) * 6, this);
+        return ItemDescriptor::addToWorld(world, lock_manager, itemStack, ray.startPosition, normalize(ray.direction) * 6, shared_from_this());
     }
     RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
     {
@@ -355,44 +365,114 @@ public:
             return retval;
         return Item();
     }
+    void writeReference(stream::Writer &writer) const;
+    static std::shared_ptr<Player> readReference(stream::Reader &reader);
+    void write(stream::Writer &writer);
+    static std::shared_ptr<Player> read(stream::Reader &reader);
 };
 
 class LockedPlayers;
 
-class Players_t final
+class PlayerList final
 {
     friend class Player;
     friend class LockedPlayers;
+    friend class World;
+    PlayerList(const PlayerList &) = delete;
+    PlayerList &operator =(const PlayerList &) = delete;
 private:
-    typedef intrusive_list<Player, &Player::playersListMembers> ListType;
-    static ListType *pPlayers;
-    static std::recursive_mutex playersLock;
-    static void addPlayer(Player *player);
-    static void removePlayer(Player *player);
-    static ListType::iterator begin();
-    static ListType::iterator end();
+    typedef std::unordered_map<std::wstring, std::shared_ptr<Player>> ListType;
+    ListType players;
+    std::recursive_mutex playersLock;
+    void addPlayer(std::shared_ptr<Player> player);
+    void removePlayer(std::wstring name);
+    ListType::iterator begin()
+    {
+        return players.begin();
+    }
+    ListType::iterator end()
+    {
+        return players.end();
+    }
+    PlayerList()
+        : players(), playersLock()
+    {
+    }
 public:
+    ~PlayerList() = default;
     LockedPlayers lock();
 };
 
 class LockedPlayers final
 {
-    friend class Players_t;
+    friend class PlayerList;
 private:
     std::unique_lock<std::recursive_mutex> theLock;
-    LockedPlayers()
-        : theLock(Players_t::playersLock)
+    PlayerList &players;
+    LockedPlayers(PlayerList &players)
+        : theLock(players.playersLock), players(players)
     {
     }
 public:
-    typedef Players_t::ListType::iterator iterator;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
+    class iterator final : public std::iterator<std::forward_iterator_tag, Player>
+    {
+#pragma GCC diagnostic pop
+        friend class LockedPlayers;
+    private:
+        PlayerList::ListType::iterator iter;
+        iterator(PlayerList::ListType::iterator iter)
+            : iter(iter)
+        {
+        }
+    public:
+        iterator()
+            : iter()
+        {
+        }
+        iterator &operator ++()
+        {
+            ++iter;
+            return *this;
+        }
+        iterator operator ++(int)
+        {
+            return iterator(iter++);
+        }
+        std::shared_ptr<Player> operator *() const
+        {
+            return std::get<1>(*iter);
+        }
+        std::shared_ptr<Player> operator ->() const
+        {
+            return std::get<1>(*iter);
+        }
+        bool operator ==(const iterator &rt) const
+        {
+            return iter == rt.iter;
+        }
+        bool operator !=(const iterator &rt) const
+        {
+            return iter != rt.iter;
+        }
+    };
+    typedef std::reverse_iterator<iterator> reverse_iterator;
     iterator begin() const
     {
-        return Players_t::begin();
+        return iterator(players.begin());
     }
     iterator end() const
     {
-        return Players_t::end();
+        return iterator(players.end());
+    }
+    reverse_iterator rbegin() const
+    {
+        return reverse_iterator(end());
+    }
+    reverse_iterator rend() const
+    {
+        return reverse_iterator(begin());
     }
     void unlock()
     {
@@ -408,7 +488,10 @@ public:
     }
 };
 
-extern Players_t Players;
+inline LockedPlayers PlayerList::lock()
+{
+    return LockedPlayers(*this);
+}
 }
 }
 

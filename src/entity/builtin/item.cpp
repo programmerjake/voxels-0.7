@@ -41,19 +41,19 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
     data->bobPhase = std::fmod(data->bobPhase + bobSpeed * (float)deltaTime, M_PI * 2);
     data->ignorePlayerTime = std::max<double>(0, data->ignorePlayerTime - deltaTime);
     PositionF position = entity.physicsObject->getPosition();
-    Player *closestPlayer = nullptr;
+    std::shared_ptr<Player> closestPlayer = nullptr;
     float distanceSquared = 0;
     PositionF playerPosition;
-    for(Player &player : Players.lock())
+    for(std::shared_ptr<Player> player : world.players().lock())
     {
-        PositionF currentPlayerPosition = player.getPosition();
+        PositionF currentPlayerPosition = player->getPosition();
         if(currentPlayerPosition.d != position.d)
             continue;
-        if(ignorePlayer(entity, &player))
+        if(ignorePlayer(entity, player))
             continue;
         if(closestPlayer == nullptr || absSquared(currentPlayerPosition - position) < distanceSquared)
         {
-            closestPlayer = &player;
+            closestPlayer = player;
             playerPosition = currentPlayerPosition;
             distanceSquared = absSquared(currentPlayerPosition - position);
         }

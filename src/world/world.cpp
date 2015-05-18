@@ -449,7 +449,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
     viewPoints(),
     moveEntitiesThreadCond(),
     moveEntitiesThreadLock(),
-    timeOfDayLock()
+    timeOfDayLock(),
+    playerList(std::shared_ptr<PlayerList>(new PlayerList()))
 {
 }
 
@@ -590,7 +591,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
     viewPoints(),
     moveEntitiesThreadCond(),
     moveEntitiesThreadLock(),
-    timeOfDayLock()
+    timeOfDayLock(),
+    playerList(std::shared_ptr<PlayerList>(new PlayerList()))
 {
     thread([&]()
     {
@@ -690,6 +692,8 @@ World::~World()
         particleGeneratingThread.join();
     if(moveEntitiesThread.joinable())
         moveEntitiesThread.join();
+    LockedPlayers lockedPlayers = players().lock();
+    players().players.clear();
 }
 
 Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)

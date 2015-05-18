@@ -53,7 +53,7 @@ Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager,
     return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemData(itemStack, world));
 }
 
-Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, const Player *player, double ignoreTime)
+Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, std::weak_ptr<Player> player, double ignoreTime)
 {
     assert(itemStack.good());
     return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemDataIgnorePlayer(itemStack, world, player, ignoreTime));
