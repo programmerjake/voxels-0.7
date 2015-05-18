@@ -131,6 +131,7 @@ public:
     CactusBottom,
     CactusTop,
     CactusGreen,
+    Charcoal,
     ChestSide,
     ChestTop,
     ChestFront,

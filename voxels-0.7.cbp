@@ -125,6 +125,7 @@
 		<Unit filename="include/block/builtin/fluid.h" />
 		<Unit filename="include/block/builtin/full_block.h" />
 		<Unit filename="include/block/builtin/furnace.h" />
+		<Unit filename="include/block/builtin/glass.h" />
 		<Unit filename="include/block/builtin/grass.h" />
 		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/plant.h" />
@@ -170,6 +171,7 @@
 		<Unit filename="include/item/builtin/crafting_table.h" />
 		<Unit filename="include/item/builtin/dirt.h" />
 		<Unit filename="include/item/builtin/furnace.h" />
+		<Unit filename="include/item/builtin/glass.h" />
 		<Unit filename="include/item/builtin/grass.h" />
 		<Unit filename="include/item/builtin/image.h" />
 		<Unit filename="include/item/builtin/minerals.h" />
@@ -282,6 +284,7 @@
 		<Unit filename="src/block/builtin/air.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/furnace.cpp" />
+		<Unit filename="src/block/builtin/glass.cpp" />
 		<Unit filename="src/block/builtin/grass.cpp" />
 		<Unit filename="src/block/builtin/ores.cpp" />
 		<Unit filename="src/block/builtin/redstone.cpp" />
@@ -299,6 +302,7 @@
 		<Unit filename="src/item/builtin/bucket.cpp" />
 		<Unit filename="src/item/builtin/crafting_table.cpp" />
 		<Unit filename="src/item/builtin/dirt.cpp" />
+		<Unit filename="src/item/builtin/glass.cpp" />
 		<Unit filename="src/item/builtin/grass.cpp" />
 		<Unit filename="src/item/builtin/stone.cpp" />
 		<Unit filename="src/item/builtin/tools/builtin_toolsets.cpp" />

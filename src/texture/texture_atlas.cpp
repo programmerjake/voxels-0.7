@@ -115,6 +115,7 @@ const TextureAtlas
     TextureAtlas::CactusBottom(160, 16, 16, 16),
     TextureAtlas::CactusTop(176, 16, 16, 16),
     TextureAtlas::CactusGreen(192, 16, 16, 16),
+    TextureAtlas::Charcoal(368, 112, 16, 16),
     TextureAtlas::ChestSide(208, 16, 16, 16),
     TextureAtlas::ChestTop(224, 16, 16, 16),
     TextureAtlas::ChestFront(240, 16, 16, 16),

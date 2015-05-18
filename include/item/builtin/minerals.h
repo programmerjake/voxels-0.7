@@ -63,6 +63,36 @@ public:
     }
 };
 
+class Charcoal final : public ItemImage
+{
+    friend class global_instance_maker<Charcoal>;
+private:
+    Charcoal()
+        : ItemImage(L"builtin.charcoal", TextureAtlas::Charcoal.td(), nullptr)
+    {
+    }
+public:
+    static const Charcoal *pointer()
+    {
+        return global_instance_maker<Charcoal>::getInstance();
+    }
+    static ItemDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+    virtual float getFurnaceBurnTime() const override
+    {
+        return 80.0f;
+    }
+    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
+    {
+        return nullptr;
+    }
+    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
+    {
+    }
+};
+
 class IronIngot final : public ItemImage
 {
     friend class global_instance_maker<IronIngot>;

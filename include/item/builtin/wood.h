@@ -28,6 +28,7 @@
 #include "generate/biome/biome_descriptor.h"
 #include "util/global_instance_maker.h"
 #include "texture/texture_atlas.h"
+#include "item/builtin/minerals.h"
 
 namespace programmerjake
 {
@@ -130,6 +131,10 @@ public:
     }
     virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
     {
+    }
+    virtual Item getSmeltedItem(Item item) const
+    {
+        return Item(Charcoal::descriptor());
     }
 };
 class WoodPlanks final : public ItemBlock

@@ -18,12 +18,12 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef SAND_ITEM_H_INCLUDED
-#define SAND_ITEM_H_INCLUDED
+
+#ifndef ITEM_GLASS_H_INCLUDED
+#define ITEM_GLASS_H_INCLUDED
 
 #include "item/builtin/block.h"
 #include "util/global_instance_maker.h"
-#include "item/builtin/glass.h"
 
 namespace programmerjake
 {
@@ -33,15 +33,15 @@ namespace Items
 {
 namespace builtin
 {
-class Sand final : public ItemBlock
+class Glass final : public ItemBlock
 {
-    friend class global_instance_maker<Sand>;
+    friend class global_instance_maker<Glass>;
 private:
-    Sand();
+    Glass();
 public:
-    static const Sand *pointer()
+    static const Glass *pointer()
     {
-        return global_instance_maker<Sand>::getInstance();
+        return global_instance_maker<Glass>::getInstance();
     }
     static ItemDescriptorPointer descriptor()
     {
@@ -49,29 +49,7 @@ public:
     }
     virtual Item getSmeltedItem(Item item) const
     {
-        return Item(Glass::descriptor());
-    }
-    virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
-    {
-        return nullptr;
-    }
-    virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const override
-    {
-    }
-};
-class Gravel final : public ItemBlock
-{
-    friend class global_instance_maker<Gravel>;
-private:
-    Gravel();
-public:
-    static const Gravel *pointer()
-    {
-        return global_instance_maker<Gravel>::getInstance();
-    }
-    static ItemDescriptorPointer descriptor()
-    {
-        return pointer();
+        return Item();
     }
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
@@ -86,4 +64,4 @@ public:
 }
 }
 
-#endif // SAND_ITEM_H_INCLUDED
+#endif // ITEM_GLASS_H_INCLUDED

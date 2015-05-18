@@ -65,6 +65,37 @@ public:
     }
 };
 
+class TorchRecipe2 final : public PatternRecipe<1, 2>
+{
+    friend class global_instance_maker<TorchRecipe2>;
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::Torch::descriptor()), 4));
+        return true;
+    }
+private:
+    TorchRecipe2()
+        : PatternRecipe(checked_array<Item, 1 * 2>
+        {
+            Item(Items::builtin::Charcoal::descriptor()),
+            Item(Items::builtin::Stick::descriptor()),
+        })
+    {
+    }
+public:
+    static const TorchRecipe2 *pointer()
+    {
+        return global_instance_maker<TorchRecipe2>::getInstance();
+    }
+    static RecipeDescriptorPointer descriptor()
+    {
+        return pointer();
+    }
+};
+
 class RedstoneTorchRecipe final : public PatternRecipe<1, 2>
 {
     friend class global_instance_maker<RedstoneTorchRecipe>;
