@@ -72,6 +72,10 @@ public:
                                        float relativeHeight,
                                        Dimension dimension,
                                        float playVolume);
+    void reset()
+    {
+        lastPlayedSongs.clear();
+    }
 };
 }
 }

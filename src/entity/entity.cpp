@@ -162,6 +162,7 @@ void EntityDescriptors_t::remove(EntityDescriptorPointer bd) const
     assert(bd != nullptr);
     assert(entitiesMap != nullptr);
     size_t removedCount = entitiesMap->erase(bd->name);
+    ignore_unused_variable_warning(removedCount);
     assert(removedCount == 1);
     if(entitiesMap->empty())
     {

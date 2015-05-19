@@ -72,6 +72,7 @@ void ItemDescriptors_t::add(ItemDescriptorPointer bd) const
     if(itemsMap == nullptr)
         itemsMap = new linked_map<std::wstring, ItemDescriptorPointer>();
     bool wasInserted = std::get<1>(itemsMap->insert(make_pair(bd->name, bd)));
+    ignore_unused_variable_warning(wasInserted);
     assert(wasInserted);
 }
 
@@ -80,6 +81,7 @@ void ItemDescriptors_t::remove(ItemDescriptorPointer bd) const
     assert(bd != nullptr);
     assert(itemsMap != nullptr);
     size_t removedCount = itemsMap->erase(bd->name);
+    ignore_unused_variable_warning(removedCount);
     assert(removedCount == 1);
     if(itemsMap->empty())
     {

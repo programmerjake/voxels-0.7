@@ -35,7 +35,9 @@
 #include <mutex>
 #include <sstream>
 #include <deque>
+#include <vector>
 #include "audio/audio_scheduler.h"
+#include "platform/audio.h"
 
 namespace programmerjake
 {
@@ -43,8 +45,11 @@ namespace voxels
 {
 namespace ui
 {
+class MainMenu;
+
 class GameUi : public Ui
 {
+    friend class MainMenu;
     GameUi(const GameUi &) = delete;
     GameUi &operator =(const GameUi &) = delete;
 private:
@@ -85,43 +90,61 @@ private:
     float deltaViewPhi = 0;
     void startInventoryDialog();
     void setDialogWorldAndLockManager();
-public:
-    std::atomic<float> blockDestructProgress;
-    GameUi(Renderer &renderer)
-        : audioScheduler(),
-        playingAudio(),
-        world(),
-        lock_manager(),
-        viewPoint(),
-        gameInput(),
-        playerW(),
-        playerEntity(),
-        newDialogLock(),
-        blockDestructProgress(-1.0f)
+    void setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> player, Entity *playerEntity);
+    void clearWorld();
+    void addWorldUi();
+    std::vector<std::shared_ptr<Element>> worldDependantElements;
+    std::atomic_bool generatingWorld;
+    std::thread worldGenerateThread;
+    std::shared_ptr<World> generatedWorld;
+    std::weak_ptr<Element> worldCreationMessage;
+    std::atomic_bool abortWorldCreation;
+    std::shared_ptr<Ui> mainMenu;
+    std::shared_ptr<Audio> mainMenuSong;
+    void addUi();
+    void finalizeCreateWorld()
     {
-    }
-    void initWorld()
-    {
+        worldGenerateThread.join();
+        if(abortWorldCreation.exchange(false))
+        {
+            generatedWorld = nullptr;
+            startMainMenu();
+            return;
+        }
+        std::shared_ptr<World> newWorld = generatedWorld;
         PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-        world = std::make_shared<World>();
-        viewPoint = std::make_shared<ViewPoint>(*world, startingPosition, GameVersion::DEBUG ? 32 : 48);
-        std::shared_ptr<Player> player = Player::make(L"default-player-name", this, *world);
-        playerW = player;
-        gameInput = player->gameInput;
-        if(GameVersion::DEBUG)
-            gameInput->paused.set(true);
-        playerEntity = Entities::builtin::PlayerEntity::addToWorld(*world, lock_manager, startingPosition, player);
-    }
-    ~GameUi()
-    {
+        std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", this, newWorld);
+        Entity *newPlayerEntity = Entities::builtin::PlayerEntity::addToWorld(*newWorld, lock_manager, startingPosition, newPlayer);
+        setWorld(newWorld, newPlayer, newPlayerEntity);
+        generatedWorld = nullptr;
+        std::shared_ptr<Element> e = worldCreationMessage.lock();
+        if(e)
+            remove(e);
+        worldCreationMessage = std::weak_ptr<Element>();
         if(playingAudio)
             playingAudio->stop();
-        lock_manager.clear();
+        playingAudio = nullptr;
+        gameInput->paused.set(false);
+    }
+    void startMainMenu();
+public:
+    std::atomic<float> blockDestructProgress;
+    GameUi(Renderer &renderer);
+    void createNewWorld();
+    ~GameUi()
+    {
+        abortWorldCreation = true;
+        if(worldGenerateThread.joinable())
+        {
+            worldGenerateThread.join();
+            generatedWorld = nullptr;
+            std::shared_ptr<Element> e = worldCreationMessage.lock();
+            if(e)
+                remove(e);
+        }
         dialog = nullptr;
         newDialog = nullptr;
-        gameInput = nullptr;
-        viewPoint = nullptr;
-        world = nullptr;
+        clearWorld();
     }
     virtual void move(double deltaTime) override
     {
@@ -159,11 +182,13 @@ public:
             gameInput->viewTheta.set(viewTheta);
             gameInput->viewPhi.set(viewPhi);
         }
-        Display::grabMouse(!dialog && !gameInput->paused.get());
+        Display::grabMouse(!dialog && world && !gameInput->paused.get());
         Ui::move(deltaTime);
-        world->move(deltaTime, lock_manager);
+        if(world)
+            world->move(deltaTime, lock_manager);
         if(dialog && dialog->isDone())
         {
+            dialog->handleFinish();
             remove(dialog);
             dialog = nullptr;
             Display::grabMouse(!gameInput->paused.get());
@@ -176,10 +201,22 @@ public:
         }
         if(!playingAudio)
         {
-            PositionF p = playerW.lock()->getPosition();
-            float height = p.y;
-            float relativeHeight = height / World::SeaLevel;
-            playingAudio = audioScheduler.next(world->getTimeOfDayInSeconds(), world->dayDurationInSeconds, relativeHeight, p.d, 0.1f);
+            float volume = 0.1f;
+            if(world)
+            {
+                PositionF p = playerW.lock()->getPosition();
+                float height = p.y;
+                float relativeHeight = height / World::SeaLevel;
+                playingAudio = audioScheduler.next(world->getTimeOfDayInSeconds(), world->dayDurationInSeconds, relativeHeight, p.d, volume);
+            }
+            else
+            {
+                playingAudio = mainMenuSong->play(volume);
+            }
+        }
+        if(!world && !generatingWorld && generatedWorld)
+        {
+            finalizeCreateWorld();
         }
     }
     bool setDialog(std::shared_ptr<Ui> newDialog)
@@ -190,6 +227,12 @@ public:
             return false;
         this->newDialog = newDialog;
         return true;
+    }
+    void changeDialog(std::shared_ptr<Ui> nextDialog)
+    {
+        assert(nextDialog);
+        std::unique_lock<std::mutex> lockIt(newDialogLock);
+        this->newDialog = nextDialog;
     }
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
@@ -392,7 +435,10 @@ public:
         }
         case KeyboardKey::Escape:
         {
-            gameInput->paused.set(!gameInput->paused.get());
+            if(world || (!generatingWorld && !generatedWorld))
+            {
+                startMainMenu();
+            }
             return true;
         }
         case KeyboardKey::F12:
@@ -417,7 +463,7 @@ public:
         case KeyboardKey::F7:
         case KeyboardKey::F8:
         {
-            if(gameInput->paused.get())
+            if(gameInput->paused.get() || !world)
                 return false;
             std::int32_t viewDistance = viewPoint->getViewDistance();
             if(event.key == KeyboardKey::F7)
@@ -486,115 +532,10 @@ public:
     }
     virtual void reset() override
     {
-        if(!this->world)
-        {
-            initWorld();
-        }
-        std::shared_ptr<Player> player = playerW.lock();
-        assert(player);
-        std::shared_ptr<World> world = this->world;
-        assert(world);
-        WorldLockManager &lock_manager = this->lock_manager;
         if(!addedUi)
         {
             addedUi = true;
-            float simYRes = 240;
-            float scale = 2 / simYRes;
-            float hotBarItemSize = 20 * scale;
-            std::size_t hotBarSize = player->items.itemStacks.size();
-            float hotBarWidth = hotBarItemSize * hotBarSize;
-            add(std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40));
-            for(std::size_t i = 0; i < hotBarSize; i++)
-            {
-                add(std::make_shared<HotBarItem>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [player, i]()->bool
-                {
-                    return player->currentItemIndex == i;
-                }, &player->itemsLock));
-            }
-            add(std::make_shared<DynamicLabel>([player, world, &lock_manager](double deltaTime)->std::wstring
-            {
-                static thread_local std::deque<double> samples;
-                samples.push_back(deltaTime);
-                double totalSampleTime = 0;
-                double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;
-                for(double v : samples)
-                {
-                    totalSampleTime += v;
-                    if(v > minDeltaTime)
-                        minDeltaTime = v;
-                    if(v < maxDeltaTime)
-                        maxDeltaTime = v;
-                }
-                double averageDeltaTime = totalSampleTime / samples.size();
-                while(totalSampleTime > 5 && !samples.empty())
-                {
-                    totalSampleTime -= samples.front();
-                    samples.pop_front();
-                }
-                std::wostringstream ss;
-                ss << L"FPS:";
-                ss.setf(std::ios::fixed);
-                ss.precision(1);
-                ss.width(5);
-                if(maxDeltaTime > 0)
-                    ss << 1.0 / maxDeltaTime;
-                else
-                    ss << L"     ";
-                ss << L"/";
-                ss.width(5);
-                if(averageDeltaTime > 0)
-                    ss << 1.0 / averageDeltaTime;
-                else
-                    ss << L"     ";
-                ss << L"/";
-                ss.width(5);
-                if(minDeltaTime > 0)
-                    ss << 1.0 / minDeltaTime;
-                else
-                    ss << L"     ";
-                ss << L"\n";
-                RayCasting::Collision c = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
-                if(c.valid())
-                {
-                    switch(c.type)
-                    {
-                    case RayCasting::Collision::Type::None:
-                        break;
-                    case RayCasting::Collision::Type::Block:
-                    {
-                        BlockIterator bi = world->getBlockIterator(c.blockPosition);
-                        Block b = bi.get(lock_manager);
-                        ss << L"Block :\n";
-                        if(b.good())
-                        {
-                            std::wstring v = b.descriptor->getDescription(bi, lock_manager);
-                            const wchar_t *const splittingCharacters = L",= ()_";
-                            const std::size_t lineLength = 30, lineLengthVariance = 5;
-                            const std::size_t searchStartPos = lineLength - lineLengthVariance;
-                            const std::size_t searchEndPos = lineLength + lineLengthVariance;
-                            while(v.size() > lineLength)
-                            {
-                                std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
-                                if(splitPos == std::wstring::npos || splitPos > searchEndPos)
-                                    splitPos = lineLength;
-                                ss << v.substr(0, splitPos + 1) << L"\n";
-                                v.erase(0, splitPos + 1);
-                            }
-                            v.resize(searchEndPos, L' ');
-                            ss << v;
-                        }
-                        else
-                        {
-                            ss << L"null_block";
-                        }
-                        break;
-                    }
-                    case RayCasting::Collision::Type::Entity:
-                        break;
-                    }
-                }
-                return ss.str();
-            }, -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1)));
+            addUi();
         }
         Ui::reset();
     }

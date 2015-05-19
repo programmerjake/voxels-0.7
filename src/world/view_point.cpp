@@ -461,7 +461,7 @@ ViewPoint::~ViewPoint()
         world.viewPoints.erase(myPositionInViewPointsList);
     }
 }
-void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager)
+void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager, Mesh additionalObjects)
 {
     Matrix cameraToWorld = inverse(worldToCamera);
     std::unique_lock<std::recursive_mutex> lockViewPoint(theLock);
@@ -495,10 +495,9 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         }
     }
     enum_array<Mesh, RenderLayer> entityMeshes;
+    entityMeshes[RenderLayer::Opaque].append(additionalObjects);
     PositionF position = this->position;
     std::int32_t viewDistance = this->viewDistance;
-    if(!meshes)
-        return;
     lockViewPoint.unlock();
     PositionI chunkPosition;
     PositionI minChunkPosition = BlockChunk::getChunkBasePosition((PositionI)position - VectorI(viewDistance));
@@ -556,16 +555,21 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             }
         }
     }
-    const std::size_t renderedTranslucentTriangles = meshes->meshes[RenderLayer::Translucent].size() + entityMeshes[RenderLayer::Translucent].size();
+    std::size_t renderedTranslucentTriangles = entityMeshes[RenderLayer::Translucent].size();
+    if(meshes)
+        renderedTranslucentTriangles += meshes->meshes[RenderLayer::Translucent].size();
     static thread_local std::vector<std::pair<const Triangle *, float>> triangleIndirectArray;
     triangleIndirectArray.clear();
     triangleIndirectArray.reserve(renderedTranslucentTriangles);
     VectorF cameraPosition = cameraToWorld.apply(VectorF(0));
-    for(const Triangle &tri : meshes->meshes[RenderLayer::Translucent].triangles)
+    if(meshes)
     {
-        VectorF averagePosition = (tri.p1 + tri.p2 + tri.p3) * (1.0f / 3);
-        float distanceSquared = absSquared(cameraPosition - averagePosition);
-        triangleIndirectArray.emplace_back(&tri, distanceSquared);
+        for(const Triangle &tri : meshes->meshes[RenderLayer::Translucent].triangles)
+        {
+            VectorF averagePosition = (tri.p1 + tri.p2 + tri.p3) * (1.0f / 3);
+            float distanceSquared = absSquared(cameraPosition - averagePosition);
+            triangleIndirectArray.emplace_back(&tri, distanceSquared);
+        }
     }
     for(const Triangle &tri : entityMeshes[RenderLayer::Translucent].triangles)
     {
@@ -585,9 +589,9 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         translucentMesh.triangles.push_back(*std::get<0>(tri));
     }
     triangleIndirectArray.clear();
-    translucentMesh.image = meshes->meshes[RenderLayer::Translucent].image;
-    if(!translucentMesh.image)
-        translucentMesh.image = entityMeshes[RenderLayer::Translucent].image;
+    translucentMesh.image = entityMeshes[RenderLayer::Translucent].image;
+    if(!translucentMesh.image && meshes)
+        translucentMesh.image = meshes->meshes[RenderLayer::Translucent].image;
     std::size_t renderedTriangles = renderedTranslucentTriangles;
     for(RenderLayer rl : enum_traits<RenderLayer>())
     {
@@ -597,14 +601,17 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             renderer << transform(worldToCamera, translucentMesh);
             continue;
         }
-        renderedTriangles += meshes->meshes[rl].size();
-        if(meshes->meshBuffers[rl].empty())
+        if(meshes)
         {
-            renderer << transform(worldToCamera, meshes->meshes[rl]);
-        }
-        else
-        {
-            renderer << transform(worldToCamera, meshes->meshBuffers[rl]);
+            renderedTriangles += meshes->meshes[rl].size();
+            if(meshes->meshBuffers[rl].empty())
+            {
+                renderer << transform(worldToCamera, meshes->meshes[rl]);
+            }
+            else
+            {
+                renderer << transform(worldToCamera, meshes->meshBuffers[rl]);
+            }
         }
         renderer << transform(worldToCamera, entityMeshes[rl]);
         renderedTriangles += entityMeshes[rl].size();

@@ -53,6 +53,18 @@ struct GameInput
     MonitoredBool paused; // p esc
     MonitoredFloat viewTheta;
     MonitoredFloat viewPhi;
+    void copy(const GameInput &rt)
+    {
+        isCreativeMode.set(rt.isCreativeMode.get());
+        jump.set(rt.jump.get());
+        fly.set(rt.fly.get());
+        moveDirectionPlayerRelative.set(rt.moveDirectionPlayerRelative.get());
+        attack.set(rt.attack.get());
+        sneak.set(rt.sneak.get());
+        paused.set(rt.paused.get());
+        viewTheta.set(rt.viewTheta.get());
+        viewPhi.set(rt.viewPhi.get());
+    }
     GameInput()
         : isCreativeMode(),
         jump(),

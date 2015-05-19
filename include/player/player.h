@@ -155,7 +155,8 @@ private:
     float destructingTime = 0, cooldownTimeLeft = 0;
     PositionI destructingPosition;
     World &world;
-    Player(std::wstring name, ui::GameUi *gameUi, World &world);
+    std::weak_ptr<World> worldW;
+    Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
 public:
     const std::shared_ptr<GameInput> gameInput;
     Entity *getPlayerEntity() const
@@ -167,9 +168,9 @@ public:
     ItemStackArray<9, 4> items;
     std::recursive_mutex itemsLock;
     bool setDialog(std::shared_ptr<ui::Ui> ui);
-    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, World &world)
+    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     {
-        auto retval = std::shared_ptr<Player>(new Player(name, gameUi, world));
+        auto retval = std::shared_ptr<Player>(new Player(name, gameUi, pworld));
         retval->addToPlayersList();
         return retval;
     }

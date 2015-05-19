@@ -30,7 +30,7 @@ namespace voxels
 {
 namespace ui
 {
-class Checkbox : public LabeledElement
+class CheckBox : public LabeledElement
 {
 private:
     std::unordered_set<MouseButton> mouseButtons;
@@ -57,8 +57,15 @@ private:
 public:
     MonitoredBool checked;
     ColorF checkboxColor, selectedCheckboxColor;
-    Checkbox(std::wstring text, float minX, float maxX, float minY, float maxY, bool checked = false, ColorF textColor = GrayscaleF(0), ColorF checkboxColor = GrayscaleF(0), ColorF selectedCheckboxColor = RGBF(0, 0, 1), Text::TextProperties textProperties = Text::defaultTextProperties)
-        : LabeledElement(text, minX, maxX, minY, maxY, textColor, textProperties), pressed(false), checked(checked), checkboxColor(checkboxColor), selectedCheckboxColor(selectedCheckboxColor)
+    CheckBox(std::wstring text, float minX, float maxX, float minY, float maxY, bool checked = false, ColorF textColor = GrayscaleF(0), ColorF checkboxColor = GrayscaleF(0), ColorF selectedCheckboxColor = RGBF(0, 0, 1), Text::TextProperties textProperties = Text::defaultTextProperties)
+        : LabeledElement(text, minX, maxX, minY, maxY, textColor, textProperties),
+        mouseButtons(),
+        keysPressed(),
+        touchs(),
+        pressed(false),
+        checked(checked),
+        checkboxColor(checkboxColor),
+        selectedCheckboxColor(selectedCheckboxColor)
     {
     }
     virtual bool canHaveKeyboardFocus() const override

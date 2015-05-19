@@ -65,6 +65,7 @@ public:
     }
     virtual void reset() override
     {
+        done = false;
         minX = -Display::scaleX();
         maxX = Display::scaleX();
         minY = -Display::scaleY();
@@ -80,6 +81,9 @@ public:
     virtual bool canHaveKeyboardFocus() const override
     {
         return true;
+    }
+    virtual void handleFinish()
+    {
     }
 protected:
     virtual void clear(Renderer &renderer);

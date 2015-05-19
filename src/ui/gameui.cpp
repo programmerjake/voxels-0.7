@@ -24,6 +24,7 @@
 #include "world/view_point.h"
 #include "ui/inventory.h"
 #include "ui/player_dialog.h"
+#include "ui/main_menu.h"
 #include <vector>
 
 namespace programmerjake
@@ -51,7 +52,13 @@ std::vector<Mesh> makeDestructionMeshes()
     for(int i = 0; i < TextureAtlas::DeleteFrameCount(); i++)
     {
         TextureDescriptor td = TextureAtlas::Delete(i).td();
-        destructionMeshes.push_back((Mesh)transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(1.01)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, td, td, td, td, td)));
+        destructionMeshes.emplace_back();
+        destructionMeshes.back().append(transform(Matrix::translate(-0.52, -0.5, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.48, -0.5, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.52, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.48, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.52).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.48).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td)));
     }
     return std::move(destructionMeshes);
 }
@@ -82,6 +89,12 @@ void renderSunOrMoon(Renderer &renderer, Matrix orientationTransform, VectorF po
 void GameUi::clear(Renderer &renderer)
 {
     std::shared_ptr<Player> player = playerW.lock();
+    if(!player)
+    {
+        background = GrayscaleF(0.4f);
+        Ui::clear(renderer);
+        return;
+    }
     PositionF playerPosition = player->getPosition();
     background = world->getSkyColor(playerPosition);
     Ui::clear(renderer);
@@ -122,8 +135,8 @@ void GameUi::clear(Renderer &renderer)
         }
         renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
     }
-    renderer << start_overlay;
     RayCasting::Collision collision = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+    Mesh additionalObjects;
     if(collision.valid())
     {
         Matrix selectionBoxTransform;
@@ -157,30 +170,242 @@ void GameUi::clear(Renderer &renderer)
         }
         if(drawSelectionBox)
         {
-            renderer << transform(tform, transform(selectionBoxTransform, getSelectionMesh()));
+            additionalObjects.append(transform(selectionBoxTransform, getSelectionMesh()));
         }
         if(drawDestructionBox)
         {
             float progress = blockDestructProgress.load(std::memory_order_relaxed);
             if(progress >= 0)
             {
-                renderer << transform(tform, transform(selectionBoxTransform, getDestructionMesh(progress)));
+                additionalObjects.append(transform(selectionBoxTransform, getDestructionMesh(progress)));
             }
         }
     }
-    viewPoint->render(renderer, tform, lock_manager);
+    renderer << start_overlay;
+    viewPoint->render(renderer, tform, lock_manager, additionalObjects);
     renderer << start_overlay << reset_render_layer;
 }
 void GameUi::startInventoryDialog()
 {
-    setDialog(std::make_shared<PlayerInventory>(playerW.lock()));
+    if(world)
+        setDialog(std::make_shared<PlayerInventory>(playerW.lock()));
 }
 void GameUi::setDialogWorldAndLockManager()
 {
     std::shared_ptr<PlayerDialog> playerDialog = std::dynamic_pointer_cast<PlayerDialog>(dialog);
-    if(playerDialog != nullptr)
+    if(playerDialog != nullptr && world != nullptr)
         playerDialog->setWorldAndLockManager(*world, lock_manager);
 }
+
+void GameUi::setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> player, Entity *playerEntity)
+{
+    this->world = world;
+    this->playerEntity = playerEntity;
+    viewPoint = std::make_shared<ViewPoint>(*world, playerEntity->physicsObject->getPosition(), GameVersion::DEBUG ? 32 : 48);
+    playerW = player;
+    player->gameInput->copy(*gameInput);
+    gameInput = player->gameInput;
+    addWorldUi();
+}
+
+void GameUi::clearWorld()
+{
+    if(!world)
+        return;
+    if(playingAudio)
+        playingAudio->stop();
+    playingAudio = nullptr;
+    audioScheduler.reset();
+    lock_manager.clear();
+    while(!worldDependantElements.empty())
+    {
+        std::shared_ptr<Element> e = std::move(worldDependantElements.back());
+        worldDependantElements.pop_back();
+        remove(e);
+    }
+    std::shared_ptr<World> theWorld = world; // to extend life
+    world = nullptr;
+    viewPoint = nullptr;
+    playerEntity = nullptr;
+    playerW = std::weak_ptr<Player>();
+    std::shared_ptr<GameInput> newGameInput = std::make_shared<GameInput>();
+    newGameInput->copy(*gameInput);
+    gameInput = newGameInput;
+}
+
+void GameUi::addWorldUi()
+{
+    if(!addedUi || !world)
+        return;
+    float simYRes = 240;
+    float scale = 2 / simYRes;
+    float hotBarItemSize = 20 * scale;
+    std::shared_ptr<Player> player = playerW.lock();
+    std::size_t hotBarSize = player->items.itemStacks.size();
+    float hotBarWidth = hotBarItemSize * hotBarSize;
+    std::shared_ptr<Element> crosshairs = std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40);
+    add(crosshairs);
+    worldDependantElements.push_back(crosshairs);
+    for(std::size_t i = 0; i < hotBarSize; i++)
+    {
+        std::shared_ptr<Element> e = std::make_shared<HotBarItem>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [this, i]()->bool
+        {
+            std::shared_ptr<Player> player = playerW.lock();
+            if(player == nullptr)
+                return false;
+            return player->currentItemIndex == i;
+        }, &player->itemsLock);
+        add(e);
+        worldDependantElements.push_back(e);
+    }
+    std::shared_ptr<Element> fpsDisplay = std::make_shared<DynamicLabel>([this](double deltaTime)->std::wstring
+    {
+        std::shared_ptr<Player> player = playerW.lock();
+        static thread_local std::deque<double> samples;
+        samples.push_back(deltaTime);
+        double totalSampleTime = 0;
+        double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;
+        for(double v : samples)
+        {
+            totalSampleTime += v;
+            if(v > minDeltaTime)
+                minDeltaTime = v;
+            if(v < maxDeltaTime)
+                maxDeltaTime = v;
+        }
+        double averageDeltaTime = totalSampleTime / samples.size();
+        while(totalSampleTime > 5 && !samples.empty())
+        {
+            totalSampleTime -= samples.front();
+            samples.pop_front();
+        }
+        std::wostringstream ss;
+        ss << L"FPS:";
+        ss.setf(std::ios::fixed);
+        ss.precision(1);
+        ss.width(5);
+        if(maxDeltaTime > 0)
+            ss << 1.0 / maxDeltaTime;
+        else
+            ss << L"     ";
+        ss << L"/";
+        ss.width(5);
+        if(averageDeltaTime > 0)
+            ss << 1.0 / averageDeltaTime;
+        else
+            ss << L"     ";
+        ss << L"/";
+        ss.width(5);
+        if(minDeltaTime > 0)
+            ss << 1.0 / minDeltaTime;
+        else
+            ss << L"     ";
+        ss << L"\n";
+        RayCasting::Collision c = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+        if(c.valid())
+        {
+            switch(c.type)
+            {
+            case RayCasting::Collision::Type::None:
+                break;
+            case RayCasting::Collision::Type::Block:
+            {
+                BlockIterator bi = world->getBlockIterator(c.blockPosition);
+                Block b = bi.get(lock_manager);
+                ss << L"Block :\n";
+                if(b.good())
+                {
+                    std::wstring v = b.descriptor->getDescription(bi, lock_manager);
+                    const wchar_t *const splittingCharacters = L",= ()_";
+                    const std::size_t lineLength = 30, lineLengthVariance = 5;
+                    const std::size_t searchStartPos = lineLength - lineLengthVariance;
+                    const std::size_t searchEndPos = lineLength + lineLengthVariance;
+                    while(v.size() > lineLength)
+                    {
+                        std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
+                        if(splitPos == std::wstring::npos || splitPos > searchEndPos)
+                            splitPos = lineLength;
+                        ss << v.substr(0, splitPos + 1) << L"\n";
+                        v.erase(0, splitPos + 1);
+                    }
+                    v.resize(searchEndPos, L' ');
+                    ss << v;
+                }
+                else
+                {
+                    ss << L"null_block";
+                }
+                break;
+            }
+            case RayCasting::Collision::Type::Entity:
+                break;
+            }
+        }
+        return ss.str();
+    }, -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1));
+    add(fpsDisplay);
+    worldDependantElements.push_back(fpsDisplay);
+}
+
+void GameUi::createNewWorld()
+{
+    clearWorld();
+    generatingWorld = true;
+    generatedWorld = nullptr;
+    worldGenerateThread = std::thread([this]()
+    {
+        try
+        {
+            generatedWorld = std::make_shared<World>(&abortWorldCreation);
+        }
+        catch(WorldConstructionAborted &)
+        {
+        }
+        generatingWorld = false;
+    });
+    if(addedUi)
+    {
+        std::shared_ptr<Element> e = std::make_shared<Label>(L"Creating World...", -0.7f, 0.7f, -0.3f, 0.3f);
+        worldCreationMessage = e;
+        add(e);
+    }
+}
+
+void GameUi::addUi()
+{
+    addWorldUi();
+    mainMenu = std::make_shared<MainMenu>();
+    setDialog(mainMenu);
+}
+
+GameUi::GameUi(Renderer &renderer)
+    : audioScheduler(),
+    playingAudio(),
+    world(),
+    lock_manager(),
+    viewPoint(),
+    gameInput(std::make_shared<GameInput>()),
+    playerW(),
+    playerEntity(),
+    newDialogLock(),
+    worldDependantElements(),
+    generatingWorld(false),
+    worldGenerateThread(),
+    generatedWorld(nullptr),
+    worldCreationMessage(),
+    abortWorldCreation(false),
+    mainMenu(),
+    mainMenuSong(std::make_shared<Audio>(L"menu-theme.ogg", true)),
+    blockDestructProgress(-1.0f)
+{
+    gameInput->paused.set(true);
+}
+
+void GameUi::startMainMenu()
+{
+    setDialog(mainMenu);
+}
+
 }
 }
 }

@@ -352,6 +352,8 @@ namespace Display
     void render(const Mesh & m, Matrix tform, RenderLayer rl);
     void clear(ColorF color = RGBAF(0, 0, 0, 0));
     float screenRefreshRate();
+    bool fullScreen();
+    void fullScreen(bool fs);
 }
 
 void startGraphics();

@@ -98,7 +98,7 @@ public:
         this->viewDistance = viewDistance;
     }
 public:
-    void render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager);
+    void render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager, Mesh additionalObjects = Mesh());
 };
 }
 }

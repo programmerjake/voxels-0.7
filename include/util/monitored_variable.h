@@ -36,6 +36,8 @@ namespace voxels
 template <typename T>
 class MonitoredVariable final
 {
+    MonitoredVariable(const MonitoredVariable &) = delete;
+    MonitoredVariable &operator =(const MonitoredVariable &) = delete;
 private:
     T variable;
 public:

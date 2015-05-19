@@ -62,7 +62,12 @@ public:
     MonitoredBool pressed;
     Event click;
     GenericButton(float minX, float maxX, float minY, float maxY)
-        : Element(minX, maxX, minY, maxY), pressed(false)
+        : Element(minX, maxX, minY, maxY),
+        mouseButtons(),
+        keysPressed(),
+        touchs(),
+        pressed(false),
+        click()
     {
     }
     virtual bool canHaveKeyboardFocus() const override
@@ -144,6 +149,13 @@ public:
         updatePressed(false);
         return true;
     }
+    virtual void reset() override
+    {
+        mouseButtons.clear();
+        keysPressed.clear();
+        touchs.clear();
+        updatePressed(false);
+    }
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override = 0;
 };
@@ -155,11 +167,23 @@ public:
     Text::TextProperties textProperties;
     ColorF textColor, selectedTextColor, pressedTextColor, color, selectedColor, pressedColor;
     Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color, ColorF textColor, ColorF selectedTextColor, ColorF pressedTextColor, ColorF selectedColor, ColorF pressedColor, Text::TextProperties textProperties = Text::defaultTextProperties)
-        : GenericButton(minX, maxX, minY, maxY), text(text), textProperties(textProperties), textColor(textColor), selectedTextColor(selectedTextColor), pressedTextColor(pressedTextColor), color(color), selectedColor(selectedColor), pressedColor(pressedColor)
+        : GenericButton(minX, maxX, minY, maxY),
+        text(text),
+        textProperties(textProperties),
+        textColor(textColor),
+        selectedTextColor(selectedTextColor),
+        pressedTextColor(pressedTextColor),
+        color(color),
+        selectedColor(selectedColor),
+        pressedColor(pressedColor)
     {
     }
     Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color = GrayscaleF(0.65), ColorF textColor = GrayscaleF(0), Text::TextProperties textProperties = Text::defaultTextProperties)
-        : Button(text, minX, maxX, minY, maxY, color, textColor, colorize(GrayscaleF(0.75), textColor), colorize(GrayscaleF(0.5), textColor), interpolate(0.5, GrayscaleF(1), color), color, textProperties)
+        : Button(text,
+                 minX, maxX, minY, maxY,
+                 color, textColor,
+                 colorize(GrayscaleF(0.75), textColor), colorize(GrayscaleF(0.5), textColor),
+                 interpolate(0.5, GrayscaleF(1), color), color, textProperties)
     {
     }
 protected:

@@ -555,6 +555,8 @@ namespace
 void setupRenderLayers();
 }
 
+static bool isFullScreen = false;
+
 void endGraphics()
 {
     if(runningGraphics.exchange(false))
@@ -579,6 +581,7 @@ void startGraphics()
         return;
     SDLUseCount++;
     startSDL();
+    isFullScreen = false;
 #if 0
     const SDL_VideoInfo * vidInfo = SDL_GetVideoInfo();
     if(vidInfo == nullptr)
@@ -2111,6 +2114,18 @@ void setThreadPriority(ThreadPriority priority)
     }
     SDL_SetThreadPriority(sdlPriority);
 }
+
+bool Display::fullScreen()
+{
+    return isFullScreen;
+}
+
+void Display::fullScreen(bool fs)
+{
+    isFullScreen = fs;
+    SDL_SetWindowFullscreen(window, isFullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+}
+
 }
 }
 

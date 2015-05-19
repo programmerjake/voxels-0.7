@@ -255,7 +255,8 @@ void Player::addToPlayersList()
 
 void Player::removeFromPlayersList()
 {
-    world.players().removePlayer(name);
+    if(worldW.lock())
+        world.players().removePlayer(name);
 }
 
 bool Player::setDialog(std::shared_ptr<ui::Ui> ui)
@@ -352,13 +353,14 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
 throw std::runtime_error("implement player read/write");
 }
 
-Player::Player(std::wstring name, ui::GameUi *gameUi, World &world)
+Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     : lastPosition(),
     playerEntity(),
     gameInputMonitoring(),
     gameUi(gameUi),
     destructingPosition(),
-    world(world),
+    world(*pworld),
+    worldW(pworld),
     gameInput(std::make_shared<GameInput>()),
     name(name),
     items(),

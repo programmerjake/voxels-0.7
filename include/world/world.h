@@ -48,6 +48,7 @@
 #include "generate/biome/biome_descriptor.h"
 #include <algorithm>
 #include <random>
+#include <stdexcept>
 #include "util/math_constants.h"
 #include "stream/stream.h"
 
@@ -58,6 +59,14 @@ namespace voxels
 class WorldGenerator;
 class ViewPoint;
 class PlayerList;
+
+struct WorldConstructionAborted final : public std::runtime_error
+{
+    WorldConstructionAborted()
+        : std::runtime_error("World construction aborted")
+    {
+    }
+};
 
 class World final
 {
@@ -91,13 +100,16 @@ private:
     };
     struct InitialChunkGenerateStruct final
     {
+        InitialChunkGenerateStruct(const InitialChunkGenerateStruct &) = delete;
+        InitialChunkGenerateStruct &operator =(const InitialChunkGenerateStruct &) = delete;
         std::mutex lock;
         std::condition_variable initialGenerationDoneCond;
         std::condition_variable generatorWaitDoneCond;
         std::size_t count;
         bool generatorWait = true;
-        explicit InitialChunkGenerateStruct(std::size_t count)
-            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count)
+        std::atomic_bool *abortFlag;
+        explicit InitialChunkGenerateStruct(std::size_t count, std::atomic_bool *abortFlag)
+            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count), abortFlag(abortFlag)
         {
         }
     };
@@ -216,15 +228,15 @@ public:
      * @param worldGenerator the world generator to use
      *
      */
-    World(SeedType seed, const WorldGenerator *worldGenerator);
+    World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bool *abortFlag = nullptr);
     /** @brief construct a world
      *
      * @param seed the world seed to use
      * @param worldGenerator the world generator to use
      *
      */
-    World(std::wstring seed, const WorldGenerator *worldGenerator)
-        : World(makeSeed(seed), worldGenerator)
+    World(std::wstring seed, const WorldGenerator *worldGenerator, std::atomic_bool *abortFlag = nullptr)
+        : World(makeSeed(seed), worldGenerator, abortFlag)
     {
     }
     /** @brief construct a world
@@ -232,21 +244,21 @@ public:
      * @param seed the world seed to use
      *
      */
-    explicit World(SeedType seed);
+    explicit World(SeedType seed, std::atomic_bool *abortFlag = nullptr);
 
     /** @brief construct a world
      *
      * @param seed the world seed to use
      *
      */
-    explicit World(std::wstring seed)
-        : World(makeSeed(seed))
+    explicit World(std::wstring seed, std::atomic_bool *abortFlag = nullptr)
+        : World(makeSeed(seed), abortFlag)
     {
     }
     /** @brief construct a world
      *
      */
-    explicit World();
+    explicit World(std::atomic_bool *abortFlag = nullptr);
     ~World();
     /** @brief get the current world time
      *

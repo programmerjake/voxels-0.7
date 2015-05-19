@@ -417,8 +417,8 @@ protected:
 };
 }
 
-World::World(SeedType seed)
-    : World(seed, MyWorldGenerator::getInstance())
+World::World(SeedType seed, std::atomic_bool *abortFlag)
+    : World(seed, MyWorldGenerator::getInstance(), abortFlag)
 {
 }
 
@@ -454,8 +454,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
 {
 }
 
-World::World()
-    : World(makeRandomSeed())
+World::World(std::atomic_bool *abortFlag)
+    : World(makeRandomSeed(), abortFlag)
 {
 }
 
@@ -573,7 +573,7 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
     return retval;
 }
 
-World::World(SeedType seed, const WorldGenerator *worldGenerator)
+World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bool *abortFlag)
     : randomGenerator(seed),
     randomGeneratorLock(),
     wrng(*this),
@@ -605,9 +605,19 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
             {
                 auto &rg = getRandomGenerator();
                 worldGeneratorSeed = rg();
+                if(abortFlag && *abortFlag)
+                {
+                    destructing = true;
+                    return;
+                }
                 continue;
             }
             break;
+        }
+        if(abortFlag && *abortFlag)
+        {
+            destructing = true;
+            return;
         }
         for(int i = 0; i < 2; i++)
         {
@@ -625,7 +635,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
                 initialChunkGenerateCount++;
             }
         }
-        std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct = std::make_shared<InitialChunkGenerateStruct>(initialChunkGenerateCount);
+        std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct = std::make_shared<InitialChunkGenerateStruct>(initialChunkGenerateCount, abortFlag);
     #if 1 || defined(NDEBUG)
         const int threadCount = 5;
     #else
@@ -642,7 +652,24 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
         {
             std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
             while(initialChunkGenerateStruct->count > 0)
+            {
+                if(abortFlag && *abortFlag)
+                {
+                    destructing = true;
+                    initialChunkGenerateStruct->generatorWait = false;
+                    initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
+                    return;
+                }
                 initialChunkGenerateStruct->initialGenerationDoneCond.wait(lockIt);
+            }
+        }
+        if(abortFlag && *abortFlag)
+        {
+            destructing = true;
+            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            initialChunkGenerateStruct->generatorWait = false;
+            initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
+            return;
         }
         for(int i = 0; i < 3; i++)
         {
@@ -653,7 +680,25 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
         }
         getDebugLog() << L"lighting initial world..." << postnl;
         for(int i = 0; i < 500 && !isLightingStable(); i++)
+        {
+            if(abortFlag && *abortFlag)
+            {
+                destructing = true;
+                std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+                initialChunkGenerateStruct->generatorWait = false;
+                initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
+                return;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        if(abortFlag && *abortFlag)
+        {
+            destructing = true;
+            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            initialChunkGenerateStruct->generatorWait = false;
+            initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
+            return;
+        }
         getDebugLog() << L"generated initial world." << postnl;
         {
             std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
@@ -670,6 +715,30 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator)
             moveEntitiesThreadFn();
         });
     }).join();
+    if(abortFlag && *abortFlag)
+    {
+        destructing = true;
+        std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
+        moveEntitiesThreadCond.notify_all();
+        lockMoveEntitiesThread.unlock();
+        for(auto &t : lightingThreads)
+            if(t.joinable())
+                t.join();
+        for(auto &t : blockUpdateThreads)
+            if(t.joinable())
+                t.join();
+        for(auto &t : chunkGeneratingThreads)
+            if(t.joinable())
+                t.join();
+        if(particleGeneratingThread.joinable())
+            particleGeneratingThread.join();
+        if(moveEntitiesThread.joinable())
+            moveEntitiesThread.join();
+        LockedPlayers lockedPlayers = players().lock();
+        std::vector<std::shared_ptr<Player>> copiedPlayerList(lockedPlayers.begin(), lockedPlayers.end()); // hold another reference to players so we don't try to remove from players list while destructing a list element
+        players().players.clear();
+        throw WorldConstructionAborted();
+    }
 }
 
 World::~World()
@@ -942,7 +1011,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
 {
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
-    while(!destructing)
+    while(!destructing && (!initialChunkGenerateStruct || !initialChunkGenerateStruct->abortFlag || !*initialChunkGenerateStruct->abortFlag))
     {
         bool didAnything = false;
         BlockChunk *bestChunk = nullptr;
@@ -980,7 +1049,10 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
             getDebugLog() << L"generating " << chunk->basePosition << L" " << chunkPriority << postnl;
             didAnything = true;
 
-            generateChunk(chunk, lock_manager, &destructing);
+            if(isChunkInitialGenerate && initialChunkGenerateStruct->abortFlag)
+                generateChunk(chunk, lock_manager, initialChunkGenerateStruct->abortFlag);
+            else
+                generateChunk(chunk, lock_manager, &destructing);
 
             chunk->chunkVariables.generated = true;
             lock_manager.clear();
