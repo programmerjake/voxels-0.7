@@ -44,6 +44,7 @@
 #include "platform/thread_priority.h"
 #include "util/logging.h"
 #include "render/generate.h"
+#include <csignal>
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -472,6 +473,8 @@ static void startSDL()
         cerr << "error : can't start SDL : " << SDL_GetError() << endl;
         exit(1);
     }
+    std::signal(SIGINT, SIG_DFL);
+    std::signal(SIGTERM, SIG_DFL);
     if(!addedAtExits.exchange(true))
     {
         atexit(endGraphics);

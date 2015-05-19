@@ -50,8 +50,8 @@ class GameUi : public Ui
 private:
     AudioScheduler audioScheduler;
     std::shared_ptr<PlayingAudio> playingAudio;
-    World &world;
-    WorldLockManager &lock_manager;
+    std::shared_ptr<World> world;
+    WorldLockManager lock_manager;
     std::shared_ptr<ViewPoint> viewPoint;
     std::shared_ptr<GameInput> gameInput;
     std::weak_ptr<Player> playerW;
@@ -87,29 +87,41 @@ private:
     void setDialogWorldAndLockManager();
 public:
     std::atomic<float> blockDestructProgress;
-    GameUi(Renderer &renderer, World &world, WorldLockManager &lock_manager)
+    GameUi(Renderer &renderer)
         : audioScheduler(),
         playingAudio(),
-        world(world),
-        lock_manager(lock_manager),
+        world(),
+        lock_manager(),
         viewPoint(),
-        gameInput(std::make_shared<GameInput>()),
+        gameInput(),
         playerW(),
         playerEntity(),
         newDialogLock(),
         blockDestructProgress(-1.0f)
     {
+    }
+    void initWorld()
+    {
+        PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
+        world = std::make_shared<World>();
+        viewPoint = std::make_shared<ViewPoint>(*world, startingPosition, GameVersion::DEBUG ? 32 : 48);
+        std::shared_ptr<Player> player = Player::make(L"default-player-name", this, *world);
+        playerW = player;
+        gameInput = player->gameInput;
         if(GameVersion::DEBUG)
             gameInput->paused.set(true);
-        PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-        viewPoint = std::make_shared<ViewPoint>(world, startingPosition, GameVersion::DEBUG ? 32 : 48);
-        playerW = Player::make(L"default-player-name", gameInput, this, world);
-        playerEntity = Entities::builtin::PlayerEntity::addToWorld(world, lock_manager, startingPosition, playerW.lock());
+        playerEntity = Entities::builtin::PlayerEntity::addToWorld(*world, lock_manager, startingPosition, player);
     }
     ~GameUi()
     {
         if(playingAudio)
             playingAudio->stop();
+        lock_manager.clear();
+        dialog = nullptr;
+        newDialog = nullptr;
+        gameInput = nullptr;
+        viewPoint = nullptr;
+        world = nullptr;
     }
     virtual void move(double deltaTime) override
     {
@@ -149,7 +161,7 @@ public:
         }
         Display::grabMouse(!dialog && !gameInput->paused.get());
         Ui::move(deltaTime);
-        world.move(deltaTime, lock_manager);
+        world->move(deltaTime, lock_manager);
         if(dialog && dialog->isDone())
         {
             remove(dialog);
@@ -167,7 +179,7 @@ public:
             PositionF p = playerW.lock()->getPosition();
             float height = p.y;
             float relativeHeight = height / World::SeaLevel;
-            playingAudio = audioScheduler.next(world.getTimeOfDayInSeconds(), world.dayDurationInSeconds, relativeHeight, p.d, 0.1f);
+            playingAudio = audioScheduler.next(world->getTimeOfDayInSeconds(), world->dayDurationInSeconds, relativeHeight, p.d, 0.1f);
         }
     }
     bool setDialog(std::shared_ptr<Ui> newDialog)
@@ -474,8 +486,14 @@ public:
     }
     virtual void reset() override
     {
+        if(!this->world)
+        {
+            initWorld();
+        }
         std::shared_ptr<Player> player = playerW.lock();
-        World &world = this->world;
+        assert(player);
+        std::shared_ptr<World> world = this->world;
+        assert(world);
         WorldLockManager &lock_manager = this->lock_manager;
         if(!addedUi)
         {
@@ -493,7 +511,7 @@ public:
                     return player->currentItemIndex == i;
                 }, &player->itemsLock));
             }
-            add(std::make_shared<DynamicLabel>([player, &world, &lock_manager](double deltaTime)->std::wstring
+            add(std::make_shared<DynamicLabel>([player, world, &lock_manager](double deltaTime)->std::wstring
             {
                 static thread_local std::deque<double> samples;
                 samples.push_back(deltaTime);
@@ -535,7 +553,7 @@ public:
                 else
                     ss << L"     ";
                 ss << L"\n";
-                RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+                RayCasting::Collision c = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
                 if(c.valid())
                 {
                     switch(c.type)
@@ -544,7 +562,7 @@ public:
                         break;
                     case RayCasting::Collision::Type::Block:
                     {
-                        BlockIterator bi = world.getBlockIterator(c.blockPosition);
+                        BlockIterator bi = world->getBlockIterator(c.blockPosition);
                         Block b = bi.get(lock_manager);
                         ss << L"Block :\n";
                         if(b.good())

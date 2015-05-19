@@ -347,7 +347,7 @@ struct BlockOptionalDataHashTable final
 public:
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = BlockOptionalData::BlockChunkSubchunkSizeXYZ;
 private:
-    checked_array<BlockOptionalData *, (1 << 6)> table;
+    checked_array<BlockOptionalData *, (1 << 7)> table;
     static std::thread::id getThreadId()
     {
         static thread_local std::thread::id retval = std::this_thread::get_id();
@@ -425,14 +425,11 @@ public:
             BlockOptionalData *node = *pNode;
             if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
             {
-                assert(node != node->hashNext);
                 *pNode = node->hashNext;
                 node->hashNext = *pTableEntry;
-                assert(node != node->hashNext);
                 *pTableEntry = node;
                 return node;
             }
-            assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
         BlockOptionalData *node = BlockOptionalData::allocate();
@@ -440,7 +437,6 @@ public:
         node->posY = pos.y;
         node->posZ = pos.z;
         node->hashNext = *pTableEntry;
-        assert(node != node->hashNext);
         *pTableEntry = node;
         return node;
     }
@@ -453,14 +449,11 @@ public:
             BlockOptionalData *node = *pNode;
             if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
             {
-                assert(node != node->hashNext);
                 *pNode = node->hashNext;
-                assert(node != node->hashNext);
                 node->hashNext = *pTableEntry;
                 *pTableEntry = node;
                 return node;
             }
-            assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
         return nullptr;

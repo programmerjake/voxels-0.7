@@ -6,6 +6,7 @@ obj
 voxels-debug
 voxels
 voxels-debug-tsan
+voxels-debug-asan
 voxels-optimized
 voxels-profile
 *~

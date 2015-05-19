@@ -36,16 +36,12 @@ namespace voxels
 int main(std::vector<std::wstring> args)
 {
     //globalRenderSettings.useFancyLeaves = true;
-    std::shared_ptr<World> world = std::make_shared<World>();
     startGraphics();
     Renderer renderer;
-    WorldLockManager lock_manager;
-    auto theUi = std::make_shared<ui::GameUi>(renderer, *world, lock_manager);
+    auto theUi = std::make_shared<ui::GameUi>(renderer);
     theUi->run(renderer);
     theUi = nullptr;
     endGraphics();
-    lock_manager.clear();
-    world = nullptr;
     return 0;
 }
 }

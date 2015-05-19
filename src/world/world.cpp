@@ -693,6 +693,7 @@ World::~World()
     if(moveEntitiesThread.joinable())
         moveEntitiesThread.join();
     LockedPlayers lockedPlayers = players().lock();
+    std::vector<std::shared_ptr<Player>> copiedPlayerList(lockedPlayers.begin(), lockedPlayers.end()); // hold another reference to players so we don't try to remove from players list while destructing a list element
     players().players.clear();
 }
 
@@ -1349,6 +1350,94 @@ void World::particleGeneratingThreadFn()
         currentTime += deltaTime;
     }
 }
+
+void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
+{
+    BlockChunkSubchunk *lastSubchunk = nullptr;
+    std::unique_lock<std::mutex> lockIt;
+    VectorI minSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(minCorner);
+    VectorI maxSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(maxCorner);
+    for(VectorI sp = minSubchunk; sp.x <= maxSubchunk.x; sp.x += BlockChunk::subchunkSizeXYZ)
+    {
+        for(sp.y = minSubchunk.y; sp.y <= maxSubchunk.y; sp.y += BlockChunk::subchunkSizeXYZ)
+        {
+            for(sp.z = minSubchunk.z; sp.z <= maxSubchunk.z; sp.z += BlockChunk::subchunkSizeXYZ)
+            {
+                bi.moveTo(sp);
+                VectorI currentMinCorner = sp;
+                VectorI currentMaxCorner = sp + VectorI(BlockChunk::subchunkSizeXYZ - 1);
+                currentMinCorner.x = std::max(currentMinCorner.x, minCorner.x);
+                currentMinCorner.y = std::max(currentMinCorner.y, minCorner.y);
+                currentMinCorner.z = std::max(currentMinCorner.z, minCorner.z);
+                currentMaxCorner.x = std::min(currentMaxCorner.x, maxCorner.x);
+                currentMaxCorner.y = std::min(currentMaxCorner.y, maxCorner.y);
+                currentMaxCorner.z = std::min(currentMaxCorner.z, maxCorner.z);
+                BlockIterator biX = bi;
+                biX.moveTo(currentMinCorner);
+                for(VectorI p = currentMinCorner; p.x <= currentMaxCorner.x; p.x++, biX.moveTowardPX())
+                {
+                    BlockIterator biXY = biX;
+                    for(p.y = currentMinCorner.y; p.y <= currentMaxCorner.y; p.y++, biXY.moveTowardPY())
+                    {
+                        BlockIterator biXYZ = biXY;
+                        for(p.z = currentMinCorner.z; p.z <= currentMaxCorner.z; p.z++, biXYZ.moveTowardPZ())
+                        {
+                            BlockChunkSubchunk &subchunk = biXYZ.getSubchunk();
+                            if(&subchunk != lastSubchunk && lastSubchunk != nullptr)
+                            {
+                                lockIt.unlock();
+                            }
+                            BlockChunkBlock &b = biXYZ.getBlock(lock_manager);
+                            if(&subchunk != lastSubchunk)
+                            {
+                                lastSubchunk = &subchunk;
+                                lockIt = std::unique_lock<std::mutex>(biXYZ.chunk->chunkVariables.blockUpdateListLock);
+                            }
+                            b.invalidate();
+                            biXYZ.getSubchunk().invalidate();
+                            biXYZ.chunk->chunkVariables.invalidate();
+                            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(biXYZ.currentRelativePosition));
+                            enum_array<bool, BlockUpdateKind> neededBlockUpdates;
+                            for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+                            {
+                                neededBlockUpdates[kind] = (BlockUpdateKindDefaultPeriod(kind) == 0);
+                            }
+                            BlockUpdate **ppnode = &blockOptionalData->updateListHead;
+                            BlockUpdate *pnode = *ppnode;
+                            while(pnode != nullptr)
+                            {
+                                if(neededBlockUpdates[pnode->kind])
+                                {
+                                    if(pnode->time_left > 0)
+                                        pnode->time_left = 0;
+                                    neededBlockUpdates[pnode->kind] = false;
+                                }
+                                ppnode = &pnode->block_next;
+                                pnode = *ppnode;
+                            }
+                            for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
+                            {
+                                if(neededBlockUpdates[kind])
+                                {
+                                    BlockUpdate *pnode = BlockUpdate::allocate(kind, biXYZ.position(), 0.0f, blockOptionalData->updateListHead);
+                                    blockOptionalData->updateListHead = pnode;
+                                    pnode->chunk_next = biXYZ.chunk->chunkVariables.blockUpdateListHead;
+                                    pnode->chunk_prev = nullptr;
+                                    if(biXYZ.chunk->chunkVariables.blockUpdateListHead != nullptr)
+                                        biXYZ.chunk->chunkVariables.blockUpdateListHead->chunk_prev = pnode;
+                                    else
+                                        biXYZ.chunk->chunkVariables.blockUpdateListTail = pnode;
+                                    biXYZ.chunk->chunkVariables.blockUpdateListHead = pnode;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 }
 }

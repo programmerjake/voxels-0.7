@@ -79,7 +79,11 @@ private:
         {
             try
             {
-                charBuffer[charBufferUsed] = reader.readByte();
+                if(1 != reader.readBytes(&charBuffer[charBufferUsed], 1))
+                {
+                    gotEOFOrError = true;
+                    return;
+                }
                 charBufferUsed++;
                 if(charBufferUsed >= 2)
                 {

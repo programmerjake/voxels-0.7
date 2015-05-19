@@ -121,7 +121,6 @@ private:
     void addToPlayersList();
     void removeFromPlayersList();
     PositionF lastPosition;
-    std::shared_ptr<GameInput> gameInput;
     Entity *playerEntity;
     struct GameInputMonitoring
     {
@@ -151,69 +150,14 @@ private:
         }
     };
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
-    ui::GameUi *const gameUi;
-    std::atomic<float> &getBlockDestructProgress(); /// the amount that a block is destroyed (ex. 0 means just started, and 0.9 means almost done). negative numbers mean no block is being destroyed
+    ui::GameUi *gameUi;
+    void setBlockDestructProgress(float v);
     float destructingTime = 0, cooldownTimeLeft = 0;
     PositionI destructingPosition;
     World &world;
-    Player(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi, World &world)
-        : lastPosition(),
-        gameInput(gameInput),
-        playerEntity(),
-        gameInputMonitoring(),
-        gameUi(gameUi),
-        destructingPosition(),
-        world(world),
-        name(name),
-        items(),
-        itemsLock()
-    {
-        assert(gameInput != nullptr);
-        assert(gameUi != nullptr);
-        gameInputMonitoring = std::make_shared<GameInputMonitoring>();
-        gameInput->jump.onChange.bind([this](EventArguments&)
-        {
-            if(this->gameInput->jump.get())
-                gameInputMonitoring->gotJump = true;
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->attack.onChange.bind([this](EventArguments&)
-        {
-            if(this->gameInput->attack.get())
-                gameInputMonitoring->gotAttack = true;
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->action.bind([this](EventArguments&)
-        {
-            gameInputMonitoring->actionCount++;
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->drop.bind([this](EventArguments&)
-        {
-            gameInputMonitoring->dropCount++;
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->hotBarMoveLeft.bind([this](EventArguments&)
-        {
-            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-            currentItemIndex = (currentItemIndex + items.itemStacks.size() - 1) % items.itemStacks.size();
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->hotBarMoveRight.bind([this](EventArguments&)
-        {
-            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-            currentItemIndex = (currentItemIndex + 1) % items.itemStacks.size();
-            return Event::ReturnType::Propagate;
-        });
-        gameInput->hotBarSelect.bind([this](EventArguments &argsIn)
-        {
-            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-            HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
-            currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
-            return Event::ReturnType::Propagate;
-        });
-    }
+    Player(std::wstring name, ui::GameUi *gameUi, World &world);
 public:
+    const std::shared_ptr<GameInput> gameInput;
     Entity *getPlayerEntity() const
     {
         return playerEntity;
@@ -223,9 +167,9 @@ public:
     ItemStackArray<9, 4> items;
     std::recursive_mutex itemsLock;
     bool setDialog(std::shared_ptr<ui::Ui> ui);
-    static std::shared_ptr<Player> make(std::wstring name, std::shared_ptr<GameInput> gameInput, ui::GameUi *gameUi, World &world)
+    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, World &world)
     {
-        auto retval = std::shared_ptr<Player>(new Player(name, gameInput, gameUi, world));
+        auto retval = std::shared_ptr<Player>(new Player(name, gameUi, world));
         retval->addToPlayersList();
         return retval;
     }
@@ -365,7 +309,7 @@ public:
             return retval;
         return Item();
     }
-    void writeReference(stream::Writer &writer) const;
+    static void writeReference(stream::Writer &writer, std::shared_ptr<Player> player);
     static std::shared_ptr<Player> readReference(stream::Reader &reader);
     void write(stream::Writer &writer);
     static std::shared_ptr<Player> read(stream::Reader &reader);
@@ -416,7 +360,7 @@ private:
 public:
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
-    class iterator final : public std::iterator<std::forward_iterator_tag, Player>
+    class iterator final : public std::iterator<std::forward_iterator_tag, const std::shared_ptr<Player>>
     {
 #pragma GCC diagnostic pop
         friend class LockedPlayers;
@@ -440,13 +384,13 @@ public:
         {
             return iterator(iter++);
         }
-        std::shared_ptr<Player> operator *() const
+        const std::shared_ptr<Player> &operator *() const
         {
             return std::get<1>(*iter);
         }
-        std::shared_ptr<Player> operator ->() const
+        const std::shared_ptr<Player> *operator ->() const
         {
-            return std::get<1>(*iter);
+            return &std::get<1>(*iter);
         }
         bool operator ==(const iterator &rt) const
         {

@@ -83,17 +83,17 @@ void GameUi::clear(Renderer &renderer)
 {
     std::shared_ptr<Player> player = playerW.lock();
     PositionF playerPosition = player->getPosition();
-    background = world.getSkyColor(playerPosition);
+    background = world->getSkyColor(playerPosition);
     Ui::clear(renderer);
     Matrix tform = player->getViewTransform();
     viewPoint->setPosition(playerPosition);
     renderer << RenderLayer::Opaque;
     if(hasSun(playerPosition.d))
-        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getSunPosition(), TextureAtlas::Sun.td());
+        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getSunPosition(), TextureAtlas::Sun.td());
     if(hasMoon(playerPosition.d))
     {
         TextureDescriptor moonTD;
-        switch(world.getVisibleMoonPhase())
+        switch(world->getVisibleMoonPhase())
         {
         case 0:
             moonTD = TextureAtlas::Moon0.td();
@@ -120,10 +120,10 @@ void GameUi::clear(Renderer &renderer)
             moonTD = TextureAtlas::Moon7.td();
             break;
         }
-        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world.getMoonPosition(), moonTD);
+        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
     }
     renderer << start_overlay;
-    RayCasting::Collision collision = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+    RayCasting::Collision collision = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
     if(collision.valid())
     {
         Matrix selectionBoxTransform;
@@ -133,7 +133,7 @@ void GameUi::clear(Renderer &renderer)
         {
         case RayCasting::Collision::Type::Block:
         {
-            BlockIterator bi = world.getBlockIterator(collision.blockPosition);
+            BlockIterator bi = world->getBlockIterator(collision.blockPosition);
             Block b = bi.get(lock_manager);
             if(b.good())
             {
@@ -179,7 +179,7 @@ void GameUi::setDialogWorldAndLockManager()
 {
     std::shared_ptr<PlayerDialog> playerDialog = std::dynamic_pointer_cast<PlayerDialog>(dialog);
     if(playerDialog != nullptr)
-        playerDialog->setWorldAndLockManager(world, lock_manager);
+        playerDialog->setWorldAndLockManager(*world, lock_manager);
 }
 }
 }

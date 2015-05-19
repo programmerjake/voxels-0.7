@@ -156,17 +156,17 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                     {
                         good = false;
                         player->destructingTime = 0;
-                        player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+                        player->setBlockDestructProgress(-1.0f);
                     }
                     else if(player->destructingTime < totalDestructTime)
                     {
                         good = false;
-                        player->getBlockDestructProgress().store(player->destructingTime / totalDestructTime, std::memory_order_relaxed);
+                        player->setBlockDestructProgress(player->destructingTime / totalDestructTime);
                     }
                 }
                 else
                 {
-                    player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+                    player->setBlockDestructProgress(-1.0f);
                     player->destructingTime = 0;
                 }
                 if(good)
@@ -182,7 +182,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                     }
                     player->destructingTime = 0;
                     player->cooldownTimeLeft = 0.25f;
-                    player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+                    player->setBlockDestructProgress(-1.0f);
                 }
                 break;
             }
@@ -194,7 +194,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         }
         else
         {
-            player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+            player->setBlockDestructProgress(-1.0f);
             player->destructingTime = 0;
         }
     }
@@ -202,7 +202,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     {
         player->destructingTime = 0;
         player->cooldownTimeLeft = 0;
-        player->getBlockDestructProgress().store(-1.0f, std::memory_order_relaxed);
+        player->setBlockDestructProgress(-1.0f);
     }
     for(int i = player->gameInputMonitoring->retrieveDropCount(); i > 0; i--)
     {
@@ -260,6 +260,8 @@ void Player::removeFromPlayersList()
 
 bool Player::setDialog(std::shared_ptr<ui::Ui> ui)
 {
+    if(!gameUi)
+        return false;
     return gameUi->setDialog(ui);
 }
 
@@ -281,11 +283,6 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
         return true;
     }
     return false;
-}
-
-std::atomic<float> &Player::getBlockDestructProgress()
-{
-    return gameUi->blockDestructProgress;
 }
 
 bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction)
@@ -320,5 +317,102 @@ void PlayerList::removePlayer(std::wstring name)
     std::unique_lock<std::recursive_mutex> theLock(playersLock);
     players.erase(name);
 }
+
+void Player::writeReference(stream::Writer &writer, std::shared_ptr<Player> player)
+{
+    std::wstring name = L"";
+    if(player)
+        name = player->name;
+    stream::write<std::wstring>(writer, name);
+}
+
+std::shared_ptr<Player> Player::readReference(stream::Reader &reader)
+{
+    std::wstring name = stream::read<std::wstring>(reader);
+    if(name.empty())
+        return nullptr;
+    World::StreamWorld streamWorld = World::getStreamWorld(reader);
+    assert(streamWorld);
+    LockedPlayers lockedPlayers = streamWorld.world().players().lock();
+    auto iter = streamWorld.world().players().players.find(name);
+    if(iter == streamWorld.world().players().players.end())
+        throw stream::InvalidDataValueException("unknown player name");
+    return std::get<1>(*iter);
+}
+
+void Player::write(stream::Writer &writer)
+{
+#warning implement player read/write
+throw std::runtime_error("implement player read/write");
+}
+
+std::shared_ptr<Player> Player::read(stream::Reader &reader)
+{
+#warning implement player read/write
+throw std::runtime_error("implement player read/write");
+}
+
+Player::Player(std::wstring name, ui::GameUi *gameUi, World &world)
+    : lastPosition(),
+    playerEntity(),
+    gameInputMonitoring(),
+    gameUi(gameUi),
+    destructingPosition(),
+    world(world),
+    gameInput(std::make_shared<GameInput>()),
+    name(name),
+    items(),
+    itemsLock()
+{
+    gameInputMonitoring = std::make_shared<GameInputMonitoring>();
+    gameInput->jump.onChange.bind([this](EventArguments&)
+    {
+        if(this->gameInput->jump.get())
+            gameInputMonitoring->gotJump = true;
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->attack.onChange.bind([this](EventArguments&)
+    {
+        if(this->gameInput->attack.get())
+            gameInputMonitoring->gotAttack = true;
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->action.bind([this](EventArguments&)
+    {
+        gameInputMonitoring->actionCount++;
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->drop.bind([this](EventArguments&)
+    {
+        gameInputMonitoring->dropCount++;
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->hotBarMoveLeft.bind([this](EventArguments&)
+    {
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        currentItemIndex = (currentItemIndex + items.itemStacks.size() - 1) % items.itemStacks.size();
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->hotBarMoveRight.bind([this](EventArguments&)
+    {
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        currentItemIndex = (currentItemIndex + 1) % items.itemStacks.size();
+        return Event::ReturnType::Propagate;
+    });
+    gameInput->hotBarSelect.bind([this](EventArguments &argsIn)
+    {
+        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
+        currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
+        return Event::ReturnType::Propagate;
+    });
+}
+
+void Player::setBlockDestructProgress(float v)
+{
+    if(gameUi)
+        gameUi->blockDestructProgress.store(v, std::memory_order_relaxed);
+}
+
 }
 }

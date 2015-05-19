@@ -335,8 +335,9 @@ public:
      */
     bool addBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
     {
-        assert(updateTimeFromNow >= 0);
         bi.updateLock(lock_manager);
+        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
+        assert(updateTimeFromNow >= 0);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
         BlockOptionalData *blockOptionalData;
         if(updateTimeFromNow < 0)
@@ -347,7 +348,6 @@ public:
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
         BlockUpdate *pnode = *ppnode;
-        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
         while(pnode != nullptr)
         {
             if(pnode->kind == kind)
@@ -810,32 +810,7 @@ private:
                 addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
-    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
-    {
-        BlockIterator biX = bi;
-        biX.moveTo(minCorner);
-        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
-        {
-            BlockIterator biXY = biX;
-            for(p.y = minCorner.y; p.y <= maxCorner.y; p.y++, biXY.moveTowardPY())
-            {
-                BlockIterator biXYZ = biXY;
-                for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXYZ.moveTowardPZ())
-                {
-                    BlockChunkBlock &b = biXYZ.getBlock(lock_manager);
-                    b.invalidate();
-                    biXYZ.getSubchunk().invalidate();
-                    biXYZ.chunk->chunkVariables.invalidate();
-                    for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
-                    {
-                        float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
-                        if(defaultPeriod == 0)
-                            addBlockUpdate(biXYZ, lock_manager, kind, defaultPeriod);
-                    }
-                }
-            }
-        }
-    }
+    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager);
 };
 }
 }
