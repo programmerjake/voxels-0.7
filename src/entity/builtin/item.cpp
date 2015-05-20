@@ -32,6 +32,44 @@ namespace Entities
 namespace builtin
 {
 
+void EntityItem::ItemData::write(stream::Writer &writer) const
+{
+    stream::write<float32_t>(writer, angle);
+    stream::write<float32_t>(writer, bobPhase);
+    stream::write<float64_t>(writer, timeLeft);
+    stream::write<float64_t>(writer, ignorePlayerTime);
+    Player::writeReference(writer, ignorePlayer.lock());
+    stream::write<bool>(writer, followingPlayer);
+    stream::write<ItemStack>(writer, itemStack);
+}
+
+EntityItem::ItemData EntityItem::ItemData::read(stream::Reader &reader)
+{
+    float angle = stream::read<float32_t>(reader);
+    float bobPhase = stream::read<float32_t>(reader);
+    double timeLeft = stream::read<float64_t>(reader);
+    double ignorePlayerTime = stream::read<float64_t>(reader);
+    std::weak_ptr<Player> ignorePlayer = Player::readReference(reader);
+    bool followingPlayer = stream::read<bool>(reader);
+    ItemStack itemStack = stream::read<ItemStack>(reader);
+    return ItemData(angle, bobPhase, timeLeft, ignorePlayerTime, ignorePlayer, followingPlayer, itemStack);
+}
+
+std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const
+{
+    std::shared_ptr<ItemData> data = getItemData(entity);
+    assert(data);
+    if(data->followingPlayer)
+    {
+        return PhysicsObject::makeEmpty(position, velocity, physicsWorld);
+    }
+    return PhysicsObject::makeCylinder(position, velocity,
+                                       true, false,
+                                       baseSize / 2, baseSize / 2 + extraHeight / 2,
+                                       PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask), physicsWorld);
+}
+
+
 void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
 {
     std::shared_ptr<ItemData> data = getItemData(entity);

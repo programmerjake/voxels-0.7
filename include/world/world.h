@@ -68,8 +68,11 @@ struct WorldConstructionAborted final : public std::runtime_error
     }
 };
 
-class World final
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"
+class World final : public std::enable_shared_from_this<World>
 {
+#pragma GCC diagnostic pop
     friend class ViewPoint;
     World(const World &) = delete;
     const World &operator =(const World &) = delete;
@@ -111,6 +114,44 @@ private:
         explicit InitialChunkGenerateStruct(std::size_t count, std::atomic_bool *abortFlag)
             : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count), abortFlag(abortFlag)
         {
+        }
+    };
+    struct ThreadPauseGuard final
+    {
+        ThreadPauseGuard(const ThreadPauseGuard &) = delete;
+        ThreadPauseGuard &operator =(const ThreadPauseGuard &) = delete;
+    private:
+        World &world;
+    public:
+        explicit ThreadPauseGuard(World &world)
+            : world(world)
+        {
+            std::unique_lock<std::mutex> lockIt(world.pauseLock);
+            while(world.isPaused)
+            {
+                world.pauseCond.wait(lockIt);
+            }
+            world.unpausedThreadCount++;
+        }
+        ~ThreadPauseGuard()
+        {
+            std::unique_lock<std::mutex> lockIt(world.pauseLock);
+            world.unpausedThreadCount--;
+            world.pauseCond.notify_all();
+        }
+        void checkForPause()
+        {
+            std::unique_lock<std::mutex> lockIt(world.pauseLock);
+            if(world.isPaused)
+            {
+                world.unpausedThreadCount--;
+                world.pauseCond.notify_all();
+                while(world.isPaused)
+                {
+                    world.pauseCond.wait(lockIt);
+                }
+                world.unpausedThreadCount++;
+            }
         }
     };
 public:
@@ -180,6 +221,11 @@ public:
         {
             assert(good());
             return *pworld;
+        }
+        std::shared_ptr<World> shared_world() const
+        {
+            assert(good());
+            return pworld->shared_from_this();
         }
         WorldLockManager &lock_manager() const
         {
@@ -753,6 +799,36 @@ public:
     {
         return *playerList;
     }
+    bool paused()
+    {
+        std::unique_lock<std::mutex> lockIt(pauseLock);
+        return isPaused;
+    }
+    void paused(bool newPaused)
+    {
+        std::unique_lock<std::mutex> lockIt(pauseLock);
+        if(newPaused == isPaused)
+        {
+            return;
+        }
+        isPaused = newPaused;
+        pauseCond.notify_all();
+        if(isPaused)
+        {
+            lockIt.unlock();
+            {
+                std::unique_lock<std::mutex> lockIt2(moveEntitiesThreadLock);
+                moveEntitiesThreadCond.notify_all();
+            }
+            lockIt.lock();
+            while(unpausedThreadCount > 0)
+            {
+                pauseCond.wait(lockIt);
+            }
+        }
+    }
+    void write(stream::Writer &writer);
+    static std::shared_ptr<World> read(stream::Reader &reader);
 private:
     // private variables
     std::mt19937 randomGenerator;
@@ -778,6 +854,17 @@ private:
     float timeOfDayInSeconds = 0.0;
     int moonPhase = 0;
     std::shared_ptr<PlayerList> playerList;
+    std::mutex pauseLock;
+    std::condition_variable pauseCond;
+    bool isPaused = false;
+    std::size_t unpausedThreadCount = 0;
+    static constexpr std::size_t lightingThreadCount = 2;
+    static constexpr std::size_t blockUpdateThreadCount = 3;
+    #if 1 || defined(NDEBUG)
+    static constexpr std::size_t generateThreadCount = 5;
+    #else
+    static constexpr std::size_t generateThreadCount = 1;
+    #endif
     // private functions
     void lightingThreadFn();
     void blockUpdateThreadFn();

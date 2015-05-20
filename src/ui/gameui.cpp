@@ -205,6 +205,7 @@ void GameUi::setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> play
     playerW = player;
     player->gameInput->copy(*gameInput);
     gameInput = player->gameInput;
+    player->gameUi = this;
     addWorldUi();
 }
 
@@ -223,7 +224,11 @@ void GameUi::clearWorld()
         worldDependantElements.pop_back();
         remove(e);
     }
+    world->paused(false);
     std::shared_ptr<World> theWorld = world; // to extend life
+    std::shared_ptr<Player> player = playerW.lock();
+    player->gameUi = nullptr;
+    player = nullptr;
     world = nullptr;
     viewPoint = nullptr;
     playerEntity = nullptr;

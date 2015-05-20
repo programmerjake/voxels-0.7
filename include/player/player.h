@@ -70,7 +70,7 @@ private:
     {
         generateMeshes();
     }
-    std::shared_ptr<Player> getPlayer(Entity &entity) const
+    std::shared_ptr<Player> getPlayer(const Entity &entity) const
     {
         return std::static_pointer_cast<std::weak_ptr<Player>>(entity.data)->lock();
     }
@@ -93,16 +93,8 @@ public:
         return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25, 1.8, 0.25)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override;
-    virtual void write(const Entity &entity, stream::Writer &writer) const override
-    {
-        throw std::runtime_error("Player read/write not implemented");
-        #warning implement
-    }
-    virtual Entity *read(stream::Reader &reader) const override
-    {
-        throw std::runtime_error("Player read/write not implemented");
-        #warning implement
-    }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override;
+    virtual Entity *read(stream::Reader &reader) const override;
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity = VectorF(0));
 };
 }
@@ -115,13 +107,10 @@ class Player final : public std::enable_shared_from_this<Player>
 #pragma GCC diagnostic pop
     friend class Entities::builtin::PlayerEntity;
     friend class Players_t;
+    friend class ui::GameUi;
     Player(const Player &) = delete;
     Player &operator =(const Player &) = delete;
 private:
-    void addToPlayersList();
-    void removeFromPlayersList();
-    PositionF lastPosition;
-    Entity *playerEntity;
     struct GameInputMonitoring
     {
         std::atomic_bool gotJump;
@@ -149,31 +138,30 @@ private:
             return dropCount.exchange(0);
         }
     };
+    void addToPlayersList();
+    void removeFromPlayersList();
+    void setBlockDestructProgress(float v);
+    Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
+    PositionF lastPosition;
+    Entity *playerEntity;
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
     ui::GameUi *gameUi;
-    void setBlockDestructProgress(float v);
     float destructingTime = 0, cooldownTimeLeft = 0;
     PositionI destructingPosition;
     World &world;
     std::weak_ptr<World> worldW;
-    Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
 public:
     const std::shared_ptr<GameInput> gameInput;
-    Entity *getPlayerEntity() const
-    {
-        return playerEntity;
-    }
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
     std::recursive_mutex itemsLock;
-    bool setDialog(std::shared_ptr<ui::Ui> ui);
-    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
+    Entity *getPlayerEntity() const
     {
-        auto retval = std::shared_ptr<Player>(new Player(name, gameUi, pworld));
-        retval->addToPlayersList();
-        return retval;
+        return playerEntity;
     }
+    bool setDialog(std::shared_ptr<ui::Ui> ui);
+    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
     ~Player()
     {
         removeFromPlayersList();

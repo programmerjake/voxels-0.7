@@ -325,7 +325,7 @@ public:
         {
             for(std::size_t x = 0; x < W; x++)
             {
-                retval[x][y] = stream::read<ItemStack>(reader);
+                retval.itemStacks[x][y] = stream::read<ItemStack>(reader);
             }
         }
         return retval;

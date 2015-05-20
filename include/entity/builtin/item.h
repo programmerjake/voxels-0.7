@@ -69,17 +69,12 @@ public:
           itemDescriptor(itemDescriptor)
     {
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
-    {
-        return PhysicsObject::makeCylinder(position, velocity,
-                                           true, false,
-                                           baseSize / 2, baseSize / 2 + extraHeight / 2,
-                                           PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask), physicsWorld);
-    }
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override;
 private:
     struct ItemData final
     {
-        ItemData(const ItemData &) = delete;
+        ItemData(const ItemData &) = default;
+        ItemData(ItemData &&) = default;
         ItemData &operator =(const ItemData &) = delete;
         float angle = 0, bobPhase = 0;
         double timeLeft = 5 * 60;
@@ -105,6 +100,20 @@ private:
         {
             init(seed);
         }
+        ItemData(float angle, float bobPhase,
+                 double timeLeft, double ignorePlayerTime,
+                 std::weak_ptr<Player> ignorePlayer, bool followingPlayer, ItemStack itemStack)
+            : angle(angle),
+            bobPhase(bobPhase),
+            timeLeft(timeLeft),
+            ignorePlayerTime(ignorePlayerTime),
+            ignorePlayer(ignorePlayer),
+            followingPlayer(followingPlayer),
+            itemStack(itemStack)
+        {
+        }
+        void write(stream::Writer &writer) const;
+        static ItemData read(stream::Reader &reader);
     };
     static std::shared_ptr<ItemData> getItemData(const Entity &entity)
     {
@@ -154,13 +163,21 @@ public:
     static constexpr float dropSpeed = 3;
     virtual void write(const Entity &entity, stream::Writer &writer) const override
     {
-        throw std::runtime_error("EntityItem read/write not implemented");
-        #warning implement
+        PositionF position = entity.physicsObject->getPosition();
+        VectorF velocity = entity.physicsObject->getVelocity();
+        ItemData data = *getItemData(entity);
+        stream::write<PositionF>(writer, position);
+        stream::write<VectorF>(writer, velocity);
+        stream::write<ItemData>(writer, data);
     }
     virtual Entity *read(stream::Reader &reader) const override
     {
-        throw std::runtime_error("EntityItem read/write not implemented");
-        #warning implement
+        PositionF position = stream::read<PositionF>(reader);
+        VectorF velocity = stream::read<VectorF>(reader);
+        ItemData data = stream::read<ItemData>(reader);
+        World::StreamWorld streamWorld = World::getStreamWorld(reader);
+        assert(streamWorld);
+        return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::shared_ptr<void>(new ItemData(data)));
     }
 };
 }

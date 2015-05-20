@@ -229,29 +229,55 @@ Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, P
 {
     return world.addEntity(descriptor(), position, velocity, lock_manager, std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
 }
+void PlayerEntity::write(const Entity &entity, stream::Writer &writer) const
+{
+    PositionF position = entity.physicsObject->getPosition();
+    VectorF velocity = entity.physicsObject->getVelocity();
+    std::shared_ptr<Player> player = getPlayer(entity);
+    stream::write<PositionF>(writer, position);
+    stream::write<VectorF>(writer, velocity);
+    Player::writeReference(writer, player);
+}
+Entity *PlayerEntity::read(stream::Reader &reader) const
+{
+    PositionF position = stream::read<PositionF>(reader);
+    VectorF velocity = stream::read<VectorF>(reader);
+    std::shared_ptr<Player> player = Player::readReference(reader);
+    World::StreamWorld streamWorld = World::getStreamWorld(reader);
+    assert(streamWorld);
+    return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
+}
 }
 }
 
 void Player::addToPlayersList()
 {
+    world.players().addPlayer(shared_from_this());
+}
+
+std::shared_ptr<Player> Player::make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
+{
+    auto retval = std::shared_ptr<Player>(new Player(name, gameUi, pworld));
 #ifdef DEBUG_VERSION
     for(int i = 0; i < 1; i++)
     {
-        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getAxe()));
-        //addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
-        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getPickaxe()));
-        addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getShovel()));
+        retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getAxe()));
+        //retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
+        retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getPickaxe()));
+        retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getShovel()));
     }
     for(int i = 0; i < 25; i++)
     {
-        addItem(Item(Items::builtin::Coal::descriptor()));
-        addItem(Item(Items::builtin::Sand::descriptor()));
-        addItem(Item(Items::builtin::Gravel::descriptor()));
-        addItem(Item(Items::builtin::RedstoneDust::descriptor()));
+        retval->addItem(Item(Items::builtin::Coal::descriptor()));
+        retval->addItem(Item(Items::builtin::Sand::descriptor()));
+        retval->addItem(Item(Items::builtin::Gravel::descriptor()));
+        retval->addItem(Item(Items::builtin::RedstoneDust::descriptor()));
     }
 #endif // DEBUG_VERSION
-    world.players().addPlayer(shared_from_this());
+    retval->addToPlayersList();
+    return retval;
 }
+
 
 void Player::removeFromPlayersList()
 {
@@ -343,14 +369,38 @@ std::shared_ptr<Player> Player::readReference(stream::Reader &reader)
 
 void Player::write(stream::Writer &writer)
 {
-#warning implement player read/write
-throw std::runtime_error("implement player read/write");
+    stream::write<PositionF>(writer, lastPosition);
+    stream::write<std::wstring>(writer, name);
+    std::unique_lock<std::recursive_mutex> lockIt(itemsLock);
+    ItemStackArray<9, 4> itemsCopy = items;
+    std::size_t currentItemIndexCopy = currentItemIndex;
+    lockIt.unlock();
+    stream::write<std::uint8_t>(writer, static_cast<std::uint8_t>(currentItemIndexCopy));
+    stream::write<ItemStackArray<9, 4>>(writer, itemsCopy);
 }
 
 std::shared_ptr<Player> Player::read(stream::Reader &reader)
 {
-#warning implement player read/write
-throw std::runtime_error("implement player read/write");
+    PositionF lastPosition = stream::read<PositionF>(reader);
+    std::wstring name = stream::read<std::wstring>(reader);
+    if(name.empty())
+        throw stream::InvalidDataValueException("empty player name");
+    ItemStackArray<9, 4> items;
+    std::size_t currentItemIndex = static_cast<std::uint8_t>(stream::read_limited<std::uint8_t>(reader, 0, items.itemStacks.size() - 1));
+    items = stream::read<ItemStackArray<9, 4>>(reader);
+    World::StreamWorld streamWorld = World::getStreamWorld(reader);
+    assert(streamWorld);
+    {
+        LockedPlayers lockedPlayers = streamWorld.world().players().lock();
+        if(streamWorld.world().players().players.count(name) > 0)
+            throw stream::InvalidDataValueException("duplicated player name");
+    }
+    std::shared_ptr<Player> retval = std::shared_ptr<Player>(new Player(name, nullptr, streamWorld.shared_world()));
+    retval->currentItemIndex = currentItemIndex;
+    retval->items = items;
+    retval->lastPosition = lastPosition;
+    retval->addToPlayersList();
+    return retval;
 }
 
 Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)

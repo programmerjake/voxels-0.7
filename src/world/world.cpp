@@ -450,7 +450,9 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
     moveEntitiesThreadCond(),
     moveEntitiesThreadLock(),
     timeOfDayLock(),
-    playerList(std::shared_ptr<PlayerList>(new PlayerList()))
+    playerList(std::shared_ptr<PlayerList>(new PlayerList())),
+    pauseLock(),
+    pauseCond()
 {
 }
 
@@ -592,7 +594,9 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     moveEntitiesThreadCond(),
     moveEntitiesThreadLock(),
     timeOfDayLock(),
-    playerList(std::shared_ptr<PlayerList>(new PlayerList()))
+    playerList(std::shared_ptr<PlayerList>(new PlayerList())),
+    pauseLock(),
+    pauseCond()
 {
     thread([&]()
     {
@@ -619,7 +623,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             destructing = true;
             return;
         }
-        for(int i = 0; i < 2; i++)
+        for(std::size_t i = 0; i < lightingThreadCount; i++)
         {
             lightingThreads.emplace_back([this]()
             {
@@ -636,12 +640,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             }
         }
         std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct = std::make_shared<InitialChunkGenerateStruct>(initialChunkGenerateCount, abortFlag);
-    #if 1 || defined(NDEBUG)
-        const int threadCount = 5;
-    #else
-        const int threadCount = 1;
-    #endif
-        for(int i = 0; i < threadCount; i++)
+        for(std::size_t i = 0; i < generateThreadCount; i++)
         {
             chunkGeneratingThreads.emplace_back([this, initialChunkGenerateStruct]()
             {
@@ -671,7 +670,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
             return;
         }
-        for(int i = 0; i < 3; i++)
+        for(std::size_t i = 0; i < blockUpdateThreadCount; i++)
         {
             blockUpdateThreads.emplace_back([this]()
             {
@@ -745,6 +744,7 @@ World::~World()
 {
     assert(viewPoints.empty());
     destructing = true;
+    paused(false);
     std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
     moveEntitiesThreadCond.notify_all();
     lockMoveEntitiesThread.unlock();
@@ -761,9 +761,12 @@ World::~World()
         particleGeneratingThread.join();
     if(moveEntitiesThread.joinable())
         moveEntitiesThread.join();
-    LockedPlayers lockedPlayers = players().lock();
-    std::vector<std::shared_ptr<Player>> copiedPlayerList(lockedPlayers.begin(), lockedPlayers.end()); // hold another reference to players so we don't try to remove from players list while destructing a list element
-    players().players.clear();
+    std::vector<std::shared_ptr<Player>> copiedPlayerList; // hold another reference to players so we don't try to remove from players list while destructing a list element
+    {
+        LockedPlayers lockedPlayers = players().lock();
+        copiedPlayerList.assign(lockedPlayers.begin(), lockedPlayers.end()); // hold another reference to players so we don't try to remove from players list while destructing a list element
+        players().players.clear();
+    }
 }
 
 Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace)
@@ -787,6 +790,7 @@ Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manage
 void World::lightingThreadFn()
 {
     setThreadPriority(ThreadPriority::Low);
+    ThreadPauseGuard pauseGuard(*this);
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
@@ -799,6 +803,8 @@ void World::lightingThreadFn()
             BlockChunk *chunk = &(*chunkIter);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
+            lock_manager.clear();
+            pauseGuard.checkForPause();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
             for(BlockUpdate *node = removeAllBlockUpdatesInChunk(BlockUpdateKind::Lighting, cbi, lock_manager); node != nullptr; node = removeAllBlockUpdatesInChunk(BlockUpdateKind::Lighting, cbi, lock_manager))
             {
@@ -845,6 +851,8 @@ void World::lightingThreadFn()
                     break;
             }
         }
+        lock_manager.clear();
+        pauseGuard.checkForPause();
         if(!didAnything)
         {
             lightingStable = true;
@@ -856,6 +864,7 @@ void World::lightingThreadFn()
 void World::blockUpdateThreadFn()
 {
     setThreadPriority(ThreadPriority::Low);
+    ThreadPauseGuard pauseGuard(*this);
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
@@ -868,6 +877,8 @@ void World::blockUpdateThreadFn()
             BlockChunk *chunk = &(*chunkIter);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
+            lock_manager.clear();
+            pauseGuard.checkForPause();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
             for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager); node != nullptr; node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager))
             {
@@ -892,6 +903,8 @@ void World::blockUpdateThreadFn()
                     break;
             }
         }
+        lock_manager.clear();
+        pauseGuard.checkForPause();
         if(!didAnything)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -1009,10 +1022,13 @@ bool World::isInitialGenerateChunk(PositionI position)
 
 void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct)
 {
+    ThreadPauseGuard pauseGuard(*this);
     WorldLockManager lock_manager;
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing && (!initialChunkGenerateStruct || !initialChunkGenerateStruct->abortFlag || !*initialChunkGenerateStruct->abortFlag))
     {
+        lock_manager.clear();
+        pauseGuard.checkForPause();
         bool didAnything = false;
         BlockChunk *bestChunk = nullptr;
         bool haveChunk = false;
@@ -1177,6 +1193,7 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
 
 void World::moveEntitiesThreadFn()
 {
+    ThreadPauseGuard pauseGuard(*this);
     while(!destructing)
     {
         std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
@@ -1185,6 +1202,9 @@ void World::moveEntitiesThreadFn()
         while(!destructing && !waitingForMoveEntities)
         {
             moveEntitiesThreadCond.wait(lockMoveEntitiesThread);
+            lockMoveEntitiesThread.unlock();
+            pauseGuard.checkForPause();
+            lockMoveEntitiesThread.lock();
         }
         if(destructing)
             break;
@@ -1355,6 +1375,7 @@ void World::generateParticlesInSubchunk(BlockIterator sbi, WorldLockManager &loc
 void World::particleGeneratingThreadFn()
 {
     double currentTime = 0;
+    ThreadPauseGuard pauseGuard(*this);
     auto lastTimePoint = std::chrono::steady_clock::now();
     std::vector<PositionI> positionsBuffer;
     WorldLockManager lock_manager;
@@ -1362,8 +1383,10 @@ void World::particleGeneratingThreadFn()
     {
         lock_manager.clear();
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        auto beforePauseTimePoint = std::chrono::steady_clock::now();
+        pauseGuard.checkForPause();
         auto currentTimePoint = std::chrono::steady_clock::now();
-        double deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTimePoint - lastTimePoint).count();
+        double deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(beforePauseTimePoint - lastTimePoint).count();
         lastTimePoint = currentTimePoint;
         std::vector<std::pair<PositionF, float>> viewPointsVector;
         {
@@ -1510,6 +1533,17 @@ void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI ma
     }
 }
 
+void World::write(stream::Writer &writer)
+{
+    throw std::runtime_error("world read/write not implemented");
+    #warning world read/write not implemented
+}
+
+std::shared_ptr<World> World::read(stream::Reader &reader)
+{
+    throw std::runtime_error("world read/write not implemented");
+    #warning world read/write not implemented
+}
 
 }
 }

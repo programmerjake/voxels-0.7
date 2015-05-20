@@ -59,6 +59,10 @@ protected:
             : collided(false)
         {
         }
+        FallingBlockData(double timeLeft)
+            : timeLeft(timeLeft), collided(false)
+        {
+        }
     };
     double &getTimeLeft(std::shared_ptr<void> data) const
     {
@@ -154,6 +158,23 @@ public:
         makeData(entity);
         std::shared_ptr<PhysicsCollisionHandler> collisionHandler = std::make_shared<MyCollisionHandler>(std::static_pointer_cast<FallingBlockData>(entity.data));
         return PhysicsObject::makeBox(position, velocity, true, false, VectorF(0.49f), PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1), physicsWorld, collisionHandler);
+    }
+    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    {
+        PositionF position = entity.physicsObject->getPosition();
+        VectorF velocity = entity.physicsObject->getVelocity();
+        stream::write<PositionF>(writer, position);
+        stream::write<VectorF>(writer, velocity);
+        stream::write<float64_t>(writer, getTimeLeft(entity.data));
+    }
+    virtual Entity *read(stream::Reader &reader) const override
+    {
+        PositionF position = stream::read<PositionF>(reader);
+        VectorF velocity = stream::read<VectorF>(reader);
+        double timeLeft = stream::read<float64_t>(reader);
+        World::StreamWorld streamWorld = World::getStreamWorld(reader);
+        assert(streamWorld);
+        return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::shared_ptr<void>(new FallingBlockData(timeLeft)));
     }
 };
 }

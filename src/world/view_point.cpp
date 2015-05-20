@@ -367,6 +367,8 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                     if(shuttingDown)
                         return;
                     lockIt.unlock();
+                    World::ThreadPauseGuard pauseGuard(world);
+                    pauseGuard.checkForPause();
                     WorldLockManager lock_manager;
                     BlockIterator cbi = world.getBlockIterator(chunkPosition);
                     WorldLightingProperties wlp = world.getLighting(chunkPosition.d);
