@@ -90,8 +90,8 @@ private:
     float deltaViewPhi = 0;
     void startInventoryDialog();
     void setDialogWorldAndLockManager();
-    void setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> player, Entity *playerEntity);
-    void clearWorld();
+    void setWorld(std::shared_ptr<World> world);
+    void clearWorld(bool stopSound = true);
     void addWorldUi();
     std::vector<std::shared_ptr<Element>> worldDependantElements;
     std::atomic_bool generatingWorld;
@@ -99,7 +99,6 @@ private:
     std::shared_ptr<World> generatedWorld;
     std::weak_ptr<Element> worldCreationMessage;
     std::atomic_bool abortWorldCreation;
-    bool isGeneratedWorldFromFile = false;
     std::shared_ptr<Ui> mainMenu;
     std::shared_ptr<Audio> mainMenuSong;
     void addUi();
@@ -122,17 +121,7 @@ private:
             startMainMenu();
             return;
         }
-        if(isGeneratedWorldFromFile)
-        {
-            setWorld(newWorld, nullptr, nullptr);
-        }
-        else
-        {
-            PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-            std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", this, newWorld);
-            Entity *newPlayerEntity = Entities::builtin::PlayerEntity::addToWorld(*newWorld, lock_manager, startingPosition, newPlayer);
-            setWorld(newWorld, newPlayer, newPlayerEntity);
-        }
+        setWorld(newWorld);
         generatedWorld = nullptr;
         std::shared_ptr<Element> e = worldCreationMessage.lock();
         if(e)

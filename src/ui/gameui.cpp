@@ -200,20 +200,17 @@ void GameUi::setDialogWorldAndLockManager()
         playerDialog->setWorldAndLockManager(*world, lock_manager);
 }
 
-void GameUi::setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> player, Entity *playerEntity)
+void GameUi::setWorld(std::shared_ptr<World> world)
 {
     this->world = world;
-    if(player == nullptr)
+    std::shared_ptr<Player> player = nullptr;
+    for(std::shared_ptr<Player> p : world->players().lock())
     {
-        for(std::shared_ptr<Player> p : world->players().lock())
-        {
-            player = p;
-            break;
-        }
-        assert(player != nullptr);
-        playerEntity = player->getPlayerEntity();
+        player = p;
+        break;
     }
-    this->playerEntity = playerEntity;
+    assert(player != nullptr);
+    playerEntity = player->getPlayerEntity();
     viewPoint = std::make_shared<ViewPoint>(*world, playerEntity->physicsObject->getPosition(), GameVersion::DEBUG ? 32 : 48);
     playerW = player;
     player->gameInput->copy(*gameInput);
@@ -222,13 +219,16 @@ void GameUi::setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> play
     addWorldUi();
 }
 
-void GameUi::clearWorld()
+void GameUi::clearWorld(bool stopSound)
 {
     if(!world)
         return;
-    if(playingAudio)
-        playingAudio->stop();
-    playingAudio = nullptr;
+    if(stopSound)
+    {
+        if(playingAudio)
+            playingAudio->stop();
+        playingAudio = nullptr;
+    }
     audioScheduler.reset();
     lock_manager.clear();
     while(!worldDependantElements.empty())
@@ -368,7 +368,6 @@ void GameUi::addWorldUi()
 void GameUi::createNewWorld()
 {
     clearWorld();
-    isGeneratedWorldFromFile = false;
     generatingWorld = true;
     generatedWorld = nullptr;
     worldGenerateThread = std::thread([this]()
@@ -377,6 +376,9 @@ void GameUi::createNewWorld()
         try
         {
             generatedWorld = std::make_shared<World>(&abortWorldCreation);
+            PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
+            std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", nullptr, generatedWorld);
+            Entities::builtin::PlayerEntity::addToWorld(*generatedWorld, lock_manager, startingPosition, newPlayer);
         }
         catch(WorldConstructionAborted &)
         {
@@ -394,7 +396,6 @@ void GameUi::createNewWorld()
 void GameUi::loadWorld(std::wstring fileName)
 {
     clearWorld();
-    isGeneratedWorldFromFile = true;
     generatingWorld = true;
     generatedWorld = nullptr;
     worldGenerateThread = std::thread([this, fileName]()

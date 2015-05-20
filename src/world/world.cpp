@@ -86,7 +86,7 @@ private:
     Chunk &getChunk(PositionI pos, RandomSource &randomSource)
     {
         pos.y = 0;
-        if(chunks.size() > 100)
+        if(chunks.size() > 50)
         {
             deleteChunk();
         }
@@ -127,7 +127,7 @@ class GroundChunksCache final
 private:
     struct Chunk final
     {
-        checked_array<checked_array<checked_array<PackedBlock, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> blocks;
+        GenericBlocksGenerateArray<PackedBlock> blocks;
         checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         std::list<PositionI>::iterator chunksListIterator;
         bool empty = true;
@@ -149,7 +149,7 @@ private:
     Chunk &getChunk(PositionI pos, T generateFn)
     {
         pos.y = 0;
-        if(chunks.size() > 10)
+        if(chunks.size() > 20)
         {
             deleteChunk();
         }
@@ -1677,6 +1677,8 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         ignore_unused_variable_warning(player);
     }
     std::uint64_t chunkCount = stream::read<std::uint64_t>(reader);
+    static thread_local BlocksGenerateArray blocks;
+    static thread_local checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
     for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
     {
         PositionI chunkBasePosition = stream::read<PositionI>(reader);
@@ -1696,16 +1698,32 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         {
             for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
-                BlockIterator columnBlockIterator = cbi;
-                columnBlockIterator.moveBy(VectorI(x, 0, z));
-                BiomeProperties biomeProperties = stream::read<BiomeProperties>(reader);
-                world.setBiomeProperties(columnBlockIterator, lock_manager, std::move(biomeProperties));
-                BlockIterator bi = columnBlockIterator;
-                for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                biomes[x][z] = stream::read<BiomeProperties>(reader);
+                for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++)
                 {
-                    Block b = stream::read<Block>(reader);
-                    world.setBlock(bi, lock_manager, std::move(b));
+                    blocks[x][y][z] = stream::read<Block>(reader);
                 }
+            }
+        }
+        for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+        {
+            for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+            {
+                BlockIterator bi = cbi;
+                bi.moveBy(VectorI(dx, 0, dz));
+                bi.updateLock(lock_manager);
+                biomes[dx][dz].swap(bi.getBiome().biomeProperties);
+            }
+        }
+        world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, blocks, VectorI(0));
+    }
+    for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+    {
+        for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+        {
+            for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++)
+            {
+                blocks[x][y][z] = Block();
             }
         }
     }

@@ -347,7 +347,7 @@ struct BlockOptionalDataHashTable final
 public:
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = BlockOptionalData::BlockChunkSubchunkSizeXYZ;
 private:
-    checked_array<BlockOptionalData *, (1 << 7)> table;
+    checked_array<BlockOptionalData *, (1 << 5)> table;
     static std::thread::id getThreadId()
     {
         static thread_local std::thread::id retval = std::this_thread::get_id();

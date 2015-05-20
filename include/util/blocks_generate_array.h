@@ -30,12 +30,13 @@ namespace programmerjake
 {
 namespace voxels
 {
-class BlocksGenerateArray final
+template <typename T>
+class GenericBlocksGenerateArray final
 {
 private:
-    checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> blocks;
+    checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> blocks;
 public:
-    BlocksGenerateArray()
+    GenericBlocksGenerateArray()
         : blocks()
     {
     }
@@ -44,19 +45,19 @@ public:
     {
         friend class IndexHelper1;
     private:
-        checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
         std::size_t indexY;
-        IndexHelper2(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
+        IndexHelper2(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
             : blocks(blocks), indexX(indexX), indexY(indexY)
         {
         }
     public:
-        Block &operator[](std::size_t indexZ)
+        T &operator[](std::size_t indexZ)
         {
             return blocks[indexX][indexZ][indexY];
         }
-        Block &at(std::size_t index)
+        T &at(std::size_t index)
         {
             assert(index < size());
             return operator [](index);
@@ -68,11 +69,11 @@ public:
     };
     class IndexHelper1 final
     {
-        friend class BlocksGenerateArray;
+        friend class GenericBlocksGenerateArray;
     private:
-        checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
-        IndexHelper1(checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
+        IndexHelper1(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
             : blocks(blocks), indexX(indexX)
         {
         }
@@ -96,19 +97,19 @@ public:
     {
         friend class ConstIndexHelper1;
     private:
-        const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
         std::size_t indexY;
-        ConstIndexHelper2(const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
+        ConstIndexHelper2(const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
             : blocks(blocks), indexX(indexX), indexY(indexY)
         {
         }
     public:
-        const Block &operator[](std::size_t indexZ)
+        const T &operator[](std::size_t indexZ)
         {
             return blocks[indexX][indexZ][indexY];
         }
-        const Block &at(std::size_t index)
+        const T &at(std::size_t index)
         {
             assert(index < size());
             return operator [](index);
@@ -120,11 +121,11 @@ public:
     };
     class ConstIndexHelper1 final
     {
-        friend class BlocksGenerateArray;
+        friend class GenericBlocksGenerateArray;
     private:
-        const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
-        ConstIndexHelper1(const checked_array<checked_array<checked_array<Block, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
+        ConstIndexHelper1(const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
             : blocks(blocks), indexX(indexX)
         {
         }
@@ -166,6 +167,8 @@ public:
         return BlockChunk::chunkSizeX;
     }
 };
+
+typedef GenericBlocksGenerateArray<Block> BlocksGenerateArray;
 }
 }
 
