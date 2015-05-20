@@ -22,6 +22,8 @@
 #include "ui/button.h"
 #include "ui/checkbox.h"
 #include "platform/platform.h"
+#include "stream/stream.h"
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -31,6 +33,7 @@ namespace ui
 {
 std::shared_ptr<Element> MainMenu::setupMainMenu()
 {
+    std::wstring fileName = L"VoxelsGame.vw";
     add(std::make_shared<BackgroundElement>());
     std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
     std::shared_ptr<Button> newWorldButton = std::make_shared<Button>(L"New World", -0.8f, 0.8f, 0.7f, 0.95f);
@@ -43,16 +46,42 @@ std::shared_ptr<Element> MainMenu::setupMainMenu()
         gameUi->createNewWorld();
         return Event::ReturnType::Propagate;
     });
+    std::shared_ptr<Button> loadWorldButton = std::make_shared<Button>(L"Load World", -0.8f, 0.8f, 0.4f, 0.65f);
+    add(loadWorldButton);
+    loadWorldButton->click.bind([this, fileName](EventArguments &)->Event::ReturnType
+    {
+        std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
+        quit();
+        gameUi->clearWorld();
+        gameUi->loadWorld(fileName);
+        return Event::ReturnType::Propagate;
+    });
     std::shared_ptr<Element> focusedElement = newWorldButton;
     if(gameUi->world)
     {
-        std::shared_ptr<Button> returnToWorldButton = std::make_shared<Button>(L"Return To World", -0.8f, 0.8f, 0.4f, 0.65f);
+        std::shared_ptr<Button> returnToWorldButton = std::make_shared<Button>(L"Return To World", -0.8f, 0.8f, 0.1f, 0.35f);
         add(returnToWorldButton);
         returnToWorldButton->click.bind([this](EventArguments &)->Event::ReturnType
         {
             std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
             quit();
             gameUi->gameInput->paused.set(false);
+            return Event::ReturnType::Propagate;
+        });
+        std::shared_ptr<Button> saveWorldButton = std::make_shared<Button>(L"Save World", -0.8f, 0.8f, -0.2f, 0.05f);
+        add(saveWorldButton);
+        saveWorldButton->click.bind([this, fileName](EventArguments &)->Event::ReturnType
+        {
+            std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
+            try
+            {
+                stream::FileWriter writer(fileName);
+                gameUi->world->write(writer, gameUi->lock_manager);
+            }
+            catch(stream::IOException &e)
+            {
+                getDebugLog() << L"Save Error : " << e.what() << postnl;
+            }
             return Event::ReturnType::Propagate;
         });
         focusedElement = returnToWorldButton;

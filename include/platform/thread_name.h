@@ -1,4 +1,3 @@
-// Automatically generated : don't modify
 /*
  * Copyright (C) 2012-2015 Jacob R. Lifshay
  * This file is part of Voxels.
@@ -19,29 +18,17 @@
  * MA 02110-1301, USA.
  *
  */
-#include "util/game_version.h"
+#ifndef THREAD_NAME_H_INCLUDED
+#define THREAD_NAME_H_INCLUDED
 
-const std::wstring programmerjake::voxels::GameVersion::VERSION = L"0.7.3.1";
-const std::uint32_t programmerjake::voxels::GameVersion::FILE_VERSION = 5;
+#include <string>
 
-#ifdef COMPILE_DUMP_VERSION
-#include <iostream>
-
-using namespace programmerjake::voxels;
-using namespace std;
-
-int main(int argc, char ** argv)
+namespace programmerjake
 {
-    const int curVersion = 1;
-    if(argc > 1 && string(argv[1]) == "--next-version")
-        cout << (curVersion + 1) << endl;
-    else if(argc > 1 && string(argv[1]) == "--next-version-str")
-        cout << "0.7.3." << (curVersion + 1) << endl;
-    else if(argc > 1)
-        cout << "0.7.3." << curVersion << endl;
-    else
-        cout << GameVersion::FILE_VERSION << endl;
-    return 0;
+namespace voxels
+{
+void setThreadName(std::wstring name);
 }
-#endif // COMPILE_DUMP_VERSION
+}
 
+#endif // THREAD_NAME_H_INCLUDED

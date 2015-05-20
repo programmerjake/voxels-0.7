@@ -32,6 +32,7 @@
 #include "util/lock.h"
 #include "util/iterator.h"
 #include <algorithm>
+#include "platform/thread_name.h"
 
 namespace programmerjake
 {
@@ -445,9 +446,19 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
         myPositionInViewPointsList = world.viewPoints.insert(world.viewPoints.end(), this);
     }
     const int threadCount = 5;
-    generateMeshesThreads.emplace_back([this](){generateMeshesFn(true);});
+    generateMeshesThreads.emplace_back([this]()
+    {
+        setThreadName(L"mesh primary generate");
+        generateMeshesFn(true);
+    });
     for(int i = 1; i < threadCount; i++)
-        generateMeshesThreads.emplace_back([this](){generateMeshesFn(false);});
+    {
+        generateMeshesThreads.emplace_back([this]()
+        {
+            setThreadName(L"mesh secondary generate");
+            generateMeshesFn(false);
+        });
+    }
 }
 ViewPoint::~ViewPoint()
 {

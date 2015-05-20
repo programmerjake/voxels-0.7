@@ -51,6 +51,7 @@
 #include <stdexcept>
 #include "util/math_constants.h"
 #include "stream/stream.h"
+#include "util/rc4_random_engine.h"
 
 namespace programmerjake
 {
@@ -167,14 +168,14 @@ public:
         {
         }
     public:
-        typedef std::mt19937::result_type result_type;
+        typedef rc4_random_engine::result_type result_type;
         static result_type min()
         {
-            return std::mt19937::min();
+            return rc4_random_engine::min();
         }
         static result_type max()
         {
-            return std::mt19937::max();
+            return rc4_random_engine::max();
         }
         result_type operator ()() const
         {
@@ -268,6 +269,7 @@ public:
     {
         return wrng;
     }
+    World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag);
     /** @brief construct a world
      *
      * @param seed the world seed to use
@@ -827,11 +829,12 @@ public:
             }
         }
     }
-    void write(stream::Writer &writer);
+    void write(stream::Writer &writer, WorldLockManager &lock_manager);
     static std::shared_ptr<World> read(stream::Reader &reader);
+    static std::uint32_t getStreamFileVersion(stream::Reader &reader);
 private:
     // private variables
-    std::mt19937 randomGenerator;
+    rc4_random_engine randomGenerator;
     std::mutex randomGeneratorLock;
     WorldRandomNumberGenerator wrng;
     std::uint64_t entityRunCount = 0; // number of times all entities have moved
@@ -895,7 +898,6 @@ private:
             *p = streamWorld;
         }
     }
-    World(SeedType seed, const WorldGenerator *worldGenerator, internal_construct_flag);
     void invalidateBlock(BlockIterator bi, WorldLockManager &lock_manager)
     {
         BlockChunkBlock &b = bi.getBlock(lock_manager);

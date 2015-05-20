@@ -16,3 +16,4 @@ ValgrindOut.xml
 core
 *.log
 massif.out.*
+*.vw

@@ -209,6 +209,7 @@
 		<Unit filename="include/platform/event.h" />
 		<Unit filename="include/platform/platform.h" />
 		<Unit filename="include/platform/platformgl.h" />
+		<Unit filename="include/platform/thread_name.h" />
 		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/player/player.h" />
 		<Unit filename="include/ray_casting/ray_casting.h" />
@@ -279,6 +280,7 @@
 		<Unit filename="include/util/ordered_weak_ptr.h" />
 		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
+		<Unit filename="include/util/rc4_random_engine.h" />
 		<Unit filename="include/util/redstone_signal.h" />
 		<Unit filename="include/util/rw_lock.h" />
 		<Unit filename="include/util/solve.h" />
@@ -330,6 +332,7 @@
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />
 		<Unit filename="src/platform/platform.cpp" />
+		<Unit filename="src/platform/thread_name.cpp" />
 		<Unit filename="src/player/player.cpp" />
 		<Unit filename="src/ray_casting/ray_casting.cpp" />
 		<Unit filename="src/recipe/recipe.cpp" />

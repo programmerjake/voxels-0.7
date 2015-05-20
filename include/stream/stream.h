@@ -631,7 +631,15 @@ struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_trait
 template <typename T>
 struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type>
 {
-    write(Writer &writer, typename rw_class_traits<T>::value_type value)
+    write(Writer &writer, T &value)
+    {
+        value.write(writer);
+    }
+    write(Writer &writer, T &&value)
+    {
+        std::move(value).write(writer);
+    }
+    write(Writer &writer, const T &value)
     {
         value.write(writer);
     }

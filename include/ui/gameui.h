@@ -99,6 +99,7 @@ private:
     std::shared_ptr<World> generatedWorld;
     std::weak_ptr<Element> worldCreationMessage;
     std::atomic_bool abortWorldCreation;
+    bool isGeneratedWorldFromFile = false;
     std::shared_ptr<Ui> mainMenu;
     std::shared_ptr<Audio> mainMenuSong;
     void addUi();
@@ -112,10 +113,26 @@ private:
             return;
         }
         std::shared_ptr<World> newWorld = generatedWorld;
-        PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-        std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", this, newWorld);
-        Entity *newPlayerEntity = Entities::builtin::PlayerEntity::addToWorld(*newWorld, lock_manager, startingPosition, newPlayer);
-        setWorld(newWorld, newPlayer, newPlayerEntity);
+        if(newWorld == nullptr)
+        {
+            std::shared_ptr<Element> e = worldCreationMessage.lock();
+            if(e)
+                remove(e);
+            worldCreationMessage = std::weak_ptr<Element>();
+            startMainMenu();
+            return;
+        }
+        if(isGeneratedWorldFromFile)
+        {
+            setWorld(newWorld, nullptr, nullptr);
+        }
+        else
+        {
+            PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
+            std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", this, newWorld);
+            Entity *newPlayerEntity = Entities::builtin::PlayerEntity::addToWorld(*newWorld, lock_manager, startingPosition, newPlayer);
+            setWorld(newWorld, newPlayer, newPlayerEntity);
+        }
         generatedWorld = nullptr;
         std::shared_ptr<Element> e = worldCreationMessage.lock();
         if(e)
@@ -131,6 +148,7 @@ public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer);
     void createNewWorld();
+    void loadWorld(std::wstring fileName);
     ~GameUi()
     {
         abortWorldCreation = true;
@@ -214,7 +232,7 @@ public:
                 playingAudio = mainMenuSong->play(volume);
             }
         }
-        if(!world && !generatingWorld && generatedWorld)
+        if(!world && !generatingWorld && worldGenerateThread.joinable())
         {
             finalizeCreateWorld();
         }

@@ -26,6 +26,9 @@
 #include "ui/player_dialog.h"
 #include "ui/main_menu.h"
 #include <vector>
+#include "stream/stream.h"
+#include "util/logging.h"
+#include "platform/thread_name.h"
 
 namespace programmerjake
 {
@@ -200,6 +203,16 @@ void GameUi::setDialogWorldAndLockManager()
 void GameUi::setWorld(std::shared_ptr<World> world, std::shared_ptr<Player> player, Entity *playerEntity)
 {
     this->world = world;
+    if(player == nullptr)
+    {
+        for(std::shared_ptr<Player> p : world->players().lock())
+        {
+            player = p;
+            break;
+        }
+        assert(player != nullptr);
+        playerEntity = player->getPlayerEntity();
+    }
     this->playerEntity = playerEntity;
     viewPoint = std::make_shared<ViewPoint>(*world, playerEntity->physicsObject->getPosition(), GameVersion::DEBUG ? 32 : 48);
     playerW = player;
@@ -355,10 +368,12 @@ void GameUi::addWorldUi()
 void GameUi::createNewWorld()
 {
     clearWorld();
+    isGeneratedWorldFromFile = false;
     generatingWorld = true;
     generatedWorld = nullptr;
     worldGenerateThread = std::thread([this]()
     {
+        setThreadName(L"world generate");
         try
         {
             generatedWorld = std::make_shared<World>(&abortWorldCreation);
@@ -371,6 +386,34 @@ void GameUi::createNewWorld()
     if(addedUi)
     {
         std::shared_ptr<Element> e = std::make_shared<Label>(L"Creating World...", -0.7f, 0.7f, -0.3f, 0.3f);
+        worldCreationMessage = e;
+        add(e);
+    }
+}
+
+void GameUi::loadWorld(std::wstring fileName)
+{
+    clearWorld();
+    isGeneratedWorldFromFile = true;
+    generatingWorld = true;
+    generatedWorld = nullptr;
+    worldGenerateThread = std::thread([this, fileName]()
+    {
+        setThreadName(L"load world");
+        try
+        {
+            stream::FileReader reader(fileName);
+            generatedWorld = World::read(reader);
+        }
+        catch(stream::IOException &e)
+        {
+            getDebugLog() << L"World Load Error : " << e.what() << postnl;
+        }
+        generatingWorld = false;
+    });
+    if(addedUi)
+    {
+        std::shared_ptr<Element> e = std::make_shared<Label>(L"Loading World...", -0.7f, 0.7f, -0.3f, 0.3f);
         worldCreationMessage = e;
         add(e);
     }

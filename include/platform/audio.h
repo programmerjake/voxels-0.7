@@ -34,6 +34,7 @@
 #include <condition_variable>
 #include <thread>
 #include <functional>
+#include "platform/thread_name.h"
 
 namespace programmerjake
 {
@@ -742,6 +743,7 @@ public:
         done = false;
         decoderThread = std::thread([this]()
         {
+            setThreadName(L"audio buffer");
             decoderThreadFn();
         });
     }

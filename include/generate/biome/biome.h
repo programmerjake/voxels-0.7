@@ -32,6 +32,7 @@
 #include "util/util.h"
 #include "util/position.h"
 #include "block/block_struct.h"
+#include "stream/stream.h"
 
 namespace programmerjake
 {
@@ -95,7 +96,16 @@ public:
     {
         return *find(bi);
     }
+    BiomeDescriptorPointer operator [](std::wstring name) const
+    {
+        iterator iter = find(name);
+        if(iter == end())
+            return nullptr;
+        return *iter;
+    }
     BiomeWeights getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const;
+    void writeDescriptor(stream::Writer &writer, BiomeDescriptorPointer descriptor) const;
+    BiomeDescriptorPointer readDescriptor(stream::Reader &reader) const;
 };
 
 static constexpr BiomeDescriptors_t BiomeDescriptors;
@@ -356,6 +366,35 @@ public:
     BiomeProperties(BiomeProperties &&) = default;
     BiomeProperties &operator =(const BiomeProperties &) = default;
     BiomeProperties &operator =(BiomeProperties &&) = default;
+    void write(stream::Writer &writer) const
+    {
+        assert(good);
+        assert(static_cast<std::uint16_t>(weights.size()) == weights.size());
+        stream::write<std::uint16_t>(writer, weights.size());
+        for(BiomeWeights::value_type v : weights)
+        {
+            BiomeDescriptors.writeDescriptor(writer, std::get<0>(v));
+            stream::write<float32_t>(writer, std::get<1>(v));
+        }
+    }
+    static BiomeProperties read(stream::Reader &reader)
+    {
+        BiomeWeights weights;
+        for(auto &v : weights)
+        {
+            std::get<1>(v) = 0;
+        }
+        std::size_t count = static_cast<std::uint16_t>(stream::read<std::uint16_t>(reader));
+        for(std::size_t i = 0; i < count; i++)
+        {
+            BiomeDescriptorPointer bd = BiomeDescriptors.readDescriptor(reader);
+            if(bd == nullptr)
+                throw stream::InvalidDataValueException("read null biome descriptor");
+            float value = stream::read_limited<float32_t>(reader, 0, 1);
+            weights[bd] = value;
+        }
+        return BiomeProperties(std::move(weights));
+    }
 };
 }
 }

@@ -152,6 +152,8 @@ public:
 }
 
 static void startSDL();
+}
+}
 
 #ifdef _WIN64
 #error implement getResourceReader for Win64
@@ -159,6 +161,10 @@ static void startSDL();
 #include <cstring>
 #include <cwchar>
 #include <windows.h>
+namespace programmerjake
+{
+namespace voxels
+{
 static wchar_t * ResourcePrefix = nullptr;
 static wstring getExecutablePath();
 
@@ -212,6 +218,8 @@ shared_ptr<Reader> getResourceReader(wstring resource)
     string fname = wstringToString(getResourceFileName(resource));
     return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
 }
+}
+}
 #elif __ANDROID
 #error implement getResourceReader for Android
 #elif __APPLE__
@@ -229,6 +237,10 @@ shared_ptr<Reader> getResourceReader(wstring resource)
 #include <cerrno>
 #include <cstring>
 #include <cwchar>
+namespace programmerjake
+{
+namespace voxels
+{
 static atomic_bool setResourcePrefix(false);
 static wstring * pResourcePrefix = nullptr;
 static wstring getExecutablePath();
@@ -278,6 +290,8 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
         throw RWOpsException("can't open resource : " + string_cast<string>(resource));
     }
 }
+}
+}
 #elif __unix
 #error implement getResourceReader for other unix
 #elif __posix
@@ -286,6 +300,10 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
 #error unknown platform in getResourceReader
 #endif
 
+namespace programmerjake
+{
+namespace voxels
+{
 static int xResInternal, yResInternal;
 
 static SDL_Window *window = nullptr;

@@ -88,6 +88,89 @@ BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidi
     return std::move(retval);
 }
 
+namespace
+{
+struct StreamBiomeDescriptors final
+{
+    typedef std::uint16_t Descriptor;
+    static constexpr Descriptor NullDescriptor = 0;
+    std::unordered_map<Descriptor, BiomeDescriptorPointer> descriptorToBiomeDescriptorPointerMap;
+    std::unordered_map<BiomeDescriptorPointer, Descriptor> biomeDescriptorPointerToDescriptorMap;
+    std::size_t descriptorCount = 0;
+    StreamBiomeDescriptors()
+        : descriptorToBiomeDescriptorPointerMap(),
+        biomeDescriptorPointerToDescriptorMap()
+    {
+    }
+    static StreamBiomeDescriptors &get(stream::Stream &stream)
+    {
+        struct tag_t
+        {
+        };
+        std::shared_ptr<StreamBiomeDescriptors> retval = stream.getAssociatedValue<StreamBiomeDescriptors, tag_t>();
+        if(retval)
+            return *retval;
+        retval = std::make_shared<StreamBiomeDescriptors>();
+        stream.setAssociatedValue<StreamBiomeDescriptors, tag_t>(retval);
+        return *retval;
+    }
+    static BiomeDescriptorPointer read(stream::Reader &reader)
+    {
+        StreamBiomeDescriptors &me = get(reader);
+        Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
+        if(upperLimit != me.descriptorCount + 1)
+            upperLimit = static_cast<Descriptor>(me.descriptorCount);
+        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        if(descriptor == NullDescriptor)
+            return nullptr;
+        if(descriptor <= me.descriptorCount)
+            return me.descriptorToBiomeDescriptorPointerMap[descriptor];
+        assert(descriptor == me.descriptorCount + 1); // check for overflow
+        me.descriptorCount++;
+        std::wstring name = stream::read<std::wstring>(reader);
+        BiomeDescriptorPointer retval = BiomeDescriptors[name];
+        if(retval == nullptr)
+            throw stream::InvalidDataValueException("biome name not found");
+        me.descriptorToBiomeDescriptorPointerMap[descriptor] = retval;
+        me.biomeDescriptorPointerToDescriptorMap[retval] = descriptor;
+        return retval;
+    }
+    static void write(stream::Writer &writer, BiomeDescriptorPointer bd)
+    {
+        if(bd == nullptr)
+        {
+            stream::write<Descriptor>(writer, NullDescriptor);
+            return;
+        }
+        StreamBiomeDescriptors &me = get(writer);
+        auto iter = me.biomeDescriptorPointerToDescriptorMap.find(bd);
+        if(iter == me.biomeDescriptorPointerToDescriptorMap.end())
+        {
+            Descriptor descriptor = ++me.descriptorCount;
+            assert(descriptor == me.descriptorCount); // check for overflow
+            me.biomeDescriptorPointerToDescriptorMap[bd] = descriptor;
+            me.descriptorToBiomeDescriptorPointerMap[descriptor] = bd;
+            stream::write<Descriptor>(writer, descriptor);
+            stream::write<std::wstring>(writer, bd->name);
+        }
+        else
+        {
+            stream::write<Descriptor>(writer, std::get<1>(*iter));
+        }
+    }
+};
+}
+
+void BiomeDescriptors_t::writeDescriptor(stream::Writer &writer, BiomeDescriptorPointer descriptor) const
+{
+    StreamBiomeDescriptors::write(writer, descriptor);
+}
+
+BiomeDescriptorPointer BiomeDescriptors_t::readDescriptor(stream::Reader &reader) const
+{
+    return StreamBiomeDescriptors::read(reader);
+}
+
 float BiomeDescriptor::getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const
 {
     const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(descriptor);

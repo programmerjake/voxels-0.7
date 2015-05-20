@@ -37,6 +37,7 @@
 #include <list>
 #include "util/logging.h"
 #include "util/global_instance_maker.h"
+#include "platform/thread_name.h"
 #include "platform/thread_priority.h"
 #include "util/wrapped_entity.h"
 #include "generate/decorator.h"
@@ -49,6 +50,9 @@
 #include "item/builtin/furnace.h"
 #include "item/builtin/bucket.h"
 #include "util/util.h"
+#include "stream/compressed_stream.h"
+#include "util/game_version.h"
+#include "player/player.h"
 
 using namespace std;
 
@@ -600,6 +604,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
 {
     thread([&]()
     {
+        setThreadName(L"World()");
         getDebugLog() << L"generating initial world..." << postnl;
         for(;;)
         {
@@ -627,6 +632,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         {
             lightingThreads.emplace_back([this]()
             {
+                setThreadName(L"lighting");
                 lightingThreadFn();
             });
         }
@@ -644,6 +650,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         {
             chunkGeneratingThreads.emplace_back([this, initialChunkGenerateStruct]()
             {
+                setThreadName(L"chunk generate");
                 setThreadPriority(ThreadPriority::Low);
                 chunkGeneratingThreadFn(std::move(initialChunkGenerateStruct));
             });
@@ -674,6 +681,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         {
             blockUpdateThreads.emplace_back([this]()
             {
+                setThreadName(L"block update");
                 blockUpdateThreadFn();
             });
         }
@@ -707,10 +715,12 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         initialChunkGenerateStruct = nullptr;
         particleGeneratingThread = thread([this]()
         {
+            setThreadName(L"particle generate");
             particleGeneratingThreadFn();
         });
         moveEntitiesThread = thread([this]()
         {
+            setThreadName(L"move entities");
             moveEntitiesThreadFn();
         });
     }).join();
@@ -1533,16 +1543,220 @@ void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI ma
     }
 }
 
-void World::write(stream::Writer &writer)
+void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
 {
-    throw std::runtime_error("world read/write not implemented");
-    #warning world read/write not implemented
+    lock_manager.clear();
+    bool wasPaused = paused();
+    paused(true);
+    try
+    {
+        stream::write<std::uint32_t>(writerIn, GameVersion::FILE_VERSION);
+        stream::MemoryWriter memWriter;
+        {
+            stream::CompressWriter writer(memWriter);
+            StreamWorldGuard streamWorldGuard(writer, *this, lock_manager);
+            stream::write<SeedType>(writer, worldGeneratorSeed);
+            {
+                std::unique_lock<std::mutex> lockIt(randomGeneratorLock);
+                stream::write<rc4_random_engine>(writer, randomGenerator);
+            }
+            LockedPlayers lockedPlayers = players().lock();
+            stream::write<std::uint64_t>(writer, players().players.size());
+            for(std::shared_ptr<Player> player : lockedPlayers)
+            {
+                player->write(writer);
+            }
+            std::vector<BlockChunk *> chunks;
+            BlockChunkMap *chunksMap = &physicsWorld->chunks;
+            {
+                for(auto chunkIter = chunksMap->begin(); chunkIter != chunksMap->end(); chunkIter++)
+                {
+                    BlockChunk *chunk = &(*chunkIter);
+                    if(chunkIter.is_locked())
+                        chunkIter.unlock();
+                    if(!chunk->chunkVariables.generated)
+                        continue;
+                    chunks.push_back(chunk);
+                }
+            }
+            std::uint64_t chunkCount = chunks.size();
+            stream::write<std::uint64_t>(writer, chunkCount);
+            for(BlockChunk *chunk : chunks)
+            {
+                stream::write<PositionI>(writer, chunk->basePosition);
+                std::vector<WrappedEntity *> entities;
+                {
+                    std::unique_lock<std::recursive_mutex> lockChunk(chunk->chunkVariables.entityListLock);
+                    WrappedEntity::ChunkListType &chunkEntityList = chunk->chunkVariables.entityList;
+                    for(auto i = chunkEntityList.begin(); i != chunkEntityList.end(); ++i)
+                    {
+                        WrappedEntity &entity = *i;
+                        if(!entity.entity.good())
+                        {
+                            continue;
+                        }
+                        entities.push_back(&entity);
+                    }
+                }
+                stream::write<std::uint64_t>(writer, entities.size());
+                for(WrappedEntity *entity : entities)
+                {
+                    stream::write<Entity>(writer, entity->entity);
+                }
+                entities.clear();
+                BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));
+                for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+                {
+                    for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+                    {
+                        BlockIterator columnBlockIterator = cbi;
+                        columnBlockIterator.moveBy(VectorI(x, 0, z));
+                        stream::write<BiomeProperties>(writer, columnBlockIterator.getBiomeProperties(lock_manager));
+                        BlockIterator bi = columnBlockIterator;
+                        for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                        {
+                            stream::write<Block>(writer, bi.get(lock_manager));
+                        }
+                    }
+                }
+            }
+            std::unique_lock<std::recursive_mutex> lockTimeOfDay(timeOfDayLock);
+            stream::write<float32_t>(writer, timeOfDayInSeconds);
+            stream::write<std::uint8_t>(writer, moonPhase);
+            writer.flush();
+        }
+        lock_manager.clear();
+        writerIn.writeBytes(memWriter.getBuffer().data(), memWriter.getBuffer().size());
+    }
+    catch(stream::IOException &)
+    {
+        paused(wasPaused);
+        throw;
+    }
+    paused(wasPaused);
 }
 
-std::shared_ptr<World> World::read(stream::Reader &reader)
+namespace
 {
-    throw std::runtime_error("world read/write not implemented");
-    #warning world read/write not implemented
+struct file_version_tag_t
+{
+};
+}
+
+std::uint32_t World::getStreamFileVersion(stream::Reader &reader)
+{
+    std::shared_ptr<std::uint32_t> version = reader.getAssociatedValue<std::uint32_t, file_version_tag_t>();
+    assert(version);
+    return *version;
+}
+
+std::shared_ptr<World> World::read(stream::Reader &readerIn)
+{
+    std::uint32_t fileVersion = stream::read<std::uint32_t>(readerIn);
+    if(fileVersion < 5)
+    {
+        throw stream::InvalidDataValueException("old file version not supported");
+    }
+    if(fileVersion > GameVersion::FILE_VERSION)
+    {
+        throw stream::InvalidDataValueException("newer file version not supported");
+    }
+    stream::ExpandReader reader(readerIn);
+    reader.setAssociatedValue<std::uint32_t, file_version_tag_t>(std::make_shared<std::uint32_t>(fileVersion));
+    SeedType worldGeneratorSeed = stream::read<SeedType>(reader);
+    std::shared_ptr<World> retval = std::make_shared<World>(worldGeneratorSeed, MyWorldGenerator::getInstance(), internal_construct_flag());
+    World &world = *retval;
+    WorldLockManager lock_manager;
+    StreamWorldGuard streamWorldGuard(reader, world, lock_manager);
+    world.randomGenerator = stream::read<rc4_random_engine>(reader);
+    std::uint64_t playerCount = stream::read<std::uint64_t>(reader);
+    for(std::uint64_t i = 0; i < playerCount; i++)
+    {
+        std::shared_ptr<Player> player = Player::read(reader);
+        // read function already adds to world
+        ignore_unused_variable_warning(player);
+    }
+    std::uint64_t chunkCount = stream::read<std::uint64_t>(reader);
+    for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+    {
+        PositionI chunkBasePosition = stream::read<PositionI>(reader);
+        if(chunkBasePosition != BlockChunk::getChunkBasePosition(chunkBasePosition))
+            throw stream::InvalidDataValueException("block chunk base is not a valid position");
+        BlockIterator cbi = world.getBlockIterator(chunkBasePosition);
+        cbi.chunk->chunkVariables.generated = true;
+        cbi.chunk->chunkVariables.generateStarted = true;
+        std::uint64_t entityCount = stream::read<std::uint64_t>(reader);
+        for(std::uint64_t entityIndex = 0; entityIndex < entityCount; entityIndex++)
+        {
+            Entity *entity = stream::read<Entity>(reader);
+            // read function already adds to world
+            ignore_unused_variable_warning(entity);
+        }
+        for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+        {
+            for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+            {
+                BlockIterator columnBlockIterator = cbi;
+                columnBlockIterator.moveBy(VectorI(x, 0, z));
+                BiomeProperties biomeProperties = stream::read<BiomeProperties>(reader);
+                world.setBiomeProperties(columnBlockIterator, lock_manager, std::move(biomeProperties));
+                BlockIterator bi = columnBlockIterator;
+                for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                {
+                    Block b = stream::read<Block>(reader);
+                    world.setBlock(bi, lock_manager, std::move(b));
+                }
+            }
+        }
+    }
+    float timeOfDayInSeconds = stream::read_limited<float32_t>(reader, 0, dayDurationInSeconds);
+    std::uint8_t moonPhase = stream::read_limited<std::uint8_t>(reader, 0, moonPhaseCount);
+    world.setTimeOfDayInSeconds(timeOfDayInSeconds, moonPhase);
+    bool hasAnyPlayers = false;
+    for(std::shared_ptr<Player> p : world.players().lock())
+    {
+        p->checkAfterRead();
+        hasAnyPlayers = true;
+    }
+    if(!hasAnyPlayers)
+        throw stream::InvalidDataValueException("world has no players");
+
+    for(std::size_t i = 0; i < lightingThreadCount; i++)
+    {
+        world.lightingThreads.emplace_back([&world]()
+        {
+            setThreadName(L"lighting");
+            world.lightingThreadFn();
+        });
+    }
+    for(std::size_t i = 0; i < generateThreadCount; i++)
+    {
+        world.chunkGeneratingThreads.emplace_back([&world]()
+        {
+            setThreadName(L"chunk generate");
+            setThreadPriority(ThreadPriority::Low);
+            world.chunkGeneratingThreadFn(nullptr);
+        });
+    }
+    for(std::size_t i = 0; i < blockUpdateThreadCount; i++)
+    {
+        world.blockUpdateThreads.emplace_back([&world]()
+        {
+            setThreadName(L"block update");
+            world.blockUpdateThreadFn();
+        });
+    }
+    world.particleGeneratingThread = thread([&world]()
+    {
+        setThreadName(L"particle generate");
+        world.particleGeneratingThreadFn();
+    });
+    world.moveEntitiesThread = thread([&world]()
+    {
+        setThreadName(L"move entities");
+        world.moveEntitiesThreadFn();
+    });
+    return retval;
 }
 
 }

@@ -243,8 +243,12 @@ Entity *PlayerEntity::read(stream::Reader &reader) const
     PositionF position = stream::read<PositionF>(reader);
     VectorF velocity = stream::read<VectorF>(reader);
     std::shared_ptr<Player> player = Player::readReference(reader);
+    if(player == nullptr)
+        throw stream::InvalidDataValueException("read empty player");
     World::StreamWorld streamWorld = World::getStreamWorld(reader);
     assert(streamWorld);
+    if(player->playerEntity)
+        throw stream::InvalidDataValueException("player already has entity");
     return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
 }
 }
@@ -405,7 +409,7 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
 
 Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     : lastPosition(),
-    playerEntity(),
+    playerEntity(nullptr),
     gameInputMonitoring(),
     gameUi(gameUi),
     destructingPosition(),

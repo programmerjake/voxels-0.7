@@ -302,6 +302,13 @@ public:
     static std::shared_ptr<Player> readReference(stream::Reader &reader);
     void write(stream::Writer &writer);
     static std::shared_ptr<Player> read(stream::Reader &reader);
+    void checkAfterRead()
+    {
+        if(playerEntity == nullptr)
+        {
+            throw stream::InvalidDataValueException("player doesn't have a player entity");
+        }
+    }
 };
 
 class LockedPlayers;
