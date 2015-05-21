@@ -196,7 +196,7 @@ void ExpandReader::readCompressedBuffer()
             size = 0x10000;
         if(size <= 0 || size > bufferSize)
             throw ZLibFormatException("size out of range in ExpandReader::readCompressedBuffer");
-        reader.readBytes(&compressedBuffer[0], size);
+        reader.readAllBytes(&compressedBuffer[0], size);
         z_streamp s = getStream(state);
         s->next_in = &compressedBuffer[0];
         s->avail_in = size;

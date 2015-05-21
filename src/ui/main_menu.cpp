@@ -75,8 +75,10 @@ std::shared_ptr<Element> MainMenu::setupMainMenu()
             std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
             try
             {
-                stream::FileWriter writer(fileName);
+                stream::MemoryWriter writer;
                 gameUi->world->write(writer, gameUi->lock_manager);
+                stream::FileWriter fwriter(fileName);
+                fwriter.writeBytes(writer.getBuffer().data(), writer.getBuffer().size());
             }
             catch(stream::IOException &e)
             {

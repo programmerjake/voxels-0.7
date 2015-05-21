@@ -373,6 +373,7 @@ void GameUi::createNewWorld()
     worldGenerateThread = std::thread([this]()
     {
         setThreadName(L"world generate");
+        WorldLockManager lock_manager;
         try
         {
             generatedWorld = std::make_shared<World>(&abortWorldCreation);

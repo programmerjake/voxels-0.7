@@ -34,6 +34,22 @@ struct WorldLockManager final
     class LockManager final
     {
         T *the_lock;
+#ifndef NDEBUG
+        static const char *fast_tid()
+        {
+            static thread_local const char v = 0;
+            return &v;
+        }
+        const char *my_tid = fast_tid();
+        void verify_tid() const
+        {
+            assert(my_tid == fast_tid());
+        }
+#else
+        void verify_tid() const
+        {
+        }
+#endif
     public:
         LockManager()
             : the_lock(nullptr)
@@ -47,12 +63,14 @@ struct WorldLockManager final
         }
         void clear()
         {
+            verify_tid();
             if(the_lock != nullptr)
                 the_lock->unlock();
             the_lock = nullptr;
         }
         void set(T &new_lock)
         {
+            verify_tid();
             if(the_lock != &new_lock)
             {
                 clear();
@@ -62,11 +80,13 @@ struct WorldLockManager final
         }
         void adopt(T &new_lock)
         {
+            verify_tid();
             assert(the_lock == nullptr);
             the_lock = &new_lock;
         }
         bool try_set(T &new_lock)
         {
+            verify_tid();
             if(the_lock != &new_lock)
             {
                 clear();
@@ -79,6 +99,7 @@ struct WorldLockManager final
         template <typename U>
         void set(T &new_lock, U restBegin, U restEnd)
         {
+            verify_tid();
             if(the_lock != &new_lock)
             {
                 clear();

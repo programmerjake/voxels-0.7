@@ -602,9 +602,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     pauseLock(),
     pauseCond()
 {
-    thread([&]()
+    ([this, abortFlag]()
     {
-        setThreadName(L"World()");
         getDebugLog() << L"generating initial world..." << postnl;
         for(;;)
         {
@@ -723,7 +722,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             setThreadName(L"move entities");
             moveEntitiesThreadFn();
         });
-    }).join();
+    })();
     if(abortFlag && *abortFlag)
     {
         destructing = true;
