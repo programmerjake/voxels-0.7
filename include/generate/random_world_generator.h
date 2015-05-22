@@ -137,10 +137,12 @@ private:
     };
     const World::SeedType seed;
     std::unordered_map<RandomChunkKey, RandomCacheChunk, RandomChunkKeyHasher> randomCache;
+    std::minstd_rand deleteChunkRandomEngine;
 public:
     RandomSource(World::SeedType seed)
         : seed(seed),
-        randomCache()
+        randomCache(),
+        deleteChunkRandomEngine(seed)
     {
     }
     const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)
@@ -149,6 +151,19 @@ public:
         auto iter = randomCache.find(key);
         if(iter == randomCache.end())
         {
+            if(randomCache.size() > 100)
+            {
+                std::size_t deleteIndex = std::uniform_int_distribution<std::size_t>(0, randomCache.size() - 1)(deleteChunkRandomEngine);
+                for(auto i = randomCache.begin(); i != randomCache.end(); ++i)
+                {
+                    if(deleteIndex == 0)
+                    {
+                        randomCache.erase(i);
+                        break;
+                    }
+                    deleteIndex--;
+                }
+            }
             iter = std::get<0>(randomCache.insert(std::make_pair(key, RandomCacheChunk(seed, key))));
         }
         return std::get<1>(*iter);
