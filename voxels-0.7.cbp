@@ -209,6 +209,7 @@
 		<Unit filename="include/platform/event.h" />
 		<Unit filename="include/platform/platform.h" />
 		<Unit filename="include/platform/platformgl.h" />
+		<Unit filename="include/platform/stack_trace.h" />
 		<Unit filename="include/platform/thread_name.h" />
 		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/player/player.h" />
@@ -331,7 +332,9 @@
 		<Unit filename="src/physics/physics.cpp" />
 		<Unit filename="src/platform/audio.cpp" />
 		<Unit filename="src/platform/main.cpp" />
+		<Unit filename="src/platform/memory_profile.cpp" />
 		<Unit filename="src/platform/platform.cpp" />
+		<Unit filename="src/platform/stack_trace.cpp" />
 		<Unit filename="src/platform/thread_name.cpp" />
 		<Unit filename="src/player/player.cpp" />
 		<Unit filename="src/ray_casting/ray_casting.cpp" />

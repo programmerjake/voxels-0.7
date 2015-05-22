@@ -88,7 +88,7 @@ private:
         return retval;
     }
 public:
-    BlockLightingCache(std::size_t maxChunkCount = 1 << 14)
+    BlockLightingCache(std::size_t maxChunkCount = 1 << 10)
         : chunks(),
         lruList(),
         maxChunkCount(maxChunkCount)
@@ -146,10 +146,10 @@ void dumpMeshStats()
 {
 #if 0
     getDebugLog() << L"Chunk Mesh Count:" << cachedChunkMeshCount.load() << L"  Subchunk Mesh Count:" << cachedSubchunkMeshCount.load() << L"  ViewPoint Mesh Count:" << cachedViewPointMeshCount.load() << postnl;
-    ObjectCounter<WrappedEntity, 0>::dumpCount();
-    ObjectCounter<PhysicsObject, 0>::dumpCount();
-    ObjectCounter<PhysicsWorld, 0>::dumpCount();
-    ObjectCounter<PhysicsWorld, 1>::dumpCount();
+    //ObjectCounter<WrappedEntity, 0>::dumpCount();
+    //ObjectCounter<PhysicsObject, 0>::dumpCount();
+    //ObjectCounter<PhysicsWorld, 0>::dumpCount();
+    //ObjectCounter<PhysicsWorld, 1>::dumpCount();
     ObjectCounter<BlockChunk, 0>::dumpCount();
 #endif
 }

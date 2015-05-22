@@ -45,6 +45,7 @@ class LogStream : public std::wostringstream
     LogStream &operator =(const LogStream &) = delete;
 private:
     std::function<void(std::wstring)> *const postFunction;
+    bool inPostFunction = false;
 public:
     std::recursive_mutex *const theLock;
     LogStream(std::recursive_mutex *theLock, std::function<void(std::wstring)> *postFunction)
@@ -57,6 +58,16 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(*theLock);
         *postFunction = newPostFunction;
     }
+    std::function<void(std::wstring)> getPostFunction()
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
+        return *postFunction;
+    }
+    bool isInPostFunction() const
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
+        return inPostFunction;
+    }
     friend void operator <<(std::wostream &os, post_t);
 };
 
@@ -65,8 +76,18 @@ inline void operator <<(std::wostream &os, post_t)
     LogStream *logStream = dynamic_cast<LogStream *>(&os);
     assert(logStream != nullptr);
     std::unique_lock<std::recursive_mutex> lockIt(*logStream->theLock);
-    (*logStream->postFunction)(logStream->str());
-    logStream->str(L"");
+    try
+    {
+        logStream->inPostFunction = true;
+        (*logStream->postFunction)(logStream->str());
+        logStream->str(L"");
+    }
+    catch(...)
+    {
+        logStream->inPostFunction = false;
+        throw;
+    }
+    logStream->inPostFunction = false;
 }
 
 inline LogStream &getDebugLog()
