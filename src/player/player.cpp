@@ -56,7 +56,11 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         entity.destroy();
         return;
     }
-    player->lastPosition = entity.physicsObject->getPosition();
+    PositionF lastPosition = entity.physicsObject->getPosition();
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(player->lastPositionLock);
+        player->lastPosition = lastPosition;
+    }
     VectorF moveDirection = transform(player->getWorldOrientationXZTransform(), player->gameInput->moveDirectionPlayerRelative.get());
     VectorF newVelocity = entity.physicsObject->getVelocity();
     newVelocity.x = moveDirection.x;
@@ -66,7 +70,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         if(entity.physicsObject->isSupported())
             newVelocity.y = std::max<float>(5, newVelocity.y);
     }
-    entity.physicsObject->setCurrentState(player->lastPosition, newVelocity);
+    entity.physicsObject->setCurrentState(lastPosition, newVelocity);
     if(player->gameInput->isCreativeMode.get())
     {
 
@@ -222,8 +226,9 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
         entity.destroy();
         return;
     }
-    player->lastPosition = entity.physicsObject->getPosition();
     player->playerEntity = &entity;
+    std::unique_lock<std::recursive_mutex> lockIt(player->lastPositionLock);
+    player->lastPosition = entity.physicsObject->getPosition();
 }
 Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity)
 {
@@ -373,6 +378,11 @@ std::shared_ptr<Player> Player::readReference(stream::Reader &reader)
 
 void Player::write(stream::Writer &writer)
 {
+    PositionF lastPosition;
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(lastPositionLock);
+        lastPosition = this->lastPosition;
+    }
     stream::write<PositionF>(writer, lastPosition);
     stream::write<std::wstring>(writer, name);
     std::unique_lock<std::recursive_mutex> lockIt(itemsLock);

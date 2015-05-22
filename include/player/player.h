@@ -143,6 +143,7 @@ private:
     void setBlockDestructProgress(float v);
     Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
     PositionF lastPosition;
+    std::recursive_mutex lastPositionLock;
     Entity *playerEntity;
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
     ui::GameUi *gameUi;
@@ -174,13 +175,14 @@ public:
     {
         return Matrix::rotateX(gameInput->viewPhi.get()).concat(Matrix::rotateY(gameInput->viewTheta.get()));
     }
-    Matrix getViewTransform() const
+    Matrix getViewTransform()
     {
-        VectorF pos = lastPosition + VectorF(0, 0.6, 0);
+        VectorF pos = getPosition() + VectorF(0, 0.6, 0);
         return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get()));
     }
-    PositionF getPosition() const
+    PositionF getPosition()
     {
+        std::unique_lock<std::recursive_mutex> lockIt(lastPositionLock);
         return lastPosition;
     }
     VectorF getViewDirectionXZ() const
@@ -207,7 +209,7 @@ public:
     {
         return getBlockFaceFromInVector(getViewDirection());
     }
-    RayCasting::Ray getViewRay() const
+    RayCasting::Ray getViewRay()
     {
         return transform(inverse(getViewTransform()), RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));
     }

@@ -22,6 +22,7 @@
 #include "util/wrapped_entity.h"
 #include "util/logging.h"
 #include "platform/platform.h"
+#include <cassert>
 
 namespace programmerjake
 {
@@ -37,16 +38,18 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
     }
 }
 
-BlockChunk::BlockChunk(PositionI basePosition)
+BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlockChunk)
     : BasicBlockChunk(basePosition),
-    objectCounter()
+    objectCounter(),
+    indirectBlockChunk(indirectBlockChunk)
 {
+    assert(indirectBlockChunk);
     dumpStackTraceToDebugLog();
 }
 
 BlockChunk::~BlockChunk()
 {
-    for(auto i = chunkVariables.entityList.begin(); i != chunkVariables.entityList.end(); i = chunkVariables.entityList.erase(i))
+    for(auto i = getChunkVariables().entityList.begin(); i != getChunkVariables().entityList.end(); i = getChunkVariables().entityList.erase(i))
     {
         WrappedEntity &we = *i;
         if(we.currentSubchunk != nullptr)

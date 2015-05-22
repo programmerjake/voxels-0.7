@@ -656,15 +656,19 @@ struct BlockChunkChunkVariables final
     }
 };
 
+class IndirectBlockChunk;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
-struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiome, BlockChunkSubchunk, BlockChunkChunkVariables>
+struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiome, BlockChunkSubchunk>
 {
 #pragma GCC diagnostic pop
+    BlockChunk(const BlockChunk &) = delete;
+    BlockChunk &operator =(const BlockChunk &) = delete;
     static_assert(BlockChunkBlock::blockKindBitWidth >= 3 * subchunkShiftXYZ, "BlockChunkBlock::blockKindBitWidth is too small");
     static_assert(BlockOptionalData::BlockChunkSubchunkShiftXYZ == subchunkShiftXYZ, "BlockOptionalData::BlockChunkSubchunkShiftXYZ is wrong value");
     ObjectCounter<BlockChunk, 0> objectCounter;
-    explicit BlockChunk(PositionI basePosition);
+    explicit BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlockChunk);
     ~BlockChunk();
     static Block getBlockFromArray(VectorI subchunkRelativePosition, const BlockChunkBlock &blockChunkBlock, BlockChunkSubchunk &subchunk)
     {
@@ -678,9 +682,43 @@ struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiom
         blockChunkBlock.setLighting(newBlock.lighting);
         subchunk.blockOptionalData.setData(subchunkRelativePosition, std::move(newBlock.data));
     }
+    IndirectBlockChunk *const indirectBlockChunk;
+    BlockChunkChunkVariables &getChunkVariables();
 };
 
-typedef ChunkMap<BlockChunk> BlockChunkMap;
+class IndirectBlockChunk final
+{
+    IndirectBlockChunk(const IndirectBlockChunk &) = delete;
+    IndirectBlockChunk &operator =(const IndirectBlockChunk &) = delete;
+private:
+    std::unique_ptr<BlockChunk> chunk;
+public:
+    const PositionI basePosition;
+    BlockChunkChunkVariables chunkVariables;
+    IndirectBlockChunk(PositionI basePosition)
+        : chunk(),
+        basePosition(basePosition),
+        chunkVariables()
+    {
+        chunk = std::unique_ptr<BlockChunk>(new BlockChunk(basePosition, this));
+    }
+    bool isLoaded() const
+    {
+        return true;
+    }
+    BlockChunk &getOrLoad()
+    {
+        return *chunk;
+    }
+};
+
+inline BlockChunkChunkVariables &BlockChunk::getChunkVariables()
+{
+    return indirectBlockChunk->chunkVariables;
+}
+
+
+typedef ChunkMap<IndirectBlockChunk> BlockChunkMap;
 typedef BasicBlockChunkRelativePositionIterator<BlockChunk> BlockChunkRelativePositionIterator;
 
 class BlockChunkFullLock final

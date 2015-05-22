@@ -159,15 +159,15 @@ void ViewPoint::copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockM
 {
     assert(sourceChunkBlockIterator.position() == destChunkBlockIterator.position());
     PositionI chunkPosition = destChunkBlockIterator.position();
-    std::unique_lock<std::mutex> sourceCachedChunkMeshesLock(sourceChunkBlockIterator.chunk->chunkVariables.cachedMeshesLock, std::defer_lock);
-    std::unique_lock<std::mutex> destCachedChunkMeshesLock(destChunkBlockIterator.chunk->chunkVariables.cachedMeshesLock, std::defer_lock);
+    std::unique_lock<std::mutex> sourceCachedChunkMeshesLock(sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshesLock, std::defer_lock);
+    std::unique_lock<std::mutex> destCachedChunkMeshesLock(destChunkBlockIterator.chunk->getChunkVariables().cachedMeshesLock, std::defer_lock);
     source_lock_manager.block_biome_lock.clear();
     dest_lock_manager.block_biome_lock.clear();
     std::lock(sourceCachedChunkMeshesLock, destCachedChunkMeshesLock);
-    if(!sourceChunkBlockIterator.chunk->chunkVariables.cachedMeshesUpToDate.load())
-        destChunkBlockIterator.chunk->chunkVariables.cachedMeshesUpToDate.store(false);
-    if(!sourceChunkBlockIterator.chunk->chunkVariables.generatingCachedMeshes)
-        destChunkBlockIterator.chunk->chunkVariables.cachedMeshes = sourceChunkBlockIterator.chunk->chunkVariables.cachedMeshes;
+    if(!sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshesUpToDate.load())
+        destChunkBlockIterator.chunk->getChunkVariables().cachedMeshesUpToDate.store(false);
+    if(!sourceChunkBlockIterator.chunk->getChunkVariables().generatingCachedMeshes)
+        destChunkBlockIterator.chunk->getChunkVariables().cachedMeshes = sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshes;
     else
         return;
     sourceCachedChunkMeshesLock.unlock();
@@ -204,27 +204,27 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
 {
     static thread_local BlockLightingCache lightingCache;
     PositionI chunkPosition = cbi.position();
-    std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->chunkVariables.cachedMeshesLock);
+    std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->getChunkVariables().cachedMeshesLock);
     if(meshes)
     {
-        while(cbi.chunk->chunkVariables.generatingCachedMeshes)
-            cbi.chunk->chunkVariables.cachedMeshesCond.wait(cachedChunkMeshesLock);
+        while(cbi.chunk->getChunkVariables().generatingCachedMeshes)
+            cbi.chunk->getChunkVariables().cachedMeshesCond.wait(cachedChunkMeshesLock);
     }
-    else if(cbi.chunk->chunkVariables.generatingCachedMeshes)
+    else if(cbi.chunk->getChunkVariables().generatingCachedMeshes)
     {
         return false; // if not the primary thread, go on to a different chunk
     }
-    std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->chunkVariables.cachedMeshes;
-    if(!cbi.chunk->chunkVariables.cachedMeshesUpToDate.exchange(true))
+    std::shared_ptr<enum_array<Mesh, RenderLayer>> chunkMeshes = cbi.chunk->getChunkVariables().cachedMeshes;
+    if(!cbi.chunk->getChunkVariables().cachedMeshesUpToDate.exchange(true))
         chunkMeshes = nullptr;
     bool lightingChanged = false;
-    if(wlp != cbi.chunk->chunkVariables.wlp)
+    if(wlp != cbi.chunk->getChunkVariables().wlp)
     {
         chunkMeshes = nullptr;
-        cbi.chunk->chunkVariables.wlp = wlp;
+        cbi.chunk->getChunkVariables().wlp = wlp;
         lightingChanged = true;
     }
-    cbi.chunk->chunkVariables.generatingCachedMeshes = (chunkMeshes == nullptr);
+    cbi.chunk->getChunkVariables().generatingCachedMeshes = (chunkMeshes == nullptr);
     cachedChunkMeshesLock.unlock();
     if(chunkMeshes != nullptr)
     {
@@ -314,9 +314,9 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
         }
     }
     cachedChunkMeshesLock.lock();
-    cbi.chunk->chunkVariables.cachedMeshes = chunkMeshes;
-    cbi.chunk->chunkVariables.generatingCachedMeshes = false;
-    cbi.chunk->chunkVariables.cachedMeshesCond.notify_all();
+    cbi.chunk->getChunkVariables().cachedMeshes = chunkMeshes;
+    cbi.chunk->getChunkVariables().generatingCachedMeshes = false;
+    cbi.chunk->getChunkVariables().cachedMeshesCond.notify_all();
     cachedChunkMeshesLock.unlock();
     if(meshes)
     {
@@ -523,8 +523,8 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             {
                 BlockIterator cbi = world.getBlockIterator(chunkPosition);
                 lock_manager.clear();
-                std::unique_lock<std::recursive_mutex> lockChunk(cbi.chunk->chunkVariables.entityListLock);
-                for(WrappedEntity &entity : cbi.chunk->chunkVariables.entityList)
+                std::unique_lock<std::recursive_mutex> lockChunk(cbi.chunk->getChunkVariables().entityListLock);
+                for(WrappedEntity &entity : cbi.chunk->getChunkVariables().entityList)
                 {
                     if(!entity.entity.good())
                         continue;

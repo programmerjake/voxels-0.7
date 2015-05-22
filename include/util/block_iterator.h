@@ -37,6 +37,8 @@ namespace programmerjake
 {
 namespace voxels
 {
+class World;
+class ViewPoint;
 class BlockIterator final
 {
     friend class World;
@@ -47,7 +49,7 @@ class BlockIterator final
     VectorI currentRelativePosition;
     void getChunk()
     {
-        chunk = &(*chunks)[currentBasePosition];
+        chunk = &(*chunks)[currentBasePosition].getOrLoad();
     }
     BlockChunkSubchunk &getSubchunk() const
     {

@@ -37,13 +37,12 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename BT, typename BiomeT, typename SCT, typename CVT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
+template <typename BT, typename BiomeT, typename SCT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
 struct BasicBlockChunk
 {
     typedef BT BlockType;
     typedef BiomeT BiomeType;
     typedef SCT SubchunkType;
-    typedef CVT ChunkVariablesType;
     const PositionI basePosition;
     static constexpr std::size_t chunkShiftX = ChunkShiftXV;
     static constexpr std::size_t chunkShiftY = ChunkShiftYV;
@@ -69,8 +68,7 @@ struct BasicBlockChunk
         : basePosition(basePosition),
         biomes(),
         blocks(),
-        subchunks(),
-        chunkVariables()
+        subchunks()
     {
     }
     static constexpr PositionI getChunkBasePosition(PositionI pos)
@@ -285,7 +283,6 @@ struct BasicBlockChunk
     };
     BlocksArray blocks;
     checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>, subchunkCountX> subchunks;
-    ChunkVariablesType chunkVariables;
 };
 
 #pragma GCC diagnostic push

@@ -339,7 +339,7 @@ public:
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
         BlockUpdate *pnode = *ppnode;
-        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
+        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(bi.chunk->getChunkVariables().blockUpdateListLock);
         float retval = -1;
         while(pnode != nullptr)
         {
@@ -350,11 +350,11 @@ public:
                 {
                     *ppnode = pnode->block_next;
                     if(pnode->chunk_prev == nullptr)
-                        bi.chunk->chunkVariables.blockUpdateListHead = pnode->chunk_next;
+                        bi.chunk->getChunkVariables().blockUpdateListHead = pnode->chunk_next;
                     else
                         pnode->chunk_prev->chunk_next = pnode->chunk_next;
                     if(pnode->chunk_next == nullptr)
-                        bi.chunk->chunkVariables.blockUpdateListTail = pnode->chunk_prev;
+                        bi.chunk->getChunkVariables().blockUpdateListTail = pnode->chunk_prev;
                     else
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
                     BlockUpdate::free(pnode);
@@ -374,13 +374,13 @@ public:
         {
             pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
-            pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
+            pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
-            if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)
-                bi.chunk->chunkVariables.blockUpdateListHead->chunk_prev = pnode;
+            if(bi.chunk->getChunkVariables().blockUpdateListHead != nullptr)
+                bi.chunk->getChunkVariables().blockUpdateListHead->chunk_prev = pnode;
             else
-                bi.chunk->chunkVariables.blockUpdateListTail = pnode;
-            bi.chunk->chunkVariables.blockUpdateListHead = pnode;
+                bi.chunk->getChunkVariables().blockUpdateListTail = pnode;
+            bi.chunk->getChunkVariables().blockUpdateListHead = pnode;
         }
         return retval;
     }
@@ -396,7 +396,7 @@ public:
     bool addBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
     {
         bi.updateLock(lock_manager);
-        std::unique_lock<decltype(bi.chunk->chunkVariables.blockUpdateListLock)> lockIt(bi.chunk->chunkVariables.blockUpdateListLock);
+        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(bi.chunk->getChunkVariables().blockUpdateListLock);
         assert(updateTimeFromNow >= 0);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
         BlockOptionalData *blockOptionalData;
@@ -423,13 +423,13 @@ public:
         {
             pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
-            pnode->chunk_next = bi.chunk->chunkVariables.blockUpdateListHead;
+            pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
-            if(bi.chunk->chunkVariables.blockUpdateListHead != nullptr)
-                bi.chunk->chunkVariables.blockUpdateListHead->chunk_prev = pnode;
+            if(bi.chunk->getChunkVariables().blockUpdateListHead != nullptr)
+                bi.chunk->getChunkVariables().blockUpdateListHead->chunk_prev = pnode;
             else
-                bi.chunk->chunkVariables.blockUpdateListTail = pnode;
-            bi.chunk->chunkVariables.blockUpdateListHead = pnode;
+                bi.chunk->getChunkVariables().blockUpdateListTail = pnode;
+            bi.chunk->getChunkVariables().blockUpdateListHead = pnode;
         }
         return false;
     }
@@ -903,7 +903,7 @@ private:
         BlockChunkBlock &b = bi.getBlock(lock_manager);
         b.invalidate();
         bi.getSubchunk().invalidate();
-        bi.chunk->chunkVariables.invalidate();
+        bi.chunk->getChunkVariables().invalidate();
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
@@ -912,6 +912,7 @@ private:
         }
     }
     void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager);
+    bool isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosition);
 };
 }
 }
