@@ -404,14 +404,22 @@ protected:
         }
 #ifdef DEBUG_VERSION
 #if 0
-        for(auto &i : blocks)
+        for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
-            for(auto &j : i)
+            for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
             {
-                for(Block &b : j)
+                bool canReset = false;
+                for(int y = BlockChunk::chunkSizeY - 1; y >= 0; y--)
                 {
-                    if(b.descriptor == Blocks::builtin::Stone::descriptor())
+                    Block &b = blocks[x][y][z];
+                    if(b.descriptor == Blocks::builtin::Stone::descriptor() && canReset)
+                    {
                         b = Block(Blocks::builtin::Air::descriptor());
+                        continue;
+                    }
+                    canReset = true;
+                    if(b.descriptor != Blocks::builtin::Stone::descriptor())
+                        canReset = false;
                 }
             }
         }
