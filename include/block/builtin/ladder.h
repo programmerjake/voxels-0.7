@@ -27,6 +27,7 @@
 #include "render/generate.h"
 #include "util/math_constants.h"
 #include "util/global_instance_maker.h"
+#include "item/builtin/tools/tools.h"
 
 namespace programmerjake
 {
@@ -52,7 +53,7 @@ public:
             break;
         case BlockFace::PX:
             px = td;
-            displacement.x = 1 - displacementDistance;
+            displacement.x = -displacementDistance;
             break;
         case BlockFace::NY:
             ny = td;
@@ -60,7 +61,7 @@ public:
             break;
         case BlockFace::PY:
             py = td;
-            displacement.y = 1 - displacementDistance;
+            displacement.y = -displacementDistance;
             break;
         case BlockFace::NZ:
             nz = td;
@@ -68,7 +69,7 @@ public:
             break;
         case BlockFace::PZ:
             pz = td;
-            displacement.z = 1 - displacementDistance;
+            displacement.z = -displacementDistance;
             break;
         }
         Mesh mesh = transform(Matrix::translate(displacement), Generate::unitBox(nx, px, ny, py, nz, pz));
@@ -109,22 +110,22 @@ protected:
         switch(attachedToFace)
         {
         case BlockFace::NX:
-            minV.x = 1 - size;
-            break;
-        case BlockFace::PX:
             maxV.x = size;
             break;
-        case BlockFace::NY:
-            minV.y = 1 - size;
+        case BlockFace::PX:
+            minV.x = 1 - size;
             break;
-        case BlockFace::PY:
+        case BlockFace::NY:
             maxV.y = size;
             break;
+        case BlockFace::PY:
+            minV.y = 1 - size;
+            break;
         case BlockFace::NZ:
-            minV.z = 1 - size;
+            maxV.z = size;
             break;
         case BlockFace::PZ:
-            maxV.z = size;
+            minV.z = 1 - size;
             break;
         }
         return BlockShape(0.5f * (minV + maxV), 0.5f * (maxV - minV));
@@ -145,7 +146,7 @@ public:
                         Mesh(), Mesh(),
                         Mesh(), Mesh(),
                         RenderLayer::Opaque),
-        defaultEffectShape(makeShape(attachedToFace, 0.3f))
+        defaultEffectShape(makeShape(attachedToFace, 0.7f))
     {
     }
     virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
@@ -174,11 +175,11 @@ public:
     }
     virtual float getHardness() const override
     {
-        return 0;
+        return 0.4f;
     }
     virtual bool isHelpingToolKind(Item tool) const override
     {
-        return true;
+        return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
     virtual ToolLevel getToolLevel() const override
     {
@@ -186,16 +187,11 @@ public:
     }
     virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const override
     {
-        float nxnz, nxpz, pxnz, pxpz;
-        getCornersLiquidHeight(nxnz, nxpz, pxnz, pxpz, blockIterator, lock_manager);
-        float averageHeight = 0.25f * (nxnz + nxpz + pxnz + pxpz);
-        if(averageHeight <= 0.01)
-            averageHeight = 0.01;
-        return BlockShape(VectorF(0.5f, 0.5f * averageHeight, 0.5f), VectorF(0.5f, 0.5f * averageHeight, 0.5f));
+        return defaultEffectShape;
     }
     virtual BlockEffects getEffects() const override
     {
-        return BlockEffects(10, true);
+        return BlockEffects::makeClimbable();
     }
 };
 
@@ -204,8 +200,8 @@ class Ladder final : public GenericLadder
 private:
     class LadderInstanceMaker final
     {
-        LadderInstanceMaker(const TorchInstanceMaker &) = delete;
-        const TorchInstanceMaker &operator =(const TorchInstanceMaker &) = delete;
+        LadderInstanceMaker(const LadderInstanceMaker &) = delete;
+        const LadderInstanceMaker &operator =(const LadderInstanceMaker &) = delete;
     private:
         enum_array<Ladder *, BlockFace> ladders;
     public:
@@ -221,18 +217,18 @@ private:
         }
         ~LadderInstanceMaker()
         {
-            for(auto v : ladder)
+            for(auto v : ladders)
                 delete v;
         }
         const Ladder *get(BlockFace bf) const
         {
-            return ladder[bf];
+            return ladders[bf];
         }
     };
 private:
     Ladder(BlockFace attachedToFace)
         : GenericLadder(makeNameWithBlockFace(L"builtin.ladder", attachedToFace),
-                        makeShape(attachedToFace, 0.05f),
+                        BlockShape(),
                         TextureAtlas::Ladder.td(),
                         attachedToFace)
     {

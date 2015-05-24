@@ -83,6 +83,22 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             gravity.y = -6;
         }
     }
+    if(blockEffects.canClimb)
+    {
+        float minYVelocity = -2;
+        moveSpeed = 2;
+        if(sneakDown)
+            minYVelocity = 0;
+        if(newVelocity.y <= minYVelocity)
+        {
+            newVelocity.y = minYVelocity;
+            gravity = 0;
+        }
+        if(moveDirection != VectorF(0))
+        {
+            newVelocity.y = moveSpeed;
+        }
+    }
     if(player->gameInputMonitoring->retrieveGotJump() || jumpDown)
     {
         if(entity.physicsObject->isSupported())
