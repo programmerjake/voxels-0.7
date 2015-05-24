@@ -61,18 +61,32 @@ class Player;
 struct BlockEffects final
 {
     float drag = 0;
-    bool canSwim = false;
-    explicit BlockEffects(float drag, bool canSwim = false)
-        : drag(drag), canSwim(canSwim)
+    bool canSwim : 1;
+    bool canClimb : 1;
+    static BlockEffects makeClimbable(float drag = 0)
+    {
+        return BlockEffects(drag, false, true);
+    }
+    static BlockEffects makeSwimable(float drag = 0)
+    {
+        return BlockEffects(drag, true);
+    }
+    explicit BlockEffects(float drag, bool canSwim = false, bool canClimb = false)
+        : drag(drag), canSwim(canSwim), canClimb(canClimb)
     {
     }
     BlockEffects(std::nullptr_t = nullptr)
+        : BlockEffects(0.0f)
     {
     }
     BlockEffects &operator +=(BlockEffects rt)
     {
         if(rt.canSwim)
             canSwim = true;
+        else if(rt.canClimb)
+            canClimb = true;
+        if(canSwim)
+            canClimb = false;
         if(rt.drag > drag)
             drag = rt.drag;
         return *this;

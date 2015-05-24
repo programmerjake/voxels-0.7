@@ -143,6 +143,7 @@
 		<Unit filename="include/block/builtin/furnace.h" />
 		<Unit filename="include/block/builtin/glass.h" />
 		<Unit filename="include/block/builtin/grass.h" />
+		<Unit filename="include/block/builtin/ladder.h" />
 		<Unit filename="include/block/builtin/ores.h" />
 		<Unit filename="include/block/builtin/plant.h" />
 		<Unit filename="include/block/builtin/redstone.h" />

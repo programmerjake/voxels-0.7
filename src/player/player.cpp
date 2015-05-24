@@ -41,7 +41,7 @@ namespace builtin
 {
 void PlayerEntity::generateMeshes()
 {
-    head = (Mesh)transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
+    head = transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
     #warning add rest of player
 }
 void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const
@@ -57,28 +57,56 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         return;
     }
     PositionF lastPosition = entity.physicsObject->getPosition();
+    BlockEffects blockEffects = entity.physicsObject->getBlockEffects();
     {
         std::unique_lock<std::recursive_mutex> lockIt(player->lastPositionLock);
         player->lastPosition = lastPosition;
     }
     VectorF moveDirection = transform(player->getWorldOrientationXZTransform(), player->gameInput->moveDirectionPlayerRelative.get());
     VectorF newVelocity = entity.physicsObject->getVelocity();
-    newVelocity.x = moveDirection.x;
-    newVelocity.z = moveDirection.z;
-    if(player->gameInputMonitoring->retrieveGotJump() || player->gameInput->jump.get())
+    float moveSpeed = 4.317f;
+    VectorF gravity = VectorF(0, -32, 0);
+    if(player->gameInput->sneak.get())
+        moveSpeed = 1.295f;
+    bool jumpDown = player->gameInput->jump.get();
+    bool sneakDown = player->gameInput->sneak.get();
+    if(blockEffects.canSwim)
     {
-        if(entity.physicsObject->isSupported())
-            newVelocity.y = std::max<float>(5, newVelocity.y);
-        if(entity.physicsObject->getBlockEffects().canSwim)
+        gravity = VectorF(0, -1, 0);
+        moveSpeed = 2;
+        if(jumpDown && !sneakDown)
         {
-            newVelocity.y = std::max<float>(2, newVelocity.y);
+            gravity.y = 6;
+        }
+        else if(sneakDown)
+        {
+            gravity.y = -6;
         }
     }
-    entity.physicsObject->setCurrentState(lastPosition, newVelocity);
+    if(player->gameInputMonitoring->retrieveGotJump() || jumpDown)
+    {
+        if(entity.physicsObject->isSupported())
+            newVelocity.y = std::max<float>(9, newVelocity.y);
+    }
     if(player->gameInput->isCreativeMode.get())
     {
-
+        if(player->gameInput->fly.get())
+        {
+            moveSpeed = 10.89f;
+            newVelocity.y = 0;
+            gravity = VectorF(0);
+            if(jumpDown && !sneakDown)
+            {
+                newVelocity.y = 7.5f;
+            }
+            else if(sneakDown)
+            {
+                newVelocity.y = -7.5f;
+            }
+        }
     }
+    newVelocity.x = moveDirection.x * moveSpeed;
+    newVelocity.z = moveDirection.z * moveSpeed;
     for(int i = player->gameInputMonitoring->retrieveActionCount(); i > 0; i--)
     {
         RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
@@ -220,6 +248,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             item.descriptor->dropAsEntity(item, world, lock_manager, *player);
         }
     }
+    entity.physicsObject->setCurrentState(lastPosition, newVelocity, gravity);
     #warning implement
 }
 void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const

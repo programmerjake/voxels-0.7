@@ -501,7 +501,7 @@ public:
     }
     virtual BlockEffects getEffects() const override
     {
-        return BlockEffects(10, true);
+        return BlockEffects(2, true);
     }
 };
 }

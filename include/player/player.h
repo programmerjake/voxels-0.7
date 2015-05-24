@@ -79,7 +79,7 @@ private:
         return PhysicsObject::makeCylinder(position, velocity,
                                            true, false,
                                            0.3, 0.9,
-                                           PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1), physicsWorld);
+                                           PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1, VectorF(0, -32, 0)), physicsWorld);
     }
 public:
     static const PlayerEntity *descriptor()
@@ -215,7 +215,7 @@ public:
     }
     RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask)
     {
-        return world.castRay(getViewRay(), lock_manager, 10, rayBlockCollisionMask, playerEntity);
+        return world.castRay(getViewRay(), lock_manager, gameInput->isCreativeMode.get() ? 30 : 5, rayBlockCollisionMask, playerEntity);
     }
     Entity *createDroppedItemEntity(ItemStack itemStack, World &world, WorldLockManager &lock_manager)
     {

@@ -84,10 +84,11 @@ private:
             v -= left;
         if(gameInput->paused.get())
             v = VectorF(0);
-        gameInput->moveDirectionPlayerRelative.set(v * 3.5f);
+        gameInput->moveDirectionPlayerRelative.set(v);
     }
     float deltaViewTheta = 0;
     float deltaViewPhi = 0;
+    float spaceDoubleTapTimeLeft = 0;
     void startInventoryDialog();
     void setDialogWorldAndLockManager();
     void setWorld(std::shared_ptr<World> world);
@@ -155,6 +156,9 @@ public:
     }
     virtual void move(double deltaTime) override
     {
+        spaceDoubleTapTimeLeft -= deltaTime;
+        if(spaceDoubleTapTimeLeft < 0)
+            spaceDoubleTapTimeLeft = 0;
         if(!dialog)
         {
             std::unique_lock<std::mutex> lockIt(newDialogLock);
@@ -347,6 +351,11 @@ public:
             gameInput->jump.set(false);
             return true;
         }
+        case KeyboardKey::LShift:
+        {
+            gameInput->sneak.set(false);
+            return true;
+        }
         case KeyboardKey::W:
         {
             isWDown = false;
@@ -403,6 +412,20 @@ public:
         case KeyboardKey::Space:
         {
             gameInput->jump.set(true);
+            if(!event.isRepetition)
+            {
+                if(spaceDoubleTapTimeLeft > 0)
+                {
+                    gameInput->fly.set(!gameInput->fly.get() && gameInput->isCreativeMode.get());
+                }
+                else
+                    spaceDoubleTapTimeLeft = 0.3f;
+            }
+            return true;
+        }
+        case KeyboardKey::LShift:
+        {
+            gameInput->sneak.set(true);
             return true;
         }
         case KeyboardKey::W:
@@ -450,7 +473,12 @@ public:
         }
         case KeyboardKey::F12:
         {
-            //setStackTraceDumpingEnabled(!getStackTraceDumpingEnabled());
+            bool isCreativeMode = gameInput->isCreativeMode.get();
+            gameInput->isCreativeMode.set(!isCreativeMode);
+            if(!isCreativeMode)
+            {
+                gameInput->fly.set(false);
+            }
             return true;
         }
         case KeyboardKey::Num1:

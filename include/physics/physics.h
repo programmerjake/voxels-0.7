@@ -63,8 +63,18 @@ struct PhysicsProperties final
     static constexpr CollisionMaskType playerCollisionMask = 1 << 2;
     static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF & ~itemCollisionMask;
     VectorF gravity;
-    explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask, CollisionMaskType othersCollisionMask = defaultCollisionMask, float bounceFactor = std::sqrt(0.5f), float slideFactor = 1 - std::sqrt(0.5f), VectorF gravity = defaultGravityVector, float dragFactor = 1)
-        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)), slideFactor(limit(slideFactor, 0.0f, 1.0f)), dragFactor(dragFactor), myCollisionMask(myCollisionMask), othersCollisionMask(othersCollisionMask), gravity(gravity)
+    explicit PhysicsProperties(CollisionMaskType myCollisionMask = defaultCollisionMask,
+                               CollisionMaskType othersCollisionMask = defaultCollisionMask,
+                               float bounceFactor = std::sqrt(0.5f),
+                               float slideFactor = 1 - std::sqrt(0.5f),
+                               VectorF gravity = defaultGravityVector,
+                               float dragFactor = 1)
+        : bounceFactor(limit(bounceFactor, 0.0f, 1.0f)),
+        slideFactor(limit(slideFactor, 0.0f, 1.0f)),
+        dragFactor(dragFactor),
+        myCollisionMask(myCollisionMask),
+        othersCollisionMask(othersCollisionMask),
+        gravity(gravity)
     {
     }
     static PhysicsProperties read(stream::Reader & reader)

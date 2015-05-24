@@ -72,7 +72,7 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     float faceMinY = scale * (maxY - fMaxY + 1);
     float faceMaxX = faceMinX + scale * (fMaxX - fMinX);
     float faceMaxY = faceMinY + scale * (fMaxY - fMinY);
-    Mesh retval = (Mesh)transform(Matrix::translate(faceMinX, faceMinY, -0.5f).concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)), unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), backTD, td));
+    Mesh retval = transform(Matrix::translate(faceMinX, faceMinY, -0.5f).concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)), unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), backTD, td));
     for(int iy = minY; iy <= maxY; iy++)
     {
         for(int ix = minX; ix <= maxX; ix++)

@@ -63,10 +63,12 @@ std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, Wor
     {
         return PhysicsObject::makeEmpty(position, velocity, physicsWorld);
     }
+    PhysicsProperties pp = PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask);
+    pp.gravity = VectorF(0, -16, 0);
     return PhysicsObject::makeCylinder(position, velocity,
                                        true, false,
                                        baseSize / 2, baseSize / 2 + extraHeight / 2,
-                                       PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask), physicsWorld);
+                                       pp, physicsWorld);
 }
 
 
@@ -134,6 +136,12 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
     }
     else
     {
+        VectorF gravity = VectorF(0, -16, 0);
+        if(entity.physicsObject->getBlockEffects().canSwim)
+        {
+            gravity = VectorF(0, 1, 0);
+        }
+        entity.physicsObject->setGravity(gravity);
         //getDebugLog() << L"Entity " << (void *)&entity << L": pos:" << (VectorF)entity.physicsObject->getPosition() << postnl;
     }
 }

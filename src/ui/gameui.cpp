@@ -41,7 +41,7 @@ namespace
 Mesh makeSelectionMesh()
 {
     TextureDescriptor td = TextureAtlas::Selection.td();
-    return (Mesh)transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(1.01)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, td, td, td, td, td));
+    return transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(1.01)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, td, td, td, td, td));
 }
 Mesh getSelectionMesh()
 {
