@@ -49,15 +49,26 @@ BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlock
 
 BlockChunk::~BlockChunk()
 {
-    for(auto i = getChunkVariables().entityList.begin(); i != getChunkVariables().entityList.end(); i = getChunkVariables().entityList.erase(i))
+    for(int x = 0; x < subchunkCountX; x++)
     {
-        WrappedEntity &we = *i;
-        if(we.currentSubchunk != nullptr)
+        for(int y = 0; y < subchunkCountY; y++)
         {
-            auto iter = we.currentSubchunk->entityList.to_iterator(&we);
-            we.currentSubchunk->entityList.erase(iter);
+            for(int z = 0; z < subchunkCountZ; z++)
+            {
+                BlockChunkSubchunk &subchunk = subchunks[x][y][z];
+                subchunk.entityList.clear();
+            }
         }
     }
 }
+
+void WrappedEntity::verify() const
+{
+    assert(currentSubchunk != nullptr && currentChunk != nullptr);
+    assert(subchunkListMembers.is_linked());
+    assert(chunkListMembers.is_linked());
+    assert(currentSubchunk >= &currentChunk->subchunks[0][0][0] && currentSubchunk <= &currentChunk->subchunks[BlockChunk::subchunkCountX - 1][BlockChunk::subchunkCountY - 1][BlockChunk::subchunkCountZ - 1]);
+}
+
 }
 }

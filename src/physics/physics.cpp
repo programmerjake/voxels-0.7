@@ -300,6 +300,8 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 minZ = ifloor(fMinZ);
                 maxZ = iceil(fMaxZ);
                 std::shared_ptr<PhysicsObject> objectB;
+                std::shared_ptr<PhysicsObject> objectBForEffectRegion;
+                BlockEffects newBlockEffects(nullptr);
                 BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d));
                 for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX())
                 {
@@ -309,8 +311,14 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         BlockIterator bi = bixy;
                         for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
                         {
+                            Block b = bi.get(lock_manager);
                             setObjectToBlock(objectB, bi, lock_manager);
+                            setObjectToBlockEffectRegion(objectBForEffectRegion, bi, lock_manager);
                             lockIt.lock();
+                            if(b.good() && objectA->collides(*objectBForEffectRegion))
+                            {
+                                newBlockEffects += b.descriptor->getEffects();
+                            }
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;
@@ -327,6 +335,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         }
                     }
                 }
+                objectA->blockEffects[getNewVariableSetIndex()] = newBlockEffects;
                 if(objectA->constraints)
                 {
                     for(PhysicsConstraint constraint : *objectA->constraints)

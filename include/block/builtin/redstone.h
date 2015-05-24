@@ -233,7 +233,7 @@ private:
                                  edgeAttachedStateNZ,
                                  edgeAttachedStatePZ),
                         BlockFace::NY,
-                        BlockShape(),
+                        BlockShape(nullptr),
                         LightProperties(),
                         RayCasting::BlockCollisionMaskGround, true,
                         false, false,

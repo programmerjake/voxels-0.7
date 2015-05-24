@@ -56,7 +56,7 @@ public:
     }
     ~intrusive_list_members()
     {
-        assert(!is_linked());
+//        assert(!is_linked());
     }
 };
 template <typename T, intrusive_list_members<T> T::*member>

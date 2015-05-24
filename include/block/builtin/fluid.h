@@ -75,7 +75,7 @@ protected:
     const BlockUpdateKind fluidUpdateKind;
 protected:
     Fluid(std::wstring baseName, unsigned level, bool falling, LightProperties lightProperties, TextureDescriptor td, BlockUpdateKind fluidUpdateKind)
-        : BlockDescriptor(makeName(baseName, level, falling), BlockShape(), lightProperties, RayCasting::BlockCollisionMaskFluid, false, false, false, false, false, false), level(level), falling(falling), td(td), fluidUpdateKind(fluidUpdateKind)
+        : BlockDescriptor(makeName(baseName, level, falling), BlockShape(nullptr), lightProperties, RayCasting::BlockCollisionMaskFluid, false, false, false, false, false, false), level(level), falling(falling), td(td), fluidUpdateKind(fluidUpdateKind)
     {
     }
 private:
@@ -489,6 +489,19 @@ public:
     virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
     {
         return false;
+    }
+    virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    {
+        float nxnz, nxpz, pxnz, pxpz;
+        getCornersLiquidHeight(nxnz, nxpz, pxnz, pxpz, blockIterator, lock_manager);
+        float averageHeight = 0.25f * (nxnz + nxpz + pxnz + pxpz);
+        if(averageHeight <= 0.01)
+            averageHeight = 0.01;
+        return BlockShape(VectorF(0.5f, 0.5f * averageHeight, 0.5f), VectorF(0.5f, 0.5f * averageHeight, 0.5f));
+    }
+    virtual BlockEffects getEffects() const override
+    {
+        return BlockEffects(10, true);
     }
 };
 }

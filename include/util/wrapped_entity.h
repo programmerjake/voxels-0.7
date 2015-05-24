@@ -53,6 +53,7 @@ struct WrappedEntity final
         : objectCounter(), entity(e), subchunkListMembers(), chunkListMembers()
     {
     }
+    void verify() const; // in block_chunk.cpp
 };
 }
 }

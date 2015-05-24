@@ -74,7 +74,17 @@ protected:
     {
     }
     FullBlock(std::wstring name, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, TextureDescriptor tdNX, TextureDescriptor tdPX, TextureDescriptor tdNY, TextureDescriptor tdPY, TextureDescriptor tdNZ, TextureDescriptor tdPZ, RenderLayer rl)
-        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)), lightProperties, blockRayCollisionMask, true, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX), makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY), makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ), rl)
+        : BlockDescriptor(name, BlockShape(VectorF(0.5f), VectorF(0.5f)),
+                          lightProperties, blockRayCollisionMask,
+                          true,
+                          isFaceBlockedNX, isFaceBlockedPX,
+                          isFaceBlockedNY, isFaceBlockedPY,
+                          isFaceBlockedNZ, isFaceBlockedPZ,
+                          Mesh(),
+                          makeFaceMeshNX(tdNX), makeFaceMeshPX(tdPX),
+                          makeFaceMeshNY(tdNY), makeFaceMeshPY(tdPY),
+                          makeFaceMeshNZ(tdNZ), makeFaceMeshPZ(tdPZ),
+                          rl)
     {
     }
     FullBlock(std::wstring name, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool areFacesBlocked, TextureDescriptor td, RenderLayer rl = RenderLayer::Opaque)

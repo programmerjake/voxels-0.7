@@ -58,6 +58,31 @@ namespace voxels
 {
 class Player;
 
+struct BlockEffects final
+{
+    float drag = 0;
+    bool canSwim = false;
+    explicit BlockEffects(float drag, bool canSwim = false)
+        : drag(drag), canSwim(canSwim)
+    {
+    }
+    BlockEffects(std::nullptr_t = nullptr)
+    {
+    }
+    BlockEffects &operator +=(BlockEffects rt)
+    {
+        if(rt.canSwim)
+            canSwim = true;
+        if(rt.drag > drag)
+            drag = rt.drag;
+        return *this;
+    }
+    BlockEffects operator +(BlockEffects rt) const
+    {
+        return rt += *this;
+    }
+};
+
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
@@ -86,7 +111,6 @@ public:
     const RayCasting::BlockCollisionMask blockRayCollisionMask;
     const bool isStaticMesh;
     enum_array<bool, BlockFace> isFaceBlocked;
-protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
@@ -299,6 +323,14 @@ public:
     }
     virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const = 0;
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const = 0;
+    virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    {
+        return BlockShape(nullptr);
+    }
+    virtual BlockEffects getEffects() const
+    {
+        return BlockEffects(nullptr);
+    }
 };
 }
 }

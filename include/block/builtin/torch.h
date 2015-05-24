@@ -175,7 +175,7 @@ public:
                  BlockFace attachedToFace, LightProperties lightProperties,
                  RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskGround,
                  float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
-        : AttachedBlock(name, attachedToFace, BlockShape(),
+        : AttachedBlock(name, attachedToFace, BlockShape(nullptr),
                         lightProperties, blockRayCollisionMask, true,
                         false, false,
                         false, false,

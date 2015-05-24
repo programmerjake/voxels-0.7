@@ -1196,6 +1196,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
     entity->currentSubchunk = &bi.getSubchunk();
     chunkList.push_back(entity);
     subchunkList.push_back(entity);
+    entity->verify();
     return &entity->entity;
 }
 
@@ -1286,12 +1287,14 @@ void World::moveEntitiesThreadFn()
                     continue;
                 }
                 entity.lastEntityRunCount = entityRunCount;
+                entity.verify();
                 BlockIterator destBi = cbi;
                 destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
                 entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
                 if(entity.currentChunk == destBi.chunk && entity.currentSubchunk == &destBi.getSubchunk())
                 {
                     ++i;
+                    entity.verify();
                     continue;
                 }
                 lock_manager.block_biome_lock.set(entity.currentSubchunk->lock);
@@ -1304,6 +1307,7 @@ void World::moveEntitiesThreadFn()
                 if(entity.currentChunk == destBi.chunk)
                 {
                     ++i;
+                    entity.verify();
                     continue;
                 }
                 auto nextI = i;
@@ -1313,6 +1317,7 @@ void World::moveEntitiesThreadFn()
                 chunkDestEntityList.splice(chunkDestEntityList.end(), chunkEntityList, i);
                 entity.currentChunk = destBi.chunk;
                 i = nextI;
+                entity.verify();
             }
         }
     }

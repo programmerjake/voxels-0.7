@@ -53,7 +53,7 @@ protected:
     }
     struct FallingBlockData final
     {
-        double timeLeft = 4.0f;
+        double timeLeft = 30.0f;
         std::atomic_bool collided;
         FallingBlockData()
             : collided(false)

@@ -702,6 +702,10 @@ public:
     {
         chunk = std::unique_ptr<BlockChunk>(new BlockChunk(basePosition, this));
     }
+    ~IndirectBlockChunk()
+    {
+        chunk.reset(); // clear first
+    }
     bool isLoaded() const
     {
         return true;

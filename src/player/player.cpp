@@ -69,6 +69,10 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     {
         if(entity.physicsObject->isSupported())
             newVelocity.y = std::max<float>(5, newVelocity.y);
+        if(entity.physicsObject->getBlockEffects().canSwim)
+        {
+            newVelocity.y = std::max<float>(2, newVelocity.y);
+        }
     }
     entity.physicsObject->setCurrentState(lastPosition, newVelocity);
     if(player->gameInput->isCreativeMode.get())
@@ -419,6 +423,7 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
 
 Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     : lastPosition(),
+    lastPositionLock(),
     playerEntity(nullptr),
     gameInputMonitoring(),
     gameUi(gameUi),

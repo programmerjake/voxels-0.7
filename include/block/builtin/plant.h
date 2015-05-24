@@ -82,7 +82,7 @@ public:
     const float blockHeight;
 protected:
     Plant(std::wstring name, Mesh mesh, unsigned animationFrame, unsigned animationFrameCount, float blockHeight)
-        : BlockDescriptor(name, BlockShape(), LightProperties(), RayCasting::BlockCollisionMaskGround, true, false, false, false, false, false, false, mesh, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque), animationFrame(animationFrame), animationFrameCount(animationFrameCount), blockHeight(blockHeight)
+        : BlockDescriptor(name, BlockShape(nullptr), LightProperties(), RayCasting::BlockCollisionMaskGround, true, false, false, false, false, false, false, mesh, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque), animationFrame(animationFrame), animationFrameCount(animationFrameCount), blockHeight(blockHeight)
     {
         assert(animationFrame < animationFrameCount);
     }
