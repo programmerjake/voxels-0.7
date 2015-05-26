@@ -22,6 +22,7 @@
 #include "stream/stream.h"
 #include "platform/platform.h"
 #include <cassert>
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -86,6 +87,7 @@ void ChunkCache::getChunk(PositionI chunkBasePosition, std::vector<std::uint8_t>
 
 void ChunkCache::setChunk(PositionI chunkBasePosition, const std::vector<std::uint8_t> &buffer)
 {
+    getDebugLog() << "stored chunk at " << chunkBasePosition << " with buffer of length " << buffer.size() << postnl;
     std::unique_lock<std::mutex> lockIt(theLock);
     static_assert(NullChunk == std::size_t(), "invalid value for NullChunk");
     std::size_t &startingChunkIndex = startingChunksMap[chunkBasePosition];

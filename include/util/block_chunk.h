@@ -699,15 +699,24 @@ private:
     bool loading = false;
     std::condition_variable chunkCond;
     std::mutex chunkLock;
-    void setUnloaded(std::function<void(std::shared_ptr<BlockChunk> chunk)> newLoadFn) // called by World
+    bool setUnloaded(std::function<void(std::shared_ptr<BlockChunk> chunk)> newLoadFn) // called by World
     {
         std::unique_lock<std::mutex> lockIt(chunkLock);
         assert(chunk);
         assert(newLoadFn);
         assert(!loading);
-        assert(chunk.unique());
+        if(!chunk.unique())
+            return false;
         chunk = nullptr;
         loadFn = newLoadFn;
+        return true;
+    }
+    std::atomic_bool accessedFlag;
+    std::atomic_bool *unloadAbortFlag = nullptr;
+    static bool &getIgnoreReferencesFromThreadFlag()
+    {
+        static thread_local bool retval = false;
+        return retval;
     }
 public:
     const PositionI basePosition;
@@ -717,6 +726,7 @@ public:
         loadFn(),
         chunkCond(),
         chunkLock(),
+        accessedFlag(false),
         basePosition(basePosition),
         chunkVariables()
     {
@@ -736,12 +746,22 @@ public:
     std::shared_ptr<BlockChunk> getOrLoad()
     {
         std::unique_lock<std::mutex> lockIt(chunkLock);
+        if(unloadAbortFlag != nullptr)
+        {
+            unloadAbortFlag->store(true, std::memory_order_relaxed);
+            while(unloadAbortFlag != nullptr)
+            {
+                chunkCond.wait(lockIt);
+            }
+        }
         if(chunk == nullptr)
         {
             if(loading)
             {
-                while(loading)
+                while(loading || unloadAbortFlag != nullptr)
                 {
+                    if(unloadAbortFlag != nullptr)
+                        unloadAbortFlag->store(true, std::memory_order_relaxed);
                     chunkCond.wait(lockIt);
                 }
                 return chunk;
@@ -767,6 +787,8 @@ public:
             loading = false;
             chunkCond.notify_all();
         }
+        if(!getIgnoreReferencesFromThreadFlag())
+            accessedFlag.store(true, std::memory_order_relaxed);
         return chunk;
     }
 };

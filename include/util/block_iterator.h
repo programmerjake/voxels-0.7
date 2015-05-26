@@ -63,16 +63,22 @@ class BlockIterator final
     }
     void updateLock(WorldLockManager &lock_manager) const
     {
-        lock_manager.block_biome_lock.set(getSubchunk().lock);
+        if(lock_manager.needLock)
+            lock_manager.block_biome_lock.set(getSubchunk().lock);
     }
     template <typename T>
     void updateLock(WorldLockManager &lock_manager, T beginV, T endV) const
     {
-        lock_manager.block_biome_lock.set(getSubchunk().lock, beginV, endV);
+        if(lock_manager.needLock)
+            lock_manager.block_biome_lock.set(getSubchunk().lock, beginV, endV);
+        else
+            lock_all(beginV, endV);
     }
     bool tryUpdateLock(WorldLockManager &lock_manager) const
     {
-        return lock_manager.block_biome_lock.try_set(getSubchunk().lock);
+        if(lock_manager.needLock)
+            return lock_manager.block_biome_lock.try_set(getSubchunk().lock);
+        return true;
     }
     BlockIterator(std::shared_ptr<BlockChunk> chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)

@@ -53,6 +53,7 @@
 #include "stream/compressed_stream.h"
 #include "util/game_version.h"
 #include "player/player.h"
+#include "util/chunk_cache.h"
 
 using namespace std;
 
@@ -464,7 +465,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
     timeOfDayLock(),
     playerList(std::shared_ptr<PlayerList>(new PlayerList())),
     pauseLock(),
-    pauseCond()
+    pauseCond(),
+    chunkUnloaderThread()
 {
 }
 
@@ -608,7 +610,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     timeOfDayLock(),
     playerList(std::shared_ptr<PlayerList>(new PlayerList())),
     pauseLock(),
-    pauseCond()
+    pauseCond(),
+    chunkUnloaderThread()
 {
     ([this, abortFlag]()
     {
@@ -635,6 +638,11 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             destructing = true;
             return;
         }
+        chunkUnloaderThread = thread([this]()
+        {
+            setThreadName(L"chunk unloader");
+            chunkUnloaderThreadFn();
+        });
         for(std::size_t i = 0; i < lightingThreadCount; i++)
         {
             lightingThreads.emplace_back([this]()
@@ -778,6 +786,8 @@ World::~World()
         particleGeneratingThread.join();
     if(moveEntitiesThread.joinable())
         moveEntitiesThread.join();
+    if(chunkUnloaderThread.joinable())
+        chunkUnloaderThread.join();
     std::vector<std::shared_ptr<Player>> copiedPlayerList; // hold another reference to players so we don't try to remove from players list while destructing a list element
     {
         LockedPlayers lockedPlayers = players().lock();
@@ -1179,10 +1189,32 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     return retval;
 }
 
+namespace
+{
+std::shared_ptr<BlockChunk> &getLoadIntoChunk()
+{
+    static thread_local std::shared_ptr<BlockChunk> retval;
+    return retval;
+}
+}
+
+BlockIterator World::getBlockIteratorForWorldAddEntity(PositionI pos)
+{
+    std::shared_ptr<BlockChunk> chunk = getLoadIntoChunk();
+    if(chunk == nullptr)
+    {
+        return getBlockIterator(pos);
+    }
+    else // if pos is not in chunk then put in chunk anyway to avoid locking; will be fixed by next world move
+    {
+        return BlockIterator(chunk, &physicsWorld->chunks, chunk->basePosition, BlockChunk::getChunkRelativePosition(pos));
+    }
+}
+
 Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
 {
     assert(descriptor != nullptr);
-    BlockIterator bi = getBlockIterator((PositionI)position);
+    BlockIterator bi = getBlockIteratorForWorldAddEntity((PositionI)position);
     lock_manager.block_biome_lock.clear();
     WrappedEntity *entity = new WrappedEntity(Entity(descriptor, nullptr, entityData));
     entity->entity.physicsObject = descriptor->makePhysicsObject(entity->entity, *this, position, velocity, physicsWorld);
@@ -1478,7 +1510,7 @@ void World::particleGeneratingThreadFn()
     }
 }
 
-void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
+void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager)
 {
     BlockChunkSubchunk *lastSubchunk = nullptr;
     std::unique_lock<std::mutex> lockIt;
@@ -1490,6 +1522,11 @@ void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI ma
         {
             for(sp.z = minSubchunk.z; sp.z <= maxSubchunk.z; sp.z += BlockChunk::subchunkSizeXYZ)
             {
+                PositionI chunkBasePosition = BlockChunk::getChunkBasePosition(PositionI(sp, blockIterator.position().d));
+                IndirectBlockChunk &ibc = physicsWorld->chunks[chunkBasePosition];
+                if(!ibc.isLoaded())
+                    continue;
+                BlockIterator bi = blockIterator;
                 bi.moveTo(sp);
                 VectorI currentMinCorner = sp;
                 VectorI currentMaxCorner = sp + VectorI(BlockChunk::subchunkSizeXYZ - 1);
@@ -1499,16 +1536,14 @@ void World::invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI ma
                 currentMaxCorner.x = std::min(currentMaxCorner.x, maxCorner.x);
                 currentMaxCorner.y = std::min(currentMaxCorner.y, maxCorner.y);
                 currentMaxCorner.z = std::min(currentMaxCorner.z, maxCorner.z);
-                BlockIterator biX = bi;
-                biX.moveTo(currentMinCorner);
-                for(VectorI p = currentMinCorner; p.x <= currentMaxCorner.x; p.x++, biX.moveTowardPX())
+                for(VectorI p = currentMinCorner; p.x <= currentMaxCorner.x; p.x++)
                 {
-                    BlockIterator biXY = biX;
-                    for(p.y = currentMinCorner.y; p.y <= currentMaxCorner.y; p.y++, biXY.moveTowardPY())
+                    for(p.y = currentMinCorner.y; p.y <= currentMaxCorner.y; p.y++)
                     {
-                        BlockIterator biXYZ = biXY;
-                        for(p.z = currentMinCorner.z; p.z <= currentMaxCorner.z; p.z++, biXYZ.moveTowardPZ())
+                        for(p.z = currentMinCorner.z; p.z <= currentMaxCorner.z; p.z++)
                         {
+                            BlockIterator biXYZ = bi;
+                            biXYZ.moveTo(p);
                             BlockChunkSubchunk &subchunk = biXYZ.getSubchunk();
                             if(&subchunk != lastSubchunk && lastSubchunk != nullptr)
                             {
@@ -1663,6 +1698,11 @@ namespace
 struct file_version_tag_t
 {
 };
+
+void setStreamFileVersion(stream::Reader &reader, std::uint32_t fileVersion)
+{
+    reader.setAssociatedValue<std::uint32_t, file_version_tag_t>(std::make_shared<std::uint32_t>(fileVersion));
+}
 }
 
 std::uint32_t World::getStreamFileVersion(stream::Reader &reader)
@@ -1684,10 +1724,15 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         throw stream::InvalidDataValueException("newer file version not supported");
     }
     stream::ExpandReader reader(readerIn);
-    reader.setAssociatedValue<std::uint32_t, file_version_tag_t>(std::make_shared<std::uint32_t>(fileVersion));
+    setStreamFileVersion(reader, fileVersion);
     SeedType worldGeneratorSeed = stream::read<SeedType>(reader);
     std::shared_ptr<World> retval = std::make_shared<World>(worldGeneratorSeed, MyWorldGenerator::getInstance(), internal_construct_flag());
     World &world = *retval;
+    world.chunkUnloaderThread = thread([&world]()
+    {
+        setThreadName(L"chunk unloader");
+        world.chunkUnloaderThreadFn();
+    });
     WorldLockManager lock_manager;
     StreamWorldGuard streamWorldGuard(reader, world, lock_manager);
     world.randomGenerator = stream::read<rc4_random_engine>(reader);
@@ -1817,7 +1862,193 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
     return false;
 }
 
-#warning add chunk unloader thread
+void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
+{
+#warning finish fixing chunk unloader thread
+#if 0 // disable for now
+    std::shared_ptr<ChunkCache> chunkCache = std::make_shared<ChunkCache>();
+    auto reloadFn = [chunkCache, this](std::shared_ptr<BlockChunk> chunk)
+    {
+        try
+        {
+            getLoadIntoChunk() = chunk;
+            std::vector<std::uint8_t> buffer;
+            chunkCache->getChunk(chunk->basePosition, buffer);
+            stream::MemoryReader readerIn(std::move(buffer));
+            stream::ExpandReader reader(readerIn);
+            setStreamFileVersion(reader, GameVersion::FILE_VERSION);
+            WorldLockManager lock_manager(false);
+            StreamWorldGuard streamWorldGuard(reader, *this, lock_manager);
+            BlockChunkMap *chunksMap = &physicsWorld->chunks;
+            BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));
+            std::uint64_t entityCount = stream::read<std::uint64_t>(reader);
+            for(std::uint64_t entityIndex = 0; entityIndex < entityCount; entityIndex++)
+            {
+                Entity *entity = stream::read<Entity>(reader);
+                // read function already adds to world
+                ignore_unused_variable_warning(entity);
+            }
+            static thread_local BlocksGenerateArray blocks;
+            static thread_local checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
+            for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+            {
+                for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+                {
+                    biomes[x][z] = stream::read<BiomeProperties>(reader);
+                    for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++)
+                    {
+                        blocks[x][y][z] = stream::read<Block>(reader);
+                    }
+                }
+            }
+            for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
+            {
+                for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
+                {
+                    BlockIterator bi = cbi;
+                    bi.moveBy(VectorI(dx, 0, dz));
+                    bi.updateLock(lock_manager);
+                    biomes[dx][dz].swap(bi.getBiome().biomeProperties);
+                }
+            }
+            setBlockRange(cbi, chunk->basePosition, chunk->basePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, blocks, VectorI(0));
+            for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+            {
+                for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+                {
+                    for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++)
+                    {
+                        blocks[x][y][z] = Block();
+                    }
+                }
+            }
+        }
+        catch(...)
+        {
+            getLoadIntoChunk() = nullptr;
+            throw;
+        }
+        getLoadIntoChunk() = nullptr;
+    };
+    IndirectBlockChunk::getIgnoreReferencesFromThreadFlag() = true;
+    for(bool didAnything = false; !destructing; didAnything ? static_cast<void>(didAnything = false) : std::this_thread::sleep_for(std::chrono::milliseconds(10)))
+    {
+        BlockChunkMap *chunksMap = &physicsWorld->chunks;
+        for(auto chunkIter = chunksMap->begin(); chunkIter != chunksMap->end(); chunkIter++)
+        {
+            IndirectBlockChunk &ibc = *chunkIter;
+            if(chunkIter.is_locked())
+                chunkIter.unlock();
+            std::unique_lock<std::mutex> indirectBlockChunkLock(ibc.chunkLock);
+            if(!ibc.chunk)
+                continue;
+            if(!ibc.chunk.unique()) // more than one reference : in use
+                continue;
+            if(ibc.accessedFlag.exchange(false, std::memory_order_relaxed)) // was accessed
+                continue;
+            if(!ibc.chunkVariables.generated)
+                continue;
+            std::atomic_bool unloadAbortFlag(false);
+            std::shared_ptr<BlockChunk> chunk = ibc.chunk;
+            indirectBlockChunkLock.unlock();
+            BlockChunkFullLock blockChunkFullLock(*chunk);
+            indirectBlockChunkLock.lock();
+            ibc.unloadAbortFlag = &unloadAbortFlag;
+            indirectBlockChunkLock.unlock();
+            getDebugLog() << "unload " << ibc.basePosition << postnl;
+            struct UnloadAbortedException final : public std::runtime_error
+            {
+                using runtime_error::runtime_error;
+            };
+            auto checkUnloadAborted = [&unloadAbortFlag]()
+            {
+                if(unloadAbortFlag.load(std::memory_order_relaxed))
+                    throw UnloadAbortedException("unload aborted");
+            };
+            bool succeded = true;
+            try
+            {
+                stream::MemoryWriter memWriter;
+                {
+                    WorldLockManager lock_manager(false);
+                    stream::CompressWriter writer(memWriter);
+                    StreamWorldGuard streamWorldGuard(writer, *this, lock_manager);
+                    std::vector<WrappedEntity *> entities;
+                    {
+                        std::unique_lock<std::recursive_mutex> lockChunk(chunk->getChunkVariables().entityListLock);
+                        WrappedEntity::ChunkListType &chunkEntityList = chunk->getChunkVariables().entityList;
+                        for(auto i = chunkEntityList.begin(); i != chunkEntityList.end(); ++i)
+                        {
+                            checkUnloadAborted();
+                            WrappedEntity &entity = *i;
+                            if(!entity.entity.good())
+                            {
+                                continue;
+                            }
+                            entities.push_back(&entity);
+                        }
+                    }
+                    stream::write<std::uint64_t>(writer, entities.size());
+                    for(WrappedEntity *entity : entities)
+                    {
+                        checkUnloadAborted();
+                        stream::write<Entity>(writer, entity->entity);
+                    }
+                    entities.clear();
+                    BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));
+                    for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
+                    {
+                        for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
+                        {
+                            checkUnloadAborted();
+                            BlockIterator columnBlockIterator = cbi;
+                            columnBlockIterator.moveBy(VectorI(x, 0, z));
+                            stream::write<BiomeProperties>(writer, columnBlockIterator.getBiomeProperties(lock_manager));
+                            BlockIterator bi = columnBlockIterator;
+                            for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                            {
+                                stream::write<Block>(writer, bi.get(lock_manager));
+                            }
+                        }
+                    }
+                    writer.flush();
+                }
+                checkUnloadAborted();
+                chunkCache->setChunk(chunk->basePosition, memWriter.getBuffer());
+                chunk = nullptr;
+                checkUnloadAborted();
+            }
+            catch(stream::IOException &e)
+            {
+                getDebugLog() << "unload of " << ibc.basePosition << " failed : " << e.what() << postnl;
+                succeded = false;
+            }
+            catch(UnloadAbortedException &)
+            {
+                getDebugLog() << "unload of " << ibc.basePosition << " aborted" << postnl;
+                succeded = false;
+            }
+            if(succeded)
+            {
+                succeded = ibc.setUnloaded(reloadFn);
+                if(!succeded)
+                {
+                    getDebugLog() << "unload of " << ibc.basePosition << " aborted" << postnl;
+                }
+            }
+            indirectBlockChunkLock.lock();
+            ibc.unloadAbortFlag = nullptr;
+            ibc.chunkCond.notify_all();
+            indirectBlockChunkLock.unlock();
+            if(succeded)
+            {
+                getDebugLog() << "unload of " << ibc.basePosition << " succeded" << postnl;
+                didAnything = true;
+            }
+        }
+    }
+#endif
+}
 
 }
 }

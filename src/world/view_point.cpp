@@ -155,6 +155,8 @@ void dumpMeshStats()
 }
 }
 
+#if 0
+#error add checking for needing locking for WorldLockManager
 void ViewPoint::copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockManager &source_lock_manager, WorldLockManager &dest_lock_manager, BlockIterator sourceChunkBlockIterator, BlockIterator destChunkBlockIterator)
 {
     assert(sourceChunkBlockIterator.position() == destChunkBlockIterator.position());
@@ -199,6 +201,7 @@ void ViewPoint::copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockM
     source_lock_manager.block_biome_lock.clear();
     dest_lock_manager.block_biome_lock.clear();
 }
+#endif
 
 bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp)
 {

@@ -28,8 +28,11 @@ namespace programmerjake
 {
 namespace voxels
 {
+class World;
+
 struct WorldLockManager final
 {
+    friend class World;
     template <typename T>
     class LockManager final
     {
@@ -110,8 +113,16 @@ struct WorldLockManager final
         }
     };
     LockManager<generic_lock_wrapper> block_biome_lock;
+    const bool needLock;
+private:
+    WorldLockManager(bool needLock)
+        : block_biome_lock(),
+        needLock(needLock)
+    {
+    }
+public:
     WorldLockManager()
-        : block_biome_lock()
+        : WorldLockManager(true)
     {
     }
     void clear()

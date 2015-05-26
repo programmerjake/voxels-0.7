@@ -31,6 +31,7 @@
 #include <atomic>
 #include <exception>
 #include "util/blocks_generate_array.h"
+#include <tuple>
 
 namespace programmerjake
 {
@@ -164,7 +165,7 @@ public:
                     deleteIndex--;
                 }
             }
-            iter = std::get<0>(randomCache.insert(std::make_pair(key, RandomCacheChunk(seed, key))));
+            iter = std::get<0>(randomCache.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple(seed, key)));
         }
         return std::get<1>(*iter);
     }
