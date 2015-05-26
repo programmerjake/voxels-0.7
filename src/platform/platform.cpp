@@ -18,6 +18,7 @@
  * MA 02110-1301, USA.
  *
  */
+#define _FILE_OFFSET_BITS 64
 #include "util/game_version.h"
 #include "platform/platform.h"
 #include <SDL2/SDL.h>
@@ -45,6 +46,8 @@
 #include "util/logging.h"
 #include "render/generate.h"
 #include <csignal>
+#include <cstdio>
+#include <ctime>
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -2144,8 +2147,163 @@ void Display::fullScreen(bool fs)
     SDL_SetWindowFullscreen(window, isFullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }
 
+namespace
+{
+struct TemporaryFile final
+{
+    TemporaryFile(const TemporaryFile &) = delete;
+    TemporaryFile &operator =(const TemporaryFile &) = delete;
+    stream::FileReader *fileReader = nullptr;
+    stream::FileWriter *fileWriter = nullptr;
+    const std::string deleteFileName;
+    TemporaryFile(FILE *readFile, FILE *writeFile, std::wstring fileName)
+        : deleteFileName(string_cast<std::string>(fileName))
+    {
+        if(writeFile)
+            fileWriter = new stream::FileWriter(writeFile);
+        else
+            fileWriter = new stream::FileWriter(fileName); // create writer first to truncate file
+        try
+        {
+            if(readFile)
+                fileReader = new stream::FileReader(readFile);
+            else
+                fileReader = new stream::FileReader(fileName);
+        }
+        catch(...)
+        {
+            delete fileWriter;
+            throw;
+        }
+    }
+    ~TemporaryFile()
+    {
+        delete fileReader;
+        delete fileWriter;
+        unlink(deleteFileName.c_str());
+    }
+    static std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> getRW(std::shared_ptr<TemporaryFile> tempFile)
+    {
+        return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(std::shared_ptr<stream::Reader>(tempFile, tempFile->fileReader),
+                                                                                           std::shared_ptr<stream::Writer>(tempFile, tempFile->fileWriter));
+    }
+};
+}
+
 }
 }
+
+#if _WIN64 || _WIN32
+namespace programmerjake
+{
+namespace voxels
+{
+std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> createTemporaryFile()
+{
+    const DWORD bufferSize = MAX_PATH + 1;
+    static thread_local char pathBuffer[bufferSize];
+    DWORD pathRetval = ::GetTempPathA(bufferSize, &pathBuffer[0]);
+    if(pathRetval == 0 || pathRetval > bufferSize)
+        throw stream::IOException("GetTempPathA failed");
+    static thread_local char fileNameBuffer[bufferSize];
+    if(0 == ::GetTempFileNameA(pathBuffer, "tmp", 0, &fileNameBuffer[0]))
+    {
+        throw stream::IOException("GetTempFileNameA failed");
+    }
+    std::wstring fileName = string_cast<std::wstring>(std::string(fileNameBuffer));
+    std::shared_ptr<TemporaryFile> tempFile = std::make_shared<TemporaryFile>(nullptr, nullptr, fileName);
+    return TemporaryFile::getRW(tempFile);
+}
+}
+}
+#elif __ANDROID
+namespace programmerjake
+{
+namespace voxels
+{
+std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> createTemporaryFile()
+{
+    static std::atomic_size_t nextFileNumber = 0;
+    const char *internalStoragePath = SDL_AndroidGetInternalStoragePath();
+    if(internalStoragePath == nullptr)
+        throw stream::IOException(std::string("SDL_AndroidGetInternalStoragePath failed: ") + SDL_GetError());
+
+    std::ostringstream ss;
+    ss << internalStoragePath << "/tmp" << nextFileNumber++ << ".tmp";
+    std::wstring fileName = string_cast<std::wstring>(ss.str());
+    std::shared_ptr<stream::Writer> writer = std::make_shared<stream::FileWriter>(fileName); // writer first to truncate; we don't need to keep file contents around because we are the only one using them
+    std::shared_ptr<stream::Reader> reader = std::make_shared<stream::FileReader>(fileName);
+    unlink(ss.str().c_str()); // removes directory entry; linux keeps file around until file isn't open by anything
+    return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+}
+}
+}
+#elif __APPLE__ || __linux || __unix || __posix
+#include <fcntl.h>
+namespace programmerjake
+{
+namespace voxels
+{
+std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> createTemporaryFile()
+{
+    unsigned fileNumber = std::time(nullptr);
+    const unsigned startFileNumber = fileNumber;
+    const unsigned fileNumberMod = 100000;
+    fileNumber %= fileNumberMod;
+    for(;;)
+    {
+        std::ostringstream ss;
+        ss << "/tmp/tmp" << fileNumber << ".tmp";
+        std::wstring fileName = string_cast<std::wstring>(ss.str());
+        int writeFileDescriptor = open(ss.str().c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+        if(writeFileDescriptor == -1)
+        {
+            if(errno != EEXIST)
+                stream::IOException::throwErrorFromErrno("createTemporaryFile: open");
+            fileNumber++;
+            fileNumber %= fileNumberMod;
+            if(fileNumber == startFileNumber)
+                throw stream::IOException("can't create temporary file");
+            continue;
+        }
+        FILE *writeFile = fdopen(writeFileDescriptor, "wb");
+        if(!writeFile)
+        {
+            close(writeFileDescriptor);
+            unlink(ss.str().c_str());
+            stream::IOException::throwErrorFromErrno("createTemporaryFile: fdopen");
+        }
+        std::shared_ptr<stream::Writer> writer;
+        try
+        {
+            writer = std::make_shared<stream::FileWriter>(writeFile); // writer first to truncate
+        }
+        catch(...)
+        {
+            std::fclose(writeFile);
+            unlink(ss.str().c_str());
+            throw;
+        }
+        std::shared_ptr<stream::Reader> reader;
+        try
+        {
+            reader = std::make_shared<stream::FileReader>(fileName);
+        }
+        catch(...)
+        {
+            writer = nullptr;
+            unlink(ss.str().c_str());
+            throw;
+        }
+        unlink(ss.str().c_str()); // removes directory entry; posix keeps file around until file isn't open by anything
+        return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+    }
+}
+}
+}
+#else
+#error unknown platform in createTemporaryFile
+#endif
 
 #include <execinfo.h>
 #include <cxxabi.h>

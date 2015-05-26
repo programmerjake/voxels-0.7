@@ -871,7 +871,7 @@ private:
     // private functions
     void lightingThreadFn();
     void blockUpdateThreadFn();
-    void generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
+    void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
     void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct);
     void particleGeneratingThreadFn();
     void moveEntitiesThreadFn();

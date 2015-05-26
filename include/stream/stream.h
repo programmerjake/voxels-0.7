@@ -558,6 +558,14 @@ public:
         }
         writeU8(0);
     }
+    virtual std::int64_t tell()
+    {
+        throw NonSeekableException();
+    }
+    virtual void seek(std::int64_t offset, SeekPosition seekPosition)
+    {
+        throw NonSeekableException();
+    }
 };
 
 template <typename ReturnType>
@@ -833,7 +841,7 @@ public:
         if(ch == EOF)
         {
             if(std::ferror(f))
-                throw IOException("IO Error : can't read from file");
+                IOException::throwErrorFromErrno("fgetc");
             throw EOFException();
         }
         return ch;
@@ -850,14 +858,7 @@ class FileWriter final : public Writer
 private:
     FILE * f;
 public:
-    explicit FileWriter(std::wstring fileName)
-        : f(nullptr)
-    {
-        std::string str = string_cast<std::string>(fileName);
-        f = std::fopen(str.c_str(), "wb");
-        if(f == nullptr)
-            throw IOException(std::string("IO Error : ") + std::strerror(errno));
-    }
+    explicit FileWriter(std::wstring fileName);
     explicit FileWriter(FILE * f)
         : f(f)
     {
@@ -870,14 +871,16 @@ public:
     virtual void writeByte(std::uint8_t v) override
     {
         if(fputc(v, f) == EOF)
-            throw IOException("IO Error : can't write to file");
+            IOException::throwErrorFromErrno("fputc");
     }
     virtual void flush() override
     {
         if(EOF == fflush(f))
-            throw IOException("IO Error : can't write to file");
+            IOException::throwErrorFromErrno("fflush");
     }
     virtual void writeBytes(const std::uint8_t *array, std::size_t count) override;
+    virtual std::int64_t tell() override;
+    virtual void seek(std::int64_t offset, SeekPosition seekPosition) override;
 };
 
 class MemoryReader final : public Reader
@@ -941,12 +944,12 @@ public:
         switch(seekPosition)
         {
         case SeekPosition::Start:
-            if(static_cast<std::size_t>(o) > length || o < 0)
+            if(static_cast<std::uint64_t>(o) > length || o < 0)
                 throw SeekOutOfRangeException();
             offset = o;
             break;
         case SeekPosition::Current:
-            if(static_cast<std::size_t>(o + offset) > length || static_cast<std::int64_t>(o + offset) < 0)
+            if(static_cast<std::uint64_t>(o + offset) > length || static_cast<std::int64_t>(o + offset) < 0)
                 throw SeekOutOfRangeException();
             offset += o;
             break;
@@ -965,6 +968,14 @@ class MemoryWriter final : public Writer
 {
 private:
     std::vector<std::uint8_t> memory;
+    std::size_t writeOffset = 0;
+    void expandBuffer(std::size_t writeByteCount)
+    {
+        if(writeOffset + writeByteCount > memory.size())
+        {
+            memory.resize(writeOffset + writeByteCount, static_cast<std::uint8_t>(0));
+        }
+    }
 public:
     MemoryWriter()
         : memory()
@@ -977,7 +988,8 @@ public:
     }
     virtual void writeByte(std::uint8_t v) override
     {
-        memory.push_back(v);
+        expandBuffer(1);
+        memory[writeOffset++] = v;
     }
     const std::vector<std::uint8_t> & getBuffer() const &
     {
@@ -995,7 +1007,38 @@ public:
     {
         if(count == 0)
             return;
-        memory.insert(memory.end(), array, array + count);
+        expandBuffer(count);
+        for(; count > 0; count--, array++)
+        {
+            memory[writeOffset++] = *array;
+        }
+    }
+    virtual std::int64_t tell() override
+    {
+        return writeOffset;
+    }
+    virtual void seek(std::int64_t offset, SeekPosition seekPosition) override
+    {
+        switch(seekPosition)
+        {
+        case SeekPosition::Start:
+            if(offset < 0)
+                throw SeekOutOfRangeException();
+            writeOffset = offset;
+            break;
+        case SeekPosition::Current:
+            if(static_cast<std::int64_t>(writeOffset) + offset < 0)
+                throw SeekOutOfRangeException();
+            writeOffset += offset;
+            break;
+        case SeekPosition::End:
+            if(static_cast<std::int64_t>(memory.size()) + offset < 0)
+                throw SeekOutOfRangeException();
+            writeOffset = memory.size() + offset;
+            break;
+        default:
+            UNREACHABLE();
+        }
     }
 };
 

@@ -43,13 +43,13 @@ class BlockIterator final
 {
     friend class World;
     friend class ViewPoint;
-    BlockChunk *chunk;
+    std::shared_ptr<BlockChunk> chunk;
     BlockChunkMap *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk()
     {
-        chunk = &(*chunks)[currentBasePosition].getOrLoad();
+        chunk = (*chunks)[currentBasePosition].getOrLoad();
     }
     BlockChunkSubchunk &getSubchunk() const
     {
@@ -74,7 +74,7 @@ class BlockIterator final
     {
         return lock_manager.block_biome_lock.try_set(getSubchunk().lock);
     }
-    BlockIterator(BlockChunk *chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
+    BlockIterator(std::shared_ptr<BlockChunk> chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
         : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
     {
     }
@@ -85,6 +85,10 @@ public:
         assert(chunks != nullptr);
         getChunk();
     }
+    BlockIterator(const BlockIterator &) = default;
+    BlockIterator(BlockIterator &&) = default;
+    BlockIterator &operator =(const BlockIterator &) = default;
+    BlockIterator &operator =(BlockIterator &&) = default;
     PositionI position() const
     {
         return currentBasePosition + currentRelativePosition;

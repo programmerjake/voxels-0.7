@@ -686,33 +686,88 @@ struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiom
     BlockChunkChunkVariables &getChunkVariables();
 };
 
+class World;
+
 class IndirectBlockChunk final
 {
+    friend class World;
     IndirectBlockChunk(const IndirectBlockChunk &) = delete;
     IndirectBlockChunk &operator =(const IndirectBlockChunk &) = delete;
 private:
-    std::unique_ptr<BlockChunk> chunk;
+    std::shared_ptr<BlockChunk> chunk;
+    std::function<void(std::shared_ptr<BlockChunk> chunk)> loadFn;
+    bool loading = false;
+    std::condition_variable chunkCond;
+    std::mutex chunkLock;
+    void setUnloaded(std::function<void(std::shared_ptr<BlockChunk> chunk)> newLoadFn) // called by World
+    {
+        std::unique_lock<std::mutex> lockIt(chunkLock);
+        assert(chunk);
+        assert(newLoadFn);
+        assert(!loading);
+        assert(chunk.unique());
+        chunk = nullptr;
+        loadFn = newLoadFn;
+    }
 public:
     const PositionI basePosition;
     BlockChunkChunkVariables chunkVariables;
     IndirectBlockChunk(PositionI basePosition)
         : chunk(),
+        loadFn(),
+        chunkCond(),
+        chunkLock(),
         basePosition(basePosition),
         chunkVariables()
     {
-        chunk = std::unique_ptr<BlockChunk>(new BlockChunk(basePosition, this));
+        chunk = std::shared_ptr<BlockChunk>(new BlockChunk(basePosition, this));
     }
     ~IndirectBlockChunk()
     {
-        chunk.reset(); // clear first
+        std::unique_lock<std::mutex> lockIt(chunkLock);
+        assert(!chunk || chunk.unique());
+        chunk = nullptr; // destruct BlockChunk before chunkVariables
     }
-    bool isLoaded() const
+    bool isLoaded()
     {
-        return true;
+        std::unique_lock<std::mutex> lockIt(chunkLock);
+        return chunk != nullptr;
     }
-    BlockChunk &getOrLoad()
+    std::shared_ptr<BlockChunk> getOrLoad()
     {
-        return *chunk;
+        std::unique_lock<std::mutex> lockIt(chunkLock);
+        if(chunk == nullptr)
+        {
+            if(loading)
+            {
+                while(loading)
+                {
+                    chunkCond.wait(lockIt);
+                }
+                return chunk;
+            }
+            loading = true;
+            assert(loadFn);
+            std::shared_ptr<BlockChunk> newChunk = std::shared_ptr<BlockChunk>(new BlockChunk(basePosition, this));
+            lockIt.unlock();
+            try
+            {
+                loadFn(newChunk);
+            }
+            catch(...)
+            {
+                lockIt.lock();
+                loading = false;
+                chunkCond.notify_all();
+                throw;
+            }
+            lockIt.lock();
+            chunk = newChunk;
+            loadFn = nullptr;
+            loading = false;
+            chunkCond.notify_all();
+        }
+        return chunk;
     }
 };
 

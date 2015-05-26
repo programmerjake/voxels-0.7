@@ -475,7 +475,7 @@ World::World(std::atomic_bool *abortFlag)
 
 BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager)
 {
-    BlockChunk *chunk = bi.chunk;
+    std::shared_ptr<BlockChunk> chunk = bi.chunk;
     lock_manager.clear();
     BlockChunkFullLock lockChunk(*chunk);
     auto lockIt = std::unique_lock<decltype(chunk->getChunkVariables().blockUpdateListLock)>(chunk->getChunkVariables().blockUpdateListLock);
@@ -526,7 +526,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
 
 BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager)
 {
-    BlockChunk *chunk = bi.chunk;
+    std::shared_ptr<BlockChunk> chunk = bi.chunk;
     lock_manager.clear();
     BlockChunkFullLock lockChunk(*chunk);
     auto lockIt = std::unique_lock<decltype(chunk->getChunkVariables().blockUpdateListLock)>(chunk->getChunkVariables().blockUpdateListLock);
@@ -819,7 +819,7 @@ void World::lightingThreadFn()
                 break;
             if(!chunkIter->isLoaded())
                 continue;
-            BlockChunk *chunk = &chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             lock_manager.clear();
@@ -895,7 +895,7 @@ void World::blockUpdateThreadFn()
                 break;
             if(!chunkIter->isLoaded())
                 continue;
-            BlockChunk *chunk = &chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             lock_manager.clear();
@@ -933,7 +933,7 @@ void World::blockUpdateThreadFn()
     }
 }
 
-void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag)
+void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag)
 {
     lock_manager.clear();
     WorldLockManager new_lock_manager;
@@ -1008,7 +1008,7 @@ void World::generateChunk(BlockChunk *chunk, WorldLockManager &lock_manager, con
                 new_lock_manager.block_biome_lock.adopt(srcSubchunk->lock);
             }
             WrappedEntity::SubchunkListType &destSubchunkList = destBi.getSubchunk().entityList;
-            srcChunkIter->currentChunk = destBi.chunk;
+            srcChunkIter->currentChunk = destBi.chunk.get();
             srcChunkIter->currentSubchunk = &destBi.getSubchunk();
             destChunkList.splice(destChunkList.end(), srcChunkList, srcChunkIter);
             destSubchunkList.splice(destSubchunkList.end(), srcSubchunkList, srcSubchunkIter);
@@ -1051,7 +1051,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
         lock_manager.clear();
         pauseGuard.checkForPause();
         bool didAnything = false;
-        BlockChunk *bestChunk = nullptr;
+        std::shared_ptr<BlockChunk> bestChunk = nullptr;
         bool haveChunk = false;
         float chunkPriority = 0;
         bool isChunkInitialGenerate = false;
@@ -1062,7 +1062,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
                 continue;
             if(chunkVariables.generateStarted)
                 continue;
-            BlockChunk *chunk = &chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             bool isCurrentChunkInitialGenerate = isInitialGenerateChunk(chunk->basePosition);
@@ -1081,7 +1081,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
 
         if(haveChunk)
         {
-            BlockChunk *chunk = bestChunk;
+            std::shared_ptr<BlockChunk> chunk = bestChunk;
             if(chunk->getChunkVariables().generateStarted.exchange(true)) // someone else got this chunk
                 continue;
             getDebugLog() << L"generating " << chunk->basePosition << L" " << chunkPriority << postnl;
@@ -1192,7 +1192,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
     bi.updateLock(lock_manager);
     WrappedEntity::ChunkListType &chunkList = bi.chunk->getChunkVariables().entityList;
     WrappedEntity::SubchunkListType &subchunkList = bi.getSubchunk().entityList;
-    entity->currentChunk = bi.chunk;
+    entity->currentChunk = bi.chunk.get();
     entity->currentSubchunk = &bi.getSubchunk();
     chunkList.push_back(entity);
     subchunkList.push_back(entity);
@@ -1244,7 +1244,7 @@ void World::moveEntitiesThreadFn()
             bool isChunkCloseEnough = isChunkCloseEnoughToPlayerToGetRandomUpdates(chunkIter->basePosition);
             if(!chunkIter->isLoaded() && (!isGenerated || !isChunkCloseEnough))
                 continue;
-            BlockChunk *chunk = &chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
@@ -1291,7 +1291,7 @@ void World::moveEntitiesThreadFn()
                 BlockIterator destBi = cbi;
                 destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
                 entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
-                if(entity.currentChunk == destBi.chunk && entity.currentSubchunk == &destBi.getSubchunk())
+                if(entity.currentChunk == destBi.chunk.get() && entity.currentSubchunk == &destBi.getSubchunk())
                 {
                     ++i;
                     entity.verify();
@@ -1304,7 +1304,7 @@ void World::moveEntitiesThreadFn()
                 entity.currentSubchunk = &destBi.getSubchunk();
                 WrappedEntity::SubchunkListType &subchunkDestEntityList = entity.currentSubchunk->entityList;
                 subchunkDestEntityList.push_back(&entity);
-                if(entity.currentChunk == destBi.chunk)
+                if(entity.currentChunk == destBi.chunk.get())
                 {
                     ++i;
                     entity.verify();
@@ -1315,7 +1315,7 @@ void World::moveEntitiesThreadFn()
                 std::unique_lock<std::recursive_mutex> lockChunk(destBi.chunk->getChunkVariables().entityListLock);
                 WrappedEntity::ChunkListType &chunkDestEntityList = chunk->getChunkVariables().entityList;
                 chunkDestEntityList.splice(chunkDestEntityList.end(), chunkEntityList, i);
-                entity.currentChunk = destBi.chunk;
+                entity.currentChunk = destBi.chunk.get();
                 i = nextI;
                 entity.verify();
             }
@@ -1588,14 +1588,14 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
             {
                 player->write(writer);
             }
-            std::vector<BlockChunk *> chunks;
+            std::vector<std::shared_ptr<BlockChunk>> chunks;
             BlockChunkMap *chunksMap = &physicsWorld->chunks;
             {
                 for(auto chunkIter = chunksMap->begin(); chunkIter != chunksMap->end(); chunkIter++)
                 {
                     if(!chunkIter->chunkVariables.generated)
                         continue;
-                    BlockChunk *chunk = &chunkIter->getOrLoad();
+                    std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
                     if(chunkIter.is_locked())
                         chunkIter.unlock();
                     chunks.push_back(chunk);
@@ -1603,7 +1603,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
             }
             std::uint64_t chunkCount = chunks.size();
             stream::write<std::uint64_t>(writer, chunkCount);
-            for(BlockChunk *chunk : chunks)
+            for(std::shared_ptr<BlockChunk> chunk : chunks)
             {
                 stream::write<PositionI>(writer, chunk->basePosition);
                 std::vector<WrappedEntity *> entities;
@@ -1816,6 +1816,8 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
     }
     return false;
 }
+
+#warning add chunk unloader thread
 
 }
 }

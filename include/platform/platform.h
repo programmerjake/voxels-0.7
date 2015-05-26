@@ -32,6 +32,7 @@
 #include "render/mesh.h"
 #include "util/enum_traits.h"
 #include <type_traits>
+#include <tuple>
 
 namespace programmerjake
 {
@@ -44,6 +45,11 @@ struct EventHandler;
 const float defaultFPS = 60;
 
 std::shared_ptr<stream::Reader> getResourceReader(std::wstring resource);
+
+/** returns reader/writer pair
+ @note Writer::flush should be called after writing before attempting to read
+ */
+std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> createTemporaryFile();
 
 enum class KeyboardKey : std::uint8_t
 {

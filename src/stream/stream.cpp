@@ -276,6 +276,15 @@ std::size_t FileReader::readBytes(std::uint8_t *array, std::size_t maxCount)
     return retval;
 }
 
+FileWriter::FileWriter(std::wstring fileName)
+    : f(nullptr)
+{
+    std::string str = string_cast<std::string>(fileName);
+    f = FILE_OPEN(str.c_str(), "wb");
+    if(f == nullptr)
+        IOException::throwErrorFromErrno("fopen");
+}
+
 void FileWriter::writeBytes(const std::uint8_t *array, std::size_t count)
 {
     errno = 0;
@@ -286,6 +295,36 @@ void FileWriter::writeBytes(const std::uint8_t *array, std::size_t count)
     }
 }
 
+std::int64_t FileWriter::tell()
+{
+    errno = 0;
+    std::int64_t retval = FILE_TELL(f);
+    if(retval < 0)
+        IOException::throwErrorFromErrno("ftell");
+    return retval;
+}
+
+void FileWriter::seek(std::int64_t offset, SeekPosition seekPosition)
+{
+    int whence;
+    switch(seekPosition)
+    {
+    case SeekPosition::Start:
+        whence = SEEK_SET;
+        break;
+    case SeekPosition::Current:
+        whence = SEEK_CUR;
+        break;
+    case SeekPosition::End:
+        whence = SEEK_END;
+        break;
+    default:
+        UNREACHABLE();
+    }
+    errno = 0;
+    if(0 != FILE_SEEK(f, offset, whence))
+        IOException::throwErrorFromErrno("fseek");
+}
 
 #if 0
 namespace
