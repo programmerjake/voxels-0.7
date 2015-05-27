@@ -18,3 +18,5 @@ core
 massif.out.*
 *.vw
 Makefile
+*.exe
+*.dll
