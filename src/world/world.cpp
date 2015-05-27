@@ -1638,6 +1638,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
             }
             std::uint64_t chunkCount = chunks.size();
             stream::write<std::uint64_t>(writer, chunkCount);
+            std::vector<std::tuple<PositionI, float, BlockUpdateKind>> blockUpdates;
             for(std::shared_ptr<BlockChunk> chunk : chunks)
             {
                 stream::write<PositionI>(writer, chunk->basePosition);
@@ -1670,9 +1671,21 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                         columnBlockIterator.moveBy(VectorI(x, 0, z));
                         stream::write<BiomeProperties>(writer, columnBlockIterator.getBiomeProperties(lock_manager));
                         BlockIterator bi = columnBlockIterator;
+                        blockUpdates.clear();
                         for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
                         {
                             stream::write<Block>(writer, bi.get(lock_manager));
+                            for(BlockUpdateIterator iter = bi.updatesBegin(lock_manager); iter != bi.updatesEnd(lock_manager); ++iter)
+                            {
+                                blockUpdates.emplace_back(iter->getPosition(), iter->getTimeLeft(), iter->getKind());
+                            }
+                        }
+                        stream::write<std::uint32_t>(writer, static_cast<std::uint32_t>(blockUpdates.size()));
+                        for(auto update : blockUpdates)
+                        {
+                            stream::write<PositionI>(writer, std::get<0>(update));
+                            stream::write<float32_t>(writer, std::get<1>(update));
+                            stream::write<BlockUpdateKind>(writer, std::get<2>(update));
                         }
                     }
                 }
@@ -1746,6 +1759,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
     std::uint64_t chunkCount = stream::read<std::uint64_t>(reader);
     static thread_local BlocksGenerateArray blocks;
     static thread_local checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
+    checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI, float, BlockUpdateKind>>, BlockChunk::subchunkCountZ>, BlockChunk::subchunkCountY>, BlockChunk::subchunkCountX> blockUpdates;
     for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
     {
         PositionI chunkBasePosition = stream::read<PositionI>(reader);
@@ -1771,6 +1785,17 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
                 {
                     blocks[x][y][z] = stream::read<Block>(reader);
                 }
+                std::uint32_t blockUpdateCount = stream::read<std::uint32_t>(reader);
+                for(; blockUpdateCount > 0; blockUpdateCount--)
+                {
+                    PositionI position = stream::read<PositionI>(reader);
+                    if(chunkBasePosition != BlockChunk::getChunkBasePosition(position))
+                        throw stream::InvalidDataValueException("block update is outside of chunk");
+                    float timeLeft = stream::read_limited<float32_t>(reader, 0, 1e6);
+                    BlockUpdateKind blockUpdateKind = stream::read<BlockUpdateKind>(reader);
+                    VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(position);
+                    blockUpdates[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z].emplace_back(position, timeLeft, blockUpdateKind);
+                }
             }
         }
         for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
@@ -1783,7 +1808,54 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
                 biomes[dx][dz].swap(bi.getBiome().biomeProperties);
             }
         }
-        world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, blocks, VectorI(0));
+        for(VectorI subchunkPos = VectorI(0); subchunkPos.x < BlockChunk::chunkSizeX; subchunkPos.x += BlockChunk::subchunkSizeXYZ)
+        {
+            for(subchunkPos.y = 0; subchunkPos.y < BlockChunk::chunkSizeY; subchunkPos.y += BlockChunk::subchunkSizeXYZ)
+            {
+                for(subchunkPos.z = 0; subchunkPos.z < BlockChunk::chunkSizeZ; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
+                {
+                    BlockIterator sbi = cbi;
+                    sbi.moveBy(subchunkPos);
+                    BlockChunkSubchunk &subchunk = sbi.getSubchunk();
+                    VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(subchunkPos);
+                    std::vector<std::tuple<PositionI, float, BlockUpdateKind>> &currentBlockUpdates = blockUpdates[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
+                    for(auto update : currentBlockUpdates)
+                    {
+                        BlockIterator bi = sbi;
+                        bi.moveTo(std::get<0>(update));
+                        world.addBlockUpdate(bi, lock_manager, std::get<2>(update), std::get<1>(update));
+                    }
+                    currentBlockUpdates.clear();
+                    for(VectorI subchunkRelativePos = VectorI(0); subchunkRelativePos.x < BlockChunk::subchunkSizeXYZ; subchunkRelativePos.x++)
+                    {
+                        for(subchunkRelativePos.y = 0; subchunkRelativePos.y < BlockChunk::subchunkSizeXYZ; subchunkRelativePos.y++)
+                        {
+                            for(subchunkRelativePos.z = 0; subchunkRelativePos.z < BlockChunk::subchunkSizeXYZ; subchunkRelativePos.z++)
+                            {
+                                BlockIterator bi = sbi;
+                                bi.moveBy(subchunkRelativePos);
+                                VectorI newBlocksPosition = subchunkRelativePos + subchunkPos;
+                                Block newBlock = blocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+                                BlockChunkBlock &b = bi.getBlock(lock_manager);
+                                BlockDescriptorPointer bd = subchunk.getBlockKind(b);
+                                if(bd != nullptr && bd->generatesParticles())
+                                {
+                                    subchunk.removeParticleGeneratingBlock(bi.position());
+                                }
+                                bd = newBlock.descriptor;
+                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock));
+                                if(bd != nullptr && bd->generatesParticles())
+                                {
+                                    subchunk.addParticleGeneratingBlock(bi.position());
+                                }
+                            }
+                        }
+                    }
+                    world.lightingStable = false;
+                }
+            }
+        }
+        world.lightingStable = false;
     }
     for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
     {
