@@ -70,12 +70,8 @@ public:
         return false;
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const = 0;
-    virtual bool shouldWrite() const
-    {
-        return true;
-    }
-    virtual void write(const Entity &entity, stream::Writer &writer) const = 0;
-    virtual Entity *read(stream::Reader &reader) const = 0;
+    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const = 0;
+    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const = 0;
 };
 
 class EntityDescriptors_t final

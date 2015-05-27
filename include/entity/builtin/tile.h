@@ -57,14 +57,26 @@ private:
         assert(data->expectedBlock.descriptor == block);
         return *data;
     }
+    TileData &getTileData(std::shared_ptr<void> dataIn) const
+    {
+        TileData *data = static_cast<TileData *>(dataIn.get());
+        assert(data != nullptr);
+        assert(data->expectedBlock.descriptor == block);
+        return *data;
+    }
     const BlockDescriptorPointer block;
 public:
     typedef void (BlockDescriptor::*MoveHandlerType)(Block b, BlockIterator bi, World &world, WorldLockManager &lock_manager, double deltaTime) const;
+    typedef std::atomic_bool *(BlockDescriptor::*AttachHandlerType)(Block b, BlockIterator bi, World &world, WorldLockManager &lock_manager) const;
 private:
     const MoveHandlerType moveHandler;
+    const AttachHandlerType attachHandler;
 public:
-    explicit TileEntity(BlockDescriptorPointer block, MoveHandlerType moveHandler)
-        : EntityDescriptor(L"builtin.tile_entity(block=" + block->name + L")"), block(block), moveHandler(moveHandler)
+    explicit TileEntity(BlockDescriptorPointer block, MoveHandlerType moveHandler, AttachHandlerType attachHandler)
+        : EntityDescriptor(L"builtin.tile_entity(block=" + block->name + L")"),
+        block(block),
+        moveHandler(moveHandler),
+        attachHandler(attachHandler)
     {
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
@@ -85,12 +97,22 @@ public:
         BlockIterator bi = world.getBlockIterator(data.expectedPosition);
         Block b = bi.get(lock_manager);
         b.lighting = data.expectedBlock.lighting; // ignore block lighting in comparison
-        if(b != data.expectedBlock)
+        auto oldData = b.data;
+        if(data.expectedBlock.data == nullptr)
+        {
+            b.data = nullptr;
+        }
+        if(b != data.expectedBlock || oldData == nullptr)
         {
             if(data.hasEntity)
                 *data.hasEntity = false;
             entity.destroy();
             return;
+        }
+        else if(data.expectedBlock.data == nullptr)
+        {
+            data.expectedBlock.data = oldData;
+            data.hasEntity = (block->*attachHandler)(data.expectedBlock, bi, world, lock_manager);
         }
         (block->*moveHandler)(data.expectedBlock, bi, world, lock_manager, deltaTime);
     }
@@ -101,16 +123,21 @@ public:
     {
         world.addEntity(this, (PositionF)position, VectorF(0), lock_manager, std::shared_ptr<void>(new TileData(block, position, hasEntity)));
     }
-    virtual bool shouldWrite() const override
+    virtual void write(PositionF positionf, VectorF velocity, std::shared_ptr<void> dataIn, stream::Writer &writer) const override
     {
-        return false;
+        TileData &data = getTileData(dataIn);
+        Block b = data.expectedBlock;
+        b.data = nullptr;
+        PositionI p = data.expectedPosition;
+        stream::write<Block>(writer, b);
+        stream::write<PositionI>(writer, p);
     }
-    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    virtual std::shared_ptr<void> read(PositionF positionf, VectorF velocity, stream::Reader &reader) const override
     {
-    }
-    virtual Entity *read(stream::Reader &reader) const override
-    {
-        return nullptr;
+        Block b = stream::read<Block>(reader);
+        b.data = nullptr;
+        PositionI p = stream::read<PositionI>(reader);
+        return std::shared_ptr<void>(new TileData(b, p, nullptr));
     }
 };
 }

@@ -283,27 +283,17 @@ Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, P
 {
     return world.addEntity(descriptor(), position, velocity, lock_manager, std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
 }
-void PlayerEntity::write(const Entity &entity, stream::Writer &writer) const
+void PlayerEntity::write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const
 {
-    PositionF position = entity.physicsObject->getPosition();
-    VectorF velocity = entity.physicsObject->getVelocity();
-    std::shared_ptr<Player> player = getPlayer(entity);
-    stream::write<PositionF>(writer, position);
-    stream::write<VectorF>(writer, velocity);
+    std::shared_ptr<Player> player = getPlayer(data);
     Player::writeReference(writer, player);
 }
-Entity *PlayerEntity::read(stream::Reader &reader) const
+std::shared_ptr<void> PlayerEntity::read(PositionF position, VectorF velocity, stream::Reader &reader) const
 {
-    PositionF position = stream::read<PositionF>(reader);
-    VectorF velocity = stream::read<VectorF>(reader);
     std::shared_ptr<Player> player = Player::readReference(reader);
     if(player == nullptr)
         throw stream::InvalidDataValueException("read empty player");
-    World::StreamWorld streamWorld = World::getStreamWorld(reader);
-    assert(streamWorld);
-    if(player->playerEntity)
-        throw stream::InvalidDataValueException("player already has entity");
-    return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
+    return std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player));
 }
 }
 }

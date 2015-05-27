@@ -1658,7 +1658,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                 stream::write<std::uint64_t>(writer, entities.size());
                 for(WrappedEntity *entity : entities)
                 {
-                    stream::write<Entity>(writer, entity->entity);
+                    entity->entity.write(writer);
                 }
                 entities.clear();
                 BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));
@@ -1757,9 +1757,10 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         std::uint64_t entityCount = stream::read<std::uint64_t>(reader);
         for(std::uint64_t entityIndex = 0; entityIndex < entityCount; entityIndex++)
         {
-            Entity *entity = stream::read<Entity>(reader);
-            // read function already adds to world
-            ignore_unused_variable_warning(entity);
+            Entity().read(reader, [&world, &lock_manager](Entity &e, PositionF position, VectorF velocity)
+            {
+                world.addEntity(e.descriptor, position, velocity, lock_manager, e.data);
+            });
         }
         for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
         {
@@ -1865,7 +1866,9 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
 void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
 {
 #warning finish fixing chunk unloader thread
+#warning add read/write block updates
 #if 0 // disable for now
+#error add read/write block updates
     std::shared_ptr<ChunkCache> chunkCache = std::make_shared<ChunkCache>();
     auto reloadFn = [chunkCache, this](std::shared_ptr<BlockChunk> chunk)
     {
@@ -1886,6 +1889,7 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
             {
                 Entity *entity = stream::read<Entity>(reader);
                 // read function already adds to world
+#error fix
                 ignore_unused_variable_warning(entity);
             }
             static thread_local BlocksGenerateArray blocks;
@@ -1992,7 +1996,7 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
                     for(WrappedEntity *entity : entities)
                     {
                         checkUnloadAborted();
-                        stream::write<Entity>(writer, entity->entity);
+                        entity->entity.write(writer);
                     }
                     entities.clear();
                     BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));

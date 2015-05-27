@@ -35,13 +35,6 @@ void Entity::destroy()
     *this = Entity();
 }
 
-bool Entity::shouldWrite() const
-{
-    if(!good())
-        return false;
-    return descriptor->shouldWrite();
-}
-
 namespace
 {
 struct StreamEntityDescriptors final
@@ -115,23 +108,37 @@ struct StreamEntityDescriptors final
 };
 }
 
+EntityDescriptorPointer Entity::readDescriptor(stream::Reader &reader)
+{
+    return StreamEntityDescriptors::read(reader);
+}
+
+void Entity::writeDescriptor(stream::Writer &writer, EntityDescriptorPointer ed)
+{
+    StreamEntityDescriptors::write(writer, ed);
+}
+
 void Entity::write(stream::Writer &writer) const
 {
     if(!good())
     {
-        StreamEntityDescriptors::write(writer, nullptr);
+        writeDescriptor(writer, nullptr);
         return;
     }
-    StreamEntityDescriptors::write(writer, descriptor);
-    descriptor->write(*this, writer);
+    writeDescriptor(writer, descriptor);
+    PositionF position = physicsObject->getPosition();
+    VectorF velocity = physicsObject->getVelocity();
+    stream::write<PositionF>(writer, position);
+    stream::write<VectorF>(writer, velocity);
+    descriptor->write(position, velocity, data, writer);
 }
 
-Entity *Entity::read(stream::Reader &reader)
+void Entity::readInternal(stream::Reader &reader, PositionF &position, VectorF &velocity)
 {
-    EntityDescriptorPointer descriptor = StreamEntityDescriptors::read(reader);
-    if(descriptor == nullptr)
-        return nullptr;
-    return descriptor->read(reader);
+    assert(descriptor);
+    position = stream::read<PositionF>(reader);
+    velocity = stream::read<VectorF>(reader);
+    data = descriptor->read(position, velocity, reader);
 }
 
 EntityDescriptor::EntityDescriptor(wstring name)

@@ -117,7 +117,11 @@ private:
     };
     static std::shared_ptr<ItemData> getItemData(const Entity &entity)
     {
-        std::shared_ptr<ItemData> retval = std::static_pointer_cast<ItemData>(entity.data);
+        return getItemData(entity.data);
+    }
+    static std::shared_ptr<ItemData> getItemData(std::shared_ptr<void> data)
+    {
+        std::shared_ptr<ItemData> retval = std::static_pointer_cast<ItemData>(data);
         assert(retval != nullptr);
         return retval;
     }
@@ -161,23 +165,15 @@ public:
         return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
     }
     static constexpr float dropSpeed = 3;
-    virtual void write(const Entity &entity, stream::Writer &writer) const override
+    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const override
     {
-        PositionF position = entity.physicsObject->getPosition();
-        VectorF velocity = entity.physicsObject->getVelocity();
-        ItemData data = *getItemData(entity);
-        stream::write<PositionF>(writer, position);
-        stream::write<VectorF>(writer, velocity);
-        stream::write<ItemData>(writer, data);
+        ItemData itemData = *getItemData(data);
+        stream::write<ItemData>(writer, itemData);
     }
-    virtual Entity *read(stream::Reader &reader) const override
+    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override
     {
-        PositionF position = stream::read<PositionF>(reader);
-        VectorF velocity = stream::read<VectorF>(reader);
-        ItemData data = stream::read<ItemData>(reader);
-        World::StreamWorld streamWorld = World::getStreamWorld(reader);
-        assert(streamWorld);
-        return streamWorld.world().addEntity(this, position, velocity, streamWorld.lock_manager(), std::shared_ptr<void>(new ItemData(data)));
+        ItemData itemData = stream::read<ItemData>(reader);
+        return std::shared_ptr<void>(new ItemData(itemData));
     }
 };
 }

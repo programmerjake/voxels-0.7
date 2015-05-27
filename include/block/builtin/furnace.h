@@ -234,7 +234,7 @@ private:
                     RenderLayer::Opaque),
                     tileEntity(nullptr), burning(burning), facing(facing)
     {
-        tileEntity = new Entities::builtin::TileEntity(this, (Entities::builtin::TileEntity::MoveHandlerType)&Furnace::entityMove);
+        tileEntity = new Entities::builtin::TileEntity(this, (Entities::builtin::TileEntity::MoveHandlerType)&Furnace::entityMove, (Entities::builtin::TileEntity::AttachHandlerType)&Furnace::entityAttach);
     }
     ~Furnace()
     {
@@ -294,6 +294,13 @@ private:
         {
             world.setBlock(bi, lock_manager, Block(descriptor(facing, newBurning), b.lighting, b.data));
         }
+    }
+    std::atomic_bool *entityAttach(Block b, BlockIterator bi, World &world, WorldLockManager &lock_manager) const
+    {
+        assert(b.data != nullptr);
+        std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(b.data.get())->data;
+        data->hasEntity = true;
+        return &data->hasEntity;
     }
     struct FurnaceMaker final
     {

@@ -72,7 +72,11 @@ private:
     }
     std::shared_ptr<Player> getPlayer(const Entity &entity) const
     {
-        return std::static_pointer_cast<std::weak_ptr<Player>>(entity.data)->lock();
+        return getPlayer(entity.data);
+    }
+    std::shared_ptr<Player> getPlayer(std::shared_ptr<void> data) const
+    {
+        return std::static_pointer_cast<std::weak_ptr<Player>>(data)->lock();
     }
     virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
@@ -93,8 +97,8 @@ public:
         return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25, 1.8, 0.25)).concat(Matrix::translate(entity.physicsObject->getPosition()));
     }
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override;
-    virtual void write(const Entity &entity, stream::Writer &writer) const override;
-    virtual Entity *read(stream::Reader &reader) const override;
+    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const override;
+    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override;
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity = VectorF(0));
 };
 }

@@ -68,9 +68,24 @@ struct Entity final
         return !good();
     }
     void destroy();
-    bool shouldWrite() const;
     void write(stream::Writer &writer) const;
-    static Entity *read(stream::Reader &reader);
+private:
+    void readInternal(stream::Reader &reader, PositionF &position, VectorF &velocity);
+public:
+    template <typename F>
+    void read(stream::Reader &reader, F createFn)
+    {
+        *this = Entity();
+        descriptor = readDescriptor(reader);
+        if(!descriptor)
+            return;
+        PositionF position;
+        VectorF velocity;
+        readInternal(reader, position, velocity);
+        createFn(*this, position, velocity);
+    }
+    static EntityDescriptorPointer readDescriptor(stream::Reader &reader);
+    static void writeDescriptor(stream::Writer &writer, EntityDescriptorPointer ed);
 };
 }
 }
