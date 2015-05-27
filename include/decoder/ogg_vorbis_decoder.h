@@ -26,7 +26,6 @@
 #include <vorbis/vorbisfile.h>
 #include <cerrno>
 #include <iostream>
-#include <endian.h>
 #include "util/logging.h"
 
 namespace programmerjake

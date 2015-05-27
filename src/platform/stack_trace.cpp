@@ -23,7 +23,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cstring>
-
+#if _WIN64 || _WIN32
+#warning finish stack trace code for windows
+#elif __ANDROID || __APPLE__ || __linux || __unix || __posix
 #include <execinfo.h>
 #include <cxxabi.h>
 
@@ -114,3 +116,6 @@ void StackTrace::dump(std::wostream &os)
 }
 }
 }
+#else
+#error unknown platform for network.cpp
+#endif

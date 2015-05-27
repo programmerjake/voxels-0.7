@@ -41,6 +41,7 @@ namespace voxels
 {
 namespace memory
 {
+#ifdef LOG_ALLOC
 using namespace std; // workaround for max_align_t not being in std namespace
 struct MemoryHeader final
 {
@@ -101,6 +102,7 @@ void log_alloc(std::size_t count)
     }
     isInCall = false;
 }
+#endif // LOG_ALLOC
 void *allocate(std::size_t count)
 {
 #ifndef LOG_ALLOC
@@ -113,7 +115,7 @@ void *allocate(std::size_t count)
     allocatedMemory.fetch_add(count, std::memory_order_relaxed);
     ptr->allocatedSize = count;
     return static_cast<void *>(&ptr->data[0]);
-#endif // NDEBUG
+#endif // LOG_ALLOC
 }
 void release(void *v)
 {
@@ -125,7 +127,7 @@ void release(void *v)
     MemoryHeader *ptr = reinterpret_cast<MemoryHeader *>(static_cast<char *>(v) - offsetof(MemoryHeader, data));
     allocatedMemory.fetch_sub(ptr->allocatedSize, std::memory_order_relaxed);
     std::free(static_cast<void *>(ptr));
-#endif // NDEBUG
+#endif // LOG_ALLOC
 }
 }
 }

@@ -103,24 +103,3 @@ initializer init2([]()
 #endif // testing solveCubic
 }
 }
-#if 0
-void * operator new(size_t sz) // for profiling
-{
-    static thread_local bool inNew = false;
-    if(!inNew)
-    {
-        inNew = true;
-        programmerjake::voxels::dumpStackTraceToDebugLog();
-        inNew = false;
-    }
-    void *retval = malloc(sz);
-    if(retval == nullptr)
-        throw std::bad_alloc();
-    return retval;
-}
-
-void operator delete(void * ptr) // for profiling
-{
-    free(ptr);
-}
-#endif

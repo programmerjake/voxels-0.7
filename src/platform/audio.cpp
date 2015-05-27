@@ -18,6 +18,9 @@
  * MA 02110-1301, USA.
  *
  */
+#if _WIN64 || _WIN32
+#include <intrin.h> // to fix declaration conflict
+#endif
 #include "platform/audio.h"
 #include "platform/platform.h"
 #include <mutex>

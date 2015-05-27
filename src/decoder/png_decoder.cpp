@@ -72,17 +72,17 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr)
     {
-        png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
+        png_destroy_read_struct(&png_ptr, nullptr, nullptr);
         errorMsg = "can't create png info struct";
         return false;
     }
 
-    uint8_t *volatile retval = NULL;  // so that it isn't messed up by longjmp
-    volatile png_bytepp rows = NULL;
+    uint8_t *volatile retval = nullptr;  // so that it isn't messed up by longjmp
+    volatile png_bytepp rows = nullptr;
 
     if(setjmp(png_jmpbuf(png_ptr)))
     {
-        png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
+        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
         delete []retval;
         delete []rows;
         return false;
@@ -94,7 +94,7 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
 
     png_uint_32 XRes, YRes;
     int bit_depth, color_type, interlace_type;
-    png_get_IHDR(png_ptr, info_ptr, &XRes, &YRes, &bit_depth, &color_type, &interlace_type, int_p_NULL, int_p_NULL);
+    png_get_IHDR(png_ptr, info_ptr, &XRes, &YRes, &bit_depth, &color_type, &interlace_type, nullptr, nullptr);
 
     png_set_strip_16(png_ptr);
 
@@ -135,7 +135,7 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
 
     delete []rows;
 
-    png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
+    png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
     pixels = (uint8_t *)retval;
     return true;
 }

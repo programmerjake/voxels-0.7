@@ -19,10 +19,11 @@
  *
  */
 #define _FILE_OFFSET_BITS 64
+#if _WIN64 || _WIN32
+#include <intrin.h> // to fix declaration conflict
+#endif
 #include "util/game_version.h"
 #include "platform/platform.h"
-#include <SDL2/SDL.h>
-#include <GL/gl.h>
 #include "util/matrix.h"
 #include "util/vector.h"
 #include "util/string_cast.h"
@@ -48,6 +49,11 @@
 #include <csignal>
 #include <cstdio>
 #include <ctime>
+#include <SDL2/SDL.h>
+#include <GL/gl.h>
+#if _WIN64 || _WIN32
+#include <GL/glext.h>
+#endif
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
 #define SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK "SDL_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK"
@@ -158,9 +164,7 @@ static void startSDL();
 }
 }
 
-#ifdef _WIN64
-#error implement getResourceReader for Win64
-#elif _WIN32
+#if _WIN64 || _WIN32
 #include <cstring>
 #include <cwchar>
 #include <windows.h>
@@ -215,10 +219,10 @@ initializer initializer1([]()
     initfn();
 });
 
-shared_ptr<Reader> getResourceReader(wstring resource)
+shared_ptr<stream::Reader> getResourceReader(wstring resource)
 {
     startSDL();
-    string fname = wstringToString(getResourceFileName(resource));
+    string fname = string_cast<std::string>(getResourceFileName(resource));
     return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
 }
 }
@@ -2305,127 +2309,10 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
 #error unknown platform in createTemporaryFile
 #endif
 
-#include <execinfo.h>
-#include <cxxabi.h>
-
 namespace programmerjake
 {
 namespace voxels
 {
-namespace
-{
-std::atomic_bool stackTraceDumpingEnabled(false);
-}
-void setStackTraceDumpingEnabled(bool v)
-{
-    stackTraceDumpingEnabled = v;
-}
-bool getStackTraceDumpingEnabled()
-{
-    return stackTraceDumpingEnabled;
-}
-void dumpStackTraceToDebugLog()
-{
-    static thread_local bool inDumpStackTrace = false;
-    if(inDumpStackTrace || !stackTraceDumpingEnabled)
-        return;
-    inDumpStackTrace = true;
-    auto flagUnlocker = [](bool *f)
-    {
-        *f = false;
-    };
-    auto unlockFlag = std::unique_ptr<bool, decltype(flagUnlocker)>(&inDumpStackTrace, flagUnlocker);
-    auto &os = getDebugLog();
-    os << L"stack trace:\n";
-    const unsigned maxBacktraceFrames = 16;
-    void *addressList[maxBacktraceFrames + 1];
-    int addressListLength = backtrace(addressList, sizeof(addressList) / sizeof(addressList[0]));
-    if(addressListLength <= 0)
-    {
-        os << L"    empty: possibly corrupt" << postnl;
-        return;
-    }
-    auto symbolListDeleter = [](char **symbolList)
-    {
-        free(symbolList);
-    };
-    auto pSymbolList = std::unique_ptr<char *, decltype(symbolListDeleter)>(backtrace_symbols(addressList, addressListLength), symbolListDeleter);
-    char **symbolList = pSymbolList.get();
-    std::size_t functionNameSize = 256;
-    char *functionName = (char *)malloc(functionNameSize);
-    struct functionNameDeleterType
-    {
-        char *&functionName;
-        ~functionNameDeleterType()
-        {
-            free(functionName);
-        }
-        functionNameDeleterType(char *&functionName)
-            : functionName(functionName)
-        {
-        }
-    } functionNameDeleter(functionName);
-    for(int i = 1; i < addressListLength; i++) // start at 1 to skip this function
-    {
-        char *beginName = nullptr, *beginOffset = nullptr, *endOffset = nullptr;
-        for(char *j = symbolList[i]; *j; j++)
-        {
-            switch(*j)
-            {
-            case '(':
-                beginName = j;
-                break;
-            case '+':
-                beginOffset = j;
-                break;
-            case ')':
-                if(beginOffset)
-                    endOffset = j;
-                break;
-            }
-        }
-        std::string line = symbolList[i];
-        functionName[0] = '\0';
-        if(beginName && beginOffset && endOffset && beginName < beginOffset)
-        {
-            *beginName++ = '\0';
-            *beginOffset++ = '\0';
-            *endOffset++ = '\0';
-            int status;
-            char *retval = abi::__cxa_demangle(beginName, functionName, &functionNameSize, &status);
-            if(status == 0)
-            {
-                functionName = retval;
-                if(string(functionName).substr(0, 5) == "std::")
-                    continue;
-                if(string(functionName).substr(0, 11) == "__gnu_cxx::")
-                    continue;
-                line = symbolList[i];
-                line += " : ";
-                line += functionName;
-                line += "+";
-                line += beginOffset;
-            }
-            else
-            {
-                line = symbolList[i];
-                line += " : ";
-                line += beginName;
-                line += "()+";
-                line += beginOffset;
-            }
-        }
-        os << L" " << i << L":\n";
-        while(line.size() > 60)
-        {
-            os << L"    " << string_cast<std::wstring>(line.substr(0, 60)) << L"\n";
-            line.erase(0, 60);
-        }
-        os << L"    " << string_cast<std::wstring>(line.substr(0, 60)) << L"\n";
-    }
-    os << postnl;
-}
-
 namespace
 {
 int callMyMain(int argc, char **argv);

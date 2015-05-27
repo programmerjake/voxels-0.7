@@ -44,7 +44,6 @@ BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlock
     indirectBlockChunk(indirectBlockChunk)
 {
     assert(indirectBlockChunk);
-    dumpStackTraceToDebugLog();
 }
 
 BlockChunk::~BlockChunk()

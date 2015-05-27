@@ -23,8 +23,47 @@ project_filename="voxels-0.7.cbp"
 declare -a a
 mapfile -t a < "$project_filename"
 target="Release"
-if [[ ! -z "$1" ]]; then
-    target="$1"
+arch="linux"
+valid_architectures=("linux" "win32" "win64")
+OPTIND=1
+while getopts "ht:a:" option_name; do
+    case "$option_name" in
+    h)
+        cat <<'EOF'
+usage: ./make-makefile.sh <options>
+Generate Makefile from the project file.
+Options:
+-h              show this help.
+-t <Target>     set the generated target.
+-a <Arch>       set the output architecture.
+EOF
+        exit 0
+        ;;
+    t)
+        target="$OPTARG"
+        ;;
+    a)
+        arch="$OPTARG"
+        found_arch=0
+        for i in "${valid_architectures[@]}"; do
+            if [[ "$arch" == "$i" ]]; then
+                found_arch=1
+                break
+            fi
+        done
+        if ! ((found_arch)); then
+            echo "$0: invalid architecture" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        exit 1
+        ;;
+    esac
+done
+if ((OPTIND <= $#)); then
+    echo "$0: too many options" >&2
+    exit 1
 fi
 found_target=0
 current_target=""
@@ -99,6 +138,43 @@ if ! ((found_target)); then
     echo "target '$target' not found." >&2
     exit 1
 fi
+march_override=""
+case "$arch" in
+linux)
+    output_file_extension=""
+    build_dir_suffix=""
+    gxx_name="g++"
+    gcc_name="gcc"
+    ;;
+win64)
+    output_file_extension="-w64.exe"
+    build_dir_suffix="-Win64"
+    gxx_name="x86_64-w64-mingw32-g++"
+    gcc_name="x86_64-w64-mingw32-gcc"
+    linker_command_line=(-mwindows -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
+    ;;
+win32)
+    output_file_extension="-w32.exe"
+    build_dir_suffix="-Win32"
+    gxx_name="i686-w64-mingw32-g++"
+    gcc_name="i686-w64-mingw32-gcc"
+    march_override="-march=i686"
+    linker_command_line=(-mwindows -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
+    ;;
+esac
+object_output_dir="${object_output_dir%/}$build_dir_suffix/"
+if [[ ! -z "$march_override" ]]; then
+    for((i=0;i<${#compiler_command_line[@]};i++)); do
+        if [[ "${compiler_command_line[i]:0:7}" == "-march=" ]]; then
+            compiler_command_line[i]="$march_override"
+            march_override=""
+            break
+        fi
+    done
+    if [[ ! -z "$march_override" ]]; then
+        compiler_command_line=("${compiler_command_line[@]}" "$march_override")
+    fi
+fi
 declare -A objects
 declare -A object_directories
 for file in "${files[@]}"; do
@@ -108,6 +184,7 @@ for file in "${objects[@]}"; do
     directory="${file%/*}"
     object_directories["$directory"]="$directory"
 done
+output_executable_name="$output_executable_name$output_file_extension"
 exec > Makefile
 echo "# generated from $project_filename"
 cat <<'EOF'
@@ -131,9 +208,9 @@ cat <<'EOF'
 #
 #
 EOF
-echo CXX = g++
-echo CC = gcc
-echo LD = g++
+echo CXX = "$gxx_name"
+echo CC = "$gcc_name"
+echo LD = "$gxx_name"
 echo
 echo ".PHONY: all build clean prebuild"
 echo
@@ -163,11 +240,11 @@ for source in "${!objects[@]}"; do
     index=$((index + 1))
     printf "processing dependencies |%s%s| %i%% (%s)\x1b[K\r" "${pound_line::index * ${#pound_line} / max_index}" "${space_line:index * ${#pound_line} / max_index}" $((index * 100 / max_index)) "$source" >&2
     printf "%s: " "${objects["$source"]}"
-    gcc_executable="g++"
+    gcc_executable="$gxx_name"
     compiler_line_start=""
     if [ "${source%.c}" != "${source}" ]; then
         compiler_line_start=$'\t@$(CC)'
-        gcc_executable="gcc"
+        gcc_executable="$gcc_name"
     else
         compiler_line_start=$'\t@$(CXX)'
     fi
@@ -177,22 +254,3 @@ for source in "${!objects[@]}"; do
     echo
 done
 echo >&2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
