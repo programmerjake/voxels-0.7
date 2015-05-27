@@ -153,7 +153,7 @@ public:
     {
         makeData(entity);
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
         makeData(entity);
         std::shared_ptr<PhysicsCollisionHandler> collisionHandler = std::make_shared<MyCollisionHandler>(std::static_pointer_cast<FallingBlockData>(entity.data));

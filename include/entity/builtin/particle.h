@@ -94,7 +94,7 @@ public:
         : EntityDescriptor(name), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop)
     {
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
         if(!collideWithBlocks)
         {

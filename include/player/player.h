@@ -78,7 +78,7 @@ private:
     {
         return std::static_pointer_cast<std::weak_ptr<Player>>(data)->lock();
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
         return PhysicsObject::makeCylinder(position, velocity,
                                            true, false,

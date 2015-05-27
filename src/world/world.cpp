@@ -1005,7 +1005,7 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
             PositionF position = srcChunkIter->entity.physicsObject->getPosition();
             VectorF velocity = srcChunkIter->entity.physicsObject->getVelocity();
             srcChunkIter->entity.physicsObject->destroy();
-            srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->makePhysicsObject(srcChunkIter->entity, *this, position, velocity, physicsWorld);
+            srcChunkIter->entity.physicsObject = srcChunkIter->entity.descriptor->makePhysicsObject(srcChunkIter->entity, position, velocity, physicsWorld);
             WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
             ++nextSrcIter;
             BlockIterator destBi = cbi;
@@ -1217,7 +1217,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
     BlockIterator bi = getBlockIteratorForWorldAddEntity((PositionI)position);
     lock_manager.block_biome_lock.clear();
     WrappedEntity *entity = new WrappedEntity(Entity(descriptor, nullptr, entityData));
-    entity->entity.physicsObject = descriptor->makePhysicsObject(entity->entity, *this, position, velocity, physicsWorld);
+    entity->entity.physicsObject = descriptor->makePhysicsObject(entity->entity, position, velocity, physicsWorld);
     descriptor->makeData(entity->entity, *this, lock_manager);
     lock_manager.block_biome_lock.clear();
     std::unique_lock<std::recursive_mutex> lockChunk(bi.chunk->getChunkVariables().entityListLock);
@@ -1700,9 +1700,11 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
     }
     catch(stream::IOException &)
     {
+        lock_manager.clear();
         paused(wasPaused);
         throw;
     }
+    lock_manager.clear();
     paused(wasPaused);
 }
 
@@ -1938,7 +1940,6 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
 void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
 {
 #warning finish fixing chunk unloader thread
-#warning add read/write block updates
 #if 0 // disable for now
 #error add read/write block updates
     std::shared_ptr<ChunkCache> chunkCache = std::make_shared<ChunkCache>();

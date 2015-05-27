@@ -55,7 +55,7 @@ EntityItem::ItemData EntityItem::ItemData::read(stream::Reader &reader)
     return ItemData(angle, bobPhase, timeLeft, ignorePlayerTime, ignorePlayer, followingPlayer, itemStack);
 }
 
-std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, World &world, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const
+std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const
 {
     std::shared_ptr<ItemData> data = getItemData(entity);
     assert(data);
