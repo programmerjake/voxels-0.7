@@ -17,3 +17,4 @@ core
 *.log
 massif.out.*
 *.vw
+Makefile
