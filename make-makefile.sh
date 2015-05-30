@@ -151,7 +151,7 @@ win64)
     build_dir_suffix="-Win64"
     gxx_name="x86_64-w64-mingw32-g++"
     gcc_name="x86_64-w64-mingw32-gcc"
-    linker_command_line=(-mwindows -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
+    linker_command_line=(-mconsole -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
     ;;
 win32)
     output_file_extension="-w32.exe"
@@ -159,7 +159,7 @@ win32)
     gxx_name="i686-w64-mingw32-g++"
     gcc_name="i686-w64-mingw32-gcc"
     march_override="-march=i686"
-    linker_command_line=(-mwindows -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
+    linker_command_line=(-mconsole -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
     ;;
 esac
 object_output_dir="${object_output_dir%/}$build_dir_suffix/"
