@@ -21,6 +21,7 @@
 #define _FILE_OFFSET_BITS 64
 #if _WIN64 || _WIN32
 #include <intrin.h> // to fix declaration conflict
+#include <stdio.h>
 #endif
 #include "util/game_version.h"
 #include "platform/platform.h"
@@ -225,18 +226,26 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
     string fname = string_cast<std::string>(getResourceFileName(resource));
     return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
 }
+static int platformSetup()
+{
+    if(getenv("SDL_AUDIODRIVER") == nullptr)
+    {
+        _putenv_s("SDL_AUDIODRIVER", "winmm");
+    }
+    return 0;
+}
 }
 }
 #elif __ANDROID
-#error implement getResourceReader for Android
+#error implement getResourceReader and platformSetup for Android
 #elif __APPLE__
 #include "TargetConditionals.h"
 #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
-#error implement getResourceReader for iPhone simulator
+#error implement getResourceReader and platformSetup for iPhone simulator
 #elif TARGET_OS_IPHONE
-#error implement getResourceReader for iPhone
+#error implement getResourceReader and platformSetup for iPhone
 #else
-#error implement getResourceReader for OS X
+#error implement getResourceReader and platformSetup for OS X
 #endif
 #elif __linux
 #include <unistd.h>
@@ -297,12 +306,16 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
         throw RWOpsException("can't open resource : " + string_cast<string>(resource));
     }
 }
+static int platformSetup()
+{
+    return 0;
+}
 }
 }
 #elif __unix
-#error implement getResourceReader for other unix
+#error implement getResourceReader and platformSetup for other unix
 #elif __posix
-#error implement getResourceReader for other posix
+#error implement getResourceReader and platformSetup for other posix
 #else
 #error unknown platform in getResourceReader
 #endif
@@ -489,8 +502,15 @@ static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadSt
     renderThreadFnQueue.push_back(status.makeRenderThreadFunction(fn));
 }
 
+static void runPlatformSetup()
+{
+    static int v = platformSetup();
+    ignore_unused_variable_warning(v);
+}
+
 static void startSDL()
 {
+    runPlatformSetup();
     if(runningSDL.exchange(true))
         return;
     if(0 != SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO))
@@ -2322,6 +2342,7 @@ int callMyMain(int argc, char **argv);
 
 extern "C" int main(int argc, char *argv[])
 {
+    programmerjake::voxels::runPlatformSetup();
     return programmerjake::voxels::callMyMain(argc, argv);
 }
 
