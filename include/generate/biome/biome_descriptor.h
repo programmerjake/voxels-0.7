@@ -36,6 +36,7 @@ class BiomeDescriptor
 private:
     BiomeIndex index;
 public:
+    virtual ~BiomeDescriptor() = default;
     BiomeIndex getIndex() const
     {
         return index;

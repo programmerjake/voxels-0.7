@@ -35,6 +35,7 @@ class Container;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 class Element : public EventHandler, public std::enable_shared_from_this<Element>
 {
 #pragma GCC diagnostic pop

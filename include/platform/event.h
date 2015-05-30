@@ -89,6 +89,7 @@ protected:
     {
     }
 public:
+    virtual ~PlatformEvent() = default;
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) = 0;
 };
 

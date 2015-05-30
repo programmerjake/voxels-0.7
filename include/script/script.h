@@ -41,6 +41,7 @@ namespace Scripting
 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
     struct Data : public std::enable_shared_from_this<Data>
     {
 #pragma GCC diagnostic pop
@@ -467,6 +468,7 @@ namespace Scripting
     struct State;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
+#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
     struct Node : public std::enable_shared_from_this<Node>
     {
 #pragma GCC diagnostic pop

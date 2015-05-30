@@ -55,26 +55,26 @@ struct constexpr_assert_failure final
 #endif
 
 #ifndef NDEBUG
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #elif defined(__GNUC__) || defined(__GNUG__)
 #define UNREACHABLE() __builtin_unreachable()
 #elif defined(__HP_cc) || defined(__HP_aCC)
 #warning UNREACHABLE() unsupported on Hewlett-Packard C/aC++
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #elif defined(__IBMC__) || defined(__IBMCPP__)
 #warning UNREACHABLE() unsupported on IBM XL C/C++
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #elif defined(_MSC_VER)
 #define UNREACHABLE() __assume(false)
 #elif defined(__PGI)
 #warning UNREACHABLE() unsupported on Portland Group PGCC/PGCPP
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #warning UNREACHABLE() unsupported on Oracle Solaris Studio
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #else
 #warning UNREACHABLE() unsupported on unknown compiler
-#define UNREACHABLE() assert(!"unreachable")
+#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #endif
 #if defined(__GNUC__) || defined(__GNUG__)
 template <typename T>

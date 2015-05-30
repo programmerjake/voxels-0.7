@@ -186,6 +186,7 @@ class PhysicsObject;
 class PhysicsCollisionHandler
 {
 public:
+    virtual ~PhysicsCollisionHandler() = default;
     virtual void onCollide(std::shared_ptr<PhysicsObject> collidingObject, std::shared_ptr<PhysicsObject> otherObject) = 0;
     virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject, BlockIterator otherObject, WorldLockManager &lock_manager) = 0;
 };
