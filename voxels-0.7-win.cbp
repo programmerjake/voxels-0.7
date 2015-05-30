@@ -19,10 +19,6 @@
 					<Add option="-D_GLIBCXX_DEBUG" />
 					<Add option="-DDEBUG_LOCKS" />
 				</Compiler>
-				<Linker>
-					<Add option="-fPIC" />
-					<Add option="-pie" />
-				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="voxels" prefix_auto="1" extension_auto="1" />
