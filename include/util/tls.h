@@ -29,7 +29,7 @@
 #include <memory>
 #include "util/util.h"
 
-#define USE_BUILTIN_TLS
+//#define USE_BUILTIN_TLS
 
 namespace programmerjake
 {
@@ -68,31 +68,10 @@ public:
     }
     ~TLS() = default;
 #else
-    TLS()
-        : memory(new char[tls_memory_size])
-    {
-        getTlsSlowHelper() = this;
-        for(std::size_t i = 0; i < tls_memory_size; i++)
-        {
-            memory[i] = 0; // zero initialize memory to clear constructed flags
-        }
-    }
-    ~TLS()
-    {
-        while(destructor_list_head != nullptr)
-        {
-            for(std::size_t i = 0; i < destructor_list_head->destructors_used; i++)
-            {
-                destructor_list_head->destructors[i](*this);
-            }
-            destructor_list_node *next = destructor_list_head->next;
-            delete destructor_list_head;
-            destructor_list_head = next;
-        }
-        delete []memory;
-    }
+    TLS();
+    ~TLS();
 private:
-    static constexpr std::size_t tls_memory_size = 1 << 22;
+    static const std::size_t tls_memory_size;
     static std::atomic_size_t next_variable_position;
     char *memory;
     typedef void (*destructor_fn)(TLS &tls);
@@ -104,34 +83,8 @@ private:
         destructor_list_node *next = nullptr;
     };
     destructor_list_node *destructor_list_head = nullptr;
-    destructor_list_node *destructor_list_tail = nullptr;
-    void add_destructor(destructor_fn fn)
-    {
-        assert(fn);
-        if(destructor_list_head == nullptr || destructor_list_head->destructors_used >= destructor_list_node::destructor_list_size)
-        {
-            destructor_list_node *new_node = new destructor_list_node;
-            new_node->next = destructor_list_head;
-            destructor_list_head = new_node;
-        }
-
-    }
-    static std::size_t reserve_memory_slot(std::size_t variable_size)
-    {
-        using namespace std; // for max_align_t;
-        const std::size_t max_align = alignof(max_align_t);
-        if(variable_size == 0)
-            variable_size = 1; // always allocate different addresses
-        variable_size += max_align - 1;
-        variable_size /= max_align;
-        variable_size *= max_align; // round up to next aligned size
-        std::size_t retval = next_variable_position.fetch_add(variable_size, std::memory_order_relaxed);
-        if(retval + variable_size > tls_memory_size)
-        {
-            std::terminate();
-        }
-        return retval;
-    }
+    void add_destructor(destructor_fn fn);
+    static std::size_t reserve_memory_slot(std::size_t variable_size);
     template <typename T, typename VariableTag>
     static std::size_t get_memory_slot()
     {
@@ -169,7 +122,7 @@ private:
     {
         thread_local_variable_slot_getter()
         {
-            TLS::get_memory_slot<T, VariableTag>();
+            TLS::get_memory_slot<wrapper, VariableTag>();
         }
         void link_in_helper()
         {
@@ -178,7 +131,7 @@ private:
     static thread_local_variable_slot_getter thread_local_variable_slot_getter_v;
     static wrapper &get_wrapper(TLS &tls)
     {
-        return *reinterpret_cast<wrapper *>(tls.memory + TLS::get_memory_slot<T, VariableTag>());
+        return *reinterpret_cast<wrapper *>(tls.memory + TLS::get_memory_slot<wrapper, VariableTag>());
     }
     static void destructor_fn(TLS &tls)
     {
