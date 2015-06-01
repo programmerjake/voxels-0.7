@@ -41,6 +41,7 @@
 #include "util/enum_traits.h"
 #include "util/circular_deque.h"
 #include "util/util.h"
+#include <sstream>
 #ifdef DEBUG_STREAM
 #include <iostream>
 #define DUMP_V(fn, v) do {std::cerr << #fn << ": read " << v << std::endl;} while(false)
@@ -184,10 +185,11 @@ private:
     template <typename T>
     static T limitAfterRead(T v, T min, T max)
     {
-        using std::to_string;
         if(v < min || v > max)
         {
-            throw InvalidDataValueException("read value out of range : " + to_string(v));
+            std::ostringstream ss;
+            ss << "read value out of range : " << v;
+            throw InvalidDataValueException(ss.str());
         }
         return v;
     }
