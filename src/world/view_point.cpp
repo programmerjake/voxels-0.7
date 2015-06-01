@@ -251,7 +251,7 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
             {
                 BlockIterator sbi = cbi;
                 PositionI subchunkPosition = chunkPosition + BlockChunk::getChunkRelativePositionFromSubchunkIndex(subchunkIndex);
-                sbi.moveTo(subchunkPosition);
+                sbi.moveTo(subchunkPosition, lock_manager.tls);
                 sbi.updateLock(lock_manager);
                 BlockChunkSubchunk &subchunk = sbi.getSubchunk();
                 if(!subchunk.cachedMeshesUpToDate.exchange(true))
@@ -284,7 +284,7 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
                         for(std::int32_t bz = 0; bz < BlockChunk::subchunkSizeXYZ; bz++)
                         {
                             BlockIterator bbi = sbi;
-                            bbi.moveTo(subchunkPosition + VectorI(bx, by, bz));
+                            bbi.moveTo(subchunkPosition + VectorI(bx, by, bz), lock_manager.tls);
                             BlockDescriptorPointer bd = bbi.get(lock_manager).descriptor;
                             if(bd != nullptr)
                             {
@@ -295,7 +295,7 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
                                     for(BlockFace bf : enum_traits<BlockFace>())
                                     {
                                         BlockIterator bfbi = bbi;
-                                        bfbi.moveToward(bf);
+                                        bfbi.moveToward(bf, lock_manager.tls);
                                         lighting[toBlockFaceOrNone(bf)] = lightingCache.getBlockLighting(bfbi, lock_manager, wlp);
                                     }
                                     for(RenderLayer rl : enum_traits<RenderLayer>())
@@ -331,7 +331,7 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
     return true;
 }
 
-void ViewPoint::generateMeshesFn(bool isPrimaryThread)
+void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
 {
     auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
@@ -373,8 +373,8 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread)
                     lockIt.unlock();
                     World::ThreadPauseGuard pauseGuard(world);
                     pauseGuard.checkForPause();
-                    WorldLockManager lock_manager;
-                    BlockIterator cbi = world.getBlockIterator(chunkPosition);
+                    WorldLockManager lock_manager(tls);
+                    BlockIterator cbi = world.getBlockIterator(chunkPosition, lock_manager.tls);
                     WorldLightingProperties wlp = world.getLighting(chunkPosition.d);
                     if(generateChunkMeshes(meshes ? std::shared_ptr<enum_array<Mesh, RenderLayer>>(meshes, &meshes->meshes) : std::shared_ptr<enum_array<Mesh, RenderLayer>>(nullptr), lock_manager, cbi, wlp))
                         anyUpdates = true;
@@ -452,14 +452,16 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
     generateMeshesThreads.emplace_back([this]()
     {
         setThreadName(L"mesh primary generate");
-        generateMeshesFn(true);
+        TLS tls;
+        generateMeshesFn(true, tls);
     });
     for(int i = 1; i < threadCount; i++)
     {
         generateMeshesThreads.emplace_back([this]()
         {
             setThreadName(L"mesh secondary generate");
-            generateMeshesFn(false);
+            TLS tls;
+            generateMeshesFn(false, tls);
         });
     }
 }
@@ -524,7 +526,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         {
             for(chunkPosition.z = minChunkPosition.z; chunkPosition.z <= maxChunkPosition.z; chunkPosition.z += BlockChunk::chunkSizeZ)
             {
-                BlockIterator cbi = world.getBlockIterator(chunkPosition);
+                BlockIterator cbi = world.getBlockIterator(chunkPosition, lock_manager.tls);
                 lock_manager.clear();
                 std::unique_lock<std::recursive_mutex> lockChunk(cbi.chunk->getChunkVariables().entityListLock);
                 for(WrappedEntity &entity : cbi.chunk->getChunkVariables().entityList)
@@ -539,7 +541,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
             }
         }
     }
-    BlockIterator bi = world.getBlockIterator((PositionI)position);
+    BlockIterator bi = world.getBlockIterator((PositionI)position, lock_manager.tls);
     WorldLightingProperties wlp = world.getLighting(position.d);
     for(Mesh &mesh : entityMeshes)
     {
@@ -549,7 +551,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
                 PositionF vertexPosition(triangle.p1, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
                 VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
-                bi.moveTo(vertexPositionI);
+                bi.moveTo(vertexPositionI, lock_manager.tls);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c1 = lighting.lightVertex(relativeVertexPosition, triangle.c1, triangle.n1);
             }
@@ -557,7 +559,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
                 PositionF vertexPosition(triangle.p2, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
                 VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
-                bi.moveTo(vertexPositionI);
+                bi.moveTo(vertexPositionI, lock_manager.tls);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c2 = lighting.lightVertex(relativeVertexPosition, triangle.c2, triangle.n2);
             }
@@ -565,7 +567,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
                 PositionF vertexPosition(triangle.p3, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
                 VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
-                bi.moveTo(vertexPositionI);
+                bi.moveTo(vertexPositionI, lock_manager.tls);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 triangle.c3 = lighting.lightVertex(relativeVertexPosition, triangle.c3, triangle.n3);
             }

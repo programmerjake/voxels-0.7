@@ -128,6 +128,9 @@ inline LogStream &getDebugLog()
         }
         std::wcout << std::flush;
     };
+    struct theLogStream_tls_tag
+    {
+    };
     static thread_local std::unique_ptr<LogStream> theLogStream;
     if(theLogStream == nullptr)
         theLogStream.reset(new LogStream(&theLock, &postFunction));

@@ -32,6 +32,7 @@
 #include <exception>
 #include "util/blocks_generate_array.h"
 #include <tuple>
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -280,17 +281,20 @@ public:
     {
         try
         {
-            static thread_local BlocksGenerateArray blocks;
-            RandomSource randomSource(world.getWorldGeneratorSeed());
-            generate(chunkBasePosition, blocks, world, lock_manager, randomSource, abortFlag);
-            world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, blocks, VectorI(0));
-            for(std::size_t x = 0; x < blocks.size(); x++)
+            struct blocks_tls_tag
             {
-                for(std::size_t z = 0; z < blocks[x][0].size(); z++)
+            };
+            thread_local_variable<BlocksGenerateArray, blocks_tls_tag> blocks(lock_manager.tls);
+            RandomSource randomSource(world.getWorldGeneratorSeed());
+            generate(chunkBasePosition, blocks.get(), world, lock_manager, randomSource, abortFlag);
+            world.setBlockRange(chunkBasePosition, chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1), lock_manager, blocks.get(), VectorI(0));
+            for(std::size_t x = 0; x < blocks.get().size(); x++)
+            {
+                for(std::size_t z = 0; z < blocks.get()[x][0].size(); z++)
                 {
-                    for(std::size_t y = 0; y < blocks[x].size(); y++)
+                    for(std::size_t y = 0; y < blocks.get()[x].size(); y++)
                     {
-                        blocks[x][y][z] = Block();
+                        blocks.get()[x][y][z] = Block();
                     }
                 }
             }

@@ -51,6 +51,7 @@
 #include "util/tool_level.h"
 #include "util/redstone_signal.h"
 #include "util/util.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -139,15 +140,21 @@ public:
     Mesh meshCenter;
     enum_array<Mesh, BlockFace> meshFace;
     const RenderLayer staticRenderLayer;
-    static Mesh &getTempRenderMesh()
+    static Mesh &getTempRenderMesh(TLS &tls)
     {
-        static thread_local Mesh retval;
-        return retval;
+        struct retval_tls_tag
+        {
+        };
+        thread_local_variable<Mesh, retval_tls_tag> retval(tls);
+        return retval.get();
     }
-    static Mesh &getTempRenderMesh2()
+    static Mesh &getTempRenderMesh2(TLS &tls)
     {
-        static thread_local Mesh retval;
-        return retval;
+        struct retval_tls_tag
+        {
+        };
+        thread_local_variable<Mesh, retval_tls_tag> retval(tls);
+        return retval.get();
     }
     static void lightMesh(Mesh &mesh, const BlockLighting &lighting, VectorF offset)
     {
@@ -168,7 +175,7 @@ public:
             for(BlockFace bf : enum_traits<BlockFace>())
             {
                 BlockIterator i = blockIterator;
-                i.moveToward(bf);
+                i.moveToward(bf, lock_manager.tls);
                 Block b = i.get(lock_manager);
 
                 if(!b)
@@ -207,13 +214,13 @@ public:
 
             bool drewAny = false;
             Matrix tform = Matrix::translate((VectorF)blockIterator.position());
-            Mesh &blockMesh = getTempRenderMesh();
-            Mesh &faceMesh = getTempRenderMesh2();
+            Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
+            Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
             blockMesh.clear();
             for(BlockFace bf : enum_traits<BlockFace>())
             {
                 BlockIterator i = blockIterator;
-                i.moveToward(bf);
+                i.moveToward(bf, lock_manager.tls);
                 Block b = i.get(lock_manager);
 
                 if(!b)

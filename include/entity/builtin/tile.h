@@ -94,7 +94,7 @@ public:
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
     {
         TileData &data = getTileData(entity);
-        BlockIterator bi = world.getBlockIterator(data.expectedPosition);
+        BlockIterator bi = world.getBlockIterator(data.expectedPosition, lock_manager.tls);
         Block b = bi.get(lock_manager);
         b.lighting = data.expectedBlock.lighting; // ignore block lighting in comparison
         auto oldData = b.data;

@@ -334,7 +334,7 @@ public:
         if(updateTimeFromNow < 0)
             blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
         else
-            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
         if(blockOptionalData == nullptr)
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
@@ -357,9 +357,9 @@ public:
                         bi.chunk->getChunkVariables().blockUpdateListTail = pnode->chunk_prev;
                     else
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
-                    BlockUpdate::free(pnode);
+                    BlockUpdate::free(pnode, lock_manager.tls);
                     if(blockOptionalData->empty())
-                        subchunk.blockOptionalData.erase(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+                        subchunk.blockOptionalData.erase(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
                 }
                 else
                 {
@@ -372,7 +372,7 @@ public:
         }
         if(updateTimeFromNow >= 0)
         {
-            pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
+            pnode = BlockUpdate::allocate(lock_manager.tls, kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
             pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
@@ -403,7 +403,7 @@ public:
         if(updateTimeFromNow < 0)
             blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
         else
-            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
         if(blockOptionalData == nullptr)
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
@@ -421,7 +421,7 @@ public:
         }
         if(updateTimeFromNow >= 0)
         {
-            pnode = BlockUpdate::allocate(kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
+            pnode = BlockUpdate::allocate(lock_manager.tls, kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
             pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
@@ -463,7 +463,7 @@ public:
             subchunk.removeParticleGeneratingBlock(bi.position());
         }
         bd = newBlock.descriptor;
-        BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock));
+        BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock), lock_manager.tls);
         if(bd != nullptr && bd->generatesParticles())
         {
             subchunk.addParticleGeneratingBlock(bi.position());
@@ -476,7 +476,7 @@ public:
                 for(int dz = -1; dz <= 1; dz++)
                 {
                     BlockIterator bi2 = bi;
-                    bi2.moveBy(VectorI(dx, dy, dz));
+                    bi2.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
                     invalidateBlock(std::move(bi2), lock_manager);
                 }
             }
@@ -510,7 +510,7 @@ public:
                 for(int dz = -1; dz <= 1; dz++)
                 {
                     BlockIterator bi2 = bi;
-                    bi2.moveTo(pos + VectorI(dx, y, dz));
+                    bi2.moveTo(pos + VectorI(dx, y, dz), lock_manager.tls);
                     invalidateBlock(std::move(bi2), lock_manager);
                 }
             }
@@ -523,11 +523,11 @@ public:
         maxCorner.y = BlockChunk::chunkSizeY - 1;
         VectorI adjustedMinCorner = minCorner - VectorI(1, 0, 1);
         VectorI adjustedMaxCorner = maxCorner + VectorI(1, 0, 1);
-        BlockIterator biX = getBlockIterator(minCorner);
-        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX())
+        BlockIterator biX = getBlockIterator(minCorner, lock_manager.tls);
+        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX(lock_manager.tls))
         {
             BlockIterator biXZ = biX;
-            for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXZ.moveTowardPZ())
+            for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXZ.moveTowardPZ(lock_manager.tls))
             {
                 biXZ.updateLock(lock_manager);
                 BlockChunkBiome &b = biXZ.getBiome();
@@ -592,7 +592,7 @@ public:
                     maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, maxCorner.y - subchunkPos.y);
                     maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, maxCorner.z - subchunkPos.z);
                     BlockIterator sbi = blockIterator;
-                    sbi.moveTo(subchunkPos);
+                    sbi.moveTo(subchunkPos, lock_manager.tls);
                     for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
                     {
                         for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
@@ -600,7 +600,7 @@ public:
                             for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
                             {
                                 BlockIterator bi = sbi;
-                                bi.moveBy(subchunkRelativePos);
+                                bi.moveBy(subchunkRelativePos, lock_manager.tls);
                                 VectorI newBlocksPosition = subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
                                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
                                 BlockChunkBlock &b = bi.getBlock(lock_manager);
@@ -611,7 +611,7 @@ public:
                                     subchunk.removeParticleGeneratingBlock(bi.position());
                                 }
                                 bd = newBlock.descriptor;
-                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock));
+                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock), lock_manager.tls);
                                 if(bd != nullptr && bd->generatesParticles())
                                 {
                                     subchunk.addParticleGeneratingBlock(bi.position());
@@ -666,7 +666,7 @@ public:
     template <typename T>
     void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
     {
-        setBlockRange(getBlockIterator(minCorner), minCorner, maxCorner, lock_manager, newBlocks, newBlocksOrigin);
+        setBlockRange(getBlockIterator(minCorner, lock_manager.tls), minCorner, maxCorner, lock_manager, newBlocks, newBlocksOrigin);
     }
     /** @brief create a <code>BlockIterator</code>
      *
@@ -674,9 +674,9 @@ public:
      * @return the new <code>BlockIterator</code>
      *
      */
-    BlockIterator getBlockIterator(PositionI position) const
+    BlockIterator getBlockIterator(PositionI position, TLS &tls) const
     {
-        return physicsWorld->getBlockIterator(position);
+        return physicsWorld->getBlockIterator(position, tls);
     }
     /** @brief add a new entity to this world
      *
@@ -908,12 +908,12 @@ private:
     static constexpr std::size_t generateThreadCount = 1;
     #endif
     // private functions
-    void lightingThreadFn();
-    void blockUpdateThreadFn();
+    void lightingThreadFn(TLS &tls);
+    void blockUpdateThreadFn(TLS &tls);
     void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
-    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct);
-    void particleGeneratingThreadFn();
-    void moveEntitiesThreadFn();
+    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls);
+    void particleGeneratingThreadFn(TLS &tls);
+    void moveEntitiesThreadFn(TLS &tls);
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
     static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
@@ -952,8 +952,8 @@ private:
     }
     void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager);
     bool isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosition);
-    void chunkUnloaderThreadFn();
-    BlockIterator getBlockIteratorForWorldAddEntity(PositionI pos);
+    void chunkUnloaderThreadFn(TLS &tls);
+    BlockIterator getBlockIteratorForWorldAddEntity(PositionI pos, TLS &tls);
 };
 }
 }

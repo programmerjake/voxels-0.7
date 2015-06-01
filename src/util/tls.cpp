@@ -18,30 +18,14 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef WORLD_GENERATOR_H_INCLUDED
-#define WORLD_GENERATOR_H_INCLUDED
-
-#include "world/world.h"
-#include <memory>
 #include "util/tls.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-class WorldGenerator
-{
-protected:
-    WorldGenerator()
-    {
-    }
-public:
-    virtual ~WorldGenerator()
-    {
-    }
-    virtual void generateChunk(PositionI chunkBasePosition, World &world, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag) const = 0;
-};
+#ifndef USE_BUILTIN_TLS
+std::atomic_size_t TLS::next_variable_position(0);
+#endif // USE_BUILTIN_TLS
 }
 }
-
-#endif // WORLD_GENERATOR_H_INCLUDED

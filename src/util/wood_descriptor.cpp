@@ -36,7 +36,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
     if(!good())
         return false;
     Tree placedTree(*this);
-    BlockIterator originBlockIterator = world.getBlockIterator(generatePosition);
+    BlockIterator originBlockIterator = world.getBlockIterator(generatePosition, lock_manager.tls);
     try
     {
         for(VectorI rpos = getArrayMin(); rpos.x < getArrayEnd().x; rpos.x++)
@@ -48,7 +48,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
                     if(!placedTree.getBlock(rpos).good())
                         continue;
                     BlockIterator bi = originBlockIterator;
-                    bi.moveBy(rpos);
+                    bi.moveBy(rpos, lock_manager.tls);
                     Block worldBlock = bi.get(lock_manager);
                     Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos), true);
                     selectedBlock.lighting = worldBlock.lighting;
@@ -71,7 +71,7 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
                 if(!b.good())
                     continue;
                 BlockIterator bi = originBlockIterator;
-                bi.moveBy(rpos);
+                bi.moveBy(rpos, lock_manager.tls);
                 world.setBlock(bi, lock_manager, b);
             }
         }

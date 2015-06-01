@@ -94,13 +94,13 @@ public:
         }
         bool drewAny = false;
         Matrix tform = Matrix::translate((VectorF)blockIterator.position());
-        Mesh &blockMesh = getTempRenderMesh();
-        Mesh &faceMesh = getTempRenderMesh2();
+        Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
+        Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
         blockMesh.clear();
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf);
+            i.moveToward(bf, lock_manager.tls);
             Block b = i.get(lock_manager);
 
             if(!b)
@@ -131,7 +131,7 @@ public:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf);
+            i.moveToward(bf, lock_manager.tls);
             Block b = i.get(lock_manager);
 
             if(!b)

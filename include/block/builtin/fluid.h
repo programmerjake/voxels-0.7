@@ -89,7 +89,7 @@ private:
                 for(int dz = -1; dz <= 1; dz++)
                 {
                     BlockIterator bi = blockIterator;
-                    bi.moveBy(VectorI(dx, dy, dz));
+                    bi.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
                     Block b = bi.get(lock_manager);
                     const Fluid *descriptor = dynamic_cast<const Fluid *>(b.descriptor);
                     if(descriptor == nullptr || !isSameKind(descriptor))
@@ -148,7 +148,7 @@ foundHeight:
     bool shouldDrawBlockFace(BlockIterator blockIterator, WorldLockManager &lock_manager, BlockFace bf) const
     {
         BlockIterator bi = blockIterator;
-        bi.moveToward(bf);
+        bi.moveToward(bf, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(!b.good())
             return false;
@@ -185,7 +185,7 @@ protected:
         ColorF colorizeColor;
         float nxnz = 1, nxpz = 1, pxnz = 1, pxpz = 1;
         Matrix tform = Matrix::translate((VectorF)blockIterator.position());
-        Mesh &blockMesh = getTempRenderMesh();
+        Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
         blockMesh.clear();
         for(BlockFace bf : enum_traits<BlockFace>())
         {
@@ -308,7 +308,7 @@ private:
     bool getIsFalling(BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned newLevel) const
     {
         BlockIterator bi = blockIterator;
-        bi.moveTowardNY();
+        bi.moveTowardNY(lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(!b.good())
             return false;
@@ -351,7 +351,7 @@ public:
             if(level > 0)
             {
                 bi = blockIterator;
-                bi.moveTowardPY();
+                bi.moveTowardPY(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(isSameKind(dynamic_cast<const Fluid *>(b.descriptor)))
                 {
@@ -363,7 +363,7 @@ public:
                     unsigned minLevel = maxLevel;
                     const Fluid *bd;
                     bi = blockIterator;
-                    bi.moveTowardNX();
+                    bi.moveTowardNX(lock_manager.tls);
                     b = bi.get(lock_manager);
                     bd = dynamic_cast<const Fluid *>(b.descriptor);
                     if(b.good() && isSameKind(bd))
@@ -374,7 +374,7 @@ public:
                         }
                     }
                     bi = blockIterator;
-                    bi.moveTowardPX();
+                    bi.moveTowardPX(lock_manager.tls);
                     b = bi.get(lock_manager);
                     bd = dynamic_cast<const Fluid *>(b.descriptor);
                     if(b.good() && isSameKind(bd))
@@ -385,7 +385,7 @@ public:
                         }
                     }
                     bi = blockIterator;
-                    bi.moveTowardNZ();
+                    bi.moveTowardNZ(lock_manager.tls);
                     b = bi.get(lock_manager);
                     bd = dynamic_cast<const Fluid *>(b.descriptor);
                     if(b.good() && isSameKind(bd))
@@ -396,7 +396,7 @@ public:
                         }
                     }
                     bi = blockIterator;
-                    bi.moveTowardPZ();
+                    bi.moveTowardPZ(lock_manager.tls);
                     b = bi.get(lock_manager);
                     bd = dynamic_cast<const Fluid *>(b.descriptor);
                     if(b.good() && isSameKind(bd))
@@ -420,7 +420,7 @@ public:
             if(!isFalling && newLevel < maxLevel)
             {
                 bi = blockIterator;
-                bi.moveTowardNX();
+                bi.moveTowardNX(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
@@ -428,7 +428,7 @@ public:
                     setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
-                bi.moveTowardPX();
+                bi.moveTowardPX(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
@@ -436,7 +436,7 @@ public:
                     setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
-                bi.moveTowardNZ();
+                bi.moveTowardNZ(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
@@ -444,7 +444,7 @@ public:
                     setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
-                bi.moveTowardPZ();
+                bi.moveTowardPZ(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
                 {
@@ -453,7 +453,7 @@ public:
                 }
             }
             bi = blockIterator;
-            bi.moveTowardNY();
+            bi.moveTowardNY(lock_manager.tls);
             b = bi.get(lock_manager);
             if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
             {

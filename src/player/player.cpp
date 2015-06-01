@@ -143,7 +143,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             {
                 PositionI pos = c.blockPosition;
                 bool good = true;
-                BlockIterator bi = world.getBlockIterator(pos);
+                BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
                 if(good)
@@ -194,7 +194,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                     player->destructingTime = 0;
                 }
                 bool good = true;
-                BlockIterator bi = world.getBlockIterator(pos);
+                BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
                 if(good && gotAttackDown)
@@ -344,7 +344,7 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
 {
     if(!b.good())
         return false;
-    BlockIterator bi = world.getBlockIterator(collision.blockPosition);
+    BlockIterator bi = world.getBlockIterator(collision.blockPosition, lock_manager.tls);
     Block oldBlock = bi.get(lock_manager);
     if(!oldBlock.good())
         return false;
@@ -364,7 +364,7 @@ bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLoc
 {
     PositionI pos = collision.blockPosition;
     bool good = true;
-    BlockIterator bi = world.getBlockIterator(pos);
+    BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
     Block b = bi.get(lock_manager);
     good = good && b.good();
     if(good)

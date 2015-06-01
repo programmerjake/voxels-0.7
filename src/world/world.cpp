@@ -228,14 +228,14 @@ private:
                              WorldLockManager &lock_manager, World &world,
                              RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
-        BlockIterator bi = world.getBlockIterator(chunkBasePosition);
+        BlockIterator bi = world.getBlockIterator(chunkBasePosition, lock_manager.tls);
         for(int cx = 0; cx < BlockChunk::chunkSizeX; cx++)
         {
             for(int cz = 0; cz < BlockChunk::chunkSizeZ; cz++)
             {
                 checkForAbort(abortFlag);
                 PositionI columnBasePosition = chunkBasePosition + VectorI(cx, 0, cz);
-                bi.moveTo(columnBasePosition);
+                bi.moveTo(columnBasePosition, lock_manager.tls);
                 const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
                 float groundHeightF = 0;
                 for(const BiomeWeights::value_type &v : bp.getWeights())
@@ -313,7 +313,7 @@ private:
         std::uint32_t decoratorGenerateNumber = descriptor->getInitialDecoratorGenerateNumber() + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
         std::minstd_rand rg(decoratorGenerateNumber);
         rg.discard(30);
-        BlockIterator chunkBaseIterator = world.getBlockIterator(chunkBasePosition);
+        BlockIterator chunkBaseIterator = world.getBlockIterator(chunkBasePosition, lock_manager.tls);
         for(int x = 0; x < BlockChunk::chunkSizeX; x++)
         {
             for(int z = 0; z < BlockChunk::chunkSizeZ; z++)
@@ -321,7 +321,7 @@ private:
                 checkForAbort(abortFlag);
                 BlockIterator bi = chunkBaseIterator;
                 PositionI columnBasePosition = chunkBasePosition + VectorI(x, 0, z);
-                bi.moveTo(columnBasePosition);
+                bi.moveTo(columnBasePosition, lock_manager.tls);
                 const BiomeProperties &bp = bi.getBiomeProperties(lock_manager);
                 float generateCountF = 0;
                 for(const BiomeWeights::value_type &v : bp.getWeights())
@@ -516,7 +516,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
                     }
                 }
                 if(blockOptionalData->empty())
-                    subchunk.blockOptionalData.erase(subchunkRelativePosition);
+                    subchunk.blockOptionalData.erase(subchunkRelativePosition, lock_manager.tls);
             }
             retval->block_next = nullptr;
         }
@@ -579,7 +579,7 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
                     }
                 }
                 if(blockOptionalData->empty())
-                    subchunk.blockOptionalData.erase(subchunkRelativePosition);
+                    subchunk.blockOptionalData.erase(subchunkRelativePosition, lock_manager.tls);
             }
             retval->block_next = nullptr;
         }
@@ -613,7 +613,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     pauseCond(),
     chunkUnloaderThread()
 {
-    ([this, abortFlag]()
+    TLS &tls = TLS::getSlow();
+    ([this, abortFlag, &tls]()
     {
         getDebugLog() << L"generating initial world..." << postnl;
         for(;;)
@@ -641,14 +642,16 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         chunkUnloaderThread = thread([this]()
         {
             setThreadName(L"chunk unloader");
-            chunkUnloaderThreadFn();
+            TLS tls;
+            chunkUnloaderThreadFn(tls);
         });
         for(std::size_t i = 0; i < lightingThreadCount; i++)
         {
             lightingThreads.emplace_back([this]()
             {
                 setThreadName(L"lighting");
-                lightingThreadFn();
+                TLS tls;
+                lightingThreadFn(tls);
             });
         }
         std::size_t initialChunkGenerateCount = 0;
@@ -656,7 +659,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         {
             for(position.x = -BlockChunk::chunkSizeX; position.x <= 0; position.x += BlockChunk::chunkSizeX)
             {
-                getBlockIterator(position); // adds chunk to chunks to look through
+                getBlockIterator(position, tls); // adds chunk to chunks to look through
                 initialChunkGenerateCount++;
             }
         }
@@ -667,7 +670,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             {
                 setThreadName(L"chunk generate");
                 setThreadPriority(ThreadPriority::Low);
-                chunkGeneratingThreadFn(std::move(initialChunkGenerateStruct));
+                TLS tls;
+                chunkGeneratingThreadFn(std::move(initialChunkGenerateStruct), tls);
             });
         }
         {
@@ -697,7 +701,8 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             blockUpdateThreads.emplace_back([this]()
             {
                 setThreadName(L"block update");
-                blockUpdateThreadFn();
+                TLS tls;
+                blockUpdateThreadFn(tls);
             });
         }
         getDebugLog() << L"lighting initial world..." << postnl;
@@ -731,12 +736,14 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
         particleGeneratingThread = thread([this]()
         {
             setThreadName(L"particle generate");
-            particleGeneratingThreadFn();
+            TLS tls;
+            particleGeneratingThreadFn(tls);
         });
         moveEntitiesThread = thread([this]()
         {
             setThreadName(L"move entities");
-            moveEntitiesThreadFn();
+            TLS tls;
+            moveEntitiesThreadFn(tls);
         });
     })();
     if(abortFlag && *abortFlag)
@@ -814,11 +821,11 @@ Lighting World::getBlockLighting(BlockIterator bi, WorldLockManager &lock_manage
     return b.lighting;
 }
 
-void World::lightingThreadFn()
+void World::lightingThreadFn(TLS &tls)
 {
     setThreadPriority(ThreadPriority::Low);
     ThreadPauseGuard pauseGuard(*this);
-    WorldLockManager lock_manager;
+    WorldLockManager lock_manager(tls);
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
     {
@@ -829,7 +836,7 @@ void World::lightingThreadFn()
                 break;
             if(!chunkIter->isLoaded())
                 continue;
-            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             lock_manager.clear();
@@ -841,22 +848,22 @@ void World::lightingThreadFn()
                 while(node != nullptr)
                 {
                     BlockIterator bi = cbi;
-                    bi.moveTo(node->position);
+                    bi.moveTo(node->position, lock_manager.tls);
                     Block b = bi.get(lock_manager);
                     if(b.good())
                     {
                         BlockIterator binx = bi;
-                        binx.moveTowardNX();
+                        binx.moveTowardNX(lock_manager.tls);
                         BlockIterator bipx = bi;
-                        bipx.moveTowardPX();
+                        bipx.moveTowardPX(lock_manager.tls);
                         BlockIterator biny = bi;
-                        biny.moveTowardNY();
+                        biny.moveTowardNY(lock_manager.tls);
                         BlockIterator bipy = bi;
-                        bipy.moveTowardPY();
+                        bipy.moveTowardPY(lock_manager.tls);
                         BlockIterator binz = bi;
-                        binz.moveTowardNZ();
+                        binz.moveTowardNZ(lock_manager.tls);
                         BlockIterator bipz = bi;
-                        bipz.moveTowardPZ();
+                        bipz.moveTowardPZ(lock_manager.tls);
                         Lighting newLighting = b.descriptor->lightProperties.eval(getBlockLighting(binx, lock_manager, false),
                                                                                   getBlockLighting(bipx, lock_manager, false),
                                                                                   getBlockLighting(biny, lock_manager, false),
@@ -874,7 +881,7 @@ void World::lightingThreadFn()
                     node = node->chunk_next;
                     if(node != nullptr)
                         node->chunk_prev = nullptr;
-                    BlockUpdate::free(deleteMe);
+                    BlockUpdate::free(deleteMe, lock_manager.tls);
                 }
                 if(destructing)
                     break;
@@ -890,11 +897,11 @@ void World::lightingThreadFn()
     }
 }
 
-void World::blockUpdateThreadFn()
+void World::blockUpdateThreadFn(TLS &tls)
 {
     setThreadPriority(ThreadPriority::Low);
     ThreadPauseGuard pauseGuard(*this);
-    WorldLockManager lock_manager;
+    WorldLockManager lock_manager(tls);
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing)
     {
@@ -905,7 +912,7 @@ void World::blockUpdateThreadFn()
                 break;
             if(!chunkIter->isLoaded())
                 continue;
-            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             lock_manager.clear();
@@ -917,7 +924,7 @@ void World::blockUpdateThreadFn()
                 while(node != nullptr)
                 {
                     BlockIterator bi = cbi;
-                    bi.moveTo(node->position);
+                    bi.moveTo(node->position, lock_manager.tls);
                     Block b = bi.get(lock_manager);
                     if(b.good())
                     {
@@ -928,7 +935,7 @@ void World::blockUpdateThreadFn()
                     node = node->chunk_next;
                     if(node != nullptr)
                         node->chunk_prev = nullptr;
-                    BlockUpdate::free(deleteMe);
+                    BlockUpdate::free(deleteMe, lock_manager.tls);
                 }
                 if(destructing)
                     break;
@@ -946,7 +953,7 @@ void World::blockUpdateThreadFn()
 void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag)
 {
     lock_manager.clear();
-    WorldLockManager new_lock_manager;
+    WorldLockManager new_lock_manager(lock_manager.tls);
     World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
     worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager, abortFlag);
 #if 0
@@ -964,11 +971,11 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
     typedef checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> BiomeArrayType;
     std::unique_ptr<BlockArrayType> blocks(new BlockArrayType);
     std::unique_ptr<BiomeArrayType> biomes(new BiomeArrayType);
-    BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition);
+    BlockIterator gcbi = newWorld.getBlockIterator(chunk->basePosition, new_lock_manager.tls);
     for(auto i = BlockChunkRelativePositionIterator::begin(); i != BlockChunkRelativePositionIterator::end(); i++)
     {
         BlockIterator bi = gcbi;
-        bi.moveBy(*i);
+        bi.moveBy(*i, new_lock_manager.tls);
         blocks->at(i->x)[i->y][i->z] = bi.get(new_lock_manager);
     }
     for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
@@ -976,12 +983,12 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
         for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
         {
             BlockIterator bi = gcbi;
-            bi.moveBy(VectorI(dx, 0, dz));
+            bi.moveBy(VectorI(dx, 0, dz), new_lock_manager.tls);
             bi.updateLock(new_lock_manager);
             biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
         }
     }
-    BlockIterator cbi = getBlockIterator(chunk->basePosition);
+    BlockIterator cbi = getBlockIterator(chunk->basePosition, lock_manager.tls);
     {
         std::unique_lock<std::recursive_mutex> lockSrcChunk(gcbi.chunk->getChunkVariables().entityListLock, std::defer_lock);
         std::unique_lock<std::recursive_mutex> lockDestChunk(cbi.chunk->getChunkVariables().entityListLock, std::defer_lock);
@@ -1009,7 +1016,7 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
             WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
             ++nextSrcIter;
             BlockIterator destBi = cbi;
-            destBi.moveTo((PositionI)position);
+            destBi.moveTo((PositionI)position, lock_manager.tls);
             if(!destBi.tryUpdateLock(lock_manager))
             {
                 new_lock_manager.block_biome_lock.clear();
@@ -1031,7 +1038,7 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
         for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
         {
             BlockIterator bi = cbi;
-            bi.moveBy(VectorI(dx, 0, dz));
+            bi.moveBy(VectorI(dx, 0, dz), lock_manager.tls);
             bi.updateLock(lock_manager);
             biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
         }
@@ -1051,10 +1058,10 @@ bool World::isInitialGenerateChunk(PositionI position)
     return false;
 }
 
-void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct)
+void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls)
 {
     ThreadPauseGuard pauseGuard(*this);
-    WorldLockManager lock_manager;
+    WorldLockManager lock_manager(tls);
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing && (!initialChunkGenerateStruct || !initialChunkGenerateStruct->abortFlag || !*initialChunkGenerateStruct->abortFlag))
     {
@@ -1072,7 +1079,7 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
                 continue;
             if(chunkVariables.generateStarted)
                 continue;
-            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             bool isCurrentChunkInitialGenerate = isInitialGenerateChunk(chunk->basePosition);
@@ -1191,19 +1198,22 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
 
 namespace
 {
-std::shared_ptr<BlockChunk> &getLoadIntoChunk()
+std::shared_ptr<BlockChunk> &getLoadIntoChunk(TLS &tls)
 {
-    static thread_local std::shared_ptr<BlockChunk> retval;
-    return retval;
+    struct retval_tls_tag
+    {
+    };
+    thread_local_variable<std::shared_ptr<BlockChunk>, retval_tls_tag> retval(tls);
+    return retval.get();
 }
 }
 
-BlockIterator World::getBlockIteratorForWorldAddEntity(PositionI pos)
+BlockIterator World::getBlockIteratorForWorldAddEntity(PositionI pos, TLS &tls)
 {
-    std::shared_ptr<BlockChunk> chunk = getLoadIntoChunk();
+    std::shared_ptr<BlockChunk> chunk = getLoadIntoChunk(tls);
     if(chunk == nullptr)
     {
-        return getBlockIterator(pos);
+        return getBlockIterator(pos, tls);
     }
     else // if pos is not in chunk then put in chunk anyway to avoid locking; will be fixed by next world move
     {
@@ -1214,7 +1224,7 @@ BlockIterator World::getBlockIteratorForWorldAddEntity(PositionI pos)
 Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData)
 {
     assert(descriptor != nullptr);
-    BlockIterator bi = getBlockIteratorForWorldAddEntity((PositionI)position);
+    BlockIterator bi = getBlockIteratorForWorldAddEntity((PositionI)position, lock_manager.tls);
     lock_manager.block_biome_lock.clear();
     WrappedEntity *entity = new WrappedEntity(Entity(descriptor, nullptr, entityData));
     entity->entity.physicsObject = descriptor->makePhysicsObject(entity->entity, position, velocity, physicsWorld);
@@ -1246,7 +1256,7 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
     moveEntitiesThreadCond.notify_all();
 }
 
-void World::moveEntitiesThreadFn()
+void World::moveEntitiesThreadFn(TLS &tls)
 {
     ThreadPauseGuard pauseGuard(*this);
     while(!destructing)
@@ -1265,7 +1275,7 @@ void World::moveEntitiesThreadFn()
             break;
         double deltaTime = moveEntitiesDeltaTime;
         lockMoveEntitiesThread.unlock();
-        WorldLockManager lock_manager;
+        WorldLockManager lock_manager(tls);
         entityRunCount++;
         physicsWorld->stepTime(deltaTime, lock_manager);
         BlockChunkMap *chunks = &physicsWorld->chunks;
@@ -1276,7 +1286,7 @@ void World::moveEntitiesThreadFn()
             bool isChunkCloseEnough = isChunkCloseEnoughToPlayerToGetRandomUpdates(chunkIter->basePosition);
             if(!chunkIter->isLoaded() && (!isGenerated || !isChunkCloseEnough))
                 continue;
-            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
@@ -1291,7 +1301,7 @@ void World::moveEntitiesThreadFn()
                                                        std::uniform_int_distribution<>(0, BlockChunk::chunkSizeY - 1)(getRandomGenerator()),
                                                        std::uniform_int_distribution<>(0, BlockChunk::chunkSizeZ - 1)(getRandomGenerator()));
                     BlockIterator bi = cbi;
-                    bi.moveBy(relativePosition);
+                    bi.moveBy(relativePosition, lock_manager.tls);
                     Block b = bi.get(lock_manager);
                     if(b.good())
                     {
@@ -1321,7 +1331,7 @@ void World::moveEntitiesThreadFn()
                 entity.lastEntityRunCount = entityRunCount;
                 entity.verify();
                 BlockIterator destBi = cbi;
-                destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition());
+                destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition(), lock_manager.tls);
                 entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
                 if(entity.currentChunk == destBi.chunk.get() && entity.currentSubchunk == &destBi.getSubchunk())
                 {
@@ -1366,7 +1376,7 @@ RayCasting::Collision World::castRayCheckForEntitiesInSubchunk(BlockIterator bi,
             for(int dz = -1; dz <= 1; dz++)
             {
                 PositionI currentSubchunkPos = subchunkPos + VectorI(dx * BlockChunk::subchunkSizeXYZ, dy * BlockChunk::subchunkSizeXYZ, dz * BlockChunk::subchunkSizeXYZ);
-                bi.moveTo(currentSubchunkPos);
+                bi.moveTo(currentSubchunkPos, lock_manager.tls);
                 bi.updateLock(lock_manager);
                 for(WrappedEntity &entity : bi.getSubchunk().entityList)
                 {
@@ -1387,12 +1397,12 @@ RayCasting::Collision World::castRayCheckForEntitiesInSubchunk(BlockIterator bi,
 RayCasting::Collision World::castRay(RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, RayCasting::BlockCollisionMask blockRayCollisionMask, const Entity *ignoreEntity)
 {
     PositionI startPosition = (PositionI)ray.startPosition;
-    BlockIterator bi = getBlockIterator(startPosition);
+    BlockIterator bi = getBlockIterator(startPosition, lock_manager.tls);
     BlockChunkSubchunk *lastSubchunk = nullptr;
     RayCasting::Collision retval(*this);
     for(auto i = RayCasting::makeRayBlockIterator(ray); std::get<0>(*i) <= maxSearchDistance || std::get<1>(*i) == startPosition; i++)
     {
-        bi.moveTo(std::get<1>(*i));
+        bi.moveTo(std::get<1>(*i), lock_manager.tls);
         if(&bi.getSubchunk() != lastSubchunk)
         {
             lastSubchunk = &bi.getSubchunk();
@@ -1429,20 +1439,20 @@ void World::generateParticlesInSubchunk(BlockIterator sbi, WorldLockManager &loc
     for(PositionI pos : positions)
     {
         BlockIterator bi = sbi;
-        bi.moveTo(pos);
+        bi.moveTo(pos, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(b.good())
             b.descriptor->generateParticles(*this, b, bi, lock_manager, currentTime, deltaTime);
     }
 }
 
-void World::particleGeneratingThreadFn()
+void World::particleGeneratingThreadFn(TLS &tls)
 {
     double currentTime = 0;
     ThreadPauseGuard pauseGuard(*this);
     auto lastTimePoint = std::chrono::steady_clock::now();
     std::vector<PositionI> positionsBuffer;
-    WorldLockManager lock_manager;
+    WorldLockManager lock_manager(tls);
     while(!destructing)
     {
         lock_manager.clear();
@@ -1468,7 +1478,7 @@ void World::particleGeneratingThreadFn()
         {
             PositionF centerPosition = std::get<0>(viewPointsVector[viewPointIndex]);
             float generateDistance = std::get<1>(viewPointsVector[viewPointIndex]);
-            BlockIterator gbi = getBlockIterator((PositionI)centerPosition);
+            BlockIterator gbi = getBlockIterator((PositionI)centerPosition, lock_manager.tls);
             PositionF minPositionF = centerPosition - VectorF(generateDistance);
             PositionF maxPositionF = centerPosition + VectorF(generateDistance);
             PositionI minP = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)minPositionF);
@@ -1499,7 +1509,7 @@ void World::particleGeneratingThreadFn()
                         if(generatedBefore)
                             continue;
                         BlockIterator sbi = gbi;
-                        sbi.moveTo(pos);
+                        sbi.moveTo(pos, lock_manager.tls);
                         generateParticlesInSubchunk(sbi, lock_manager, currentTime, deltaTime, positionsBuffer);
                     }
                 }
@@ -1527,7 +1537,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                 if(!ibc.isLoaded())
                     continue;
                 BlockIterator bi = blockIterator;
-                bi.moveTo(sp);
+                bi.moveTo(sp, lock_manager.tls);
                 VectorI currentMinCorner = sp;
                 VectorI currentMaxCorner = sp + VectorI(BlockChunk::subchunkSizeXYZ - 1);
                 currentMinCorner.x = std::max(currentMinCorner.x, minCorner.x);
@@ -1543,7 +1553,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                         for(p.z = currentMinCorner.z; p.z <= currentMaxCorner.z; p.z++)
                         {
                             BlockIterator biXYZ = bi;
-                            biXYZ.moveTo(p);
+                            biXYZ.moveTo(p, lock_manager.tls);
                             BlockChunkSubchunk &subchunk = biXYZ.getSubchunk();
                             if(&subchunk != lastSubchunk && lastSubchunk != nullptr)
                             {
@@ -1558,7 +1568,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                             b.invalidate();
                             biXYZ.getSubchunk().invalidate();
                             biXYZ.chunk->getChunkVariables().invalidate();
-                            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(biXYZ.currentRelativePosition));
+                            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(biXYZ.currentRelativePosition), lock_manager.tls);
                             enum_array<bool, BlockUpdateKind> neededBlockUpdates;
                             for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
                             {
@@ -1581,7 +1591,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                             {
                                 if(neededBlockUpdates[kind])
                                 {
-                                    BlockUpdate *pnode = BlockUpdate::allocate(kind, biXYZ.position(), 0.0f, blockOptionalData->updateListHead);
+                                    BlockUpdate *pnode = BlockUpdate::allocate(lock_manager.tls, kind, biXYZ.position(), 0.0f, blockOptionalData->updateListHead);
                                     blockOptionalData->updateListHead = pnode;
                                     pnode->chunk_next = biXYZ.chunk->getChunkVariables().blockUpdateListHead;
                                     pnode->chunk_prev = nullptr;
@@ -1630,7 +1640,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                 {
                     if(!chunkIter->chunkVariables.generated)
                         continue;
-                    std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad();
+                    std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
                     if(chunkIter.is_locked())
                         chunkIter.unlock();
                     chunks.push_back(chunk);
@@ -1668,11 +1678,11 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                     for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)
                     {
                         BlockIterator columnBlockIterator = cbi;
-                        columnBlockIterator.moveBy(VectorI(x, 0, z));
+                        columnBlockIterator.moveBy(VectorI(x, 0, z), lock_manager.tls);
                         stream::write<BiomeProperties>(writer, columnBlockIterator.getBiomeProperties(lock_manager));
                         BlockIterator bi = columnBlockIterator;
                         blockUpdates.clear();
-                        for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                        for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY(lock_manager.tls))
                         {
                             stream::write<Block>(writer, bi.get(lock_manager));
                             for(BlockUpdateIterator iter = bi.updatesBegin(lock_manager); iter != bi.updatesEnd(lock_manager); ++iter)
@@ -1746,9 +1756,10 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
     world.chunkUnloaderThread = thread([&world]()
     {
         setThreadName(L"chunk unloader");
-        world.chunkUnloaderThreadFn();
+        TLS tls;
+        world.chunkUnloaderThreadFn(tls);
     });
-    WorldLockManager lock_manager;
+    WorldLockManager lock_manager(TLS::getSlow());
     StreamWorldGuard streamWorldGuard(reader, world, lock_manager);
     world.randomGenerator = stream::read<rc4_random_engine>(reader);
     std::uint64_t playerCount = stream::read<std::uint64_t>(reader);
@@ -1767,7 +1778,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         PositionI chunkBasePosition = stream::read<PositionI>(reader);
         if(chunkBasePosition != BlockChunk::getChunkBasePosition(chunkBasePosition))
             throw stream::InvalidDataValueException("block chunk base is not a valid position");
-        BlockIterator cbi = world.getBlockIterator(chunkBasePosition);
+        BlockIterator cbi = world.getBlockIterator(chunkBasePosition, lock_manager.tls);
         cbi.chunk->getChunkVariables().generated = true;
         cbi.chunk->getChunkVariables().generateStarted = true;
         std::uint64_t entityCount = stream::read<std::uint64_t>(reader);
@@ -1805,7 +1816,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
             for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
             {
                 BlockIterator bi = cbi;
-                bi.moveBy(VectorI(dx, 0, dz));
+                bi.moveBy(VectorI(dx, 0, dz), lock_manager.tls);
                 bi.updateLock(lock_manager);
                 biomes[dx][dz].swap(bi.getBiome().biomeProperties);
             }
@@ -1817,14 +1828,14 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
                 for(subchunkPos.z = 0; subchunkPos.z < BlockChunk::chunkSizeZ; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
                 {
                     BlockIterator sbi = cbi;
-                    sbi.moveBy(subchunkPos);
+                    sbi.moveBy(subchunkPos, lock_manager.tls);
                     BlockChunkSubchunk &subchunk = sbi.getSubchunk();
                     VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(subchunkPos);
                     std::vector<std::tuple<PositionI, float, BlockUpdateKind>> &currentBlockUpdates = blockUpdates[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
                     for(auto update : currentBlockUpdates)
                     {
                         BlockIterator bi = sbi;
-                        bi.moveTo(std::get<0>(update));
+                        bi.moveTo(std::get<0>(update), lock_manager.tls);
                         world.addBlockUpdate(bi, lock_manager, std::get<2>(update), std::get<1>(update));
                     }
                     currentBlockUpdates.clear();
@@ -1835,7 +1846,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
                             for(subchunkRelativePos.z = 0; subchunkRelativePos.z < BlockChunk::subchunkSizeXYZ; subchunkRelativePos.z++)
                             {
                                 BlockIterator bi = sbi;
-                                bi.moveBy(subchunkRelativePos);
+                                bi.moveBy(subchunkRelativePos, lock_manager.tls);
                                 VectorI newBlocksPosition = subchunkRelativePos + subchunkPos;
                                 Block newBlock = blocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
                                 BlockChunkBlock &b = bi.getBlock(lock_manager);
@@ -1845,7 +1856,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
                                     subchunk.removeParticleGeneratingBlock(bi.position());
                                 }
                                 bd = newBlock.descriptor;
-                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock));
+                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock), lock_manager.tls);
                                 if(bd != nullptr && bd->generatesParticles())
                                 {
                                     subchunk.addParticleGeneratingBlock(bi.position());
@@ -1886,7 +1897,8 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         world.lightingThreads.emplace_back([&world]()
         {
             setThreadName(L"lighting");
-            world.lightingThreadFn();
+            TLS tls;
+            world.lightingThreadFn(tls);
         });
     }
     for(std::size_t i = 0; i < generateThreadCount; i++)
@@ -1895,7 +1907,8 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         {
             setThreadName(L"chunk generate");
             setThreadPriority(ThreadPriority::Low);
-            world.chunkGeneratingThreadFn(nullptr);
+            TLS tls;
+            world.chunkGeneratingThreadFn(nullptr, tls);
         });
     }
     for(std::size_t i = 0; i < blockUpdateThreadCount; i++)
@@ -1903,18 +1916,21 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         world.blockUpdateThreads.emplace_back([&world]()
         {
             setThreadName(L"block update");
-            world.blockUpdateThreadFn();
+            TLS tls;
+            world.blockUpdateThreadFn(tls);
         });
     }
     world.particleGeneratingThread = thread([&world]()
     {
         setThreadName(L"particle generate");
-        world.particleGeneratingThreadFn();
+        TLS tls;
+        world.particleGeneratingThreadFn(tls);
     });
     world.moveEntitiesThread = thread([&world]()
     {
         setThreadName(L"move entities");
-        world.moveEntitiesThreadFn();
+        TLS tls;
+        world.moveEntitiesThreadFn(tls);
     });
     return retval;
 }
@@ -1937,7 +1953,7 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
     return false;
 }
 
-void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
+void World::chunkUnloaderThreadFn(TLS &tls) // this thread doesn't need to be paused
 {
 #warning finish fixing chunk unloader thread
 #if 0 // disable for now
@@ -1947,13 +1963,14 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
     {
         try
         {
+            TLS &tls = TLS::getSlow();
             getLoadIntoChunk() = chunk;
             std::vector<std::uint8_t> buffer;
             chunkCache->getChunk(chunk->basePosition, buffer);
             stream::MemoryReader readerIn(std::move(buffer));
             stream::ExpandReader reader(readerIn);
             setStreamFileVersion(reader, GameVersion::FILE_VERSION);
-            WorldLockManager lock_manager(false);
+            WorldLockManager lock_manager(false, tls);
             StreamWorldGuard streamWorldGuard(reader, *this, lock_manager);
             BlockChunkMap *chunksMap = &physicsWorld->chunks;
             BlockIterator cbi(chunk, chunksMap, chunk->basePosition, VectorI(0, 0, 0));
@@ -1983,7 +2000,7 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
                 for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
                 {
                     BlockIterator bi = cbi;
-                    bi.moveBy(VectorI(dx, 0, dz));
+                    bi.moveBy(VectorI(dx, 0, dz), lock_manager.tls);
                     bi.updateLock(lock_manager);
                     biomes[dx][dz].swap(bi.getBiome().biomeProperties);
                 }
@@ -2047,7 +2064,7 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
             {
                 stream::MemoryWriter memWriter;
                 {
-                    WorldLockManager lock_manager(false);
+                    WorldLockManager lock_manager(false, tls);
                     stream::CompressWriter writer(memWriter);
                     StreamWorldGuard streamWorldGuard(writer, *this, lock_manager);
                     std::vector<WrappedEntity *> entities;
@@ -2079,10 +2096,10 @@ void World::chunkUnloaderThreadFn() // this thread doesn't need to be paused
                         {
                             checkUnloadAborted();
                             BlockIterator columnBlockIterator = cbi;
-                            columnBlockIterator.moveBy(VectorI(x, 0, z));
+                            columnBlockIterator.moveBy(VectorI(x, 0, z), lock_manager.tls);
                             stream::write<BiomeProperties>(writer, columnBlockIterator.getBiomeProperties(lock_manager));
                             BlockIterator bi = columnBlockIterator;
-                            for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY())
+                            for(std::size_t y = 0; y < BlockChunk::chunkSizeY; y++, bi.moveTowardPY(lock_manager.tls))
                             {
                                 stream::write<Block>(writer, bi.get(lock_manager));
                             }

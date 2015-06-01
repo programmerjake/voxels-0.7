@@ -30,11 +30,12 @@ namespace voxels
 {
 BlockChunkChunkVariables::~BlockChunkChunkVariables()
 {
+    TLS &tls = TLS::getSlow();
     while(blockUpdateListHead != nullptr)
     {
         BlockUpdate *deleteMe = blockUpdateListHead;
         blockUpdateListHead = blockUpdateListHead->chunk_next;
-        BlockUpdate::free(deleteMe);
+        BlockUpdate::free(deleteMe, tls);
     }
 }
 

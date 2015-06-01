@@ -72,7 +72,7 @@ protected:
         assert(pworld != nullptr);
         WorldLockManager &lock_manager = *plock_manager;
         World &world = *pworld;
-        BlockIterator bi = world.getBlockIterator(blockPosition);
+        BlockIterator bi = world.getBlockIterator(blockPosition, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(!b.good() || dynamic_cast<const Blocks::builtin::Furnace *>(b.descriptor) == nullptr)
             return retval;
@@ -104,7 +104,7 @@ public:
         assert(pworld != nullptr);
         WorldLockManager &lock_manager = *plock_manager;
         World &world = *pworld;
-        BlockIterator bi = world.getBlockIterator(blockPosition);
+        BlockIterator bi = world.getBlockIterator(blockPosition, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(!b.good() || dynamic_cast<const Blocks::builtin::Furnace *>(b.descriptor) == nullptr)
             quit();

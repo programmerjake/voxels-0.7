@@ -136,7 +136,7 @@ private:
     void startMainMenu();
 public:
     std::atomic<float> blockDestructProgress;
-    GameUi(Renderer &renderer);
+    GameUi(Renderer &renderer, TLS &tls);
     void createNewWorld();
     void loadWorld(std::wstring fileName);
     ~GameUi()

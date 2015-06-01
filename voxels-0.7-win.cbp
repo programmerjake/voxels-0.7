@@ -14,6 +14,7 @@
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-g" />
+					<Add option="-Og" />
 					<Add option="-march=native" />
 					<Add option="-DDEBUG_VERSION" />
 					<Add option="-D_GLIBCXX_DEBUG" />
@@ -287,6 +288,7 @@
 		<Unit filename="include/util/spin_lock.h" />
 		<Unit filename="include/util/string_cast.h" />
 		<Unit filename="include/util/three_state_bool.h" />
+		<Unit filename="include/util/tls.h" />
 		<Unit filename="include/util/tool_level.h" />
 		<Unit filename="include/util/unlock_guard.h" />
 		<Unit filename="include/util/util.h" />
@@ -363,6 +365,7 @@
 		<Unit filename="src/util/lock.cpp" />
 		<Unit filename="src/util/logging.cpp" />
 		<Unit filename="src/util/matrix.cpp" />
+		<Unit filename="src/util/tls.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />
 		<Unit filename="src/util/wood_descriptor.cpp" />

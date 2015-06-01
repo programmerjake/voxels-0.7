@@ -149,7 +149,7 @@ void GameUi::clear(Renderer &renderer)
         {
         case RayCasting::Collision::Type::Block:
         {
-            BlockIterator bi = world->getBlockIterator(collision.blockPosition);
+            BlockIterator bi = world->getBlockIterator(collision.blockPosition, lock_manager.tls);
             Block b = bi.get(lock_manager);
             if(b.good())
             {
@@ -328,7 +328,7 @@ void GameUi::addWorldUi()
                 break;
             case RayCasting::Collision::Type::Block:
             {
-                BlockIterator bi = world->getBlockIterator(c.blockPosition);
+                BlockIterator bi = world->getBlockIterator(c.blockPosition, lock_manager.tls);
                 Block b = bi.get(lock_manager);
                 ss << L"Block :\n";
                 if(b.good())
@@ -373,7 +373,8 @@ void GameUi::createNewWorld()
     worldGenerateThread = std::thread([this]()
     {
         setThreadName(L"world generate");
-        WorldLockManager lock_manager;
+        TLS tls;
+        WorldLockManager lock_manager(tls);
         try
         {
             generatedWorld = std::make_shared<World>(&abortWorldCreation);
@@ -428,11 +429,11 @@ void GameUi::addUi()
     setDialog(mainMenu);
 }
 
-GameUi::GameUi(Renderer &renderer)
+GameUi::GameUi(Renderer &renderer, TLS &tls)
     : audioScheduler(),
     playingAudio(),
     world(),
-    lock_manager(),
+    lock_manager(tls),
     viewPoint(),
     gameInput(std::make_shared<GameInput>()),
     playerW(),

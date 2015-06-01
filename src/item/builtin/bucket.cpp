@@ -47,7 +47,7 @@ Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Play
     {
         if(c.type != RayCasting::Collision::Type::Block)
             return item;
-        Block b = world.getBlockIterator(c.blockPosition).get(lock_manager);
+        Block b = world.getBlockIterator(c.blockPosition, lock_manager.tls).get(lock_manager);
         if(!b.good())
             return item;
         const Blocks::builtin::Fluid *fluid = dynamic_cast<const Blocks::builtin::Fluid *>(b.descriptor);

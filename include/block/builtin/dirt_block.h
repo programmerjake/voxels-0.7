@@ -102,13 +102,13 @@ protected:
         bool drewAny = false;
         ColorF grassShading;
         Matrix tform = Matrix::translate((VectorF)blockIterator.position());
-        Mesh &blockMesh = getTempRenderMesh();
-        Mesh &faceMesh = getTempRenderMesh2();
+        Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
+        Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
         blockMesh.clear();
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf);
+            i.moveToward(bf, lock_manager.tls);
             Block b = i.get(lock_manager);
 
             if(!b)
@@ -146,7 +146,7 @@ protected:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf);
+            i.moveToward(bf, lock_manager.tls);
             Block b = i.get(lock_manager);
 
             if(!b)

@@ -130,7 +130,7 @@ public:
                 {
                     if(player.placeBlock(c, world, lock_manager, Block(newDescriptor)))
                     {
-                        BlockDescriptor::addRedstoneBlockUpdates(world, world.getBlockIterator(c.blockPosition), lock_manager, 2);
+                        BlockDescriptor::addRedstoneBlockUpdates(world, world.getBlockIterator(c.blockPosition, lock_manager.tls), lock_manager, 2);
                         return getAfterPlaceItem();
                     }
                 }

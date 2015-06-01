@@ -38,7 +38,7 @@ void Dirt::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lo
 void Dirt::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
 {
     BlockIterator bi = blockIterator;
-    bi.moveBy(VectorI(0, 1, 0));
+    bi.moveBy(VectorI(0, 1, 0), lock_manager.tls);
     Block b = bi.get(lock_manager);
     if(!b.good())
         return;
@@ -51,11 +51,11 @@ void Dirt::randomTick(const Block &block, World &world, BlockIterator blockItera
             for(int dz = -1; dz <= 1; dz++)
             {
                 bi = blockIterator;
-                bi.moveBy(VectorI(dx, dy, dz));
+                bi.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.descriptor != Grass::descriptor())
                     continue;
-                bi.moveBy(VectorI(0, 1, 0));
+                bi.moveBy(VectorI(0, 1, 0), lock_manager.tls);
                 Block b = bi.get(lock_manager);
                 if(b.lighting.toFloat(world.getLighting(bi.position().d)) < 9.0f / 15)
                     continue;

@@ -337,7 +337,7 @@ public:
 private:
     static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager)
     {
-        blockIterator.moveToward(inputThroughBlockFace);
+        blockIterator.moveToward(inputThroughBlockFace, lock_manager.tls);
         Block b = blockIterator.get(lock_manager);
         if(!b.good())
             return RedstoneSignal();
@@ -349,7 +349,7 @@ private:
                 if(bf == inputThroughBlockFace)
                     continue;
                 BlockIterator bi = blockIterator;
-                bi.moveFrom(bf);
+                bi.moveFrom(bf, lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good())
                 {
@@ -365,7 +365,7 @@ private:
         RedstoneSignal redstoneSignal = calculateRedstoneSignal(side, blockIterator, lock_manager);
         int signal = 0;
         BlockIterator bi = blockIterator;
-        bi.moveToward(side);
+        bi.moveToward(side, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(b.good())
         {
@@ -381,7 +381,7 @@ private:
                 signal = redstoneSignal.getRedstoneDustSignalStrength();
                 if(!b.descriptor->breaksRedstoneDust())
                 {
-                    bi.moveTowardNY();
+                    bi.moveTowardNY(lock_manager.tls);
                     b = bi.get(lock_manager);
                     if(b.good())
                     {
@@ -401,11 +401,11 @@ private:
         if(!blockAboveCutsRedstoneDust)
         {
             bi = blockIterator;
-            bi.moveToward(side);
+            bi.moveToward(side, lock_manager.tls);
             b = bi.get(lock_manager);
             if(b.good() && b.descriptor->transmitsRedstoneSignalDown())
             {
-                bi.moveTowardPY();
+                bi.moveTowardPY(lock_manager.tls);
                 b = bi.get(lock_manager);
                 if(b.good())
                 {
@@ -425,7 +425,7 @@ public:
     static const RedstoneDust *calcOrientationAndSignalStrength(BlockIterator blockIterator, WorldLockManager &lock_manager)
     {
         BlockIterator bi = blockIterator;
-        bi.moveTowardPY();
+        bi.moveTowardPY(lock_manager.tls);
         Block b = bi.get(lock_manager);
         bool blockAboveCutsRedstoneDust = true;
         if(b.good())
@@ -502,7 +502,7 @@ public:
                         for(delta.z = -zDistance; delta.z <= zDistance; delta.z++)
                         {
                             BlockIterator bi = blockIterator;
-                            bi.moveBy(delta);
+                            bi.moveBy(delta, lock_manager.tls);
                             world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::Redstone, BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
                             world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::RedstoneDust, 0);
                         }

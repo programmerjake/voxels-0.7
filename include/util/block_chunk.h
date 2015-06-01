@@ -90,7 +90,7 @@ private:
     ~BlockUpdate()
     {
     }
-    static void allocateAndFree(BlockUpdate *blockUpdateToFree, BlockUpdate **pBlockUpdateToAllocate)
+    static void allocateAndFree(BlockUpdate *blockUpdateToFree, BlockUpdate **pBlockUpdateToAllocate, TLS &tls)
     {
         struct FreeList final
         {
@@ -106,48 +106,51 @@ private:
                 }
             }
         };
-        static thread_local FreeList freeList;
+        struct freeList_tls_tag
+        {
+        };
+        thread_local_variable<FreeList, freeList_tls_tag> freeList(tls);
         if(pBlockUpdateToAllocate)
         {
             if(blockUpdateToFree)
             {
                 *pBlockUpdateToAllocate = blockUpdateToFree;
             }
-            else if(freeList.head == nullptr)
+            else if(freeList.get().head == nullptr)
             {
                 *pBlockUpdateToAllocate = new BlockUpdate;
             }
             else
             {
-                *pBlockUpdateToAllocate = freeList.head;
-                freeList.head = freeList.head->block_next;
-                freeList.size--;
+                *pBlockUpdateToAllocate = freeList.get().head;
+                freeList.get().head = freeList.get().head->block_next;
+                freeList.get().size--;
             }
         }
         else if(blockUpdateToFree)
         {
-            if(freeList.size > static_cast<std::size_t>(1 << 20) / sizeof(BlockUpdate))
+            if(freeList.get().size > static_cast<std::size_t>(1 << 20) / sizeof(BlockUpdate))
             {
                 delete blockUpdateToFree;
             }
             else
             {
-                blockUpdateToFree->block_next = freeList.head;
-                freeList.head = blockUpdateToFree;
-                freeList.size++;
+                blockUpdateToFree->block_next = freeList.get().head;
+                freeList.get().head = blockUpdateToFree;
+                freeList.get().size++;
             }
         }
     }
-    static BlockUpdate *allocate(BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next = nullptr)
+    static BlockUpdate *allocate(TLS &tls, BlockUpdateKind kind, PositionI position, float time_left, BlockUpdate *block_next = nullptr)
     {
         BlockUpdate *retval;
-        allocateAndFree(nullptr, &retval);
+        allocateAndFree(nullptr, &retval, tls);
         retval->init(kind, position, time_left, block_next);
         return retval;
     }
-    static void free(BlockUpdate *v)
+    static void free(BlockUpdate *v, TLS &tls)
     {
-        allocateAndFree(v, nullptr);
+        allocateAndFree(v, nullptr, tls);
     }
 public:
     PositionI getPosition() const
@@ -319,18 +322,21 @@ private:
             return new BlockOptionalData();
         }
     };
-    static Allocator &getAllocator()
+    static Allocator &getAllocator(TLS &tls)
     {
-        static thread_local Allocator a;
-        return a;
+        struct a_tls_tag
+        {
+        };
+        thread_local_variable<Allocator, a_tls_tag> a(tls);
+        return a.get();
     }
-    static void free(BlockOptionalData *p)
+    static void free(BlockOptionalData *p, TLS &tls)
     {
-        getAllocator().free(p);
+        getAllocator(tls).free(p);
     }
-    static BlockOptionalData *allocate()
+    static BlockOptionalData *allocate(TLS &tls)
     {
-        return getAllocator().allocate();
+        return getAllocator(tls).allocate();
     }
     std::uint8_t posX : BlockChunkSubchunkShiftXYZ, posY : BlockChunkSubchunkShiftXYZ, posZ : BlockChunkSubchunkShiftXYZ;
 public:
@@ -348,10 +354,13 @@ public:
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = BlockOptionalData::BlockChunkSubchunkSizeXYZ;
 private:
     checked_array<BlockOptionalData *, (1 << 5)> table;
-    static std::thread::id getThreadId()
+    static std::thread::id getThreadId(TLS &tls)
     {
-        static thread_local std::thread::id retval = std::this_thread::get_id();
-        return retval;
+        struct retval_tls_tag
+        {
+        };
+        thread_local_variable<std::thread::id, retval_tls_tag> retval(tls, std::this_thread::get_id());
+        return retval.get();
     }
     std::size_t hashPos(VectorI pos) const
     {
@@ -365,7 +374,7 @@ public:
         : table{}
     {
     }
-    void clear()
+    void clear(TLS &tls)
     {
         for(BlockOptionalData *&i : table)
         {
@@ -375,13 +384,13 @@ public:
             {
                 BlockOptionalData *freeMe = node;
                 node = node->hashNext;
-                BlockOptionalData::free(freeMe);
+                BlockOptionalData::free(freeMe, tls);
             }
         }
     }
     ~BlockOptionalDataHashTable()
     {
-        clear();
+        clear(TLS::getSlow());
     }
     BlockOptionalDataHashTable(const BlockOptionalDataHashTable &rt)
         : table{}
@@ -391,7 +400,7 @@ public:
             BlockOptionalData **pNewNode = &table[i];
             for(BlockOptionalData *node = rt.table[i]; node != nullptr; node = node->hashNext)
             {
-                BlockOptionalData *newNode = BlockOptionalData::allocate();
+                BlockOptionalData *newNode = BlockOptionalData::allocate(TLS::getSlow());
                 *pNewNode = newNode;
                 pNewNode = &newNode->hashNext;
                 newNode->data = node->data;
@@ -400,7 +409,7 @@ public:
         }
     }
     BlockOptionalDataHashTable &operator =(const BlockOptionalDataHashTable &) = delete;
-    void erase(VectorI pos)
+    void erase(VectorI pos, TLS &tls)
     {
         BlockOptionalData **pNode = &table[hashPos(pos)];
         while(*pNode != nullptr)
@@ -409,14 +418,14 @@ public:
             if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
             {
                 *pNode = node->hashNext;
-                BlockOptionalData::free(node);
+                BlockOptionalData::free(node, tls);
                 return;
             }
             assert(node != node->hashNext);
             pNode = &node->hashNext;
         }
     }
-    BlockOptionalData *get_or_make(VectorI pos)
+    BlockOptionalData *get_or_make(VectorI pos, TLS &tls)
     {
         BlockOptionalData **pNode = &table[hashPos(pos)];
         BlockOptionalData **pTableEntry = pNode;
@@ -432,7 +441,7 @@ public:
             }
             pNode = &node->hashNext;
         }
-        BlockOptionalData *node = BlockOptionalData::allocate();
+        BlockOptionalData *node = BlockOptionalData::allocate(tls);
         node->posX = pos.x;
         node->posY = pos.y;
         node->posZ = pos.z;
@@ -465,31 +474,31 @@ public:
             return nullptr;
         return node->data;
     }
-    void setData(VectorI pos, BlockDataPointer<BlockData> data)
+    void setData(VectorI pos, BlockDataPointer<BlockData> data, TLS &tls)
     {
         BlockOptionalData *node;
         if(data != nullptr)
-            node = get_or_make(pos);
+            node = get_or_make(pos, tls);
         else
             node = get(pos);
         if(node == nullptr)
             return;
         node->data = std::move(data);
         if(node->empty())
-            erase(pos);
+            erase(pos, tls);
     }
-    void setUpdateListHead(VectorI pos, BlockUpdate *updateListHead)
+    void setUpdateListHead(VectorI pos, BlockUpdate *updateListHead, TLS &tls)
     {
         BlockOptionalData *node;
         if(updateListHead != nullptr)
-            node = get_or_make(pos);
+            node = get_or_make(pos, tls);
         else
             node = get(pos);
         if(node == nullptr)
             return;
         node->updateListHead = updateListHead;
         if(node->empty())
-            erase(pos);
+            erase(pos, tls);
     }
     BlockUpdate *getUpdateListHead(VectorI pos)
     {
@@ -676,11 +685,11 @@ struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiom
         Lighting lighting = blockChunkBlock.getLighting();
         return Block(bd, lighting, subchunk.blockOptionalData.getData(subchunkRelativePosition));
     }
-    static void putBlockIntoArray(VectorI subchunkRelativePosition, BlockChunkBlock &blockChunkBlock, BlockChunkSubchunk &subchunk, Block newBlock) /// @note doesn't handle updates or particles or anything except copying the members from Block
+    static void putBlockIntoArray(VectorI subchunkRelativePosition, BlockChunkBlock &blockChunkBlock, BlockChunkSubchunk &subchunk, Block newBlock, TLS &tls) /// @note doesn't handle updates or particles or anything except copying the members from Block
     {
         subchunk.setBlockKind(blockChunkBlock, newBlock.descriptor);
         blockChunkBlock.setLighting(newBlock.lighting);
-        subchunk.blockOptionalData.setData(subchunkRelativePosition, std::move(newBlock.data));
+        subchunk.blockOptionalData.setData(subchunkRelativePosition, std::move(newBlock.data), tls);
     }
     IndirectBlockChunk *const indirectBlockChunk;
     BlockChunkChunkVariables &getChunkVariables();
@@ -713,10 +722,13 @@ private:
     }
     std::atomic_bool accessedFlag;
     std::atomic_bool *unloadAbortFlag = nullptr;
-    static bool &getIgnoreReferencesFromThreadFlag()
+    static bool &getIgnoreReferencesFromThreadFlag(TLS &tls)
     {
-        static thread_local bool retval = false;
-        return retval;
+        struct retval_tls_tag
+        {
+        };
+        thread_local_variable<bool, retval_tls_tag> retval(tls, false);
+        return retval.get();
     }
 public:
     const PositionI basePosition;
@@ -743,7 +755,7 @@ public:
         std::unique_lock<std::mutex> lockIt(chunkLock);
         return chunk != nullptr;
     }
-    std::shared_ptr<BlockChunk> getOrLoad()
+    std::shared_ptr<BlockChunk> getOrLoad(TLS &tls)
     {
         std::unique_lock<std::mutex> lockIt(chunkLock);
         if(unloadAbortFlag != nullptr)
@@ -787,7 +799,7 @@ public:
             loading = false;
             chunkCond.notify_all();
         }
-        if(!getIgnoreReferencesFromThreadFlag())
+        if(!getIgnoreReferencesFromThreadFlag(tls))
             accessedFlag.store(true, std::memory_order_relaxed);
         return chunk;
     }

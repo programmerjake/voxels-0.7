@@ -23,6 +23,7 @@
 
 #include "util/lock.h"
 #include "util/iterator.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -114,15 +115,17 @@ struct WorldLockManager final
     };
     LockManager<generic_lock_wrapper> block_biome_lock;
     const bool needLock;
+    TLS &tls;
 private:
-    WorldLockManager(bool needLock)
+    WorldLockManager(bool needLock, TLS &tls)
         : block_biome_lock(),
-        needLock(needLock)
+        needLock(needLock),
+        tls(tls)
     {
     }
 public:
-    WorldLockManager()
-        : WorldLockManager(true)
+    explicit WorldLockManager(TLS &tls)
+        : WorldLockManager(true, tls)
     {
     }
     void clear()

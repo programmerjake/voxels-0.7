@@ -118,7 +118,7 @@ Item RedstoneDust::onUse(Item item, World &world, WorldLockManager &lock_manager
     RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
     if(c.valid() && c.type == RayCasting::Collision::Type::Block)
     {
-        BlockIterator bi = world.getBlockIterator(c.blockPosition);
+        BlockIterator bi = world.getBlockIterator(c.blockPosition, lock_manager.tls);
         Block b = Block(Blocks::builtin::RedstoneDust::calcOrientationAndSignalStrength(bi, lock_manager));
         if(player.placeBlock(c, world, lock_manager, b))
         {

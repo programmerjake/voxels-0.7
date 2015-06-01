@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <exception>
 #include <mutex>
+#include "util/tls.h"
 
 namespace programmerjake
 {

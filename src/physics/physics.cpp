@@ -95,14 +95,14 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 int minZ = ifloor(fMin.z);
                 int maxZ = iceil(fMax.z);
                 std::shared_ptr<PhysicsObject> objectB;
-                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d));
-                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX())
+                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX(lock_manager.tls))
                 {
                     BlockIterator bixy = bix;
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY())
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY(lock_manager.tls))
                     {
                         BlockIterator bi = bixy;
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ(lock_manager.tls))
                         {
                             setObjectToBlock(objectB, bi, lock_manager);
                             bool supported = objectA->isSupportedBy(*objectB);
@@ -302,14 +302,14 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 std::shared_ptr<PhysicsObject> objectB;
                 std::shared_ptr<PhysicsObject> objectBForEffectRegion;
                 BlockEffects newBlockEffects(nullptr);
-                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d));
-                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX())
+                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX(lock_manager.tls))
                 {
                     BlockIterator bixy = bix;
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY())
+                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY(lock_manager.tls))
                     {
                         BlockIterator bi = bixy;
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ())
+                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ(lock_manager.tls))
                         {
                             Block b = bi.get(lock_manager);
                             setObjectToBlock(objectB, bi, lock_manager);

@@ -56,7 +56,7 @@ class ViewPoint final
     std::shared_ptr<Meshes> nextBlockRenderMeshes;
     World &world;
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
-    void generateMeshesFn(bool isPrimaryThread);
+    void generateMeshesFn(bool isPrimaryThread, TLS &tls);
     std::shared_ptr<void> pLightingCache;
     static bool generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp);
     static void copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockManager &source_lock_manager, WorldLockManager &dest_lock_manager, BlockIterator sourceChunkBlockIterator, BlockIterator destChunkBlockIterator);

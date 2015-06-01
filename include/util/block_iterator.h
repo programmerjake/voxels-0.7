@@ -47,9 +47,9 @@ class BlockIterator final
     BlockChunkMap *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
-    void getChunk()
+    void getChunk(TLS &tls)
     {
-        chunk = (*chunks)[currentBasePosition].getOrLoad();
+        chunk = (*chunks)[currentBasePosition].getOrLoad(tls);
     }
     BlockChunkSubchunk &getSubchunk() const
     {
@@ -85,11 +85,11 @@ class BlockIterator final
     {
     }
 public:
-    BlockIterator(BlockChunkMap *chunks, PositionI position)
+    BlockIterator(BlockChunkMap *chunks, PositionI position, TLS &tls)
         : chunk(), chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
-        getChunk();
+        getChunk(tls);
     }
     BlockIterator(const BlockIterator &) = default;
     BlockIterator(BlockIterator &&) = default;
@@ -99,121 +99,121 @@ public:
     {
         return currentBasePosition + currentRelativePosition;
     }
-    void moveTowardNX()
+    void moveTowardNX(TLS &tls)
     {
         if(currentRelativePosition.x <= 0)
         {
             currentRelativePosition.x = BlockChunk::chunkSizeX - 1;
             currentBasePosition.x -= BlockChunk::chunkSizeX;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.x--;
     }
-    void moveTowardNY()
+    void moveTowardNY(TLS &tls)
     {
         if(currentRelativePosition.y <= 0)
         {
             currentRelativePosition.y = BlockChunk::chunkSizeY - 1;
             currentBasePosition.y -= BlockChunk::chunkSizeY;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.y--;
     }
-    void moveTowardNZ()
+    void moveTowardNZ(TLS &tls)
     {
         if(currentRelativePosition.z <= 0)
         {
             currentRelativePosition.z = BlockChunk::chunkSizeZ - 1;
             currentBasePosition.z -= BlockChunk::chunkSizeZ;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.z--;
     }
-    void moveTowardPX()
+    void moveTowardPX(TLS &tls)
     {
         if(currentRelativePosition.x >= BlockChunk::chunkSizeX - 1)
         {
             currentRelativePosition.x = 0;
             currentBasePosition.x += BlockChunk::chunkSizeX;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.x++;
     }
-    void moveTowardPY()
+    void moveTowardPY(TLS &tls)
     {
         if(currentRelativePosition.y >= BlockChunk::chunkSizeY - 1)
         {
             currentRelativePosition.y = 0;
             currentBasePosition.y += BlockChunk::chunkSizeY;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.y++;
     }
-    void moveTowardPZ()
+    void moveTowardPZ(TLS &tls)
     {
         if(currentRelativePosition.z >= BlockChunk::chunkSizeZ - 1)
         {
             currentRelativePosition.z = 0;
             currentBasePosition.z += BlockChunk::chunkSizeZ;
-            getChunk();
+            getChunk(tls);
         }
         else
             currentRelativePosition.z++;
     }
-    void moveToward(BlockFace bf)
+    void moveToward(BlockFace bf, TLS &tls)
     {
         switch(bf)
         {
         case BlockFace::NX:
-            moveTowardNX();
+            moveTowardNX(tls);
             break;
         case BlockFace::PX:
-            moveTowardPX();
+            moveTowardPX(tls);
             break;
         case BlockFace::NY:
-            moveTowardNY();
+            moveTowardNY(tls);
             break;
         case BlockFace::PY:
-            moveTowardPY();
+            moveTowardPY(tls);
             break;
         case BlockFace::NZ:
-            moveTowardNZ();
+            moveTowardNZ(tls);
             break;
         case BlockFace::PZ:
-            moveTowardPZ();
+            moveTowardPZ(tls);
             break;
         }
     }
-    void moveFrom(BlockFace bf)
+    void moveFrom(BlockFace bf, TLS &tls)
     {
         switch(bf)
         {
         case BlockFace::NX:
-            moveTowardPX();
+            moveTowardPX(tls);
             break;
         case BlockFace::PX:
-            moveTowardNX();
+            moveTowardNX(tls);
             break;
         case BlockFace::NY:
-            moveTowardPY();
+            moveTowardPY(tls);
             break;
         case BlockFace::PY:
-            moveTowardNY();
+            moveTowardNY(tls);
             break;
         case BlockFace::NZ:
-            moveTowardPZ();
+            moveTowardPZ(tls);
             break;
         case BlockFace::PZ:
-            moveTowardNZ();
+            moveTowardNZ(tls);
             break;
         }
     }
-    void moveBy(VectorI delta)
+    void moveBy(VectorI delta, TLS &tls)
     {
         currentRelativePosition += delta;
         VectorI deltaBasePosition = BlockChunk::getChunkBasePosition(currentRelativePosition);
@@ -221,24 +221,24 @@ public:
         {
             currentBasePosition += deltaBasePosition;
             currentRelativePosition -= deltaBasePosition;
-            getChunk();
+            getChunk(tls);
         }
     }
-    void moveTo(VectorI pos)
+    void moveTo(VectorI pos, TLS &tls)
     {
-        moveBy(pos - (VectorI)position());
+        moveBy(pos - (VectorI)position(), tls);
     }
-    void moveTo(PositionI pos)
+    void moveTo(PositionI pos, TLS &tls)
     {
         if(pos.d == currentBasePosition.d)
         {
-            moveTo((VectorI)pos);
+            moveTo((VectorI)pos, tls);
         }
         else
         {
             currentBasePosition = BlockChunk::getChunkBasePosition(pos);
             currentRelativePosition = BlockChunk::getChunkRelativePosition(pos);
-            getChunk();
+            getChunk(tls);
         }
     }
 private:

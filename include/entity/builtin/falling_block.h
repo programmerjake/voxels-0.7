@@ -103,7 +103,7 @@ protected:
     }
     virtual void placeBlock(PositionF position, World &world, WorldLockManager &lock_manager) const
     {
-        BlockIterator bi = world.getBlockIterator((PositionI)position);
+        BlockIterator bi = world.getBlockIterator((PositionI)position, lock_manager.tls);
         Block b = bi.get(lock_manager);
         Block newBlock = getPlacedBlock();
         if(!b.good() || !newBlock.good() || !b.descriptor->isReplaceableByFallingBlock())
