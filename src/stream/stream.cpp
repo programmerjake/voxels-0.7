@@ -18,6 +18,33 @@
  * MA 02110-1301, USA.
  *
  */
+#if defined(_WIN64) || defined(_WIN32)
+#ifdef __MSVCRT_VERSION__
+#define FILE_SEEK _fseeki64
+#define FILE_TELL _ftelli64
+#else
+#define FILE_SEEK fseek
+#define FILE_TELL ftell
+#endif
+#define FILE_OPEN fopen
+#elif defined(__ANDROID) || defined(__APPLE__)
+#define FILE_SEEK fseeko
+#define FILE_TELL ftello
+#define FILE_OPEN fopen
+#elif defined(__linux)
+#define FILE_SEEK fseeko64
+#define FILE_TELL ftello64
+#define FILE_OPEN fopen64
+#elif defined(__unix) || defined(__posix)
+#define FILE_SEEK fseeko
+#define FILE_TELL ftello
+#define FILE_OPEN fopen
+#else
+#define FILE_SEEK fseek
+#define FILE_TELL ftell
+#define FILE_OPEN fopen
+#endif
+
 #include "stream/stream.h"
 #include <iostream>
 #include <mutex>
@@ -198,28 +225,6 @@ uint8_t DumpingReader::readByte()
 }
 
 using namespace std;
-
-#if defined(_WIN64) || defined(_WIN32)
-#define FILE_SEEK _fseeki64
-#define FILE_TELL _ftelli64
-#define FILE_OPEN fopen
-#elif defined(__ANDROID) || defined(__APPLE__)
-#define FILE_SEEK fseeko
-#define FILE_TELL ftello
-#define FILE_OPEN fopen
-#elif defined(__linux)
-#define FILE_SEEK fseeko64
-#define FILE_TELL ftello64
-#define FILE_OPEN fopen64
-#elif defined(__unix) || defined(__posix)
-#define FILE_SEEK fseeko
-#define FILE_TELL ftello
-#define FILE_OPEN fopen
-#else
-#define FILE_SEEK fseek
-#define FILE_TELL ftell
-#define FILE_OPEN fopen
-#endif
 
 FileReader::FileReader(std::wstring fileName)
     : f(nullptr)

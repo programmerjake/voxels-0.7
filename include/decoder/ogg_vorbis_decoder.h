@@ -23,6 +23,7 @@
 
 #include "stream/stream.h"
 #include "platform/audio.h"
+#define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
 #include <cerrno>
 #include <iostream>

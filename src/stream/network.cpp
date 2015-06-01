@@ -42,6 +42,12 @@ namespace voxels
 namespace stream
 {
 
+NetworkConnection::NetworkConnection(int readFd, int writeFd)
+    : readerInternal(new FileReader(fdopen(readFd, "r"))), writerInternal(new FileWriter(fdopen(writeFd, "w")))
+{
+}
+
+
 namespace
 {
 initializer signalInit([]()

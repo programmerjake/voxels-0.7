@@ -47,10 +47,7 @@ class NetworkConnection final : public StreamRW
 private:
     std::shared_ptr<Reader> readerInternal;
     std::shared_ptr<Writer> writerInternal;
-    NetworkConnection(int readFd, int writeFd)
-        : readerInternal(new FileReader(fdopen(readFd, "r"))), writerInternal(new FileWriter(fdopen(writeFd, "w")))
-    {
-    }
+    NetworkConnection(int readFd, int writeFd);
 public:
     explicit NetworkConnection(std::wstring url, uint16_t port);
     std::shared_ptr<Reader> preader() override

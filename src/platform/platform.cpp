@@ -20,7 +20,6 @@
  */
 #define _FILE_OFFSET_BITS 64
 #if _WIN64 || _WIN32
-#include <intrin.h> // to fix declaration conflict
 #include <stdio.h>
 #endif
 #include "util/game_version.h"
@@ -230,7 +229,7 @@ static int platformSetup()
 {
     if(getenv("SDL_AUDIODRIVER") == nullptr)
     {
-        _putenv_s("SDL_AUDIODRIVER", "winmm");
+        SetEnvironmentVariableA("SDL_AUDIODRIVER", "winmm");
     }
     return 0;
 }
@@ -660,6 +659,8 @@ void startGraphics()
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     window = SDL_CreateWindow("Voxels", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xResInternal, yResInternal, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if(window == nullptr)
     {
@@ -1499,12 +1500,12 @@ void renderInternal(const Mesh & m)
     glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
 }
 
-PFNGLBINDBUFFERARBPROC fnGLBindBufferARB = nullptr;
-PFNGLDELETEBUFFERSARBPROC fnGLDeleteBuffersARB = nullptr;
-PFNGLGENBUFFERSARBPROC fnGLGenBuffersARB = nullptr;
-PFNGLBUFFERDATAARBPROC fnGLBufferDataARB = nullptr;
-PFNGLMAPBUFFERARBPROC fnGLMapBufferARB = nullptr;
-PFNGLUNMAPBUFFERARBPROC fnGLUnmapBufferARB = nullptr;
+PFNGLBINDBUFFERPROC fnGLBindBuffer = nullptr;
+PFNGLDELETEBUFFERSPROC fnGLDeleteBuffers = nullptr;
+PFNGLGENBUFFERSPROC fnGLGenBuffers = nullptr;
+PFNGLBUFFERDATAPROC fnGLBufferData = nullptr;
+PFNGLMAPBUFFERPROC fnGLMapBuffer = nullptr;
+PFNGLUNMAPBUFFERPROC fnGLUnmapBuffer = nullptr;
 bool haveOpenGLBuffers = false;
 PFNGLGENFRAMEBUFFERSEXTPROC fnGlGenFramebuffersEXT = nullptr;
 PFNGLDELETEFRAMEBUFFERSEXTPROC fnGlDeleteFramebuffersEXT = nullptr;
@@ -1784,12 +1785,43 @@ void getOpenGLBuffersExtension()
     haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object");
     if(haveOpenGLBuffers)
     {
-        fnGLBindBufferARB = (PFNGLBINDBUFFERARBPROC)SDL_GL_GetProcAddress("glBindBufferARB");
-        fnGLDeleteBuffersARB = (PFNGLDELETEBUFFERSARBPROC)SDL_GL_GetProcAddress("glDeleteBuffersARB");
-        fnGLGenBuffersARB = (PFNGLGENBUFFERSARBPROC)SDL_GL_GetProcAddress("glGenBuffersARB");
-        fnGLBufferDataARB = (PFNGLBUFFERDATAARBPROC)SDL_GL_GetProcAddress("glBufferDataARB");
-        fnGLMapBufferARB = (PFNGLMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glMapBufferARB");
-        fnGLUnmapBufferARB = (PFNGLUNMAPBUFFERARBPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
+        fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBufferARB");
+        fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffersARB");
+        fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffersARB");
+        fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferDataARB");
+        fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferARB");
+        fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
+    }
+    else
+    {
+        const char *versionString = reinterpret_cast<const char *>(glGetString(GL_VERSION));
+        if(versionString)
+        {
+            int major = 0, minor = 0;
+            const char *p = versionString;
+            for(; *p >= '0' && *p <= '9'; p++)
+            {
+                major *= 10;
+                major += *p - '0';
+            }
+            if(*p == '.')
+            {
+                for(p++; *p >= '0' && *p <= '9'; p++)
+                {
+                    minor *= 10;
+                    minor += *p - '0';
+                }
+            }
+            if(major > 1 || (major == 1 && minor >= 5))
+            {
+                fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
+                fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
+                fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
+                fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+                fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBuffer");
+                fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBuffer");
+            }
+        }
     }
     haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_EXT_framebuffer_object");
     if(haveOpenGLFramebuffers)
@@ -1828,7 +1860,7 @@ GLuint allocateBuffer()
     {
         freeBuffersLock.unlock();
         GLuint retval;
-        fnGLGenBuffersARB(1, &retval);
+        fnGLGenBuffers(1, &retval);
         return retval;
     }
     FreeBuffer retval = freeBuffers.back();
@@ -1836,9 +1868,9 @@ GLuint allocateBuffer()
     freeBuffersLock.unlock();
     if(retval.needUnmap)
     {
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, retval.buffer);
-        fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, retval.buffer);
+        fnGLUnmapBuffer(GL_ARRAY_BUFFER);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     return retval.buffer;
 }
@@ -1874,15 +1906,15 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         image(),
         allocatedTriangleCount(triangleCount)
     {
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
-        fnGLBufferDataARB(GL_ARRAY_BUFFER_ARB, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW_ARB);
-        bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
+        fnGLBufferData(GL_ARRAY_BUFFER, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW);
+        bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         if(bufferMemory == nullptr)
         {
             cerr << "error : can't map opengl buffer\n" << flush;
             abort();
         }
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     virtual ~MeshBufferImpOpenGLBuffer()
     {
@@ -1895,10 +1927,10 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         image.bind();
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrix(tform);
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, buffer);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
         if(bufferMemory != nullptr)
         {
-            fnGLUnmapBufferARB(GL_ARRAY_BUFFER_ARB);
+            fnGLUnmapBuffer(GL_ARRAY_BUFFER);
             bufferMemory = nullptr;
         }
         GLint vertexCount = usedTriangleCount * 3;
@@ -1913,14 +1945,14 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         glLoadIdentity();
         if(!gotFinalSet)
         {
-            bufferMemory = fnGLMapBufferARB(GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+            bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
             if(bufferMemory == nullptr)
             {
                 cerr << "error : can't map opengl buffer\n" << flush;
                 abort();
             }
         }
-        fnGLBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
+        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     virtual bool set(const Mesh &mesh, bool isFinal) override
     {
@@ -2204,7 +2236,7 @@ struct TemporaryFile final
     {
         delete fileReader;
         delete fileWriter;
-        unlink(deleteFileName.c_str());
+        std::remove(deleteFileName.c_str());
     }
     static std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> getRW(std::shared_ptr<TemporaryFile> tempFile)
     {
