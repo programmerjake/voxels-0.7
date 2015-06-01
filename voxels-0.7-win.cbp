@@ -112,7 +112,9 @@
 		</Compiler>
 		<Linker>
 			<Add option="-pthread" />
-			<Add option="-mwindows" />
+			<Add option="-mconsole" />
+			<Add option="-static-libgcc" />
+			<Add option="-static-libstdc++" />
 			<Add library="mingw32" />
 			<Add library="vorbis" />
 			<Add library="ogg" />
