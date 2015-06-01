@@ -19,9 +19,7 @@
 #
 #
 
-project_filename="voxels-0.7.cbp"
 declare -a a
-mapfile -t a < "$project_filename"
 target="Release"
 arch="linux"
 valid_architectures=("linux" "win32" "win64")
@@ -65,6 +63,18 @@ if ((OPTIND <= $#)); then
     echo "$0: too many options" >&2
     exit 1
 fi
+case "$arch" in
+linux)
+    project_filename="voxels-0.7.cbp"
+    ;;
+win64)
+    project_filename="voxels-0.7-win.cbp"
+    ;;
+win32)
+    project_filename="voxels-0.7-win.cbp"
+    ;;
+esac
+mapfile -t a < "$project_filename"
 found_target=0
 current_target=""
 in_compiler=0
@@ -129,6 +139,8 @@ for((i=0;i<${#a[@]};i++)); do
         :
     elif [[ "$line" =~ '<Option parameters="'[^\"]*'" />' || "$line" =~ '<Option title="'[^\"]*'" />' || "$line" =~ '<Option pch_mode="'[^\"]*'" />' || "$line" =~ '<Option type="'[^\"]*'" />' ]]; then
         :
+    elif [[ "$line" =~ '<Option platforms="'[^\"]*'" />' ]]; then
+        :
     else
         echo "unhandled line : $i : $line" >&2
         exit 1
@@ -159,7 +171,7 @@ win32)
     gxx_name="i686-w64-mingw32-g++"
     gcc_name="i686-w64-mingw32-gcc"
     march_override="-march=i686"
-    linker_command_line=(-mconsole -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
+#    linker_command_line=(-mconsole -lmingw32 -lSDL2main -lSDL2 -Wl,--no-undefined -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc -static-libstdc++ -lvorbisfile -lpng.dll -lz -lopengl32 -lvorbis -logg)
     ;;
 esac
 object_output_dir="${object_output_dir%/}$build_dir_suffix/"
