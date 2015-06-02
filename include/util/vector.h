@@ -340,19 +340,19 @@ struct VectorF
         return dot(v, v);
     }
 
-    friend constexpr float abs(const VectorF & v)
+    friend float abs(const VectorF & v)
     {
         return std::sqrt(absSquared(v));
     }
 
 private:
-    static constexpr float normalizeNoThrowHelper(float v)
+    static float normalizeNoThrowHelper(float v)
     {
         return v == 0 ? 1 : v;
     }
 public:
 
-    friend constexpr VectorF normalizeNoThrow(VectorF v)
+    friend VectorF normalizeNoThrow(VectorF v)
     {
         return v / normalizeNoThrowHelper(abs(v));
     }
@@ -470,7 +470,7 @@ inline VectorF normalize(const VectorI & v)
     return normalize((VectorF)v);
 }
 
-constexpr VectorF normalizeNoThrow(const VectorI & v)
+inline VectorF normalizeNoThrow(const VectorI & v)
 {
     return normalizeNoThrow((VectorF)v);
 }

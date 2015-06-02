@@ -111,7 +111,7 @@ public:
     {
         return ensureInRange<float>(constexpr_max<float>(toFloat(indirectSkylight) - 1.0f + skyBrightness, toFloat(indirectArtificalLight)), 0, 1) * (1 - minBrightness) + minBrightness;
     }
-    constexpr float toFloat(WorldLightingProperties wlp) const
+    float toFloat(WorldLightingProperties wlp) const
     {
         return toFloat(wlp.skyBrightness, wlp.minBrightness);
     }

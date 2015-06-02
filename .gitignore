@@ -20,3 +20,4 @@ massif.out.*
 Makefile
 *.exe
 *.dll
+*.pdb

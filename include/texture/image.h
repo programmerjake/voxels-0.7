@@ -53,11 +53,11 @@ public:
     explicit Image(std::wstring resourceName);
     explicit Image(unsigned w, unsigned h);
     explicit Image(ColorI c);
-    constexpr Image() noexcept
+    Image() noexcept
         : data()
     {
     }
-    constexpr Image(std::nullptr_t) noexcept
+    Image(std::nullptr_t) noexcept
         : Image()
     {
     }

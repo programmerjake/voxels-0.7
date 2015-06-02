@@ -210,15 +210,15 @@ struct Collision final
         : t(-1), type(Type::None), world(nullptr), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
     {
     }
-    explicit constexpr Collision(World &world)
+    explicit Collision(World &world)
         : t(-1), type(Type::None), world(&world), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
     {
     }
-    constexpr Collision(World &world, float t, PositionI blockPosition, BlockFaceOrNone blockFace)
+    Collision(World &world, float t, PositionI blockPosition, BlockFaceOrNone blockFace)
         : t(t), type(Type::Block), world(&world), blockPosition(blockPosition), blockFace(blockFace), entity(nullptr)
     {
     }
-    constexpr Collision(World &world, float t, Entity &entity)
+    Collision(World &world, float t, Entity &entity)
         : t(t), type(Type::Entity), world(&world), blockPosition(), blockFace(), entity(&entity)
     {
     }

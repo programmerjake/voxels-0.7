@@ -241,7 +241,7 @@ template <>
 struct hash<programmerjake::voxels::KeyboardKey>
 {
 private:
-    typedef typename std::underlying_type<programmerjake::voxels::KeyboardKey>::type int_type;
+    typedef std::underlying_type<programmerjake::voxels::KeyboardKey>::type int_type;
     hash<int_type> hasher;
 public:
     size_t operator ()(programmerjake::voxels::KeyboardKey v) const
@@ -254,7 +254,7 @@ template <>
 struct hash<programmerjake::voxels::KeyboardModifiers>
 {
 private:
-    typedef typename std::underlying_type<programmerjake::voxels::KeyboardModifiers>::type int_type;
+    typedef std::underlying_type<programmerjake::voxels::KeyboardModifiers>::type int_type;
     hash<int_type> hasher;
 public:
     size_t operator ()(programmerjake::voxels::KeyboardModifiers v) const
@@ -267,7 +267,7 @@ template <>
 struct hash<programmerjake::voxels::MouseButton>
 {
 private:
-    typedef typename std::underlying_type<programmerjake::voxels::MouseButton>::type int_type;
+    typedef std::underlying_type<programmerjake::voxels::MouseButton>::type int_type;
     hash<int_type> hasher;
 public:
     size_t operator ()(programmerjake::voxels::MouseButton v) const
@@ -301,7 +301,7 @@ private:
     {
     }
 public:
-    constexpr MeshBuffer()
+    MeshBuffer()
         : imp(), tform(Matrix::identity())
     {
     }

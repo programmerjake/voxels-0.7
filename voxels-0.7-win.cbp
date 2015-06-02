@@ -101,6 +101,55 @@
 					<Add option="-fsanitize=address" />
 				</Linker>
 			</Target>
+			<Target title="Debug MSVC">
+				<Option output="voxels-debug-msvc" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug-MSVC/" />
+				<Option type="1" />
+				<Option compiler="microsoft_visual_c_2015" />
+				<Option projectCompilerOptionsRelation="1" />
+				<Option projectLinkerOptionsRelation="1" />
+				<Compiler>
+					<Add option="/MDd" />
+					<Add option="/arch:SSE2" />
+					<Add option="/fp:fast" />
+					<Add option="/fp:except-" />
+					<Add option="/EHa" />
+					<Add option="/GR" />
+					<Add option="/W3" />
+					<Add option="/Zc:auto" />
+					<Add option="/Zc:wchar_t" />
+					<Add option="/Zi" />
+					<Add option="/FS" />
+					<Add option="/DDEBUG_VERSION" />
+					<Add option="/DDEBUG_LOCKS" />
+				</Compiler>
+				<Linker>
+					<Add option="/DEBUG" />
+				</Linker>
+			</Target>
+			<Target title="Release MSVC">
+				<Option output="voxels-msvc" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release-MSVC/" />
+				<Option type="1" />
+				<Option compiler="microsoft_visual_c_2015" />
+				<Option projectCompilerOptionsRelation="1" />
+				<Option projectLinkerOptionsRelation="1" />
+				<Compiler>
+					<Add option="/MD" />
+					<Add option="/arch:SSE2" />
+					<Add option="/fp:fast" />
+					<Add option="/fp:except-" />
+					<Add option="/EHa" />
+					<Add option="/GR" />
+					<Add option="/Ob" />
+					<Add option="/O2" />
+					<Add option="/W3" />
+					<Add option="/Zc:auto" />
+					<Add option="/Zc:wchar_t" />
+					<Add option="/FS" />
+					<Add option="/DNDEBUG" />
+				</Compiler>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Weffc++" />

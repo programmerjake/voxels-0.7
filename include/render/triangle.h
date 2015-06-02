@@ -79,7 +79,7 @@ struct Triangle
     VectorF p3;
     ColorF c3;
     VectorF n3;
-    constexpr Triangle(VectorF p1, VectorF p2, VectorF p3, ColorF color = colorizeIdentity())
+    Triangle(VectorF p1, VectorF p2, VectorF p3, ColorF color = colorizeIdentity())
         : t1(0, 0),
           p1(p1),
           c1(color),
@@ -94,7 +94,7 @@ struct Triangle
           n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
-    constexpr Triangle(VectorF p1, TextureCoord t1, VectorF p2, TextureCoord t2, VectorF p3, TextureCoord t3, ColorF color = colorizeIdentity())
+    Triangle(VectorF p1, TextureCoord t1, VectorF p2, TextureCoord t2, VectorF p3, TextureCoord t3, ColorF color = colorizeIdentity())
         : t1(t1),
           p1(p1),
           c1(color),
@@ -109,7 +109,7 @@ struct Triangle
           n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
-    constexpr Triangle(VectorF p1, ColorF c1, VectorF p2, ColorF c2, VectorF p3, ColorF c3)
+    Triangle(VectorF p1, ColorF c1, VectorF p2, ColorF c2, VectorF p3, ColorF c3)
         : t1(0, 0),
           p1(p1),
           c1(c1),
@@ -124,7 +124,7 @@ struct Triangle
           n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
-    constexpr Triangle(VectorF p1, TextureCoord t1, ColorF c1, VectorF p2, TextureCoord t2, ColorF c2, VectorF p3, TextureCoord t3, ColorF c3)
+    Triangle(VectorF p1, TextureCoord t1, ColorF c1, VectorF p2, TextureCoord t2, ColorF c2, VectorF p3, TextureCoord t3, ColorF c3)
         : t1(t1),
           p1(p1),
           c1(c1),
@@ -139,7 +139,7 @@ struct Triangle
           n3(normalizeNoThrow(cross(p1 - p2, p1 - p3)))
     {
     }
-    constexpr Triangle(VectorF p1, ColorF c1, TextureCoord t1, VectorF p2, ColorF c2, TextureCoord t2, VectorF p3, ColorF c3, TextureCoord t3)
+    Triangle(VectorF p1, ColorF c1, TextureCoord t1, VectorF p2, ColorF c2, TextureCoord t2, VectorF p3, ColorF c3, TextureCoord t3)
         : t1(t1),
           p1(p1),
           c1(c1),
@@ -276,7 +276,7 @@ struct Triangle
         stream::write<TextureCoord>(writer, t3);
         stream::write<VectorF>(writer, n3);
     }
-    constexpr VectorF getPlaneNormal() const
+    VectorF getPlaneNormal() const
     {
         return normalizeNoThrow(cross(p1 - p2, p1 - p3));
     }
@@ -291,12 +291,12 @@ struct Triangle
         return !operator ==(rt);
     }
 private:
-    constexpr std::pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
+    std::pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
     {
         return std::pair<VectorF, float>(normal, -dot(p1, normal));
     }
 public:
-    constexpr std::pair<VectorF, float> getPlaneEquation() const
+    std::pair<VectorF, float> getPlaneEquation() const
     {
         return getPlaneEquationHelper(getPlaneNormal());
     }

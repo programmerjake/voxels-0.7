@@ -630,11 +630,11 @@ public:
         {
             return imp.locked;
         }
-        ChunkMap::value_type &operator *()
+        typename ChunkMap::value_type &operator *()
         {
             return *imp;
         }
-        ChunkMap::value_type *operator ->()
+        typename ChunkMap::value_type *operator ->()
         {
             return &operator *();
         }
@@ -703,11 +703,11 @@ public:
         {
             return imp.locked;
         }
-        const ChunkMap::value_type &operator *()
+        const typename ChunkMap::value_type &operator *()
         {
             return *imp;
         }
-        const ChunkMap::value_type *operator ->()
+        const typename ChunkMap::value_type *operator ->()
         {
             return &operator *();
         }
@@ -1077,11 +1077,11 @@ public:
         {
             return node == nullptr;
         }
-        ChunkMap::value_type &operator *() const
+        typename ChunkMap::value_type &operator *() const
         {
             return node->value;
         }
-        ChunkMap::value_type *operator ->() const
+        typename ChunkMap::value_type *operator ->() const
         {
             return node->value;
         }

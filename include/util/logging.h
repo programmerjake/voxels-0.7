@@ -137,7 +137,7 @@ inline LogStream &getDebugLog()
     return *theLogStream;
 }
 
-constexpr post_t post = post_t{};
+constexpr post_t post{};
 
 struct postnl_t
 {
@@ -147,7 +147,7 @@ struct postnl_t
     }
 };
 
-constexpr postnl_t postnl = postnl_t{};
+constexpr postnl_t postnl{};
 
 struct postr_t
 {
@@ -157,7 +157,7 @@ struct postr_t
     }
 };
 
-constexpr postr_t postr = postr_t{};
+constexpr postr_t postr{};
 }
 }
 
