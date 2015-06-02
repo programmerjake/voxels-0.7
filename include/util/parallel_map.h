@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <mutex>
 #include <memory>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -234,11 +235,11 @@ private:
             }
             return true;
         }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
         void operator ++()
         {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
             if(node == nullptr)
                 return;
             lock();
@@ -260,11 +261,11 @@ private:
                 node = buckets[bucket_index];
             }
         }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
         void operator ++(int)
         {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
             operator ++();
         }
         bool operator ==(const iterator_imp &rt) const
@@ -325,11 +326,11 @@ public:
         {
             return imp.locked;
         }
-        parallel_map::value_type &operator *()
+        typename parallel_map::value_type &operator *()
         {
             return *imp;
         }
-        parallel_map::value_type *operator ->()
+        typename parallel_map::value_type *operator ->()
         {
             return &operator *();
         }
@@ -398,11 +399,11 @@ public:
         {
             return imp.locked;
         }
-        const parallel_map::value_type &operator *()
+        const typename parallel_map::value_type &operator *()
         {
             return *imp;
         }
-        const parallel_map::value_type *operator ->()
+        const typename parallel_map::value_type *operator ->()
         {
             return &operator *();
         }
@@ -785,11 +786,11 @@ public:
         {
             return node == nullptr;
         }
-        parallel_map::value_type &operator *() const
+        typename parallel_map::value_type &operator *() const
         {
             return node->value;
         }
-        parallel_map::value_type *operator ->() const
+        typename parallel_map::value_type *operator ->() const
         {
             return node->value;
         }

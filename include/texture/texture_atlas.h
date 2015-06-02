@@ -33,11 +33,11 @@ class TextureAtlas final
 {
     struct ImageDescriptor final
     {
-        Image image;
+        Image *image;
         const wchar_t *const fileName;
         const int width, height;
         constexpr ImageDescriptor(const wchar_t *fileName, int width, int height)
-            : image(), fileName(fileName), width(width), height(height)
+            : image(nullptr), fileName(fileName), width(width), height(height)
         {
         }
         ImageDescriptor(const ImageDescriptor &) = default;

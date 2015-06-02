@@ -25,6 +25,7 @@
 #include <iterator>
 #include <type_traits>
 #include <cassert>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -33,12 +34,12 @@ namespace voxels
 template <typename T, typename = void>
 struct enum_traits;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct enum_iterator : public std::iterator<std::random_access_iterator_tag, const T>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     T value;
     constexpr enum_iterator()
         : value((T)0)
@@ -130,12 +131,12 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <>
 struct enum_iterator<bool> : public std::iterator<std::random_access_iterator_tag, const bool>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     unsigned char value;
     constexpr enum_iterator()
         : value(0)
@@ -255,13 +256,13 @@ struct enum_traits_default
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct enum_traits<T, typename std::enable_if<std::is_enum<T>::value>::type> : public enum_traits_default<T, T::enum_first, T::enum_last>
 {
 };
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 
 template <>
 struct enum_traits<bool, void>

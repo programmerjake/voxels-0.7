@@ -124,8 +124,8 @@ struct Matrix
     {
         VectorF axisv = normalize(axis);
         float c, s, v;
-        c = std::cos(angle);
-        s = std::sin(angle);
+        c = static_cast<float>(std::cos(angle));
+        s = static_cast<float>(std::sin(angle));
         v = 1 - c; // Versine
         float xx, xy, xz, yy, yz, zz;
         xx = axisv.x * axisv.x;

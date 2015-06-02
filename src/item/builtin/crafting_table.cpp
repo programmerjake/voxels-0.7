@@ -153,7 +153,7 @@ protected:
                     {
                         if(player->addItem(itemStack->item) < 1)
                         {
-                            #warning finish
+                            FIXME_MESSAGE(finish)
                         }
                     }
                 }

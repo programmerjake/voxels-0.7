@@ -38,6 +38,7 @@
 #include <vector>
 #include "audio/audio_scheduler.h"
 #include "platform/audio.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -156,7 +157,7 @@ public:
     }
     virtual void move(double deltaTime) override
     {
-        spaceDoubleTapTimeLeft -= deltaTime;
+        spaceDoubleTapTimeLeft -= static_cast<float>(deltaTime);
         if(spaceDoubleTapTimeLeft < 0)
             spaceDoubleTapTimeLeft = 0;
         if(!dialog)
@@ -188,8 +189,8 @@ public:
             deltaViewPhi *= 0.5f;
             viewTheta += deltaViewTheta;
             viewPhi += deltaViewPhi;
-            viewTheta = std::fmod(viewTheta, 2 * M_PI);
-            viewPhi = limit<float>(viewPhi, -M_PI / 2, M_PI / 2);
+            viewTheta = std::fmod(viewTheta, 2 * (float)M_PI);
+            viewPhi = limit<float>(viewPhi, -(float)M_PI / 2, (float)M_PI / 2);
             gameInput->viewTheta.set(viewTheta);
             gameInput->viewPhi.set(viewPhi);
         }
@@ -251,7 +252,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchDown(TouchDownEvent &event) override
@@ -260,7 +261,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchMove(TouchMoveEvent &event) override
@@ -269,7 +270,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleMouseUp(MouseUpEvent &event) override
@@ -321,7 +322,7 @@ public:
         }
         if(Ui::handleMouseMove(event))
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleMouseScroll(MouseScrollEvent &event) override
@@ -526,7 +527,7 @@ public:
             return true;
         if(dialog)
             return false;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return false;
     }
     virtual bool handleMouseMoveOut(MouseEvent &event) override
@@ -535,7 +536,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleMouseMoveIn(MouseEvent &event) override
@@ -544,7 +545,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchMoveOut(TouchEvent &event) override
@@ -553,7 +554,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchMoveIn(TouchEvent &event) override
@@ -562,7 +563,7 @@ public:
             return true;
         if(dialog)
             return true;
-        #warning implement
+        FIXME_MESSAGE(implement)
         return true;
     }
     virtual void reset() override

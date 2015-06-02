@@ -54,6 +54,7 @@
 #include "util/game_version.h"
 #include "player/player.h"
 #include "util/chunk_cache.h"
+#include "util/tls.h"
 
 using namespace std;
 
@@ -1004,8 +1005,8 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
             WrappedEntity::SubchunkListType::iterator srcSubchunkIter = srcSubchunkList.to_iterator(&*srcChunkIter);
             if(!srcChunkIter->entity.good())
             {
-                srcSubchunkList.erase(srcSubchunkIter);
-                srcChunkIter = srcChunkList.erase(srcChunkIter);
+                srcSubchunkList.erase(WrappedEntity::SubchunkListType::const_iterator(srcSubchunkIter));
+                srcChunkIter = srcChunkList.erase(WrappedEntity::ChunkListType::const_iterator(srcChunkIter));
                 continue;
             }
             srcChunkIter->lastEntityRunCount = 0;
@@ -1955,7 +1956,7 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
 
 void World::chunkUnloaderThreadFn(TLS &tls) // this thread doesn't need to be paused
 {
-#warning finish fixing chunk unloader thread
+FIXME_MESSAGE(finish fixing chunk unloader thread)
 #if 0 // disable for now
 #error add read/write block updates
     std::shared_ptr<ChunkCache> chunkCache = std::make_shared<ChunkCache>();

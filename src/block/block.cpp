@@ -307,7 +307,7 @@ struct StreamBlockDescriptors final
         auto iter = me.blockDescriptorPointerToDescriptorMap.find(bd);
         if(iter == me.blockDescriptorPointerToDescriptorMap.end())
         {
-            Descriptor descriptor = ++me.descriptorCount;
+            Descriptor descriptor = static_cast<Descriptor>(++me.descriptorCount);
             assert(descriptor == me.descriptorCount); // check for overflow
             me.blockDescriptorPointerToDescriptorMap[bd] = descriptor;
             me.descriptorToBlockDescriptorPointerMap[descriptor] = bd;

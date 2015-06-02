@@ -26,6 +26,7 @@
 #include <tuple>
 #include <stdexcept>
 #include <cstddef>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -214,135 +215,137 @@ public:
         bucket_count_ = new_bucket_count;
     }
 private:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     template <typename ValueT, typename DerivedType>
     struct iterator_base : public std::iterator<std::bidirectional_iterator_tag, ValueT>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class linked_map;
     protected:
-        Node *pointer;
+        Node *ptr;
         const linked_map *container;
-        constexpr iterator_base(Node *pointer, const linked_map *container)
-            : pointer(pointer), container(container)
+        constexpr iterator_base(Node *ptr, const linked_map *container)
+            : ptr(ptr), container(container)
         {
         }
     public:
         constexpr iterator_base()
-            : pointer(nullptr), container(nullptr)
+            : ptr(nullptr), container(nullptr)
         {
         }
         template <typename U, typename V>
         constexpr bool operator ==(iterator_base<U, V> r) const
         {
-            return pointer == r.pointer;
+            return ptr == r.ptr;
         }
         template <typename U, typename V>
         constexpr bool operator !=(iterator_base<U, V> r) const
         {
-            return pointer != r.pointer;
+            return ptr != r.ptr;
         }
         constexpr ValueT *operator ->() const
         {
-            return &pointer->value;
+            return &ptr->value;
         }
         constexpr ValueT &operator *() const
         {
-            return pointer->value;
+            return ptr->value;
         }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
         const DerivedType &operator ++()
         {
-            if(pointer == nullptr)
+            if(ptr == nullptr)
             {
-                pointer = container->list_head;
+                ptr = container->list_head;
             }
             else
             {
-                pointer = pointer->list_next;
+                ptr = ptr->list_next;
             }
 
             return *static_cast<const DerivedType *>(this);
         }
         const DerivedType &operator --()
         {
-            if(pointer == nullptr)
+            if(ptr == nullptr)
             {
-                pointer = container->list_tail;
+                ptr = container->list_tail;
             }
             else
             {
-                pointer = pointer->list_prev;
+                ptr = ptr->list_prev;
             }
 
             return *static_cast<const DerivedType *>(this);
         }
         const DerivedType operator ++(int)
         {
-            Node *initial_pointer = pointer;
+            Node *initial_pointer = ptr;
 
-            if(pointer == nullptr)
+            if(ptr == nullptr)
             {
-                pointer = container->list_head;
+                ptr = container->list_head;
             }
             else
             {
-                pointer = pointer->list_next;
+                ptr = ptr->list_next;
             }
 
             return DerivedType(initial_pointer, container);
         }
         const DerivedType operator --(int)
         {
-            Node *initial_pointer = pointer;
+            Node *initial_pointer = ptr;
 
-            if(pointer == nullptr)
+            if(ptr == nullptr)
             {
-                pointer = container->list_tail;
+                ptr = container->list_tail;
             }
             else
             {
-                pointer = pointer->list_prev;
+                ptr = ptr->list_prev;
             }
 
             return DerivedType(initial_pointer, container);
         }
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     };
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+    struct iterator;
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    struct const_iterator final : public iterator_base<const value_type, const_iterator>
+    {
+GCC_PRAGMA(diagnostic pop)
+        friend class linked_map;
+        friend struct iterator;
+        constexpr const_iterator()
+        {
+        }
+    private:
+        constexpr const_iterator(Node *ptr, const linked_map *container)
+            : iterator_base<const value_type, const_iterator>(ptr, container)
+        {
+        }
+    };
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     struct iterator final : public iterator_base<value_type, iterator>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class linked_map;
         constexpr iterator()
         {
         }
-    private:
-        constexpr iterator(Node *pointer, const linked_map *container)
-            : iterator_base<value_type, iterator>(pointer, container)
+        operator const_iterator() const
         {
-        }
-    };
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-    struct const_iterator final : public iterator_base<const value_type, const_iterator>
-    {
-#pragma GCC diagnostic pop
-        friend class linked_map;
-        constexpr const_iterator()
-        {
-        }
-        constexpr const_iterator(iterator r)
-            : const_iterator(r.pointer, r.container)
-        {
+            return const_iterator(this->ptr, this->container);
         }
     private:
-        constexpr const_iterator(Node *pointer, const linked_map *container)
-            : iterator_base<const value_type, const_iterator>(pointer, container)
+        constexpr iterator(Node *ptr, const linked_map *container)
+            : iterator_base<value_type, iterator>(ptr, container)
         {
         }
     };
@@ -678,7 +681,7 @@ public:
     }
     iterator erase(const_iterator position)
     {
-        Node *node = (Node *)position.pointer;
+        Node *node = (Node *)position.ptr;
 
         if(node == nullptr)
         {

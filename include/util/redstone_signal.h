@@ -48,11 +48,11 @@ public:
           canConnectToRedstoneDustThroughBlock(canConnectToRedstoneDustThroughBlock)
     {
     }
-    constexpr RedstoneSignal(int strongSignalStrength)
+    RedstoneSignal(int strongSignalStrength)
         : RedstoneSignal(strongSignalStrength, strongSignalStrength, true, true)
     {
     }
-    constexpr RedstoneSignal(bool strongSignalStrength)
+    RedstoneSignal(bool strongSignalStrength)
         : RedstoneSignal(strongSignalStrength ? maxSignalStrength : 0, strongSignalStrength ? maxSignalStrength : 0, true, true)
     {
     }
@@ -60,14 +60,14 @@ public:
     {
         return isOnAtAll() || canConnectToRedstoneDustDirectly;
     }
-    constexpr RedstoneSignal combine(RedstoneSignal rt) const
+    RedstoneSignal combine(RedstoneSignal rt) const
     {
         return RedstoneSignal(max(strongSignalStrength, rt.strongSignalStrength),
                               max(weakSignalStrength, rt.weakSignalStrength),
                               canConnectToRedstoneDustDirectly || rt.canConnectToRedstoneDustDirectly,
                               canConnectToRedstoneDustThroughBlock || rt.canConnectToRedstoneDustThroughBlock);
     }
-    constexpr RedstoneSignal transmitThroughSolidBlock() const
+    RedstoneSignal transmitThroughSolidBlock() const
     {
         return RedstoneSignal(0, weakSignalStrength, canConnectToRedstoneDustThroughBlock, false);
     }

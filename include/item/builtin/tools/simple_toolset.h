@@ -291,7 +291,7 @@ public:
     }
 };
 
-#warning add more tools to toolset
+FIXME_MESSAGE(add more tools to toolset)
 
 class SimpleToolset
 {

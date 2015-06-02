@@ -85,34 +85,33 @@ private:
     };
     struct RandomCacheChunk
     {
-        checked_array<checked_array<checked_array<std::uint32_t, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeX> values;
+        checked_array<checked_array<checked_array<std::uint32_t, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> values;
         const RandomChunkKey key;
         typedef std::minstd_rand random_generator;
         static random_generator makeRandomGenerator(World::SeedType seed, RandomChunkKey key)
         {
             seed += (std::uint32_t)RandomChunkKeyHasher()(key);
-            return random_generator(seed);
+            return random_generator((std::uint32_t)seed);
         }
         RandomCacheChunk(World::SeedType seed, RandomChunkKey key)
             : values(),
             key(key)
         {
             random_generator rg = makeRandomGenerator(seed, key);
-            std::uniform_int_distribution<std::int32_t> distribution;
             for(auto &i : values)
             {
                 for(auto &j : i)
                 {
                     for(auto &v : j)
                     {
-                        v = distribution(rg);
+                        v = rg() + (rg() << 16);
                     }
                 }
             }
         }
         std::int32_t getValueI(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
-            return values[rx][ry][rz];
+            return values[rx][rz][ry];
         }
         std::int32_t getValueI(VectorI relativePosition) const
         {
@@ -144,7 +143,7 @@ public:
     RandomSource(World::SeedType seed)
         : seed(seed),
         randomCache(),
-        deleteChunkRandomEngine(seed)
+        deleteChunkRandomEngine((std::uint32_t)seed)
     {
     }
     const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)

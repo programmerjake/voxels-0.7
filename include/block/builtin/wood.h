@@ -476,7 +476,7 @@ public:
     virtual bool isHelpingToolKind(Item tool) const override
     {
         return false;
-        #warning add check for shears
+        FIXME_MESSAGE(add check for shears)
     }
     virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
     {

@@ -202,7 +202,7 @@ void ExpandReader::readCompressedBuffer()
         s->avail_in = size;
         moreAvailable = true;
     }
-    catch(EOFException &e)
+    catch(EOFException &)
     {
         throw ZLibFormatException("eof reached");
     }

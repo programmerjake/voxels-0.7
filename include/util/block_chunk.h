@@ -45,6 +45,8 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include "util/tls.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -167,11 +169,11 @@ public:
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class BlockUpdateIterator final : public std::iterator<std::forward_iterator_tag, const BlockUpdate>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 private:
     friend class BlockIterator;
     friend class World;
@@ -348,7 +350,7 @@ public:
     }
 };
 
-struct BlockOptionalDataHashTable final
+class BlockOptionalDataHashTable final
 {
 public:
     static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = BlockOptionalData::BlockChunkSubchunkSizeXYZ;
@@ -667,11 +669,11 @@ struct BlockChunkChunkVariables final
 
 class IndirectBlockChunk;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 struct BlockChunk final : public BasicBlockChunk<BlockChunkBlock, BlockChunkBiome, BlockChunkSubchunk>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     BlockChunk(const BlockChunk &) = delete;
     BlockChunk &operator =(const BlockChunk &) = delete;
     static_assert(BlockChunkBlock::blockKindBitWidth >= 3 * subchunkShiftXYZ, "BlockChunkBlock::blockKindBitWidth is too small");

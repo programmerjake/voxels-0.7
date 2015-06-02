@@ -177,7 +177,7 @@ private:
                 gotEOFOrError = true;
                 return;
             }
-            catch(IOException &e)
+            catch(IOException &)
             {
                 gotEOFOrError = true;
                 return;

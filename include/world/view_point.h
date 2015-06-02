@@ -30,6 +30,7 @@
 #include <mutex>
 #include <thread>
 #include <list>
+#include "util/tls.h"
 
 namespace programmerjake
 {

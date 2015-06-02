@@ -24,6 +24,7 @@
 #include "platform/event.h"
 #include "render/renderer.h"
 #include <memory>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -33,12 +34,12 @@ namespace ui
 {
 class Container;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
+GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
 class Element : public EventHandler, public std::enable_shared_from_this<Element>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     Element(float minX, float maxX, float minY, float maxY);
     virtual ~Element();

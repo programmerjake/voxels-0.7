@@ -23,6 +23,7 @@
 #include "util/logging.h"
 #include "platform/platform.h"
 #include <cassert>
+#include "util/tls.h"
 
 namespace programmerjake
 {

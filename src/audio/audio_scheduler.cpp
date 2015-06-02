@@ -39,7 +39,7 @@ float AudioScheduler::SongDescriptor::getSongTimeOfDayFactor(float timeOfDayFrac
     float x = timeOfDayFraction - focusedTimeOfDay;
     x -= std::floor(x);
     log << " x: " << x << "\n";
-    float durationFraction = duration / lengthOfDayInSeconds;
+    float durationFraction = static_cast<float>(duration / lengthOfDayInSeconds);
     if(durationFraction <= 1e-3)
         durationFraction = 1e-3;
     log << "durationFraction: " << durationFraction;

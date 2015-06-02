@@ -38,6 +38,7 @@
 #include "item/item_struct.h"
 #include "entity/builtin/item.h"
 #include "block/builtin/air.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -104,11 +105,11 @@ public:
 }
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class Player final : public std::enable_shared_from_this<Player>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     friend class Entities::builtin::PlayerEntity;
     friend class Players_t;
     friend class ui::GameUi;
@@ -219,7 +220,7 @@ public:
     }
     RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask)
     {
-        return world.castRay(getViewRay(), lock_manager, gameInput->isCreativeMode.get() ? 30 : 5, rayBlockCollisionMask, playerEntity);
+        return world.castRay(getViewRay(), lock_manager, gameInput->isCreativeMode.get() ? 30.0f : 5.0f, rayBlockCollisionMask, playerEntity);
     }
     Entity *createDroppedItemEntity(ItemStack itemStack, World &world, WorldLockManager &lock_manager)
     {
@@ -360,11 +361,11 @@ private:
     {
     }
 public:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator final : public std::iterator<std::forward_iterator_tag, const std::shared_ptr<Player>>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class LockedPlayers;
     private:
         PlayerList::ListType::iterator iter;

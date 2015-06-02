@@ -158,9 +158,9 @@ protected:
     }
     virtual void renderElement(Renderer &renderer, float minX, float maxX, float minY, float maxY, float minZ, float maxZ, bool isSelected) override
     {
-        std::wstring str = L"☐";
+        std::wstring str = L"\u2610";
         if(checked.get())
-            str = L"☑";
+            str = L"\u2611";
         float textWidth = Text::width(str);
         float textHeight = Text::height(str);
         if(textWidth == 0)

@@ -336,7 +336,7 @@ int translateToFontIndex(wchar_t ch)
         {
             return topPageTranslationMap.at(character);
         }
-        catch(out_of_range &e)
+        catch(out_of_range &)
         {
             return (int)'?';
         }

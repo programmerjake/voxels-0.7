@@ -250,12 +250,12 @@ private:
         //getDebugLog() << L"currentElapsedSmeltTime = " << data->currentElapsedSmeltTime << L", burnTimeLeft = " << data->burnTimeLeft << postnl;
         if(!hasFuel)
         {
-            data->currentElapsedSmeltTime -= 2 * deltaTime;
+            data->currentElapsedSmeltTime -= static_cast<float>(2 * deltaTime);
             if(data->currentElapsedSmeltTime < 0)
                 data->currentElapsedSmeltTime = 0;
             return;
         }
-        data->currentElapsedSmeltTime += deltaTime;
+        data->currentElapsedSmeltTime += static_cast<float>(deltaTime);
         while(data->canSmeltIgnoringFuel())
         {
             data->smeltItem();
@@ -286,7 +286,7 @@ private:
         }
         else
         {
-            data->burnTimeLeft -= deltaTime;
+            data->burnTimeLeft -= static_cast<float>(deltaTime);
             handleSmelt(data, lockIt, world, lock_manager, deltaTime, true);
         }
         bool newBurning = (data->burnTimeLeft > 0);

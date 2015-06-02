@@ -28,6 +28,7 @@
 #include <memory>
 #include "render/renderer.h"
 #include "render/render_settings.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {

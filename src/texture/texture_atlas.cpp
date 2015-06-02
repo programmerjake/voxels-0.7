@@ -70,8 +70,8 @@ Image TextureAtlas::texture(std::size_t textureIndex)
 {
     ImageDescriptor &t = textures()[textureIndex];
     if(t.image == nullptr)
-        t.image = loadImage(t.fileName);
-    return t.image;
+        t.image = new Image(loadImage(t.fileName));
+    return *t.image;
 }
 
 TextureAtlas::TextureLoader::TextureLoader()

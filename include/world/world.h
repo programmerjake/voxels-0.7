@@ -52,6 +52,8 @@
 #include "util/math_constants.h"
 #include "stream/stream.h"
 #include "util/rc4_random_engine.h"
+#include "util/util.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -69,11 +71,11 @@ struct WorldConstructionAborted final : public std::runtime_error
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class World final : public std::enable_shared_from_this<World>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     friend class ViewPoint;
     World(const World &) = delete;
     const World &operator =(const World &) = delete;
@@ -405,7 +407,7 @@ public:
         else
             blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
         if(blockOptionalData == nullptr)
-            return -1;
+            return false;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
         BlockUpdate *pnode = *ppnode;
         while(pnode != nullptr)
@@ -783,7 +785,7 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
         double newTimeOfDayInSeconds = timeOfDayInSeconds + deltaTime;
         double newTimeInDays = newTimeOfDayInSeconds / dayDurationInSeconds;
-        timeOfDayInSeconds = dayDurationInSeconds * (newTimeInDays - std::floor(newTimeInDays));
+        timeOfDayInSeconds = dayDurationInSeconds * static_cast<float>(newTimeInDays - std::floor(newTimeInDays));
         moonPhase = (moonPhase + (int)std::floor(newTimeInDays)) % moonPhaseCount;
     }
     int getMoonPhase()
@@ -819,7 +821,7 @@ public:
     }
     VectorF getSunPosition()
     {
-        float angle = M_PI * 2 * getTimeOfDayInDays();
+        float angle = static_cast<float>(M_PI) * 2 * getTimeOfDayInDays();
         return VectorF(std::cos(angle), std::sin(angle), 0);
     }
     VectorF getMoonPosition()

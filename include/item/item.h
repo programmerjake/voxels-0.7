@@ -36,7 +36,7 @@ namespace programmerjake
 namespace voxels
 {
 class World;
-class WorldLockManager;
+struct WorldLockManager;
 class Player;
 namespace Entities
 {
@@ -160,11 +160,11 @@ public:
 
         return retval;
     }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator final : public std::iterator<std::forward_iterator_tag, const ItemDescriptorPointer>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class ItemDescriptors_t;
         MapType::const_iterator iter;
         bool empty;

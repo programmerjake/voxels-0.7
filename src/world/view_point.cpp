@@ -33,6 +33,7 @@
 #include "util/iterator.h"
 #include <algorithm>
 #include "platform/thread_name.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {

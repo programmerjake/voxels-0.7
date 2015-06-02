@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -121,12 +122,12 @@ struct combined_iterator_category<std::random_access_iterator_tag, std::bidirect
     typedef std::bidirectional_iterator_tag type;
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename IT1, typename IT2>
 class joined_iterator final : public std::iterator<typename combined_iterator_category<std::forward_iterator_tag, typename combined_iterator_category<typename std::iterator_traits<IT1>::iterator_category, typename std::iterator_traits<IT2>::iterator_category>::type>::type, typename joined_iterator_value_type_helper<IT1, IT2>::type>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     typedef IT1 iterator_type1;
     typedef IT2 iterator_type2;
@@ -211,7 +212,6 @@ template <typename T>
 struct iterator_type_helper
 {
     typedef typename std::decay<decltype(begin(std::declval<T>()))>::type type;
-private:
     static type beginImp(T &c)
     {
         return begin(c);
@@ -250,8 +250,32 @@ struct iterator_type<T[N], void> final
     }
 };
 
+template <typename CT, typename = void>
+class iterator_type_helper_has_begin final
+{
+public:
+    static constexpr bool has_begin = false;
+};
+
 template <typename CT>
-struct iterator_type<CT, typename std::enable_if<std::is_same<decltype(std::declval<CT>().begin()), decltype(std::declval<CT>().begin())>::value>::type> final
+class iterator_type_helper_has_begin<CT, typename std::enable_if<std::is_class<CT>::value>::type> final
+{
+private:
+    struct yes
+    {
+    };
+    struct no
+    {
+    };
+    template <typename T, typename RT, RT (T::*)() = &CT::begin>
+    static yes fn(T *);
+    static no fn(...);
+public:
+    static constexpr bool has_begin = std::is_same<yes, decltype(fn(std::declval<CT *>()))>::value;
+};
+
+template <typename CT>
+struct iterator_type<CT, typename std::enable_if<iterator_type_helper_has_begin<CT>::has_begin>::type> final
 {
     typedef typename std::decay<decltype(std::declval<CT>().begin())>::type type;
     static type begin(CT &&c)
@@ -281,12 +305,12 @@ range<joined_iterator<typename iterator_type<CT1>::type, typename iterator_type<
     return range<joined_iterator_type>(beginV, endV);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct empty_range_iterator final : public std::iterator<std::random_access_iterator_tag, T>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     typedef T value_type;
     bool operator ==(const empty_range_iterator &rt) const
@@ -373,12 +397,12 @@ range<empty_range_iterator<T>> empty_range()
     return range<empty_range_iterator<T>>(empty_range_iterator<T>(), empty_range_iterator<T>());
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct unit_range_iterator final : public std::iterator<std::forward_iterator_tag, T>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 private:
     T *value;
 public:

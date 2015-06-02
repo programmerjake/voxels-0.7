@@ -22,7 +22,7 @@
 #include "util/util.h"
 #if _WIN64 || _WIN32
 #if 1
-#warning finish networking for windows
+FIXME_MESSAGE(finish networking for windows)
 #else
 #include <sys/types.h>
 #include <sys/socket.h>

@@ -28,6 +28,7 @@
 #include <unordered_set>
 #include <vector>
 #include <list>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -35,11 +36,11 @@ namespace voxels
 {
 class PositionF;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 struct PositionI : public VectorI
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     Dimension d;
     constexpr PositionI()
         : d(Dimension::Overworld)
@@ -182,11 +183,11 @@ namespace programmerjake
 {
 namespace voxels
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class PositionF : public VectorF
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     Dimension d;
     constexpr PositionF()
@@ -194,7 +195,7 @@ public:
     {
     }
     constexpr PositionF(PositionI p)
-        : VectorF(p.x, p.y, p.z), d(p.d)
+        : VectorF(static_cast<float>(p.x), static_cast<float>(p.y), static_cast<float>(p.z)), d(p.d)
     {
     }
     constexpr PositionF(float x, float y, float z, Dimension d)
@@ -206,7 +207,7 @@ public:
     {
     }
     constexpr PositionF(VectorI p, Dimension d)
-        : VectorF(p.x, p.y, p.z), d(d)
+        : VectorF(static_cast<float>(p.x), static_cast<float>(p.y), static_cast<float>(p.z)), d(d)
     {
     }
     explicit operator PositionI() const

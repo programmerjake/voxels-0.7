@@ -78,6 +78,7 @@ public:
     }
     static void throwErrorFromErrno(std::string functionName)
     {
+MSVC_PRAGMA(warning(suppress : 4996))
         throw IOException(functionName + " failed: " + std::strerror(errno));
     }
 };
@@ -626,12 +627,12 @@ struct rw_class_traits<T, typename std::enable_if<std::is_enum<T>::value || std:
     typedef T value_type;
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type> : public read_base<typename rw_class_traits<T>::value_type>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     read(Reader &reader)
         : read_base<typename rw_class_traits<T>::value_type>(T::read(reader))
     {
@@ -658,24 +659,24 @@ struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_trai
 template <typename T, typename = void>
 struct read_finite;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read_finite<T, typename std::enable_if<std::is_integral<T>::value>::type> : public stream::read<T>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     read_finite(Reader & reader)
         : stream::read<T>(reader)
     {
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 inline typename rw_class_traits<T>::value_type read_checked(Reader & reader, std::function<bool(typename rw_class_traits<T>::value_type)> checkFn)
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     typename rw_class_traits<T>::value_type retval = stream::read<T>(reader);
     if(!checkFn(retval))
     {
@@ -765,8 +766,8 @@ struct write<typeName, void> \
     } \
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::uint8_t, U8)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::int8_t, S8)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(std::uint16_t, U16)
@@ -779,18 +780,18 @@ DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(float32_t, F32)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(float64_t, F64)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(std::wstring, String)
 DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(bool, Bool)
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE
 #undef DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read<T, typename std::enable_if<std::is_enum<T>::value>::type> : public read_base<T>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     read(Reader &reader)
         : read_base<T>((T)(typename enum_traits<T>::rwtype)stream::read_limited<typename enum_traits<T>::rwtype>(reader, (typename enum_traits<T>::rwtype)enum_traits<T>::minimum, (typename enum_traits<T>::rwtype)enum_traits<T>::maximum))
     {
@@ -806,12 +807,12 @@ struct write<T, typename std::enable_if<std::is_enum<T>::value>::type>
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read_nonnull : public read_base<typename rw_class_traits<T>::value_type>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     read_nonnull(Reader &reader)
         : read_base<typename rw_class_traits<T>::value_type>((std::shared_ptr<T>)read<T>(reader))
     {
@@ -948,17 +949,17 @@ public:
         case SeekPosition::Start:
             if(static_cast<std::uint64_t>(o) > length || o < 0)
                 throw SeekOutOfRangeException();
-            offset = o;
+            offset = static_cast<std::size_t>(o);
             break;
         case SeekPosition::Current:
             if(static_cast<std::uint64_t>(o + offset) > length || static_cast<std::int64_t>(o + offset) < 0)
                 throw SeekOutOfRangeException();
-            offset += o;
+            offset = static_cast<std::size_t>(offset + o);
             break;
         case SeekPosition::End:
             if(o > 0 || static_cast<std::uint64_t>(-o) > length)
                 throw SeekOutOfRangeException();
-            offset = length + o;
+            offset = static_cast<std::size_t>(length + o);
             break;
         default:
             UNREACHABLE();
@@ -1026,17 +1027,17 @@ public:
         case SeekPosition::Start:
             if(offset < 0)
                 throw SeekOutOfRangeException();
-            writeOffset = offset;
+            writeOffset = static_cast<std::size_t>(offset);
             break;
         case SeekPosition::Current:
             if(static_cast<std::int64_t>(writeOffset) + offset < 0)
                 throw SeekOutOfRangeException();
-            writeOffset += offset;
+            writeOffset = static_cast<std::size_t>(writeOffset + offset);
             break;
         case SeekPosition::End:
             if(static_cast<std::int64_t>(memory.size()) + offset < 0)
                 throw SeekOutOfRangeException();
-            writeOffset = memory.size() + offset;
+            writeOffset = static_cast<std::size_t>(memory.size() + offset);
             break;
         default:
             UNREACHABLE();

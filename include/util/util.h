@@ -76,7 +76,10 @@ struct constexpr_assert_failure final
 #warning UNREACHABLE() unsupported on unknown compiler
 #define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
 #endif
+
 #if defined(__GNUC__) || defined(__GNUG__)
+#define GCC_PRAGMA(x) PRAGMA(GCC x)
+#define FIXME_MESSAGE(x) PRAGMA(GCC warning #x)
 template <typename T>
 constexpr void ignore_unused_variable_warning(const T &) __attribute__((always_inline));
 template <typename T>
@@ -94,6 +97,8 @@ constexpr void ignore_unused_variable_warning(const T &)
 {
 }
 #elif defined(_MSC_VER)
+#define PRAGMA(x) __pragma(x)
+#define MSVC_PRAGMA(x) __pragma(x)
 template <typename T>
 __forceinline constexpr void ignore_unused_variable_warning(const T &)
 {
@@ -114,6 +119,23 @@ constexpr void ignore_unused_variable_warning(const T &)
 {
 }
 #endif
+
+#ifndef GCC_PRAGMA
+#define GCC_PRAGMA(x)
+#endif
+
+#ifndef MSVC_PRAGMA
+#define MSVC_PRAGMA(x)
+#endif
+
+#ifndef PRAGMA
+#define PRAGMA(x) _Pragma(#x)
+#endif
+
+#ifndef FIXME_MESSAGE
+#define FIXME_MESSAGE(x) PRAGMA(message("FIXME - " #x))
+#endif
+
 template <typename T>
 constexpr T ensureInRange(const T v, const T minV, const T maxV)
 {
@@ -122,12 +144,12 @@ constexpr T ensureInRange(const T v, const T minV, const T maxV)
 
 inline int ifloor(float v)
 {
-    return floor(v);
+    return static_cast<int>(floor(v));
 }
 
 inline int iceil(float v)
 {
-    return ceil(v);
+    return static_cast<int>(ceil(v));
 }
 
 template <typename T>

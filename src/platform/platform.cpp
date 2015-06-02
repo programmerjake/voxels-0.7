@@ -21,6 +21,10 @@
 #define _FILE_OFFSET_BITS 64
 #if _WIN64 || _WIN32
 #include <stdio.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef min
+#undef max
 #endif
 #include "util/game_version.h"
 #include "platform/platform.h"
@@ -49,10 +53,21 @@
 #include <csignal>
 #include <cstdio>
 #include <ctime>
+#ifdef _MSC_VER
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif // _MSC_VER
 #include <GL/gl.h>
-#if _WIN64 || _WIN32
+#if (defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
 #include <GL/glext.h>
+#else
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+#ifndef APIENTRYP
+#define APIENTRYP APIENTRY *
+#endif
 #endif
 
 #ifndef SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK
@@ -183,6 +198,10 @@ static wstring getResourceFileName(wstring resource)
     return wstring(ResourcePrefix) + resource;
 }
 
+#ifndef PATH_MAX
+#define PATH_MAX _MAX_PATH
+#endif
+
 static wstring getExecutablePath()
 {
     wchar_t buf[PATH_MAX + 1];
@@ -227,6 +246,7 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
 }
 static int platformSetup()
 {
+MSVC_PRAGMA(warning(suppress : 4996))
     if(getenv("SDL_AUDIODRIVER") == nullptr)
     {
         SetEnvironmentVariableA("SDL_AUDIODRIVER", "winmm");
@@ -762,7 +782,7 @@ static void flipDisplay(float fps)
         oldLastFlipTime = lastFlipTime;
         lastFlipTime = curTime;
         averageFPSInternal *= 1 - FPSUpdateFactor;
-        averageFPSInternal += FPSUpdateFactor * instantaneousFPS();
+        averageFPSInternal += FPSUpdateFactor * (float)instantaneousFPS();
     }
     if(sleepTime > eps)
     {
@@ -772,7 +792,7 @@ static void flipDisplay(float fps)
             oldLastFlipTime = lastFlipTime;
             lastFlipTime = Display::realtimeTimer();
             averageFPSInternal *= 1 - FPSUpdateFactor;
-            averageFPSInternal += FPSUpdateFactor * instantaneousFPS();
+            averageFPSInternal += FPSUpdateFactor * (float)instantaneousFPS();
         }
     }
     SDL_GL_SwapWindow(window);
@@ -1172,7 +1192,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         {
             if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
                 break;
-            return std::make_shared<MouseMoveEvent>(SDLEvent.motion.x, SDLEvent.motion.y, SDLEvent.motion.xrel, SDLEvent.motion.yrel);
+            return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x, (float)SDLEvent.motion.y, (float)SDLEvent.motion.xrel, (float)SDLEvent.motion.yrel);
         }
         case SDL_MOUSEWHEEL:
         {
@@ -1192,7 +1212,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState | button); // set bit
-            return std::make_shared<MouseDownEvent>(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+            return std::make_shared<MouseDownEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
         }
         case SDL_MOUSEBUTTONUP:
         {
@@ -1200,7 +1220,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
             buttonState = static_cast<MouseButton>(buttonState & ~button); // clear bit
-            return std::make_shared<MouseUpEvent>(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+            return std::make_shared<MouseUpEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
         }
         case SDL_FINGERMOTION:
             return std::make_shared<TouchMoveEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
@@ -1433,8 +1453,8 @@ VectorF Display::transform3DToMouse(VectorF pos)
     float depth = -pos.z;
     pos.x = pos.x / depth / scaleX();
     pos.y = -pos.y / depth / scaleY();
-    pos.x = (pos.x * 0.5 + 0.5) * width();
-    pos.y = (pos.y * 0.5 + 0.5) * height();
+    pos.x = (pos.x * 0.5f + 0.5f) * width();
+    pos.y = (pos.y * 0.5f + 0.5f) * height();
     return pos;
 }
 
@@ -1499,6 +1519,38 @@ void renderInternal(const Mesh & m)
 #endif
     glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
 }
+
+#ifdef _MSC_VER
+typedef std::ptrdiff_t GLsizeiptr;
+typedef std::ptrdiff_t GLintptr;
+typedef void (APIENTRYP PFNGLBINDBUFFERPROC) (GLenum target, GLuint buffer);
+typedef void (APIENTRYP PFNGLDELETEBUFFERSPROC) (GLsizei n, const GLuint *buffers);
+typedef void (APIENTRYP PFNGLGENBUFFERSPROC) (GLsizei n, GLuint *buffers);
+typedef void (APIENTRYP PFNGLBUFFERDATAPROC) (GLenum target, GLsizeiptr size, const void *data, GLenum usage);
+typedef void *(APIENTRYP PFNGLMAPBUFFERPROC) (GLenum target, GLenum access);
+typedef GLboolean (APIENTRYP PFNGLUNMAPBUFFERPROC) (GLenum target);
+typedef void (APIENTRYP PFNGLGENFRAMEBUFFERSEXTPROC) (GLsizei n, GLuint *framebuffers);
+typedef void (APIENTRYP PFNGLDELETEFRAMEBUFFERSEXTPROC) (GLsizei n, const GLuint *framebuffers);
+typedef void (APIENTRYP PFNGLGENRENDERBUFFERSEXTPROC) (GLsizei n, GLuint *renderbuffers);
+typedef void (APIENTRYP PFNGLDELETERENDERBUFFERSEXTPROC) (GLsizei n, const GLuint *renderbuffers);
+typedef void (APIENTRYP PFNGLBINDFRAMEBUFFEREXTPROC) (GLenum target, GLuint framebuffer);
+typedef void (APIENTRYP PFNGLBINDRENDERBUFFEREXTPROC) (GLenum target, GLuint renderbuffer);
+typedef void (APIENTRYP PFNGLFRAMEBUFFERTEXTURE2DEXTPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+typedef void (APIENTRYP PFNGLRENDERBUFFERSTORAGEEXTPROC) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+typedef void (APIENTRYP PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+typedef GLenum (APIENTRYP PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC) (GLenum target);
+#define GL_FRAMEBUFFER_EXT                0x8D40
+#define GL_RENDERBUFFER_EXT               0x8D41
+#define GL_COLOR_ATTACHMENT0_EXT          0x8CE0
+#define GL_DEPTH_COMPONENT16              0x81A5
+#define GL_DEPTH_COMPONENT24              0x81A6
+#define GL_DEPTH_COMPONENT32              0x81A7
+#define GL_DEPTH_ATTACHMENT_EXT           0x8D00
+#define GL_FRAMEBUFFER_COMPLETE_EXT       0x8CD5
+#define GL_ARRAY_BUFFER                   0x8892
+#define GL_DYNAMIC_DRAW                   0x88E8
+#define GL_WRITE_ONLY                     0x88B9
+#endif // _MSC_VER
 
 PFNGLBINDBUFFERPROC fnGLBindBuffer = nullptr;
 PFNGLDELETEBUFFERSPROC fnGLDeleteBuffers = nullptr;
@@ -1574,8 +1626,8 @@ void setupRenderLayers()
                 continue;
             glGenTextures(1, &renderLayerTexture[rl]);
             glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderLayerTextureW, renderLayerTextureH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -1782,7 +1834,7 @@ void finishDrawingRenderLayers()
 
 void getOpenGLBuffersExtension()
 {
-    haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object");
+    haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
     if(haveOpenGLBuffers)
     {
         fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBufferARB");
@@ -1823,7 +1875,7 @@ void getOpenGLBuffersExtension()
             }
         }
     }
-    haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_EXT_framebuffer_object");
+    haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_EXT_framebuffer_object") ? true : false;
     if(haveOpenGLFramebuffers)
     {
         fnGlGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersEXT");
@@ -1837,7 +1889,7 @@ void getOpenGLBuffersExtension()
         fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferEXT");
         fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
     }
-    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two");
+    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two") ? true : false;
 }
 
 struct FreeBuffer final
@@ -2128,7 +2180,7 @@ float Display::screenRefreshRate()
         return defaultFPS;
     if(mode.refresh_rate == 0)
         return defaultFPS;
-    return mode.refresh_rate;
+    return (float)mode.refresh_rate;
 }
 
 void Display::render(const MeshBuffer &m, RenderLayer rl)

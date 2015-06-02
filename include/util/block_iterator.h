@@ -32,6 +32,7 @@
 #include <thread>
 #include "util/logging.h"
 #include "util/world_lock_manager.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {

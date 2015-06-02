@@ -53,15 +53,15 @@ private:
     std::shared_ptr<Element> setupSettingsMenu();
     enum class MenuState
     {
-        MainMenu,
+        MainMenu_,
         SettingsMenu
     };
-    MenuState menuState = MenuState::MainMenu;
+    MenuState menuState = MenuState::MainMenu_;
     bool needChangeMenuState = false;
 public:
     virtual void reset() override
     {
-        menuState = MenuState::MainMenu;
+        menuState = MenuState::MainMenu_;
         needChangeMenuState = false;
         std::shared_ptr<Element> focusedElement = setupMainMenu();
         Ui::reset();
@@ -93,7 +93,7 @@ public:
             }
             switch(menuState)
             {
-            case MenuState::MainMenu:
+            case MenuState::MainMenu_:
                 setFocus(setupMainMenu());
                 break;
             case MenuState::SettingsMenu:

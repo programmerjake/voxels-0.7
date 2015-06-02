@@ -148,7 +148,7 @@ struct StreamItemDescriptors final
         auto iter = me.itemDescriptorPointerToDescriptorMap.find(id);
         if(iter == me.itemDescriptorPointerToDescriptorMap.end())
         {
-            Descriptor descriptor = ++me.descriptorCount;
+            Descriptor descriptor = static_cast<Descriptor>(++me.descriptorCount);
             assert(descriptor == me.descriptorCount); // check for overflow
             me.itemDescriptorPointerToDescriptorMap[id] = descriptor;
             me.descriptorToItemDescriptorPointerMap[descriptor] = id;

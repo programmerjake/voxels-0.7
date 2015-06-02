@@ -168,7 +168,8 @@ public:
     BiomeMap &operator =(const BiomeMap &rt)
     {
         assert(size() == rt.size());
-        for(auto i = begin(), j = rt.begin(); i != end(); i++, j++)
+        auto j = rt.begin();
+        for(auto i = begin(); i != end(); i++, j++)
         {
             std::get<1>(*i) = std::get<1>(*j);
         }
@@ -177,7 +178,8 @@ public:
     BiomeMap &operator =(BiomeMap &&rt)
     {
         assert(size() == rt.size());
-        for(auto i = begin(), j = rt.begin(); i != end(); i++, j++)
+        auto j = rt.begin();
+        for(auto i = begin(); i != end(); i++, j++)
         {
             std::get<1>(*i) = std::get<1>(std::move(*j));
         }
@@ -275,11 +277,11 @@ public:
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class BiomeWeights final : public BiomeMap<float>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     void normalize()
     {
@@ -370,7 +372,7 @@ public:
     {
         assert(good);
         assert(static_cast<std::uint16_t>(weights.size()) == weights.size());
-        stream::write<std::uint16_t>(writer, weights.size());
+        stream::write<std::uint16_t>(writer, static_cast<std::uint16_t>(weights.size()));
         for(BiomeWeights::value_type v : weights)
         {
             BiomeDescriptors.writeDescriptor(writer, std::get<0>(v));

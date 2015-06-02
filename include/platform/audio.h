@@ -135,7 +135,7 @@ public:
     {
         constexpr std::size_t size = 1024;
         buffer.resize(channels * size);
-        buffer.resize(channels * decoder->decodeAudioBlock(buffer.data(), size));
+        buffer.resize(static_cast<std::size_t>(channels * decoder->decodeAudioBlock(buffer.data(), size)));
     }
     virtual unsigned samplesPerSecond() override
     {
@@ -178,10 +178,10 @@ public:
                 do
                 {
                     lastDecodeCount = decodeCount;
-                    decodeCount += decoder->decodeAudioBlock(&buffer[decodeCount * channels], buffer.capacity() / channels - decodeCount);
+                    decodeCount += decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodeCount * channels)], buffer.capacity() / channels - decodeCount);
                 }
                 while(decodeCount != lastDecodeCount && buffer.capacity() / channels < decodeCount);
-                buffer.resize(decodeCount * channels);
+                buffer.resize(static_cast<std::size_t>(decodeCount * channels));
             }
             if(startIndex - bufferStartPosition >= buffer.size() || (t > 0 && endIndex - bufferStartPosition >= buffer.size()))
                 return retval;
@@ -235,7 +235,7 @@ public:
         unsigned sourceChannels = decoder->channelCount();
         if(sourceChannels == channels)
             return decoder->decodeAudioBlock(data, sampleCount);
-        buffer.resize(sampleCount * sourceChannels);
+        buffer.resize(static_cast<std::size_t>(sampleCount * sourceChannels));
         sampleCount = decoder->decodeAudioBlock(buffer.data(), sampleCount);
         switch(channels)
         {
@@ -243,7 +243,7 @@ public:
         {
             for(std::size_t sample = 0, bufferIndex = 0; sample < sampleCount; sample++)
             {
-                int sum = 0;
+                float sum = 0;
                 for(std::size_t j = 0; j < sourceChannels; j++)
                     sum += buffer[bufferIndex++];
                 *data++ = sum / sourceChannels;
@@ -701,7 +701,7 @@ class StreamBufferingAudioDecoder final : public AudioDecoder
             std::vector<float> &buffer = theBufferInList.front();
             buffer.resize(bufferSize * channelCountValue);
             std::uint64_t decodedSampleCount = decoder->decodeAudioBlock(buffer.data(), bufferSize);
-            buffer.resize(decodedSampleCount * channelCountValue);
+            buffer.resize(static_cast<std::size_t>(decodedSampleCount * channelCountValue));
             lockIt.lock();
             if(buffer.empty())
             {

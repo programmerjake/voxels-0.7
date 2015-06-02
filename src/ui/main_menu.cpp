@@ -123,7 +123,7 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     add(backButton);
     backButton->click.bind([this](EventArguments &)->Event::ReturnType
     {
-        menuState = MenuState::MainMenu;
+        menuState = MenuState::MainMenu_;
         needChangeMenuState = true;
         return Event::ReturnType::Propagate;
     });

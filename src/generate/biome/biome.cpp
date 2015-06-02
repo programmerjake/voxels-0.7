@@ -146,7 +146,7 @@ struct StreamBiomeDescriptors final
         auto iter = me.biomeDescriptorPointerToDescriptorMap.find(bd);
         if(iter == me.biomeDescriptorPointerToDescriptorMap.end())
         {
-            Descriptor descriptor = ++me.descriptorCount;
+            Descriptor descriptor = static_cast<Descriptor>(++me.descriptorCount);
             assert(descriptor == me.descriptorCount); // check for overflow
             me.biomeDescriptorPointerToDescriptorMap[bd] = descriptor;
             me.descriptorToBiomeDescriptorPointerMap[descriptor] = bd;

@@ -22,6 +22,12 @@
 #define PLATFORMGL_H_INCLUDED
 
 #include "platform/platform.h"
+#if defined(_WIN32) || defined(_WIN64)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef min
+#undef max
+#endif
 #include <GL/gl.h>
 
 #endif // PLATFORMGL_H_INCLUDED

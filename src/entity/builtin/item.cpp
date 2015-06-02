@@ -77,8 +77,8 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
     std::shared_ptr<ItemData> data = getItemData(entity);
     constexpr float angleSpeed = 2 * M_PI / 7.5f;
     constexpr float bobSpeed = 2.1f * angleSpeed;
-    data->angle = std::fmod(data->angle + angleSpeed * (float)deltaTime, M_PI * 2);
-    data->bobPhase = std::fmod(data->bobPhase + bobSpeed * (float)deltaTime, M_PI * 2);
+    data->angle = std::fmod(data->angle + angleSpeed * (float)deltaTime, (float)M_PI * 2);
+    data->bobPhase = std::fmod(data->bobPhase + bobSpeed * (float)deltaTime, (float)M_PI * 2);
     data->ignorePlayerTime = std::max<double>(0, data->ignorePlayerTime - deltaTime);
     PositionF position = entity.physicsObject->getPosition();
     std::shared_ptr<Player> closestPlayer = nullptr;
@@ -120,7 +120,7 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
             for(unsigned i = 0; i < data->itemStack.count; i++)
             {
                 closestPlayer->addItem(data->itemStack.item);
-                #warning check for player not accepting item
+                FIXME_MESSAGE(check for player not accepting item)
             }
             entity.destroy();
             return;

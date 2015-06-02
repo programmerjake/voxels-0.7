@@ -36,6 +36,7 @@
 #include <cassert>
 #include <stdexcept>
 #include "generate/biome/biome.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -53,7 +54,7 @@ enum class LogOrientation : std::uint8_t
 class WoodDescriptor;
 class TreeDescriptor;
 class World;
-class WorldLockManager;
+struct WorldLockManager;
 typedef const WoodDescriptor *WoodDescriptorPointer;
 typedef const TreeDescriptor *TreeDescriptorPointer;
 
@@ -278,15 +279,15 @@ public:
             return 0;
         return pNameMap->size();
     }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator final : public std::iterator<std::forward_iterator_tag, const WoodDescriptorPointer>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     private:
-        typename linked_map<std::wstring, WoodDescriptorPointer>::const_iterator iter;
+        linked_map<std::wstring, WoodDescriptorPointer>::const_iterator iter;
     public:
-        explicit iterator(typename linked_map<std::wstring, WoodDescriptorPointer>::const_iterator iter)
+        explicit iterator(linked_map<std::wstring, WoodDescriptorPointer>::const_iterator iter)
             : iter(iter)
         {
         }

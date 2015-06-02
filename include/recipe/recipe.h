@@ -214,7 +214,7 @@ private:
         list->push_back(descriptor);
     }
 public:
-    typedef typename ListType::const_iterator iterator;
+    typedef ListType::const_iterator iterator;
     iterator begin() const
     {
         assert(list != nullptr);

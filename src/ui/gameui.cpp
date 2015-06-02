@@ -29,6 +29,7 @@
 #include "stream/stream.h"
 #include "util/logging.h"
 #include "platform/thread_name.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {

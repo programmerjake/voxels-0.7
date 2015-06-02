@@ -39,12 +39,12 @@ namespace voxels
 {
 namespace Scripting
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
+GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
     struct Data : public std::enable_shared_from_this<Data>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         enum class Type : std::uint8_t
         {
             Boolean,
@@ -64,7 +64,11 @@ namespace Scripting
         virtual std::shared_ptr<Data> dup() const = 0;
         virtual void write(stream::Writer &writer) const = 0;
         static std::shared_ptr<Data> read(stream::Reader &reader);
-        virtual explicit operator std::wstring() const = 0;
+        virtual std::wstring toString() const = 0;
+        explicit operator std::wstring() const
+        {
+            return toString();
+        }
         std::wstring typeString() const
         {
             switch(type())
@@ -117,7 +121,7 @@ namespace Scripting
             return std::make_shared<DataBoolean>(stream::read<bool>(reader));
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             if(value)
             {
@@ -153,7 +157,7 @@ namespace Scripting
             return std::make_shared<DataInteger>(stream::read<std::int32_t>(reader));
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             std::wostringstream os;
             os << value;
@@ -187,7 +191,7 @@ namespace Scripting
             return std::make_shared<DataFloat>(reader.readFiniteF32());
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             std::wostringstream os;
             os << value << L"f";
@@ -227,7 +231,7 @@ namespace Scripting
             return std::make_shared<DataVector>(value);
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             std::wostringstream os;
             os << L"<" << value.x << L", " << value.y << L", " << value.z << L">";
@@ -271,7 +275,7 @@ namespace Scripting
             return std::make_shared<DataMatrix>(value);
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             std::wostringstream os;
             for(int y = 0; y < 4; y++)
@@ -337,7 +341,7 @@ namespace Scripting
             return retval;
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             if(value.size() == 0)
             {
@@ -404,7 +408,7 @@ namespace Scripting
             return retval;
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             if(value.size() == 0)
             {
@@ -448,7 +452,7 @@ namespace Scripting
             return std::make_shared<DataString>(reader.readString());
         }
     public:
-        virtual explicit operator std::wstring() const override
+        virtual std::wstring toString() const override
         {
             return value;
         }
@@ -466,12 +470,12 @@ namespace Scripting
         }
     };
     struct State;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
-#pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
+GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
     struct Node : public std::enable_shared_from_this<Node>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         enum class Type : std::uint16_t
         {
             Const,
@@ -569,11 +573,11 @@ namespace Scripting
     };
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class Script final : public std::enable_shared_from_this<Script>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 public:
     std::vector<std::shared_ptr<Scripting::Node>> nodes;
     std::shared_ptr<Scripting::Data> evaluate(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
@@ -695,10 +699,10 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
         ioObject->value[L"velocity"] = std::make_shared<Scripting::DataVector>(velocity);
         ioObject->value[L"doDraw"] = std::make_shared<Scripting::DataBoolean>(true);
         ioObject->value[L"transform"] = std::make_shared<Scripting::DataMatrix>(Matrix::translate(position));
-        ioObject->value[L"colorR"] = std::make_shared<Scripting::DataFloat>(1);
-        ioObject->value[L"colorG"] = std::make_shared<Scripting::DataFloat>(1);
-        ioObject->value[L"colorB"] = std::make_shared<Scripting::DataFloat>(1);
-        ioObject->value[L"colorA"] = std::make_shared<Scripting::DataFloat>(1);
+        ioObject->value[L"colorR"] = std::make_shared<Scripting::DataFloat>(1.0f);
+        ioObject->value[L"colorG"] = std::make_shared<Scripting::DataFloat>(1.0f);
+        ioObject->value[L"colorB"] = std::make_shared<Scripting::DataFloat>(1.0f);
+        ioObject->value[L"colorA"] = std::make_shared<Scripting::DataFloat>(1.0f);
         script->evaluate(ioObject);
         std::shared_ptr<Scripting::Data> pDoDraw = ioObject->value[L"doDraw"];
         if(!pDoDraw || pDoDraw->type() != Scripting::Data::Type::Boolean)

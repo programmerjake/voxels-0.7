@@ -42,11 +42,11 @@ namespace builtin
 void PlayerEntity::generateMeshes()
 {
     head = transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
-    #warning add rest of player
+    FIXME_MESSAGE(add rest of player)
 }
 void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const
 {
-    #warning implement
+    FIXME_MESSAGE(implement)
 }
 void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
 {
@@ -166,10 +166,10 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     bool gotAttackDown = player->gameInputMonitoring->retrieveGotAttack();
     if(gotAttackDown || player->gameInput->attack.get())
     {
-        player->destructingTime += deltaTime;
+        player->destructingTime += (float)deltaTime;
         if(player->cooldownTimeLeft > 0)
         {
-            player->cooldownTimeLeft -= deltaTime;
+            player->cooldownTimeLeft -= (float)deltaTime;
             if(player->cooldownTimeLeft <= 0)
                 player->cooldownTimeLeft = 0;
             player->destructingTime = 0;
@@ -265,7 +265,7 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         }
     }
     entity.physicsObject->setCurrentState(lastPosition, newVelocity, gravity);
-    #warning implement
+    FIXME_MESSAGE(implement)
 }
 void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
 {
@@ -439,7 +439,7 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
     if(name.empty())
         throw stream::InvalidDataValueException("empty player name");
     ItemStackArray<9, 4> items;
-    std::size_t currentItemIndex = static_cast<std::uint8_t>(stream::read_limited<std::uint8_t>(reader, 0, items.itemStacks.size() - 1));
+    std::size_t currentItemIndex = static_cast<std::uint8_t>(stream::read_limited<std::uint8_t>(reader, 0, static_cast<std::uint8_t>(items.itemStacks.size() - 1)));
     items = stream::read<ItemStackArray<9, 4>>(reader);
     World::StreamWorld streamWorld = World::getStreamWorld(reader);
     assert(streamWorld);

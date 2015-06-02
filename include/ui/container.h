@@ -56,7 +56,7 @@ protected:
     {
         return elements[index];
     }
-    typedef typename decltype(elements)::iterator iterator;
+    typedef decltype(elements)::iterator iterator;
     iterator begin()
     {
         return elements.begin();

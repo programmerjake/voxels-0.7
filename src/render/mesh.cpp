@@ -57,10 +57,10 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     float fMaxX = iw * td.maxU;
     float fMinY = ih * (1 - td.maxV);
     float fMaxY = ih * (1 - td.minV);
-    int minX = ifloor(1e-5 + fMinX);
-    int maxX = ifloor(-1e-5 + fMaxX);
-    int minY = ifloor(1e-5 + fMinY);
-    int maxY = ifloor(-1e-5 + fMaxY);
+    int minX = ifloor(1e-5f + fMinX);
+    int maxX = ifloor(-1e-5f + fMaxX);
+    int minY = ifloor(1e-5f + fMinY);
+    int maxY = ifloor(-1e-5f + fMaxY);
     assert(minX <= maxX && minY <= maxY);
     float scale = std::min<float>(1.0f / (1 + maxX - minX), 1.0f / (1 + maxY - minY));
     if(thickness <= 0)
@@ -101,7 +101,7 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
                 py = pixelTD;
             if(transparentPIY)
                 ny = pixelTD;
-            Matrix tform = Matrix::translate(ix - minX, maxY - iy, -0.5f).concat(Matrix::scale(scale, scale, thickness));
+            Matrix tform = Matrix::translate(static_cast<float>(ix - minX), static_cast<float>(maxY - iy), -0.5f).concat(Matrix::scale(scale, scale, thickness));
             retval.append(transform(tform, unitBox(nx, px, ny, py, TextureDescriptor(), TextureDescriptor())));
         }
     }

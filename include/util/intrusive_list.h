@@ -25,6 +25,7 @@
 #include <cassert>
 #include <functional>
 #include <algorithm>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -156,11 +157,11 @@ public:
     {
         return elementCount == 0;
     }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator : public std::iterator<std::bidirectional_iterator_tag, T>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
     private:
         T *node;
@@ -173,11 +174,11 @@ public:
             : iterator(nullptr)
         {
         }
-        constexpr T &operator *() const
+        T &operator *() const
         {
             return *node;
         }
-        constexpr T *operator ->() const
+        T *operator ->() const
         {
             return node;
         }
@@ -212,11 +213,11 @@ public:
             return *this;
         }
     };
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class const_iterator : public std::iterator<std::bidirectional_iterator_tag, const T>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
     private:
         const T *node;
@@ -229,7 +230,7 @@ public:
             : const_iterator(nullptr)
         {
         }
-        constexpr const_iterator(iterator rt)
+        const_iterator(const typename intrusive_list::iterator &rt)
             : const_iterator(rt.operator ->())
         {
         }
@@ -367,7 +368,7 @@ public:
     }
     iterator erase(const_iterator pos)
     {
-        assert(pos != end());
+        assert(pos != cend());
         T *node = const_cast<T *>(pos.node);
         T *prev_node = (node->*member).prev;
         T *next_node = (node->*member).next;
@@ -381,7 +382,7 @@ public:
     }
     T *detach(const_iterator pos)
     {
-        assert(pos != end());
+        assert(pos != cend());
         T *node = const_cast<T *>(pos.node);
         T *prev_node = (node->*member).prev;
         T *next_node = (node->*member).next;
@@ -394,25 +395,25 @@ public:
     }
     void push_front(T *node)
     {
-        insert(begin(), node);
+        insert(cbegin(), node);
     }
     void pop_front()
     {
-        erase(begin());
+        erase(cbegin());
     }
     void push_back(T *node)
     {
-        insert(end(), node);
+        insert(cend(), node);
     }
     void pop_back()
     {
-        iterator back = end();
+        const_iterator back = cend();
         --back;
         erase(back);
     }
     void splice(const_iterator pos, intrusive_list &other, const_iterator it)
     {
-        assert(it != other.end());
+        assert(it != other.cend());
         if(it == pos)
             return;
         const_iterator next = it;

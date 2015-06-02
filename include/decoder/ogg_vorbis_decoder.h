@@ -72,7 +72,7 @@ private:
                 dataPtr += blockSize;
             }
         }
-        catch(stream::IOException & e)
+        catch(stream::IOException &)
         {
             errno = EIO;
             return 0;
@@ -85,7 +85,7 @@ private:
         try
         {
             std::int64_t retval = decoder.reader->tell();
-            return retval;
+            return (long)retval;
         }
         catch(stream::IOException &)
         {

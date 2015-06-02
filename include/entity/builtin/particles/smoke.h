@@ -58,7 +58,7 @@ private:
 protected:
     virtual ColorF colorizeColor(const ParticleData &data) const override
     {
-        return GrayscaleF(0.6f - 0.6f / (1.0f + data.getTime()));
+        return GrayscaleF(0.6f - 0.6f / (1.0f + static_cast<float>(data.getTime())));
     }
     virtual float getExistDuration(World &world) const override
     {

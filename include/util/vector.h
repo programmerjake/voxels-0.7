@@ -134,7 +134,7 @@ public:
 
     friend float abs(const VectorI & v)
     {
-        return std::sqrt(absSquared(v));
+        return std::sqrt(static_cast<float>(absSquared(v)));
     }
 
     friend constexpr VectorI cross(const VectorI & a, const VectorI & b)
@@ -183,7 +183,7 @@ struct VectorF
     }
 
     constexpr VectorF(const VectorI & v)
-        : x(v.x), y(v.y), z(v.z)
+        : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)), z(static_cast<float>(v.z))
     {
     }
 

@@ -94,7 +94,7 @@ Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock, boo
 
 void WoodDescriptor::makeLeavesDrops(World &world, BlockIterator bi, WorldLockManager &lock_manager, Item tool) const
 {
-    #warning check for shears
+    FIXME_MESSAGE(check for shears)
     if(std::uniform_int_distribution<>(0, 19)(world.getRandomGenerator()) == 0)
     {
         ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(getSaplingItemDescriptor())), bi.position() + VectorF(0.5));

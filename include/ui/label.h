@@ -58,9 +58,9 @@ protected:
             textHeight = 1;
         float textScale = (maxY - minY) / textHeight;
         textScale = std::min<float>(textScale, (maxX - minX) / textWidth);
-        float xOffset = -0.5 * textWidth, yOffset = -0.5 * textHeight;
-        xOffset = textScale * xOffset + 0.5 * (minX + maxX);
-        yOffset = textScale * yOffset + 0.5 * (minY + maxY);
+        float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
+        xOffset = textScale * xOffset + 0.5f * (minX + maxX);
+        yOffset = textScale * yOffset + 0.5f * (minY + maxY);
         renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, textColor, textProperties));
     }
 };

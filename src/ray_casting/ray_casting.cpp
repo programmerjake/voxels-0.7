@@ -29,7 +29,9 @@ namespace voxels
 {
 namespace RayCasting
 {
+#ifndef _MSC_VER
 constexpr float Ray::eps;
+#endif
 
 namespace
 {

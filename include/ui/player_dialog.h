@@ -73,6 +73,14 @@ protected:
     {
         return imageMinY + pixelY * imageScale;
     }
+    static constexpr float imageGetPositionX(int pixelX)
+    {
+        return imageGetPositionX(static_cast<float>(pixelX));
+    }
+    static constexpr float imageGetPositionY(int pixelY)
+    {
+        return imageGetPositionY(static_cast<float>(pixelY));
+    }
     const std::shared_ptr<Player> player;
     TextureDescriptor backgroundImage;
     std::shared_ptr<UiItem> selectedItem = nullptr;
@@ -177,7 +185,7 @@ public:
                     {
                         if(player->addItem(itemStack->item) < 1)
                         {
-                            #warning finish
+                            FIXME_MESSAGE(finish)
                         }
                     }
                 }

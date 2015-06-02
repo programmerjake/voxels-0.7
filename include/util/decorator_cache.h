@@ -114,7 +114,7 @@ public:
     class InstanceRange final
     {
     public:
-        typedef typename std::vector<std::shared_ptr<const DecoratorInstance>>::const_iterator iterator;
+        typedef std::vector<std::shared_ptr<const DecoratorInstance>>::const_iterator iterator;
     private:
         iterator beginValue, endValue;
     public:

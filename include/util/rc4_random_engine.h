@@ -54,7 +54,7 @@ private:
         }
         for(std::size_t i = 0; i < state_array.size(); i++)
         {
-            state_array[i] = i;
+            state_array[i] = static_cast<word_type>(i);
         }
         for(std::size_t i = 0, j = 0; i < state_array.size(); i++)
         {

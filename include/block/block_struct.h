@@ -43,6 +43,7 @@
 #include "util/block_update.h"
 #include "util/checked_array.h"
 #include "stream/stream.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -77,12 +78,12 @@ private:
             blockDescriptorTable = newTable;
         }
         std::size_t index = blockDescriptorTableSize++;
-        if(index >= (std::size_t)NullIndex)
+        if(index >= static_cast<std::size_t>(NullIndex))
         {
             throw std::runtime_error("too many BlockDescriptor instances");
         }
         blockDescriptorTable[index] = bd;
-        return make(index);
+        return make(static_cast<std::uint16_t>(index));
     }
 public:
     static BlockDescriptorIndex make(std::uint16_t index)
@@ -252,12 +253,12 @@ protected:
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct BlockDataPointer : public BlockDataPointerBase
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     T *get() const
     {
         return static_cast<T *>(BlockDataPointerBase::get());

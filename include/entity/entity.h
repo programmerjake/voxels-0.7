@@ -32,6 +32,7 @@
 #include "render/mesh.h"
 #include "render/render_layer.h"
 #include "stream/stream.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -102,11 +103,11 @@ public:
             throw std::out_of_range("EntityDescriptor not found");
         return retval;
     }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator final : public std::iterator<std::forward_iterator_tag, const EntityDescriptorPointer>
     {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
         friend class EntityDescriptors_t;
         MapType::const_iterator iter;
         bool empty;

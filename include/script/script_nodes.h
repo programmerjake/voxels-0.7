@@ -171,7 +171,7 @@ struct NodeCastToInteger final : public NodeCast
         }
         if(retval->type() == Data::Type::Float)
         {
-            return std::make_shared<DataInteger>(std::dynamic_pointer_cast<DataFloat>(retval)->value);
+            return std::make_shared<DataInteger>((std::int32_t)std::dynamic_pointer_cast<DataFloat>(retval)->value);
         }
         throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to integer");
     }
@@ -201,7 +201,7 @@ struct NodeCastToFloat final : public NodeCast
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::make_shared<DataFloat>(std::dynamic_pointer_cast<DataInteger>(retval)->value);
+            return std::make_shared<DataFloat>((float)std::dynamic_pointer_cast<DataInteger>(retval)->value);
         }
         throw ScriptException(L"type cast error : can't cast " + retval->typeString() + L" to float");
     }
@@ -231,7 +231,7 @@ struct NodeCastToVector final : public NodeCast
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::make_shared<DataVector>(VectorF(std::dynamic_pointer_cast<DataInteger>(retval)->value));
+            return std::make_shared<DataVector>(VectorF((float)std::dynamic_pointer_cast<DataInteger>(retval)->value));
         }
         if(retval->type() == Data::Type::Float)
         {
@@ -2284,7 +2284,7 @@ struct NodeSin final : public NodeConstArgCount<1, NodeSin>
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::shared_ptr<Data>(new DataFloat(sin(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat((float)sin(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
         throw ScriptException(std::make_shared<DataString>(L"invalid type for sin : " + retval->typeString()));
     }
@@ -2308,7 +2308,7 @@ struct NodeCos final : public NodeConstArgCount<1, NodeCos>
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::shared_ptr<Data>(new DataFloat(cos(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat((float)cos(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
         throw ScriptException(std::make_shared<DataString>(L"invalid type for cos : " + retval->typeString()));
     }
@@ -2337,7 +2337,7 @@ struct NodeTan final : public NodeConstArgCount<1, NodeTan>
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::shared_ptr<Data>(new DataFloat(tan(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat((float)tan(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
         throw ScriptException(std::make_shared<DataString>(L"invalid type for tan : " + retval->typeString()));
     }
@@ -2362,7 +2362,7 @@ struct NodeATan final : public NodeConstArgCount<1, NodeATan>
         }
         if(retval->type() == Data::Type::Integer)
         {
-            return std::shared_ptr<Data>(new DataFloat(atan(dynamic_cast<DataInteger *>(retval.get())->value)));
+            return std::shared_ptr<Data>(new DataFloat((float)atan(dynamic_cast<DataInteger *>(retval.get())->value)));
         }
         throw ScriptException(std::make_shared<DataString>(L"invalid type for atan : " + retval->typeString()));
     }
@@ -2387,7 +2387,7 @@ struct NodeASin final : public NodeConstArgCount<1, NodeASin>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2420,7 +2420,7 @@ struct NodeACos final : public NodeConstArgCount<1, NodeACos>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2453,7 +2453,7 @@ struct NodeExp final : public NodeConstArgCount<1, NodeExp>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2486,7 +2486,7 @@ struct NodeLog final : public NodeConstArgCount<1, NodeLog>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2519,7 +2519,7 @@ struct NodeSqrt final : public NodeConstArgCount<1, NodeSqrt>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2552,7 +2552,7 @@ struct NodeATan2 final : public NodeConstArgCount<2, NodeATan2>
         }
         else if(arg1->type() == Data::Type::Integer)
         {
-            v1 = dynamic_cast<DataInteger *>(arg1.get())->value;
+            v1 = (float)dynamic_cast<DataInteger *>(arg1.get())->value;
         }
         else
         {
@@ -2565,7 +2565,7 @@ struct NodeATan2 final : public NodeConstArgCount<2, NodeATan2>
         }
         else if(arg2->type() == Data::Type::Integer)
         {
-            v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+            v2 = (float)dynamic_cast<DataInteger *>(arg2.get())->value;
         }
         else
         {
@@ -2628,7 +2628,7 @@ struct NodeMakeRotate final : public NodeConstArgCount<2, NodeMakeRotate>
         }
         else if(arg2->type() == Data::Type::Integer)
         {
-            v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+            v2 = (float)dynamic_cast<DataInteger *>(arg2.get())->value;
         }
         else
         {
@@ -2661,7 +2661,7 @@ struct NodeMakeRotateX final : public NodeConstArgCount<1, NodeMakeRotateX>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2690,7 +2690,7 @@ struct NodeMakeRotateY final : public NodeConstArgCount<1, NodeMakeRotateY>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2719,7 +2719,7 @@ struct NodeMakeRotateZ final : public NodeConstArgCount<1, NodeMakeRotateZ>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = dynamic_cast<DataInteger *>(retval.get())->value;
+            value = (float)dynamic_cast<DataInteger *>(retval.get())->value;
         }
         else
         {
@@ -2748,7 +2748,7 @@ struct NodeMakeScale final : public NodeConstArgCount<1, NodeMakeScale>
         }
         else if(retval->type() == Data::Type::Integer)
         {
-            value = VectorF(dynamic_cast<DataInteger *>(retval.get())->value);
+            value = VectorF((float)dynamic_cast<DataInteger *>(retval.get())->value);
         }
         else if(retval->type() == Data::Type::Vector)
         {

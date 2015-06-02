@@ -45,6 +45,7 @@
 #include "util/ordered_weak_ptr.h"
 #include "util/lock.h"
 #include "util/util.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
@@ -99,7 +100,7 @@ struct PhysicsProperties final
     }
     bool canCollideWith(const PhysicsProperties &r) const
     {
-        return myCollisionMask & r.othersCollisionMask;
+        return (myCollisionMask & r.othersCollisionMask) != 0;
     }
 };
 
@@ -159,12 +160,12 @@ struct PhysicsConstraint final
 
 namespace stream
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <>
 struct read<PhysicsConstraint> : public read_base<PhysicsConstraint>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     read(Reader &reader)
         : read_base<PhysicsConstraint>(PhysicsConstraint::read(reader))
     {
@@ -191,11 +192,11 @@ public:
     virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject, BlockIterator otherObject, WorldLockManager &lock_manager) = 0;
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class PhysicsObject final : public std::enable_shared_from_this<PhysicsObject>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     friend class PhysicsWorld;
 public:
     ObjectCounter<PhysicsObject, 0> objectCounter;
@@ -335,11 +336,11 @@ public:
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class PhysicsWorld final : public std::enable_shared_from_this<PhysicsWorld>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     friend class PhysicsObject;
 private:
     mutable checked_recursive_lock<200> theLockImp;
@@ -664,7 +665,7 @@ inline PositionF PhysicsObject::getPosition() const
     auto world = getWorld();
     std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
-    float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];
+    float deltaTime = static_cast<float>(world->getCurrentTime() - objectTime[variableSetIndex]);
     VectorF gravityVector = getProperties().gravity;
     if(!affectedByGravity || isSupported())
         gravityVector = VectorF(0);
@@ -685,7 +686,7 @@ inline VectorF PhysicsObject::getVelocity() const
     VectorF gravityVector = getProperties().gravity;
     if(!affectedByGravity || isSupported())
         gravityVector = VectorF(0);
-    float deltaTime = world->getCurrentTime() - objectTime[variableSetIndex];
+    float deltaTime = static_cast<float>(world->getCurrentTime() - objectTime[variableSetIndex]);
     float currentDrag = blockEffects[variableSetIndex].drag * getProperties().dragFactor;
     if(currentDrag <= 1e-5)
     {
@@ -701,11 +702,11 @@ inline void PhysicsObject::setNewState(PositionF newPosition, VectorF newVelocit
     std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getNewVariableSetIndex();
     objectTime[variableSetIndex] = world->getCurrentTime();
-    newPosition += position[variableSetIndex] * newStateCount;
-    newVelocity += velocity[variableSetIndex] * newStateCount;
+    newPosition += position[variableSetIndex] * static_cast<float>(newStateCount);
+    newVelocity += velocity[variableSetIndex] * static_cast<float>(newStateCount);
     newStateCount++;
-    newPosition /= newStateCount;
-    newVelocity /= newStateCount;
+    newPosition /= static_cast<float>(newStateCount);
+    newVelocity /= static_cast<float>(newStateCount);
     position[variableSetIndex] = newPosition;
     velocity[variableSetIndex] = newVelocity;
     world->changedObjects.insert(shared_from_this());
@@ -782,7 +783,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
         if(std::abs(deltaCenter.z) < boxExtents.z)
             return true;
         VectorF v = deltaCenter;
-        v -= boxExtents * VectorF(sgn(deltaCenter.x), 0, sgn(deltaCenter.z));
+        v -= boxExtents * VectorF(static_cast<float>(sgn(deltaCenter.x)), 0, static_cast<float>(sgn(deltaCenter.z)));
         return abs(v) <= cylinderRadius + PhysicsWorld::distanceEPS;
     }
     UNREACHABLE();
@@ -821,17 +822,17 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         VectorF surfaceOffset = extentsSum - AbsDeltaPosition + VectorF(PhysicsWorld::distanceEPS * 2);
         if(surfaceOffset.x < surfaceOffset.y && surfaceOffset.x < surfaceOffset.z)
         {
-            normal.x = sgn(deltaPosition.x);
+            normal.x = static_cast<float>(sgn(deltaPosition.x));
             aPosition.x += interpolationT * normal.x * surfaceOffset.x;
         }
         else if(surfaceOffset.y < surfaceOffset.z)
         {
-            normal.y = sgn(deltaPosition.y);
+            normal.y = static_cast<float>(sgn(deltaPosition.y));
             aPosition.y += interpolationTY * normal.y * surfaceOffset.y;
         }
         else
         {
-            normal.z = sgn(deltaPosition.z);
+            normal.z = static_cast<float>(sgn(deltaPosition.z));
             aPosition.z += interpolationT * normal.z * surfaceOffset.z;
         }
     }
@@ -845,7 +846,7 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         float rSurfaceOffset = extentsSum.x - deltaCylindricalR + PhysicsWorld::distanceEPS * 2;
         if(ySurfaceOffset < rSurfaceOffset)
         {
-            normal.y = sgn(deltaPosition.y);
+            normal.y = static_cast<float>(sgn(deltaPosition.y));
             aPosition.y += interpolationTY * normal.y * ySurfaceOffset;
         }
         else
@@ -868,23 +869,23 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         {
             if(xzSurfaceOffset.x < xzSurfaceOffset.z)
             {
-                horizontalNormal = VectorF(sgn(deltaPosition.x), 0, 0);
+                horizontalNormal = VectorF(static_cast<float>(sgn(deltaPosition.x)), 0, 0);
                 horizontalSurfaceOffset = xzSurfaceOffset.x;
             }
             else
             {
-                horizontalNormal = VectorF(0, 0, sgn(deltaPosition.z));
+                horizontalNormal = VectorF(0, 0, static_cast<float>(sgn(deltaPosition.z)));
                 horizontalSurfaceOffset = xzSurfaceOffset.z;
             }
         }
         else if(absXZDeltaPosition.x < rt.extents.x + PhysicsWorld::distanceEPS)
         {
-            horizontalNormal = VectorF(0, 0, sgn(deltaPosition.z));
+            horizontalNormal = VectorF(0, 0, static_cast<float>(sgn(deltaPosition.z)));
             horizontalSurfaceOffset = xzSurfaceOffset.z;
         }
         else if(absXZDeltaPosition.z < rt.extents.z + PhysicsWorld::distanceEPS)
         {
-            horizontalNormal = VectorF(sgn(deltaPosition.x), 0, 0);
+            horizontalNormal = VectorF(static_cast<float>(sgn(deltaPosition.x)), 0, 0);
             horizontalSurfaceOffset = xzSurfaceOffset.x;
         }
         else
@@ -897,7 +898,7 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         }
         if(ySurfaceOffset < horizontalSurfaceOffset)
         {
-            normal.y = sgn(deltaPosition.y);
+            normal.y = static_cast<float>(sgn(deltaPosition.y));
             aPosition.y += interpolationTY * normal.y * ySurfaceOffset;
         }
         else
@@ -920,23 +921,23 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         {
             if(xzSurfaceOffset.x < xzSurfaceOffset.z)
             {
-                horizontalNormal = VectorF(sgn(deltaPosition.x), 0, 0);
+                horizontalNormal = VectorF(static_cast<float>(sgn(deltaPosition.x)), 0, 0);
                 horizontalSurfaceOffset = xzSurfaceOffset.x;
             }
             else
             {
-                horizontalNormal = VectorF(0, 0, sgn(deltaPosition.z));
+                horizontalNormal = VectorF(0, 0, static_cast<float>(sgn(deltaPosition.z)));
                 horizontalSurfaceOffset = xzSurfaceOffset.z;
             }
         }
         else if(absXZDeltaPosition.x < extents.x + PhysicsWorld::distanceEPS)
         {
-            horizontalNormal = VectorF(0, 0, sgn(deltaPosition.z));
+            horizontalNormal = VectorF(0, 0, static_cast<float>(sgn(deltaPosition.z)));
             horizontalSurfaceOffset = xzSurfaceOffset.z;
         }
         else if(absXZDeltaPosition.z < extents.z + PhysicsWorld::distanceEPS)
         {
-            horizontalNormal = VectorF(sgn(deltaPosition.x), 0, 0);
+            horizontalNormal = VectorF(static_cast<float>(sgn(deltaPosition.x)), 0, 0);
             horizontalSurfaceOffset = xzSurfaceOffset.x;
         }
         else
@@ -949,7 +950,7 @@ inline void PhysicsObject::adjustPosition(const PhysicsObject & rt)
         }
         if(ySurfaceOffset < horizontalSurfaceOffset)
         {
-            normal.y = sgn(deltaPosition.y);
+            normal.y = static_cast<float>(sgn(deltaPosition.y));
             aPosition.y += interpolationTY * normal.y * ySurfaceOffset;
         }
         else
@@ -1025,7 +1026,7 @@ inline bool PhysicsObject::isSupportedBy(const PhysicsObject & rt) const
                     if(std::abs(deltaCenter.z) < boxExtents.z)
                         return true;
                     VectorF v = deltaCenter;
-                    v -= boxExtents * VectorF(sgn(deltaCenter.x), 0, sgn(deltaCenter.z));
+                    v -= boxExtents * VectorF(static_cast<float>(sgn(deltaCenter.x)), 0, static_cast<float>(sgn(deltaCenter.z)));
                     return abs(v) <= cylinderRadius + PhysicsWorld::distanceEPS;
                 }
                 UNREACHABLE();

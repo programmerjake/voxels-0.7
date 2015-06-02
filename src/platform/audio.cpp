@@ -25,7 +25,11 @@
 #include <chrono>
 #include <functional>
 #include <unordered_set>
+#ifdef _MSC_VER
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif // _MSC_VER
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
@@ -79,7 +83,7 @@ struct PlayingAudioData
         uint64_t decodedAmount;
         for(decodedAmount = 0;decodedAmount < bufferSamples;)
         {
-            uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[decodedAmount * channels], bufferSamples - decodedAmount);
+            uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodedAmount * channels)], bufferSamples - decodedAmount);
             if(currentDecodeStep == 0)
             {
                 if(!looped)
@@ -102,7 +106,7 @@ struct PlayingAudioData
             bool hitEnd = false;
             for(decodedAmount = 0;decodedAmount < bufferSamples;)
             {
-                uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[decodedAmount * channels], bufferSamples - decodedAmount);
+                uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodedAmount * channels)], bufferSamples - decodedAmount);
                 if(currentDecodeStep == 0)
                 {
                     hitEnd = true;
@@ -209,7 +213,7 @@ void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
     }
     for(float v : buffer)
     {
-        *buffer16++ = limit<int>(v * 0x8000, numeric_limits<int16_t>::min(), numeric_limits<int16_t>::max());
+        *buffer16++ = limit<int>(static_cast<int>(v * 0x8000), numeric_limits<int16_t>::min(), numeric_limits<int16_t>::max());
     }
 }
 
@@ -272,7 +276,7 @@ Audio::Audio(wstring resourceName, bool isStreaming)
                 shared_ptr<stream::Reader> preader = getResourceReader(resourceName);
                 return make_shared<OggVorbisDecoder>(preader);
             }
-            catch(stream::IOException & e)
+            catch(stream::IOException &)
             {
                 return make_shared<MemoryAudioDecoder>(vector<float>(), getGlobalAudioSampleRate(), getGlobalAudioChannelCount());
             }
@@ -289,13 +293,13 @@ Audio::Audio(wstring resourceName, bool isStreaming)
             uint64_t finalSize = 0;
             for(;;)
             {
-                buffer.resize(finalSize + decoder->channelCount() * 8192);
-                uint64_t currentSize = decoder->channelCount() * decoder->decodeAudioBlock(&buffer[finalSize], (buffer.size() - finalSize) / decoder->channelCount());
+                buffer.resize(static_cast<std::size_t>(finalSize + decoder->channelCount() * 8192));
+                uint64_t currentSize = decoder->channelCount() * decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(finalSize)], (buffer.size() - finalSize) / decoder->channelCount());
                 if(currentSize == 0)
                     break;
                 finalSize += currentSize;
             }
-            buffer.resize(finalSize);
+            buffer.resize(static_cast<std::size_t>(finalSize));
             shared_ptr<MemoryAudioDecoder> memDecoder = make_shared<MemoryAudioDecoder>(buffer, decoder->samplesPerSecond(), decoder->channelCount());
             data = make_shared<AudioData>([memDecoder]()->shared_ptr<AudioDecoder>{memDecoder->reset(); return memDecoder;});
         }

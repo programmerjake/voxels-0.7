@@ -32,6 +32,7 @@
 #include <memory>
 #include <vector>
 #include <cassert>
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -285,12 +286,12 @@ struct BasicBlockChunk
     checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>, subchunkCountX> subchunks;
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename BlockChunk>
 class BasicBlockChunkRelativePositionIterator final : public std::iterator<std::forward_iterator_tag, const VectorI>
 {
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
     VectorI pos;
     VectorI subchunkBasePos;
     VectorI subchunkRelativePos;
@@ -365,8 +366,8 @@ public:
     }
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"
+GCC_PRAGMA(diagnostic push)
+GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename ChunkType>
 class ChunkMap
 {
@@ -476,7 +477,7 @@ private:
                 node = (*pbuckets)[bucket_index];
             }
         }
-        constexpr iterator_imp()
+        iterator_imp()
             : node(nullptr), bucket_index(0), bucket_count(0), pbuckets(nullptr), bucket_locks(nullptr), locked(false)
         {
         }
@@ -598,7 +599,7 @@ public:
         friend class const_iterator;
     private:
         iterator_imp imp;
-        constexpr iterator(iterator_imp imp)
+        iterator(iterator_imp imp)
             : imp(std::move(imp))
         {
         }
@@ -1190,7 +1191,7 @@ public:
         return node_ptr();
     }
 };
-#pragma GCC diagnostic pop
+GCC_PRAGMA(diagnostic pop)
 }
 }
 

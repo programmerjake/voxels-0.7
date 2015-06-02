@@ -144,7 +144,7 @@ public:
         VectorF nxpy = center + upVector - rightVector;
         VectorF pxny = center - upVector + rightVector;
         VectorF pxpy = center + upVector + rightVector;
-        ColorF c = colorizeColor(time);
+        ColorF c = colorizeColor(static_cast<float>(time));
         dest.append(Generate::quadrilateral(frame,
                                             nxny, c,
                                             pxny, c,

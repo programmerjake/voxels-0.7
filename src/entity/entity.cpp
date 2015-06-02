@@ -93,7 +93,7 @@ struct StreamEntityDescriptors final
         auto iter = me.entityDescriptorPointerToDescriptorMap.find(ed);
         if(iter == me.entityDescriptorPointerToDescriptorMap.end())
         {
-            Descriptor descriptor = ++me.descriptorCount;
+            Descriptor descriptor = static_cast<Descriptor>(++me.descriptorCount);
             assert(descriptor == me.descriptorCount); // check for overflow
             me.entityDescriptorPointerToDescriptorMap[ed] = descriptor;
             me.descriptorToEntityDescriptorPointerMap[descriptor] = ed;
