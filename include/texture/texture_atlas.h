@@ -29,75 +29,11 @@ namespace programmerjake
 {
 namespace voxels
 {
-class TextureAtlas final
+struct TextureAtlas final
 {
-    struct ImageDescriptor final
-    {
-        Image *image;
-        const wchar_t *const fileName;
-        const int width, height;
-        constexpr ImageDescriptor(const wchar_t *fileName, int width, int height)
-            : image(nullptr), fileName(fileName), width(width), height(height)
-        {
-        }
-        ImageDescriptor(const ImageDescriptor &) = default;
-        ImageDescriptor &operator =(const ImageDescriptor &) = delete;
-    };
-	static checked_array<ImageDescriptor, 8> &textures();
-    class TextureLoader final
-    {
-    public:
-        TextureLoader();
-    };
-    static TextureLoader textureLoader;
-public:
-    static Image texture(std::size_t textureIndex);
-	const int left, top, width, height;
+	int left, top, width, height;
 	std::size_t textureIndex;
-    float minU() const
-    {
-        return (left + pixelOffset) / textureXRes(textureIndex);
-    }
-    float maxU() const
-    {
-        return (left + width - pixelOffset) / textureXRes(textureIndex);
-    }
-    float minV() const
-    {
-        return 1 - (top + height - pixelOffset) / textureYRes(textureIndex);
-    }
-    float maxV() const
-    {
-        return 1 - (top + pixelOffset) / textureYRes(textureIndex);
-    }
-	static int textureXRes(std::size_t textureIndex)
-	{
-	    return textures()[textureIndex].width;
-	}
-	static int textureYRes(std::size_t textureIndex)
-	{
-	    return textures()[textureIndex].height;
-	}
-    static constexpr float pixelOffset = 0.05f;
-	constexpr TextureAtlas(int left, int top, int width, int height, std::size_t textureIndex = 0)
-        : left(left), top(top), width(width), height(height), textureIndex(textureIndex)
-	{
-	}
-	const TextureAtlas & operator =(const TextureAtlas &) = delete;
-	TextureDescriptor td() const
-	{
-		return TextureDescriptor(texture(textureIndex), minU(), maxU(), minV(), maxV());
-	}
-	TextureDescriptor tdNoOffset() const
-	{
-	    return TextureDescriptor(texture(textureIndex), (float)left / textureXRes(textureIndex), (float)(left + width) / textureXRes(textureIndex), 1 - (float)(top + height) / textureYRes(textureIndex), 1 - (float)top / textureYRes(textureIndex));
-	}
-	static const TextureAtlas &Fire(int index);
-	static int FireFrameCount();
-	static const TextureAtlas &Delete(int index);
-	static int DeleteFrameCount();
-	static const TextureAtlas &ParticleSmoke(int index);
-	static int ParticleSmokeFrameCount();
+public:
 	static const TextureAtlas
 	ActivatorRailOff,
     ActivatorRailOn,
@@ -435,6 +371,67 @@ public:
     Moon5,
     Moon6,
     Moon7;
+public:
+    static Image texture(std::size_t textureIndex);
+    float minU() const
+    {
+        return (left + pixelOffset) / textureXRes(textureIndex);
+    }
+    float maxU() const
+    {
+        return (left + width - pixelOffset) / textureXRes(textureIndex);
+    }
+    float minV() const
+    {
+        return 1 - (top + height - pixelOffset) / textureYRes(textureIndex);
+    }
+    float maxV() const
+    {
+        return 1 - (top + pixelOffset) / textureYRes(textureIndex);
+    }
+	static int textureXRes(std::size_t textureIndex)
+	{
+	    return textures()[textureIndex].width;
+	}
+	static int textureYRes(std::size_t textureIndex)
+	{
+	    return textures()[textureIndex].height;
+	}
+    static constexpr float pixelOffset = 0.05f;
+	TextureDescriptor td() const
+	{
+		return TextureDescriptor(texture(textureIndex), minU(), maxU(), minV(), maxV());
+	}
+	TextureDescriptor tdNoOffset() const
+	{
+	    return TextureDescriptor(texture(textureIndex), (float)left / textureXRes(textureIndex), (float)(left + width) / textureXRes(textureIndex), 1 - (float)(top + height) / textureYRes(textureIndex), 1 - (float)top / textureYRes(textureIndex));
+	}
+	static const TextureAtlas &Fire(int index);
+	static int FireFrameCount();
+	static const TextureAtlas &Delete(int index);
+	static int DeleteFrameCount();
+	static const TextureAtlas &ParticleSmoke(int index);
+	static int ParticleSmokeFrameCount();
+private:
+    struct ImageDescriptor final
+    {
+        Image *image;
+        const wchar_t *const fileName;
+        const int width, height;
+        constexpr ImageDescriptor(const wchar_t *fileName, int width, int height)
+            : image(nullptr), fileName(fileName), width(width), height(height)
+        {
+        }
+        ImageDescriptor(const ImageDescriptor &) = default;
+        ImageDescriptor &operator =(const ImageDescriptor &) = delete;
+    };
+	static checked_array<ImageDescriptor, 8> &textures();
+    class TextureLoader final
+    {
+    public:
+        TextureLoader();
+    };
+    static TextureLoader textureLoader;
 };
 }
 }

@@ -21,3 +21,9 @@ Makefile
 *.exe
 *.dll
 *.pdb
+*.exp
+*.lib
+*.ilk
+.vs
+Debug
+Release
