@@ -156,54 +156,6 @@ void dumpMeshStats()
 }
 }
 
-#if 0
-#error add checking for needing locking for WorldLockManager
-void ViewPoint::copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockManager &source_lock_manager, WorldLockManager &dest_lock_manager, BlockIterator sourceChunkBlockIterator, BlockIterator destChunkBlockIterator)
-{
-    assert(sourceChunkBlockIterator.position() == destChunkBlockIterator.position());
-    PositionI chunkPosition = destChunkBlockIterator.position();
-    std::unique_lock<std::mutex> sourceCachedChunkMeshesLock(sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshesLock, std::defer_lock);
-    std::unique_lock<std::mutex> destCachedChunkMeshesLock(destChunkBlockIterator.chunk->getChunkVariables().cachedMeshesLock, std::defer_lock);
-    source_lock_manager.block_biome_lock.clear();
-    dest_lock_manager.block_biome_lock.clear();
-    std::lock(sourceCachedChunkMeshesLock, destCachedChunkMeshesLock);
-    if(!sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshesUpToDate.load())
-        destChunkBlockIterator.chunk->getChunkVariables().cachedMeshesUpToDate.store(false);
-    if(!sourceChunkBlockIterator.chunk->getChunkVariables().generatingCachedMeshes)
-        destChunkBlockIterator.chunk->getChunkVariables().cachedMeshes = sourceChunkBlockIterator.chunk->getChunkVariables().cachedMeshes;
-    else
-        return;
-    sourceCachedChunkMeshesLock.unlock();
-    destCachedChunkMeshesLock.unlock();
-    VectorI subchunkIndex;
-    for(subchunkIndex.x = 0; subchunkIndex.x < BlockChunk::subchunkCountX; subchunkIndex.x++)
-    {
-        for(subchunkIndex.y = 0; subchunkIndex.y < BlockChunk::subchunkCountY; subchunkIndex.y++)
-        {
-            for(subchunkIndex.z = 0; subchunkIndex.z < BlockChunk::subchunkCountZ; subchunkIndex.z++)
-            {
-                BlockIterator sourceSubchunkBlockIterator = sourceChunkBlockIterator;
-                BlockIterator destSubchunkBlockIterator = destChunkBlockIterator;
-                PositionI subchunkPosition = chunkPosition + BlockChunk::getChunkRelativePositionFromSubchunkIndex(subchunkIndex);
-                sourceSubchunkBlockIterator.moveTo(subchunkPosition);
-                destSubchunkBlockIterator.moveTo(subchunkPosition);
-                BlockChunkSubchunk &sourceSubchunk = sourceSubchunkBlockIterator.getSubchunk();
-                BlockChunkSubchunk &destSubchunk = destSubchunkBlockIterator.getSubchunk();
-                auto otherLocks = unit_range(sourceSubchunk.lock);
-                source_lock_manager.block_biome_lock.clear();
-                destSubchunkBlockIterator.updateLock(dest_lock_manager, otherLocks.begin(), otherLocks.end());
-                source_lock_manager.block_biome_lock.adopt(sourceSubchunk.lock);
-                if(!sourceSubchunk.cachedMeshesUpToDate.load())
-                    destSubchunk.cachedMeshesUpToDate.store(false);
-                destSubchunk.cachedMeshes = sourceSubchunk.cachedMeshes;
-            }
-        }
-    }
-    source_lock_manager.block_biome_lock.clear();
-    dest_lock_manager.block_biome_lock.clear();
-}
-#endif
-
 bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp)
 {
     static thread_local BlockLightingCache lightingCache;

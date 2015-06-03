@@ -31,6 +31,8 @@
 #include <thread>
 #include <list>
 #include "util/tls.h"
+#include <queue>
+#include <vector>
 
 namespace programmerjake
 {
@@ -59,8 +61,33 @@ class ViewPoint final
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     void generateMeshesFn(bool isPrimaryThread, TLS &tls);
     std::shared_ptr<void> pLightingCache;
+#if 1
+FIXME_MESSAGE(finish implementing using a priority_queue for rendering subchunks)
+#else
+    struct SubchunkQueueNode final
+    {
+        std::uint64_t priority; // smaller means run first
+        PositionI subchunkBase;
+        SubchunkQueueNode(std::uint64_t priority, PositionI subchunkBase)
+            : priority(priority), subchunkBase(subchunkBase)
+        {
+        }
+    };
+    struct SubchunkQueueNodeCompare final
+    {
+        bool operator ()(const SubchunkQueueNode &a, const SubchunkQueueNode &b) const
+        {
+            std::uint64_t difference = b.priority - a.priority; // use subtract and check sign bit to handle wraparound
+            const std::uint64_t mask = (std::uint64_t)1 << 63;
+            if(difference & mask)
+                return true;
+            return false;
+        }
+    };
+    std::priority_queue<SubchunkQueueNode, std::vector<SubchunkQueueNode>, SubchunkQueueNodeCompare> subchunkRenderPriorityQueue;
+    static bool generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIterator sbi, WorldLightingProperties wlp);
+#endif
     static bool generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp);
-    static void copyChunkMeshes(World &sourceWorld, World &destWorld, WorldLockManager &source_lock_manager, WorldLockManager &dest_lock_manager, BlockIterator sourceChunkBlockIterator, BlockIterator destChunkBlockIterator);
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
     ViewPoint(const ViewPoint &rt) = delete;

@@ -461,12 +461,10 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
     lightingStable(false),
     viewPointsLock(),
     viewPoints(),
-    moveEntitiesThreadCond(),
-    moveEntitiesThreadLock(),
     timeOfDayLock(),
     playerList(std::shared_ptr<PlayerList>(new PlayerList())),
-    pauseLock(),
-    pauseCond(),
+    stateLock(),
+    stateCond(),
     chunkUnloaderThread()
 {
 }
@@ -606,12 +604,10 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     lightingStable(false),
     viewPointsLock(),
     viewPoints(),
-    moveEntitiesThreadCond(),
-    moveEntitiesThreadLock(),
     timeOfDayLock(),
     playerList(std::shared_ptr<PlayerList>(new PlayerList())),
-    pauseLock(),
-    pauseCond(),
+    stateLock(),
+    stateCond(),
     chunkUnloaderThread()
 {
     TLS &tls = TLS::getSlow();
@@ -750,9 +746,9 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
     if(abortFlag && *abortFlag)
     {
         destructing = true;
-        std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
-        moveEntitiesThreadCond.notify_all();
-        lockMoveEntitiesThread.unlock();
+        std::unique_lock<std::mutex> lockStateLock(stateLock);
+        stateCond.notify_all();
+        lockStateLock.unlock();
         for(auto &t : lightingThreads)
             if(t.joinable())
                 t.join();
@@ -777,10 +773,9 @@ World::~World()
 {
     assert(viewPoints.empty());
     destructing = true;
-    paused(false);
-    std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
-    moveEntitiesThreadCond.notify_all();
-    lockMoveEntitiesThread.unlock();
+    std::unique_lock<std::mutex> lockStateLock(stateLock);
+    stateCond.notify_all();
+    lockStateLock.unlock();
     for(auto &t : lightingThreads)
         if(t.joinable())
             t.join();
@@ -1247,14 +1242,14 @@ void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
     advanceTimeOfDay(deltaTime);
-    std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
-    while(waitingForMoveEntities)
+    std::unique_lock<std::mutex> lockStateLock(stateLock);
+    while(waitingForMoveEntities && !destructing)
     {
-        moveEntitiesThreadCond.wait(lockMoveEntitiesThread);
+        stateCond.wait(lockStateLock);
     }
     waitingForMoveEntities = true;
     moveEntitiesDeltaTime = deltaTime;
-    moveEntitiesThreadCond.notify_all();
+    stateCond.notify_all();
 }
 
 void World::moveEntitiesThreadFn(TLS &tls)
@@ -1262,20 +1257,18 @@ void World::moveEntitiesThreadFn(TLS &tls)
     ThreadPauseGuard pauseGuard(*this);
     while(!destructing)
     {
-        std::unique_lock<std::mutex> lockMoveEntitiesThread(moveEntitiesThreadLock);
+        std::unique_lock<std::mutex> lockStateLock(stateLock);
         waitingForMoveEntities = false;
-        moveEntitiesThreadCond.notify_all();
+        stateCond.notify_all();
         while(!destructing && !waitingForMoveEntities)
         {
-            moveEntitiesThreadCond.wait(lockMoveEntitiesThread);
-            lockMoveEntitiesThread.unlock();
-            pauseGuard.checkForPause();
-            lockMoveEntitiesThread.lock();
+            stateCond.wait(lockStateLock);
+            pauseGuard.checkForPause(lockStateLock);
         }
         if(destructing)
             break;
         double deltaTime = moveEntitiesDeltaTime;
-        lockMoveEntitiesThread.unlock();
+        lockStateLock.unlock();
         WorldLockManager lock_manager(tls);
         entityRunCount++;
         physicsWorld->stepTime(deltaTime, lock_manager);

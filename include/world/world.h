@@ -129,32 +129,36 @@ private:
         explicit ThreadPauseGuard(World &world)
             : world(world)
         {
-            std::unique_lock<std::mutex> lockIt(world.pauseLock);
-            while(world.isPaused)
+            std::unique_lock<std::mutex> lockIt(world.stateLock);
+            while(world.isPaused && !world.destructing)
             {
-                world.pauseCond.wait(lockIt);
+                world.stateCond.wait(lockIt);
             }
             world.unpausedThreadCount++;
         }
         ~ThreadPauseGuard()
         {
-            std::unique_lock<std::mutex> lockIt(world.pauseLock);
+            std::unique_lock<std::mutex> lockIt(world.stateLock);
             world.unpausedThreadCount--;
-            world.pauseCond.notify_all();
+            world.stateCond.notify_all();
         }
-        void checkForPause()
+        void checkForPause(std::unique_lock<std::mutex> &lockedStateLock)
         {
-            std::unique_lock<std::mutex> lockIt(world.pauseLock);
-            if(world.isPaused)
+            if(world.isPaused && !world.destructing)
             {
                 world.unpausedThreadCount--;
-                world.pauseCond.notify_all();
-                while(world.isPaused)
+                world.stateCond.notify_all();
+                while(world.isPaused && !world.destructing)
                 {
-                    world.pauseCond.wait(lockIt);
+                    world.stateCond.wait(lockedStateLock);
                 }
                 world.unpausedThreadCount++;
             }
+        }
+        void checkForPause()
+        {
+            std::unique_lock<std::mutex> lockedStateLock(world.stateLock);
+            checkForPause(lockedStateLock);
         }
     };
 public:
@@ -843,29 +847,23 @@ public:
     }
     bool paused()
     {
-        std::unique_lock<std::mutex> lockIt(pauseLock);
+        std::unique_lock<std::mutex> lockIt(stateLock);
         return isPaused;
     }
     void paused(bool newPaused)
     {
-        std::unique_lock<std::mutex> lockIt(pauseLock);
+        std::unique_lock<std::mutex> lockIt(stateLock);
         if(newPaused == isPaused)
         {
             return;
         }
         isPaused = newPaused;
-        pauseCond.notify_all();
+        stateCond.notify_all();
         if(isPaused)
         {
-            lockIt.unlock();
-            {
-                std::unique_lock<std::mutex> lockIt2(moveEntitiesThreadLock);
-                moveEntitiesThreadCond.notify_all();
-            }
-            lockIt.lock();
             while(unpausedThreadCount > 0)
             {
-                pauseCond.wait(lockIt);
+                stateCond.wait(lockIt);
             }
         }
     }
@@ -889,16 +887,14 @@ private:
     std::atomic_bool destructing, lightingStable;
     std::mutex viewPointsLock;
     std::list<ViewPoint *> viewPoints;
-    std::condition_variable moveEntitiesThreadCond;
-    std::mutex moveEntitiesThreadLock;
     bool waitingForMoveEntities = false;
     double moveEntitiesDeltaTime = 1 / 60.0;
     std::recursive_mutex timeOfDayLock;
     float timeOfDayInSeconds = 0.0;
     int moonPhase = 0;
     std::shared_ptr<PlayerList> playerList;
-    std::mutex pauseLock;
-    std::condition_variable pauseCond;
+    std::mutex stateLock;
+    std::condition_variable stateCond;
     bool isPaused = false;
     std::size_t unpausedThreadCount = 0;
     std::thread chunkUnloaderThread;
