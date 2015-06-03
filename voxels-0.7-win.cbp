@@ -176,6 +176,7 @@
 					<Add directory="C:/zlib-1.2.8" />
 				</Compiler>
 				<Linker>
+					<Add option="/LTCG" />
 					<Add option="/SUBSYSTEM:CONSOLE" />
 					<Add library="C:\SDL2-2.0.3\VisualC\SDLmain\Win32\Release\SDL2main.lib" />
 					<Add library="opengl32" />
