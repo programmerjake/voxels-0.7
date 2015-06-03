@@ -404,6 +404,7 @@ void GameUi::loadWorld(std::wstring fileName)
     worldGenerateThread = std::thread([this, fileName]()
     {
         setThreadName(L"load world");
+        TLS tls;
         try
         {
             stream::FileReader reader(fileName);

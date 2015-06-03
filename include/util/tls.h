@@ -29,7 +29,13 @@
 #include <memory>
 #include "util/util.h"
 
-//#define USE_BUILTIN_TLS
+#if _WIN64 || _WIN32
+#ifdef _MSC_VER
+#define USE_BUILTIN_TLS
+#endif
+#else
+#define USE_BUILTIN_TLS
+#endif
 
 namespace programmerjake
 {
@@ -57,17 +63,18 @@ private:
         return retval;
     }
 public:
+#ifdef USE_BUILTIN_TLS
     static TLS &getSlow()
     {
         return *getTlsSlowHelper();
     }
-#ifdef USE_BUILTIN_TLS
     TLS()
     {
         getTlsSlowHelper() = this;
     }
     ~TLS() = default;
 #else
+    static TLS &getSlow();
     TLS();
     ~TLS();
 private:

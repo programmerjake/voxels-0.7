@@ -19,6 +19,7 @@
  *
  */
 #include "util/tls.h"
+#include "util/logging.h"
 
 namespace programmerjake
 {
@@ -51,6 +52,26 @@ TLS::~TLS()
         destructor_list_head = next;
     }
     delete []memory;
+}
+
+namespace
+{
+TLS &makeForgottenTLS()
+{
+    TLS retval;
+    return retval;
+}
+}
+
+TLS &TLS::getSlow()
+{
+    TLS *&ptls = getTlsSlowHelper();
+    if(ptls == nullptr)
+    {
+        ptls = makeForgottenTLS();
+        getDebugLog() << "\n\nTLS::getSlow() : WARNING : forgot to make TLS instance in thread\n\n" << post;
+    }
+    return *ptls;
 }
 
 void TLS::add_destructor(destructor_fn fn)
