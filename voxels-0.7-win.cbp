@@ -198,6 +198,9 @@
 				</Linker>
 			</Target>
 		</Build>
+		<VirtualTargets>
+			<Add alias="All MSVC" targets="Debug MSVC;Release MSVC;" />
+		</VirtualTargets>
 		<Compiler>
 			<Add option="-Weffc++" />
 			<Add option="-std=c++11" />
