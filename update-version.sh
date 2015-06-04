@@ -59,9 +59,9 @@ int main(int argc, char ** argv)
     if(argc > 1 && string(argv[1]) == "--next-version")
         cout << (curVersion + 1) << endl;
     else if(argc > 1 && string(argv[1]) == "--next-version-str")
-        cout << "0.7.3." << (curVersion + 1) << endl;
+        cout << "0.7.4." << (curVersion + 1) << endl;
     else if(argc > 1)
-        cout << "0.7.3." << curVersion << endl;
+        cout << "0.7.4." << curVersion << endl;
     else
         cout << GameVersion::FILE_VERSION << endl;
     return 0;
