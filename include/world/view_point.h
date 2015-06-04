@@ -41,11 +41,9 @@ namespace voxels
 class ViewPoint final
 {
     friend class World;
-    PositionF position;
-    std::int32_t viewDistance;
-    std::list<std::thread> generateMeshesThreads;
-    std::recursive_mutex theLock;
-    bool shuttingDown;
+    ViewPoint(const ViewPoint &rt) = delete;
+    const ViewPoint &operator =(const ViewPoint &) = delete;
+private:
     struct Meshes final
     {
         enum_array<Mesh, RenderLayer> meshes;
@@ -55,15 +53,6 @@ class ViewPoint final
         {
         }
     };
-    std::shared_ptr<Meshes> blockRenderMeshes;
-    std::shared_ptr<Meshes> nextBlockRenderMeshes;
-    World &world;
-    std::list<ViewPoint *>::iterator myPositionInViewPointsList;
-    void generateMeshesFn(bool isPrimaryThread, TLS &tls);
-    std::shared_ptr<void> pLightingCache;
-#if 1
-FIXME_MESSAGE(finish implementing using a priority_queue for rendering subchunks)
-#else
     struct SubchunkQueueNode final
     {
         std::uint64_t priority; // smaller means run first
@@ -84,14 +73,48 @@ FIXME_MESSAGE(finish implementing using a priority_queue for rendering subchunks
             return false;
         }
     };
+private:
+    PositionF position;
+    std::int32_t viewDistance;
+    std::list<std::thread> generateSubchunkMeshesThreads;
+    std::thread generateMeshesThread;
+    std::recursive_mutex theLock;
+    bool shuttingDown;
+    std::shared_ptr<Meshes> blockRenderMeshes;
+    std::shared_ptr<Meshes> nextBlockRenderMeshes;
+    World &world;
+    std::list<ViewPoint *>::iterator myPositionInViewPointsList;
+    std::shared_ptr<void> pLightingCache;
     std::priority_queue<SubchunkQueueNode, std::vector<SubchunkQueueNode>, SubchunkQueueNodeCompare> subchunkRenderPriorityQueue;
+    std::unordered_set<PositionI> queuedSubchunks;
+    std::unordered_set<PositionI> renderingSubchunks;
+    std::unordered_map<PositionI, std::size_t> chunkInvalidSubchunkCountMap;
+    std::mutex subchunkQueueLock;
+private:
+    void generateSubchunkMeshesFn(TLS &tls);
+    void generateMeshesFn(TLS &tls);
+    void queueSubchunk(PositionI subchunkBase, float distanceFromPlayer, std::unique_lock<std::mutex> &lockedSubchunkQueueLock);
+    void queueSubchunk(PositionI subchunkBase, float distanceFromPlayer)
+    {
+        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        queueSubchunk(subchunkBase, distanceFromPlayer, lockIt);
+    }
+    bool getQueuedSubchunk(PositionI &subchunkBase, std::unique_lock<std::mutex> &lockedSubchunkQueueLock);
+    bool getQueuedSubchunk(PositionI &subchunkBase)
+    {
+        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        return getQueuedSubchunk(subchunkBase, lockIt);
+    }
+    void finishedRenderingSubchunk(PositionI subchunkBase, std::unique_lock<std::mutex> &lockedSubchunkQueueLock);
+    void finishedRenderingSubchunk(PositionI subchunkBase)
+    {
+        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        finishedRenderingSubchunk(subchunkBase, lockIt);
+    }
     static bool generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIterator sbi, WorldLightingProperties wlp);
-#endif
-    static bool generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp);
+    bool generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp, PositionF playerPosition);
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
-    ViewPoint(const ViewPoint &rt) = delete;
-    const ViewPoint &operator =(const ViewPoint &) = delete;
     ~ViewPoint();
     PositionF getPosition()
     {
@@ -125,7 +148,6 @@ public:
         this->position = position;
         this->viewDistance = viewDistance;
     }
-public:
     void render(Renderer &renderer, Matrix worldToCamera, WorldLockManager &lock_manager, Mesh additionalObjects = Mesh());
 };
 }

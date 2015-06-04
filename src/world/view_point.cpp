@@ -156,7 +156,113 @@ void dumpMeshStats()
 }
 }
 
-bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp)
+void ViewPoint::queueSubchunk(PositionI subchunkBase, float distanceFromPlayer, std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+{
+    if(renderingSubchunks.count(subchunkBase) != 0)
+        return;
+    if(std::get<1>(queuedSubchunks.insert(subchunkBase)))
+    {
+        std::uint64_t currentPriority = 0;
+        if(!subchunkRenderPriorityQueue.empty())
+            currentPriority = subchunkRenderPriorityQueue.top().priority;
+        std::uint64_t priority = static_cast<std::uint64_t>(distanceFromPlayer * 1024);
+        priority += currentPriority;
+        subchunkRenderPriorityQueue.push(SubchunkQueueNode(priority, subchunkBase));
+        chunkInvalidSubchunkCountMap[BlockChunk::getChunkBasePosition(subchunkBase)]++;
+    }
+}
+
+bool ViewPoint::getQueuedSubchunk(PositionI &subchunkBase, std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+{
+    if(subchunkRenderPriorityQueue.empty())
+        return false;
+    subchunkBase = subchunkRenderPriorityQueue.top().subchunkBase;
+    subchunkRenderPriorityQueue.pop();
+    queuedSubchunks.erase(subchunkBase);
+    renderingSubchunks.insert(subchunkBase);
+    return true;
+}
+
+void ViewPoint::finishedRenderingSubchunk(PositionI subchunkBase, std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+{
+    renderingSubchunks.erase(subchunkBase);
+    auto iter = chunkInvalidSubchunkCountMap.find(BlockChunk::getChunkBasePosition(subchunkBase));
+    if(iter != chunkInvalidSubchunkCountMap.end())
+    {
+        if(--std::get<1>(*iter) == 0)
+        {
+            chunkInvalidSubchunkCountMap.erase(iter);
+        }
+    }
+}
+
+bool ViewPoint::generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIterator sbi, WorldLightingProperties wlp)
+{
+    static thread_local BlockLightingCache lightingCache;
+    BlockChunkSubchunk &subchunk = sbi.getSubchunk();
+    if(subchunk.generatingCachedMeshes.exchange(true))
+        return false;
+    sbi.updateLock(lock_manager);
+    std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = makeCachedMesh(&cachedSubchunkMeshCount);
+    for(std::int32_t bx = 0; bx < BlockChunk::subchunkSizeXYZ; bx++)
+    {
+        for(std::int32_t by = 0; by < BlockChunk::subchunkSizeXYZ; by++)
+        {
+            for(std::int32_t bz = 0; bz < BlockChunk::subchunkSizeXYZ; bz++)
+            {
+                BlockIterator bbi = sbi;
+                bbi.moveBy(VectorI(bx, by, bz), lock_manager.tls);
+                BlockDescriptorPointer bd = bbi.get(lock_manager).descriptor;
+                if(bd != nullptr)
+                {
+                    if(bd->drawsAnything(bbi.get(lock_manager), bbi, lock_manager))
+                    {
+                        enum_array<BlockLighting, BlockFaceOrNone> lighting;
+                        lighting[BlockFaceOrNone::None] = lightingCache.getBlockLighting(bbi, lock_manager, wlp);
+                        for(BlockFace bf : enum_traits<BlockFace>())
+                        {
+                            BlockIterator bfbi = bbi;
+                            bfbi.moveToward(bf, lock_manager.tls);
+                            lighting[toBlockFaceOrNone(bf)] = lightingCache.getBlockLighting(bfbi, lock_manager, wlp);
+                        }
+                        for(RenderLayer rl : enum_traits<RenderLayer>())
+                        {
+                            bd->render(bbi.get(lock_manager), subchunkMeshes->at(rl), bbi, lock_manager, rl, lighting);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    subchunk.cachedMeshes = subchunkMeshes;
+    subchunk.generatingCachedMeshes = false;
+    sbi.chunk->getChunkVariables().cachedMeshesUpToDate = false;
+    return true;
+}
+
+namespace
+{
+float distanceFromInterval(float minimum, float maximum, float position)
+{
+    if(position < minimum)
+        return minimum - position;
+    if(position > maximum)
+        return position - maximum;
+    return 0.0f;
+}
+
+float getSubchunkDistance(VectorI subchunkBase, VectorF playerPosition)
+{
+    VectorF minCorner = VectorF(subchunkBase);
+    VectorF maxCorner = minCorner + VectorF(static_cast<float>(BlockChunk::subchunkSizeXYZ));
+    VectorF distance = VectorF(distanceFromInterval(minCorner.x, maxCorner.x, playerPosition.x),
+                               distanceFromInterval(minCorner.y, maxCorner.y, playerPosition.y),
+                               distanceFromInterval(minCorner.z, maxCorner.z, playerPosition.z));
+    return abs(distance);
+}
+}
+
+bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp, PositionF playerPosition)
 {
     static thread_local BlockLightingCache lightingCache;
     PositionI chunkPosition = cbi.position();
@@ -205,66 +311,18 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
                 BlockIterator sbi = cbi;
                 PositionI subchunkPosition = chunkPosition + BlockChunk::getChunkRelativePositionFromSubchunkIndex(subchunkIndex);
                 sbi.moveTo(subchunkPosition, lock_manager.tls);
-                sbi.updateLock(lock_manager);
                 BlockChunkSubchunk &subchunk = sbi.getSubchunk();
-                if(!subchunk.cachedMeshesUpToDate.exchange(true))
-                    subchunk.cachedMeshes = nullptr;
-                if(lightingChanged && subchunk.cachedMeshes != nullptr)
-                {
-                    for(RenderLayer rl : enum_traits<RenderLayer>())
-                    {
-                        if(subchunk.cachedMeshes->at(rl).size() != 0) // if there's nothing displayed here then we don't need to re-render
-                        {
-                            subchunk.cachedMeshes = nullptr;
-                            break;
-                        }
-                    }
-                }
-                std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = subchunk.cachedMeshes;
+                std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = subchunk.cachedMeshes.load(std::memory_order_relaxed);
                 if(subchunkMeshes != nullptr)
                 {
                     for(RenderLayer rl : enum_traits<RenderLayer>())
                     {
                         chunkMeshes->at(rl).append(subchunkMeshes->at(rl));
                     }
-                    continue; // subchunk is up-to-date
                 }
-                subchunkMeshes = makeCachedMesh(&cachedSubchunkMeshCount);
-                for(std::int32_t bx = 0; bx < BlockChunk::subchunkSizeXYZ; bx++)
+                if(subchunk.cachedMeshesInvalidated.exchange(false) || lightingChanged)
                 {
-                    for(std::int32_t by = 0; by < BlockChunk::subchunkSizeXYZ; by++)
-                    {
-                        for(std::int32_t bz = 0; bz < BlockChunk::subchunkSizeXYZ; bz++)
-                        {
-                            BlockIterator bbi = sbi;
-                            bbi.moveTo(subchunkPosition + VectorI(bx, by, bz), lock_manager.tls);
-                            BlockDescriptorPointer bd = bbi.get(lock_manager).descriptor;
-                            if(bd != nullptr)
-                            {
-                                if(bd->drawsAnything(bbi.get(lock_manager), bbi, lock_manager))
-                                {
-                                    enum_array<BlockLighting, BlockFaceOrNone> lighting;
-                                    lighting[BlockFaceOrNone::None] = lightingCache.getBlockLighting(bbi, lock_manager, wlp);
-                                    for(BlockFace bf : enum_traits<BlockFace>())
-                                    {
-                                        BlockIterator bfbi = bbi;
-                                        bfbi.moveToward(bf, lock_manager.tls);
-                                        lighting[toBlockFaceOrNone(bf)] = lightingCache.getBlockLighting(bfbi, lock_manager, wlp);
-                                    }
-                                    for(RenderLayer rl : enum_traits<RenderLayer>())
-                                    {
-                                        bd->render(bbi.get(lock_manager), subchunkMeshes->at(rl), bbi, lock_manager, rl, lighting);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                sbi.updateLock(lock_manager);
-                subchunk.cachedMeshes = subchunkMeshes;
-                for(RenderLayer rl : enum_traits<RenderLayer>())
-                {
-                    chunkMeshes->at(rl).append(subchunkMeshes->at(rl));
+                    queueSubchunk(subchunkPosition, getSubchunkDistance(subchunkPosition, playerPosition));
                 }
             }
         }
@@ -274,17 +332,14 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
     cbi.chunk->getChunkVariables().generatingCachedMeshes = false;
     cbi.chunk->getChunkVariables().cachedMeshesCond.notify_all();
     cachedChunkMeshesLock.unlock();
-    if(meshes)
+    for(RenderLayer rl : enum_traits<RenderLayer>())
     {
-        for(RenderLayer rl : enum_traits<RenderLayer>())
-        {
-            meshes->at(rl).append(chunkMeshes->at(rl));
-        }
+        meshes->at(rl).append(chunkMeshes->at(rl));
     }
     return true;
 }
 
-void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
+void ViewPoint::generateMeshesFn(TLS &tls)
 {
     auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
@@ -295,7 +350,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
         std::int32_t viewDistance = this->viewDistance;
         std::shared_ptr<Meshes> meshes = cachedMeshes;
         cachedMeshes = nullptr;
-        if(isPrimaryThread && !meshes)
+        if(!meshes)
         {
             meshes = nextBlockRenderMeshes;
             nextBlockRenderMeshes = nullptr;
@@ -329,7 +384,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
                     WorldLockManager lock_manager(tls);
                     BlockIterator cbi = world.getBlockIterator(chunkPosition, lock_manager.tls);
                     WorldLightingProperties wlp = world.getLighting(chunkPosition.d);
-                    if(generateChunkMeshes(meshes ? std::shared_ptr<enum_array<Mesh, RenderLayer>>(meshes, &meshes->meshes) : std::shared_ptr<enum_array<Mesh, RenderLayer>>(nullptr), lock_manager, cbi, wlp))
+                    if(generateChunkMeshes(meshes ? std::shared_ptr<enum_array<Mesh, RenderLayer>>(meshes, &meshes->meshes) : std::shared_ptr<enum_array<Mesh, RenderLayer>>(nullptr), lock_manager, cbi, wlp, position))
                         anyUpdates = true;
                 }
                 auto currentTime = std::chrono::steady_clock::now();
@@ -341,7 +396,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
             }
         }
 
-        if(isPrimaryThread && !anyUpdates)
+        if(!anyUpdates)
         {
             if(lastMeshes == nullptr)
                 anyUpdates = true;
@@ -358,7 +413,7 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
             }
         }
 
-        if(isPrimaryThread && anyUpdates)
+        if(anyUpdates)
         {
             for(RenderLayer rl : enum_traits<RenderLayer>())
             {
@@ -371,11 +426,11 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
         lockIt.lock();
         //if(anyUpdates)
             //debugLog << L"generated render meshes.\x1b[K" << std::endl;
-        if(isPrimaryThread && anyUpdates)
+        if(anyUpdates)
         {
             blockRenderMeshes = std::move(meshes);
         }
-        else if(meshes)
+        else
         {
             for(RenderLayer rl : enum_traits<RenderLayer>())
             {
@@ -385,36 +440,66 @@ void ViewPoint::generateMeshesFn(bool isPrimaryThread, TLS &tls)
         }
     }
 }
+
+void ViewPoint::generateSubchunkMeshesFn(TLS &tls)
+{
+    std::unique_lock<std::recursive_mutex> lockIt(theLock);
+    while(!shuttingDown)
+    {
+        lockIt.unlock();
+        PositionI subchunkBase;
+        if(getQueuedSubchunk(subchunkBase))
+        {
+            WorldLockManager lock_manager(tls);
+            BlockIterator sbi = world.getBlockIterator(subchunkBase, tls);
+            WorldLightingProperties wlp = world.getLighting(subchunkBase.d);
+            generateSubchunkMeshes(lock_manager, sbi, wlp);
+            finishedRenderingSubchunk(subchunkBase);
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        lockIt.lock();
+    }
+}
+
 ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
     : position(position),
     viewDistance(viewDistance),
-    generateMeshesThreads(),
+    generateSubchunkMeshesThreads(),
+    generateMeshesThread(),
     theLock(),
     shuttingDown(false),
     blockRenderMeshes(nullptr),
     nextBlockRenderMeshes(nullptr),
     world(world),
     myPositionInViewPointsList(),
-    pLightingCache()
+    pLightingCache(),
+    subchunkRenderPriorityQueue(),
+    queuedSubchunks(),
+    renderingSubchunks(),
+    chunkInvalidSubchunkCountMap(),
+    subchunkQueueLock()
 {
     {
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
         myPositionInViewPointsList = world.viewPoints.insert(world.viewPoints.end(), this);
     }
-    const int threadCount = 5;
-    generateMeshesThreads.emplace_back([this]()
+    generateMeshesThread = std::thread([this]()
     {
         setThreadName(L"mesh primary generate");
         TLS tls;
-        generateMeshesFn(true, tls);
+        generateMeshesFn(tls);
     });
-    for(int i = 1; i < threadCount; i++)
+    const int threadCount = 5;
+    for(int i = 0; i < threadCount; i++)
     {
-        generateMeshesThreads.emplace_back([this]()
+        generateSubchunkMeshesThreads.emplace_back([this]()
         {
             setThreadName(L"mesh secondary generate");
             TLS tls;
-            generateMeshesFn(false, tls);
+            generateSubchunkMeshesFn(tls);
         });
     }
 }
@@ -423,9 +508,10 @@ ViewPoint::~ViewPoint()
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
     shuttingDown = true;
     lockIt.unlock();
-    for(std::thread &generateMeshesThread : generateMeshesThreads)
+    generateMeshesThread.join();
+    for(std::thread &generateSubchunkMeshesThread : generateSubchunkMeshesThreads)
     {
-        generateMeshesThread.join();
+        generateSubchunkMeshesThread.join();
     }
     {
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);

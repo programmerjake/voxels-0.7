@@ -564,8 +564,9 @@ struct BlockChunkSubchunk final
             blockKindsMap.emplace(bdi, static_cast<unsigned>(block.blockKind));
         }
     }
-    std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
-    std::atomic_bool cachedMeshesUpToDate;
+    atomic_shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
+    std::atomic_bool generatingCachedMeshes;
+    std::atomic_bool cachedMeshesInvalidated;
     WrappedEntity::SubchunkListType entityList;
     BlockChunkInvalidateCountType invalidateCount = 0;
     linked_map<PositionI, char> particleGeneratingSet; /// holds positions of blocks in this subchunk that generate particles
@@ -594,7 +595,8 @@ struct BlockChunkSubchunk final
           blockKinds(rt.blockKinds),
           blockKindsMap(rt.blockKindsMap),
           cachedMeshes(nullptr),
-          cachedMeshesUpToDate(false),
+          generatingCachedMeshes(false),
+          cachedMeshesInvalidated(true),
           entityList([](WrappedEntity *)
           {
           }),
@@ -608,7 +610,8 @@ struct BlockChunkSubchunk final
           blockKinds(),
           blockKindsMap(),
           cachedMeshes(nullptr),
-          cachedMeshesUpToDate(false),
+          generatingCachedMeshes(false),
+          cachedMeshesInvalidated(true),
           entityList([](WrappedEntity *)
           {
           }),
@@ -617,7 +620,7 @@ struct BlockChunkSubchunk final
     }
     void invalidate()
     {
-        cachedMeshesUpToDate = false;
+        cachedMeshesInvalidated = true;
         invalidateCount++;
     }
 };
