@@ -79,7 +79,7 @@ found_target=0
 current_target=""
 in_compiler=0
 in_linker=0
-in_extensions=0
+ignore_nest_count=0
 compiler_command_line=()
 linker_command_line=()
 output_executable_name=""
@@ -88,10 +88,12 @@ object_output_dir=""
 files=()
 for((i=0;i<${#a[@]};i++)); do
     line="${a[i]}"
-    if [[ "$line" =~ '</Extensions>' ]]; then
-        in_extensions=0
-    elif [[ "$line" =~ '<Extensions>' ]] || ((in_extensions)); then
-        in_extensions=1
+    if [[ "$line" =~ '</Extensions>' || "$line" =~ '</VirtualTargets>' ]]; then
+        ignore_nest_count=$((ignore_nest_count - 1))
+    elif [[ "$line" =~ '<Extensions>' || "$line" =~ '<VirtualTargets>' ]]; then
+        ignore_nest_count=$((ignore_nest_count + 1))
+    elif ((ignore_nest_count)); then
+        :
     elif [[ "$line" =~ '</Target>' ]]; then
         current_target=""
     elif [[ "$line" =~ '<Target title="'(.*)'">' ]]; then
