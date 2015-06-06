@@ -56,22 +56,49 @@ private:
     bool addedElements = false;
     std::shared_ptr<ImageElement> backgroundImageElement;
 protected:
-    static constexpr int imageXRes = 170;
-    static constexpr int imageYRes = 151;
-    static constexpr float imageScale = 2 / 240.0f;
-    static constexpr float imageWidth = imageScale * imageXRes;
-    static constexpr float imageHeight = imageScale * imageYRes;
-    static constexpr float imageMinX = -0.5f * imageWidth;
-    static constexpr float imageMaxX = 0.5f * imageWidth;
-    static constexpr float imageMinY = -0.5f * imageHeight;
-    static constexpr float imageMaxY = 0.5f * imageHeight;
+    static constexpr int imageXRes()
+    {
+        return 170;
+    }
+    static constexpr int imageYRes()
+    {
+        return 151;
+    }
+    static constexpr float imageScale()
+    {
+        return 2 / 240.0f;
+    }
+    static constexpr float imageWidth()
+    {
+        return imageScale() * imageXRes();
+    }
+    static constexpr float imageHeight()
+    {
+        return imageScale() * imageYRes();
+    }
+    static constexpr float imageMinX()
+    {
+        return -0.5f * imageWidth();
+    }
+    static constexpr float imageMaxX()
+    {
+        return 0.5f * imageWidth();
+    }
+    static constexpr float imageMinY()
+    {
+        return -0.5f * imageHeight();
+    }
+    static constexpr float imageMaxY()
+    {
+        return 0.5f * imageHeight();
+    }
     static constexpr float imageGetPositionX(float pixelX)
     {
-        return imageMinX + pixelX * imageScale;
+        return imageMinX() + pixelX * imageScale();
     }
     static constexpr float imageGetPositionY(float pixelY)
     {
-        return imageMinY + pixelY * imageScale;
+        return imageMinY() + pixelY * imageScale();
     }
     static constexpr float imageGetPositionX(int pixelX)
     {
@@ -124,7 +151,7 @@ public:
         {
             addedElements = true;
             add(std::make_shared<BackgroundElement>());
-            backgroundImageElement = std::make_shared<ImageElement>(backgroundImage, imageMinX, imageMaxX, imageMinY, imageMaxY);
+            backgroundImageElement = std::make_shared<ImageElement>(backgroundImage, imageMinX(), imageMaxX(), imageMinY(), imageMaxY());
             add(backgroundImageElement);
             // add hot bar items
             for(int x = 0; x < (int)player->items.itemStacks.size(); x++)
@@ -207,8 +234,8 @@ public:
             transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
             if(selectedItemItemStack->good())
             {
-                selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale, position.x + 8 * imageScale,
-                                                        position.y - 8 * imageScale, position.y + 8 * imageScale, selectedItemItemStack);
+                selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale(), position.x + 8 * imageScale(),
+                                                        position.y - 8 * imageScale(), position.y + 8 * imageScale(), selectedItemItemStack);
                 add(selectedItem);
             }
             return true;

@@ -68,9 +68,15 @@ TextureAtlas::TextureLoader TextureAtlas::textureLoader;
 
 Image TextureAtlas::texture(std::size_t textureIndex)
 {
-    ImageDescriptor &t = textures()[textureIndex];
+    auto &textures_array = textures();
+    ImageDescriptor &t = textures_array[textureIndex];
     if(t.image == nullptr)
-        t.image = new Image(loadImage(t.fileName));
+    {
+        for(std::size_t i = textures_array.size() - 1, j = i + 1; j > 0 ; i--, j--)
+        {
+            textures_array[i].image = new Image(loadImage(textures_array[i].fileName));
+        }
+    }
     return *t.image;
 }
 
