@@ -19,6 +19,7 @@
  *
  */
 #include "stream/compressed_stream.h"
+#include <new>
 #include <zlib.h>
 
 namespace programmerjake
@@ -44,6 +45,16 @@ int copyit(z_streamp s, int)
 }
 #endif
 
+voidpf myalloc(voidpf, uInt items, uInt size)
+{
+    return (voidpf)new(std::nothrow) char[items * size];
+}
+
+void myfree(voidpf, voidpf address)
+{
+    delete [](char *)address;
+}
+
 z_streamp getStream(const std::shared_ptr<void> &ptr)
 {
     return (z_streamp)ptr.get();
@@ -51,12 +62,14 @@ z_streamp getStream(const std::shared_ptr<void> &ptr)
 z_streamp makeDeflateStream()
 {
     z_streamp retval = new z_stream;
-    retval->zalloc = nullptr;
-    retval->zfree = nullptr;
+    retval->zalloc = &myalloc;
+    retval->zfree = &myfree;
     retval->opaque = nullptr;
     if(deflateInit(retval, 2) != Z_OK)
     {
-        std::string msg = retval->msg;
+        std::string msg = "zlib error";
+        if(retval->msg != nullptr)
+            msg = retval->msg;
         delete retval;
         throw stream::ZLibFormatException(msg);
     }
@@ -74,12 +87,14 @@ void deflateDeleter(void * stream)
 z_streamp makeInflateStream()
 {
     z_streamp retval = new z_stream;
-    retval->zalloc = nullptr;
-    retval->zfree = nullptr;
+    retval->zalloc = &myalloc;
+    retval->zfree = &myfree;
     retval->opaque = nullptr;
     if(inflateInit(retval) != Z_OK)
     {
-        std::string msg = retval->msg;
+        std::string msg = "zlib error";
+        if(retval->msg != nullptr)
+            msg = retval->msg;
         delete retval;
         throw stream::ZLibFormatException(msg);
     }
@@ -142,7 +157,12 @@ void CompressWriter::finish()
             buffer.clear();
             return;
         default:
-            throw ZLibFormatException(s->msg);
+        {
+            std::string msg = "zlib error";
+            if(s->msg != nullptr)
+                msg = s->msg;
+            throw ZLibFormatException(msg);
+        }
         }
     }
 }
@@ -166,7 +186,12 @@ void CompressWriter::writeBuffer()
             buffer.clear();
             return;
         default:
-            throw ZLibFormatException(s->msg);
+        {
+            std::string msg = "zlib error";
+            if(s->msg != nullptr)
+                msg = s->msg;
+            throw ZLibFormatException(msg);
+        }
         }
     }
 }

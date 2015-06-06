@@ -69,11 +69,14 @@ AudioScheduler::AudioScheduler()
     while(std::getline(is, line))
     {
         std::size_t firstNonSpace = line.find_first_not_of(spaceCharacters);
-        if(firstNonSpace != std::wstring::npos)
-        {
-            line.erase(0, firstNonSpace);
-        }
-        if(line.empty())
+		if (firstNonSpace != std::wstring::npos)
+			line.erase(0, firstNonSpace);
+		else
+			continue;
+		std::size_t lastNonSpace = line.find_last_not_of(spaceCharacters);
+		if (lastNonSpace != std::wstring::npos)
+			line.erase(lastNonSpace + 1);
+		if(line.empty())
             continue;
         if(line[0] == L'#') // comment
             continue;
