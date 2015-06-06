@@ -26,16 +26,6 @@ namespace voxels
 {
 namespace ui
 {
-#ifndef _MSC_VER
-constexpr float PlayerDialog::imageScale;
-constexpr float PlayerDialog::imageWidth;
-constexpr float PlayerDialog::imageHeight;
-constexpr float PlayerDialog::imageMinX;
-constexpr float PlayerDialog::imageMaxX;
-constexpr float PlayerDialog::imageMinY;
-constexpr float PlayerDialog::imageMaxY;
-#endif
-
 }
 }
 }
