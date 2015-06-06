@@ -667,8 +667,10 @@ inline PositionF PhysicsObject::getPosition() const
     int variableSetIndex = world->getOldVariableSetIndex();
     float deltaTime = static_cast<float>(world->getCurrentTime() - objectTime[variableSetIndex]);
     VectorF gravityVector = getProperties().gravity;
-    if(!affectedByGravity || isSupported())
+    if(!affectedByGravity)
         gravityVector = VectorF(0);
+    else if(isSupported() && gravityVector.y < 0.0f)
+        gravityVector.y = 0.0f;
     float currentDrag = blockEffects[variableSetIndex].drag * getProperties().dragFactor;
     if(currentDrag <= 1e-5)
     {
@@ -684,8 +686,10 @@ inline VectorF PhysicsObject::getVelocity() const
     std::unique_lock<generic_lock_wrapper> lockIt(world->theLock);
     int variableSetIndex = world->getOldVariableSetIndex();
     VectorF gravityVector = getProperties().gravity;
-    if(!affectedByGravity || isSupported())
+    if(!affectedByGravity)
         gravityVector = VectorF(0);
+    else if(isSupported() && gravityVector.y < 0.0f)
+        gravityVector.y = 0.0f;
     float deltaTime = static_cast<float>(world->getCurrentTime() - objectTime[variableSetIndex]);
     float currentDrag = blockEffects[variableSetIndex].drag * getProperties().dragFactor;
     if(currentDrag <= 1e-5)
