@@ -946,9 +946,10 @@ void World::blockUpdateThreadFn(TLS &tls)
     }
 }
 
-void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag)
+void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag, std::unique_ptr<ThreadPauseGuard> &pauseGuard)
 {
     lock_manager.clear();
+    pauseGuard = nullptr;
     WorldLockManager new_lock_manager(lock_manager.tls);
     World newWorld(worldGeneratorSeed, nullptr, internal_construct_flag());
     worldGenerator->generateChunk(chunk->basePosition, newWorld, new_lock_manager, abortFlag);
@@ -984,6 +985,7 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &l
             biomes->at(dx)[dz].swap(bi.getBiome().biomeProperties);
         }
     }
+    pauseGuard = std::unique_ptr<ThreadPauseGuard>(new ThreadPauseGuard(*this));
     BlockIterator cbi = getBlockIterator(chunk->basePosition, lock_manager.tls);
     {
         std::unique_lock<std::recursive_mutex> lockSrcChunk(gcbi.chunk->getChunkVariables().entityListLock, std::defer_lock);
@@ -1056,13 +1058,13 @@ bool World::isInitialGenerateChunk(PositionI position)
 
 void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls)
 {
-    ThreadPauseGuard pauseGuard(*this);
+    std::unique_ptr<ThreadPauseGuard> pauseGuard = std::unique_ptr<ThreadPauseGuard>(new ThreadPauseGuard(*this));
     WorldLockManager lock_manager(tls);
     BlockChunkMap *chunks = &physicsWorld->chunks;
     while(!destructing && (!initialChunkGenerateStruct || !initialChunkGenerateStruct->abortFlag || !*initialChunkGenerateStruct->abortFlag))
     {
         lock_manager.clear();
-        pauseGuard.checkForPause();
+        pauseGuard->checkForPause();
         bool didAnything = false;
         std::shared_ptr<BlockChunk> bestChunk = nullptr;
         bool haveChunk = false;
@@ -1101,9 +1103,9 @@ void World::chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> 
             didAnything = true;
 
             if(isChunkInitialGenerate && initialChunkGenerateStruct->abortFlag)
-                generateChunk(chunk, lock_manager, initialChunkGenerateStruct->abortFlag);
+                generateChunk(chunk, lock_manager, initialChunkGenerateStruct->abortFlag, pauseGuard);
             else
-                generateChunk(chunk, lock_manager, &destructing);
+                generateChunk(chunk, lock_manager, &destructing, pauseGuard);
 
             chunk->getChunkVariables().generated = true;
             lock_manager.clear();

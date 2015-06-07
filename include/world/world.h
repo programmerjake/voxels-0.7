@@ -908,7 +908,7 @@ private:
     // private functions
     void lightingThreadFn(TLS &tls);
     void blockUpdateThreadFn(TLS &tls);
-    void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag = nullptr);
+    void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag, std::unique_ptr<ThreadPauseGuard> &pauseGuard);
     void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls);
     void particleGeneratingThreadFn(TLS &tls);
     void moveEntitiesThreadFn(TLS &tls);

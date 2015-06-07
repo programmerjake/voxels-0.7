@@ -1595,6 +1595,12 @@ VectorF Display::transform3DToTouch(VectorF pos)
     return pos;
 }
 
+float Display::getTouchControlSize()
+{
+    // don't have code to implement getting display size in inches
+    return 0.25f;
+}
+
 namespace
 {
 void renderInternal(const Mesh & m)

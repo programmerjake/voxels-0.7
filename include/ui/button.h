@@ -187,7 +187,7 @@ public:
     {
     }
 protected:
-    virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
+    void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus, bool isPressed)
     {
         float backgroundZ = 0.5f * (minZ + maxZ);
         float spacing = std::min<float>(0.15 * (maxX - minX), 0.25 * (maxY - minY));
@@ -207,7 +207,7 @@ protected:
             textHeight = 1;
         float textScale = (maxY - minY - 2 * spacing) / textHeight;
         textScale = std::min<float>(textScale, (maxX - minX - 2 * spacing) / textWidth);
-        if(pressed.get())
+        if(isPressed)
         {
             currentTextColor = pressedTextColor;
             bottomColor = pressedColor;
@@ -223,6 +223,10 @@ protected:
         xOffset = textScale * xOffset + 0.5 * (minX + maxX);
         yOffset = textScale * yOffset + 0.5 * (minY + maxY);
         renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, currentTextColor, textProperties));
+    }
+    virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
+    {
+        render(renderer, minZ, maxZ, hasFocus, pressed.get());
     }
 };
 }

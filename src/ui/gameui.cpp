@@ -30,6 +30,7 @@
 #include "util/logging.h"
 #include "platform/thread_name.h"
 #include "util/tls.h"
+#include "ui/button.h"
 
 namespace programmerjake
 {
@@ -281,93 +282,562 @@ void GameUi::addWorldUi()
         add(e);
         worldDependantElements.push_back(e);
     }
-    std::shared_ptr<Element> fpsDisplay = std::make_shared<DynamicLabel>([this](double deltaTime)->std::wstring
+    class FPSDisplay final : public Label
     {
-        std::shared_ptr<Player> player = playerW.lock();
-        static thread_local std::deque<double> samples;
-        samples.push_back(deltaTime);
-        double totalSampleTime = 0;
-        double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;
-        for(double v : samples)
+        FPSDisplay(const FPSDisplay &) = delete;
+        FPSDisplay &operator =(const FPSDisplay &) = delete;
+    private:
+        GameUi *const gameUi;
+    public:
+        FPSDisplay(GameUi *gameUi)
+            : Label(L"uninitialized", -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1)),
+            gameUi(gameUi)
         {
-            totalSampleTime += v;
-            if(v > minDeltaTime)
-                minDeltaTime = v;
-            if(v < maxDeltaTime)
-                maxDeltaTime = v;
         }
-        double averageDeltaTime = totalSampleTime / samples.size();
-        while(totalSampleTime > 5 && !samples.empty())
+        virtual void move(double deltaTime) override
         {
-            totalSampleTime -= samples.front();
-            samples.pop_front();
-        }
-        std::wostringstream ss;
-        ss << L"FPS:";
-        ss.setf(std::ios::fixed);
-        ss.precision(1);
-        ss.width(5);
-        if(maxDeltaTime > 0)
-            ss << 1.0 / maxDeltaTime;
-        else
-            ss << L"     ";
-        ss << L"/";
-        ss.width(5);
-        if(averageDeltaTime > 0)
-            ss << 1.0 / averageDeltaTime;
-        else
-            ss << L"     ";
-        ss << L"/";
-        ss.width(5);
-        if(minDeltaTime > 0)
-            ss << 1.0 / minDeltaTime;
-        else
-            ss << L"     ";
-        ss << L"\n";
-        RayCasting::Collision c = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
-        if(c.valid())
-        {
-            switch(c.type)
+            std::shared_ptr<Player> player = gameUi->playerW.lock();
+            static thread_local std::deque<double> samples;
+            samples.push_back(deltaTime);
+            double totalSampleTime = 0;
+            double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;
+            for(double v : samples)
             {
-            case RayCasting::Collision::Type::None:
-                break;
-            case RayCasting::Collision::Type::Block:
+                totalSampleTime += v;
+                if(v > minDeltaTime)
+                    minDeltaTime = v;
+                if(v < maxDeltaTime)
+                    maxDeltaTime = v;
+            }
+            double averageDeltaTime = totalSampleTime / samples.size();
+            while(totalSampleTime > 5 && !samples.empty())
             {
-                BlockIterator bi = world->getBlockIterator(c.blockPosition, lock_manager.tls);
-                Block b = bi.get(lock_manager);
-                ss << L"Block :\n";
-                if(b.good())
+                totalSampleTime -= samples.front();
+                samples.pop_front();
+            }
+            std::wostringstream ss;
+            ss << L"FPS:";
+            ss.setf(std::ios::fixed);
+            ss.precision(1);
+            ss.width(5);
+            if(maxDeltaTime > 0)
+                ss << 1.0 / maxDeltaTime;
+            else
+                ss << L"     ";
+            ss << L"/";
+            ss.width(5);
+            if(averageDeltaTime > 0)
+                ss << 1.0 / averageDeltaTime;
+            else
+                ss << L"     ";
+            ss << L"/";
+            ss.width(5);
+            if(minDeltaTime > 0)
+                ss << 1.0 / minDeltaTime;
+            else
+                ss << L"     ";
+            ss << L"\n";
+            RayCasting::Collision c = player->castRay(*gameUi->world, gameUi->lock_manager, RayCasting::BlockCollisionMaskDefault);
+            if(c.valid())
+            {
+                switch(c.type)
                 {
-                    std::wstring v = b.descriptor->getDescription(bi, lock_manager);
-                    const wchar_t *const splittingCharacters = L",= ()_";
-                    const std::size_t lineLength = 30, lineLengthVariance = 5;
-                    const std::size_t searchStartPos = lineLength - lineLengthVariance;
-                    const std::size_t searchEndPos = lineLength + lineLengthVariance;
-                    while(v.size() > lineLength)
+                case RayCasting::Collision::Type::None:
+                    break;
+                case RayCasting::Collision::Type::Block:
+                {
+                    BlockIterator bi = gameUi->world->getBlockIterator(c.blockPosition, gameUi->lock_manager.tls);
+                    Block b = bi.get(gameUi->lock_manager);
+                    ss << L"Block :\n";
+                    if(b.good())
                     {
-                        std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
-                        if(splitPos == std::wstring::npos || splitPos > searchEndPos)
-                            splitPos = lineLength;
-                        ss << v.substr(0, splitPos + 1) << L"\n";
-                        v.erase(0, splitPos + 1);
+                        std::wstring v = b.descriptor->getDescription(bi, gameUi->lock_manager);
+                        const wchar_t *const splittingCharacters = L",= ()_";
+                        const std::size_t lineLength = 30, lineLengthVariance = 5;
+                        const std::size_t searchStartPos = lineLength - lineLengthVariance;
+                        const std::size_t searchEndPos = lineLength + lineLengthVariance;
+                        while(v.size() > lineLength)
+                        {
+                            std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
+                            if(splitPos == std::wstring::npos || splitPos > searchEndPos)
+                                splitPos = lineLength;
+                            ss << v.substr(0, splitPos + 1) << L"\n";
+                            v.erase(0, splitPos + 1);
+                        }
+                        v.resize(searchEndPos, L' ');
+                        ss << v;
                     }
-                    v.resize(searchEndPos, L' ');
-                    ss << v;
+                    else
+                    {
+                        ss << L"null_block";
+                    }
+                    break;
                 }
-                else
-                {
-                    ss << L"null_block";
+                case RayCasting::Collision::Type::Entity:
+                    break;
                 }
-                break;
             }
-            case RayCasting::Collision::Type::Entity:
-                break;
-            }
+            text = ss.str();
+            Label::move(deltaTime);
         }
-        return ss.str();
-    }, -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1));
+        virtual void layout() override
+        {
+            moveBy(0, getParent()->maxY - maxY);
+            Label::layout();
+        }
+    };
+    std::shared_ptr<Element> fpsDisplay = std::make_shared<FPSDisplay>(this);
     add(fpsDisplay);
     worldDependantElements.push_back(fpsDisplay);
+    if(Display::needTouchControls())
+    {
+        class UpArrowButton final : public Button
+        {
+            UpArrowButton(const UpArrowButton &) = delete;
+            UpArrowButton &operator =(const UpArrowButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            UpArrowButton(GameUi *gameUi)
+                : Button(L"\u25B2",
+                         Display::getTouchControlSize() - Display::scaleX(),
+                         2.0f * Display::getTouchControlSize() - Display::scaleX(),
+                         0.5f * Display::getTouchControlSize(),
+                         1.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        this->gameUi->pressForwardCount++;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        if(--this->gameUi->pressForwardCount < 0)
+                            this->gameUi->pressForwardCount = 0;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX + Display::getTouchControlSize() - minX, 0.0f);
+                Button::layout();
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> upArrowButton = std::make_shared<UpArrowButton>(this);
+        add(upArrowButton);
+        worldDependantElements.push_back(upArrowButton);
+
+        class DownArrowButton final : public Button
+        {
+            DownArrowButton(const DownArrowButton &) = delete;
+            DownArrowButton &operator =(const DownArrowButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            DownArrowButton(GameUi *gameUi)
+                : Button(L"\u25BC",
+                         Display::getTouchControlSize() - Display::scaleX(),
+                         2.0f * Display::getTouchControlSize() - Display::scaleX(),
+                         -1.5f * Display::getTouchControlSize(),
+                         -0.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        this->gameUi->pressBackwardCount++;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        if(--this->gameUi->pressBackwardCount < 0)
+                            this->gameUi->pressBackwardCount = 0;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX + Display::getTouchControlSize() - minX, 0.0f);
+                Button::layout();
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> downArrowButton = std::make_shared<DownArrowButton>(this);
+        add(downArrowButton);
+        worldDependantElements.push_back(downArrowButton);
+
+        class LeftArrowButton final : public Button
+        {
+            LeftArrowButton(const LeftArrowButton &) = delete;
+            LeftArrowButton &operator =(const LeftArrowButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            LeftArrowButton(GameUi *gameUi)
+                : Button(L"\u25C4",
+                         -Display::scaleX(),
+                         Display::getTouchControlSize() - Display::scaleX(),
+                         -0.5f * Display::getTouchControlSize(),
+                         0.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        this->gameUi->pressLeftCount++;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        if(--this->gameUi->pressLeftCount < 0)
+                            this->gameUi->pressLeftCount = 0;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX - minX, 0.0f);
+                Button::layout();
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> leftArrowButton = std::make_shared<LeftArrowButton>(this);
+        add(leftArrowButton);
+        worldDependantElements.push_back(leftArrowButton);
+
+        class RightArrowButton final : public Button
+        {
+            RightArrowButton(const RightArrowButton &) = delete;
+            RightArrowButton &operator =(const RightArrowButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            RightArrowButton(GameUi *gameUi)
+                : Button(L"\u25BA",
+                         2.0f * Display::getTouchControlSize() - Display::scaleX(),
+                         3.0f * Display::getTouchControlSize() - Display::scaleX(),
+                         -0.5f * Display::getTouchControlSize(),
+                         0.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        this->gameUi->pressRightCount++;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        if(--this->gameUi->pressRightCount < 0)
+                            this->gameUi->pressRightCount = 0;
+                        this->gameUi->calculateMoveDirection();
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX + 2.0f * Display::getTouchControlSize() - minX, 0.0f);
+                Button::layout();
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> rightArrowButton = std::make_shared<RightArrowButton>(this);
+        add(rightArrowButton);
+        worldDependantElements.push_back(rightArrowButton);
+
+        class JumpButton final : public Button
+        {
+            JumpButton(const JumpButton &) = delete;
+            JumpButton &operator =(const JumpButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            JumpButton(GameUi *gameUi)
+                : Button(L"\u2666",
+                         Display::getTouchControlSize() - Display::scaleX(),
+                         2.0f * Display::getTouchControlSize() - Display::scaleX(),
+                         -0.5f * Display::getTouchControlSize(),
+                         0.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        this->gameUi->handleJumpDown();
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        this->gameUi->handleJumpUp();
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX + Display::getTouchControlSize() - minX, 0.0f);
+                Button::layout();
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> jumpButton = std::make_shared<JumpButton>(this);
+        add(jumpButton);
+        worldDependantElements.push_back(jumpButton);
+
+        class PauseButton final : public Button
+        {
+            PauseButton(const PauseButton &) = delete;
+            PauseButton &operator =(const PauseButton &) = delete;
+        private:
+            GameUi *const gameUi;
+        public:
+            PauseButton(GameUi *gameUi)
+                : Button(L"Menu",
+                         Display::scaleX() - Display::getTouchControlSize(),
+                         Display::scaleX(),
+                         Display::scaleY() - Display::getTouchControlSize(),
+                         Display::scaleY()),
+                gameUi(gameUi)
+            {
+                click.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    this->gameUi->startMainMenu();
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveTopRightTo(getParent()->maxX, getParent()->maxY);
+                Button::layout();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> pauseButton = std::make_shared<PauseButton>(this);
+        add(pauseButton);
+        worldDependantElements.push_back(pauseButton);
+
+        class DropButton final : public Button
+        {
+            DropButton(const DropButton &) = delete;
+            DropButton &operator =(const DropButton &) = delete;
+        private:
+            GameUi *const gameUi;
+        public:
+            DropButton(GameUi *gameUi)
+                : Button(L"Drop",
+                         -Display::scaleX(),
+                         Display::getTouchControlSize() - Display::scaleX(),
+                         0.5f * Display::getTouchControlSize(),
+                         1.5f * Display::getTouchControlSize()),
+                gameUi(gameUi)
+            {
+                click.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    EventArguments args;
+                    this->gameUi->gameInput->drop(args);
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBy(getParent()->minX - minX, 0.0f);
+                Button::layout();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> dropButton = std::make_shared<DropButton>(this);
+        add(dropButton);
+        worldDependantElements.push_back(dropButton);
+
+        class SneakButton final : public Button
+        {
+            SneakButton(const SneakButton &) = delete;
+            SneakButton &operator =(const SneakButton &) = delete;
+        private:
+            GameUi *const gameUi;
+            bool wasPressed = false;
+        public:
+            SneakButton(GameUi *gameUi)
+                : Button(L"Sneak",
+                         Display::scaleX() - Display::getTouchControlSize(),
+                         Display::scaleX(),
+                         Display::scaleY() - Display::getTouchControlSize() * 2.5f,
+                         Display::scaleY() - Display::getTouchControlSize() * 1.5f),
+                gameUi(gameUi)
+            {
+                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    if(pressed.get())
+                    {
+                        if(wasPressed)
+                            return Event::Propagate;
+                        wasPressed = true;
+                        if(this->gameUi->pressSneakCount++ == 0)
+                            this->gameUi->gameInput->sneak.set(true);
+                    }
+                    else
+                    {
+                        if(!wasPressed)
+                            return Event::Propagate;
+                        wasPressed = false;
+                        if(--this->gameUi->pressSneakCount <= 0)
+                        {
+                            this->gameUi->gameInput->sneak.set(false);
+                            this->gameUi->pressSneakCount = 0;
+                        }
+                    }
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveTopRightTo(getParent()->maxX, getParent()->maxY - Display::getTouchControlSize() * 1.5f);
+                Button::layout();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+            virtual void reset() override
+            {
+                wasPressed = false;
+                Button::reset();
+            }
+        };
+        std::shared_ptr<Element> sneakButton = std::make_shared<SneakButton>(this);
+        add(sneakButton);
+        worldDependantElements.push_back(sneakButton);
+
+        class InventoryButton final : public Button
+        {
+            InventoryButton(const InventoryButton &) = delete;
+            InventoryButton &operator =(const InventoryButton &) = delete;
+        private:
+            GameUi *const gameUi;
+        public:
+            InventoryButton(GameUi *gameUi)
+                : Button(L"\u2219\u2219\u2219",
+                         Display::scaleX() - Display::getTouchControlSize(),
+                         Display::scaleX(),
+                         -Display::scaleY(),
+                         Display::getTouchControlSize() - Display::scaleY()),
+                gameUi(gameUi)
+            {
+                click.bind([this](EventArguments &)->Event::ReturnType
+                {
+                    this->gameUi->startInventoryDialog();
+                    return Event::Propagate;
+                });
+            }
+            virtual void layout() override
+            {
+                moveBottomRightTo(getParent()->maxX, getParent()->minY);
+                Button::layout();
+            }
+            virtual bool canHaveKeyboardFocus() const override
+            {
+                return false;
+            }
+        };
+        std::shared_ptr<Element> inventoryButton = std::make_shared<InventoryButton>(this);
+        add(inventoryButton);
+        worldDependantElements.push_back(inventoryButton);
+    }
 }
 
 void GameUi::createNewWorld()

@@ -155,19 +155,19 @@ public:
     }
     void moveTopLeftTo(float x, float y)
     {
-        moveBy(x - minX, y - minY);
+        moveBy(x - minX, y - maxY);
     }
     void moveTopRightTo(float x, float y)
     {
-        moveBy(x - maxX, y - minY);
+        moveBy(x - maxX, y - maxY);
     }
     void moveBottomLeftTo(float x, float y)
     {
-        moveBy(x - minX, y - maxY);
+        moveBy(x - minX, y - minY);
     }
     void moveBottomRightTo(float x, float y)
     {
-        moveBy(x - maxX, y - maxY);
+        moveBy(x - maxX, y - minY);
     }
     virtual void layout()
     {

@@ -43,7 +43,7 @@ private:
 public:
     Event onChange;
     template <typename ...Args>
-    explicit MonitoredVariable(Args ...args)
+    explicit MonitoredVariable(Args &&...args)
         : variable(std::forward<Args>(args)...), onChange()
     {
     }
@@ -60,7 +60,7 @@ public:
         return variable;
     }
     template <typename R>
-    void set(R rt)
+    void set(R &&rt)
     {
         variable = std::forward<R>(rt);
         EventArguments args;

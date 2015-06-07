@@ -69,7 +69,7 @@ private:
         TouchStruct(VectorF position, bool gotTouchDown)
             : startPosition(position),
             position(position),
-            startDelayTimeLeft(gotTouchDown ? 0.5f : 0.0f),
+            startDelayTimeLeft(gotTouchDown ? 0.3f : 0.0f),
             state(gotTouchDown ? State::StartDelay : State::Move)
         {
         }
@@ -91,6 +91,21 @@ private:
     int pressBackwardCount = 0;
     int pressRightCount = 0;
     int pressAttackCount = 0;
+    int pressJumpCount = 0;
+    int pressSneakCount = 0;
+    void resetInput()
+    {
+        pressForwardCount = 0;
+        pressLeftCount = 0;
+        pressBackwardCount = 0;
+        pressRightCount = 0;
+        pressAttackCount = 0;
+        pressJumpCount = 0;
+        pressSneakCount = 0;
+        touches.clear();
+        deltaViewTheta = 0;
+        deltaViewPhi = 0;
+    }
     void calculateMoveDirection()
     {
         VectorF v = VectorF(0);
@@ -110,7 +125,7 @@ private:
     }
     float deltaViewTheta = 0;
     float deltaViewPhi = 0;
-    float spaceDoubleTapTimeLeft = 0;
+    float jumpDoubleTapTimeLeft = 0;
     void startInventoryDialog();
     void setDialogWorldAndLockManager();
     void setWorld(std::shared_ptr<World> world);
@@ -157,6 +172,26 @@ private:
         gameInput->paused.set(false);
     }
     void startMainMenu();
+    void handleJumpDown()
+    {
+        if(pressJumpCount++ > 0)
+            return;
+        gameInput->jump.set(true);
+        if(jumpDoubleTapTimeLeft > 0)
+        {
+            gameInput->fly.set(!gameInput->fly.get() && gameInput->isCreativeMode.get());
+        }
+        else
+            jumpDoubleTapTimeLeft = 0.3f;
+    }
+    void handleJumpUp()
+    {
+        if(--pressJumpCount <= 0)
+        {
+            gameInput->jump.set(false);
+            pressJumpCount = 0;
+        }
+    }
 public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, TLS &tls);
@@ -179,9 +214,9 @@ public:
     }
     virtual void move(double deltaTime) override
     {
-        spaceDoubleTapTimeLeft -= static_cast<float>(deltaTime);
-        if(spaceDoubleTapTimeLeft < 0)
-            spaceDoubleTapTimeLeft = 0;
+        jumpDoubleTapTimeLeft -= static_cast<float>(deltaTime);
+        if(jumpDoubleTapTimeLeft < 0)
+            jumpDoubleTapTimeLeft = 0;
         if(!dialog)
         {
             std::unique_lock<std::mutex> lockIt(newDialogLock);
@@ -200,9 +235,7 @@ public:
         }
         if(dialog || gameInput->paused.get())
         {
-            deltaViewTheta = 0;
-            deltaViewPhi = 0;
-            touches.clear();
+            resetInput();
         }
         else
         {
@@ -303,6 +336,11 @@ public:
                 pressAttackCount = 0;
             }
         }
+        else if(touch.state == TouchStruct::State::StartDelay)
+        {
+            EventArguments args;
+            gameInput->action(args);
+        }
         touches.erase(event.touchId);
         return true;
     }
@@ -343,6 +381,7 @@ public:
                     pressAttackCount = 0;
                 }
             }
+            captureTouch(event.touchId);
             touch.state = TouchStruct::State::Move;
         }
         if(touch.state == TouchStruct::State::Move)
@@ -433,12 +472,16 @@ public:
         {
         case KeyboardKey::Space:
         {
-            gameInput->jump.set(false);
+            handleJumpUp();
             return true;
         }
         case KeyboardKey::LShift:
         {
-            gameInput->sneak.set(false);
+            if(--pressSneakCount <= 0)
+            {
+                gameInput->sneak.set(false);
+                pressSneakCount = 0;
+            }
             return true;
         }
         case KeyboardKey::W:
@@ -504,21 +547,16 @@ public:
         {
         case KeyboardKey::Space:
         {
-            gameInput->jump.set(true);
             if(!event.isRepetition)
             {
-                if(spaceDoubleTapTimeLeft > 0)
-                {
-                    gameInput->fly.set(!gameInput->fly.get() && gameInput->isCreativeMode.get());
-                }
-                else
-                    spaceDoubleTapTimeLeft = 0.3f;
+                handleJumpDown();
             }
             return true;
         }
         case KeyboardKey::LShift:
         {
-            gameInput->sneak.set(true);
+            if(pressSneakCount++ == 0)
+                gameInput->sneak.set(true);
             return true;
         }
         case KeyboardKey::W:
@@ -632,7 +670,6 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleMouseMoveIn(MouseEvent &event) override
@@ -641,7 +678,6 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchMoveOut(TouchEvent &event) override
@@ -650,7 +686,6 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
         return true;
     }
     virtual bool handleTouchMoveIn(TouchEvent &event) override
@@ -659,17 +694,11 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
         return true;
     }
     virtual void reset() override
     {
-        pressForwardCount = 0;
-        pressLeftCount = 0;
-        pressBackwardCount = 0;
-        pressRightCount = 0;
-        pressAttackCount = 0;
-        touches.clear();
+        resetInput();
         if(!addedUi)
         {
             addedUi = true;

@@ -39,12 +39,17 @@ private:
     std::vector<std::shared_ptr<Element>> elements;
     std::size_t currentFocusIndex = 0;
     std::size_t lastMouseElement = npos;
-    std::unordered_map<int, std::size_t> touchElementMap;
-    std::size_t &findOrGetTouch(int touchId)
+    struct TouchStruct final
     {
-        auto iter = touchElementMap.find(touchId);
-        if(iter == touchElementMap.end())
-            iter = std::get<0>(touchElementMap.insert(std::make_pair(touchId, npos)));
+        std::size_t elementIndex = npos;
+        bool captured = false;
+    };
+    std::unordered_map<int, TouchStruct> touchMap;
+    TouchStruct &findOrGetTouch(int touchId)
+    {
+        auto iter = touchMap.find(touchId);
+        if(iter == touchMap.end())
+            iter = std::get<0>(touchMap.emplace(touchId, TouchStruct()));
         return std::get<1>(*iter);
     }
 protected:
@@ -72,7 +77,9 @@ protected:
 public:
     using Element::render;
     Container(float minX, float maxX, float minY, float maxY)
-        : Element(minX, maxX, minY, maxY), elements(), touchElementMap()
+        : Element(minX, maxX, minY, maxY),
+        elements(),
+        touchMap()
     {
     }
     std::shared_ptr<Container> add(std::shared_ptr<Element> element)
@@ -94,6 +101,19 @@ private:
                 adjustIndex--;
         }
     }
+    void removeHelper(std::size_t removedIndex, TouchStruct &adjustStruct) const
+    {
+        if(adjustStruct.elementIndex != npos)
+        {
+            if(adjustStruct.elementIndex == removedIndex)
+            {
+                adjustStruct.elementIndex = npos;
+                adjustStruct.captured = false;
+            }
+            else if(adjustStruct.elementIndex > removedIndex)
+                adjustStruct.elementIndex--;
+        }
+    }
 public:
     bool remove(std::shared_ptr<Element> element)
     {
@@ -105,7 +125,7 @@ public:
                 element->parent.reset();
                 removeHelper(i, currentFocusIndex);
                 removeHelper(i, lastMouseElement);
-                for(auto &v : touchElementMap)
+                for(auto &v : touchMap)
                 {
                     removeHelper(i, std::get<1>(v));
                 }
@@ -114,6 +134,18 @@ public:
             }
         }
         return false;
+    }
+    void captureTouch(int touchIndex)
+    {
+        auto i = touchMap.find(touchIndex);
+        if(i != touchMap.end())
+        {
+            TouchStruct &touch = std::get<1>(*i);
+            touch.captured = true;
+        }
+        std::shared_ptr<Container> parent = getParent();
+        if(parent != nullptr)
+            parent->captureTouch(touchIndex);
     }
     virtual std::shared_ptr<Element> getFocusElement() override final
     {
@@ -231,84 +263,93 @@ public:
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
-        auto iter = touchElementMap.find(event.touchId);
-        if(iter == touchElementMap.end())
+        auto iter = touchMap.find(event.touchId);
+        if(iter == touchMap.end())
             return Element::handleTouchUp(event);
-        std::size_t lastTouchElement = std::get<1>(*iter);
-        touchElementMap.erase(iter);
-        if(lastTouchElement != index)
+        TouchStruct touch = std::get<1>(*iter);
+        touchMap.erase(iter);
+        if(touch.elementIndex != index && !touch.captured)
         {
-            if(lastTouchElement != npos)
+            if(touch.elementIndex != npos)
             {
-                elements[lastTouchElement]->handleTouchMoveOut(event);
+                elements[touch.elementIndex]->handleTouchMoveOut(event);
             }
-            lastTouchElement = index;
-            if(index != npos)
+            if(!touch.captured) // might have been captured in touch move out
             {
-                elements[index]->handleTouchMoveIn(event);
+                touch.elementIndex = index;
+                if(index != npos)
+                {
+                    elements[index]->handleTouchMoveIn(event);
+                }
             }
         }
-        if(index != npos)
+        if(touch.elementIndex != npos)
         {
-            return elements[index]->handleTouchUp(event);
+            return elements[touch.elementIndex]->handleTouchUp(event);
         }
         return Element::handleTouchUp(event);
     }
     virtual bool handleTouchDown(TouchDownEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
-        std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
-        if(index != lastTouchElement)
+        TouchStruct &touch = findOrGetTouch(event.touchId);
+        if(index != touch.elementIndex && !touch.captured)
         {
-            if(lastTouchElement != npos)
+            if(touch.elementIndex != npos)
             {
-                elements[lastTouchElement]->handleTouchMoveOut(event);
+                elements[touch.elementIndex]->handleTouchMoveOut(event);
             }
-            lastTouchElement = index;
-            if(index != npos)
+            if(!touch.captured) // might have been captured in touch move out
             {
-                elements[index]->handleTouchMoveIn(event);
+                touch.elementIndex = index;
+                if(index != npos)
+                {
+                    elements[index]->handleTouchMoveIn(event);
+                }
             }
         }
-        if(index != npos)
+        if(touch.elementIndex != npos)
         {
-            return elements[index]->handleTouchDown(event);
+            return elements[touch.elementIndex]->handleTouchDown(event);
         }
         return Element::handleTouchDown(event);
     }
     virtual bool handleTouchMove(TouchMoveEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
-        std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
-        if(index != lastTouchElement)
+        TouchStruct &touch = findOrGetTouch(event.touchId);
+        if(index != touch.elementIndex && !touch.captured)
         {
-            if(lastTouchElement != npos)
+            if(touch.elementIndex != npos)
             {
-                elements[lastTouchElement]->handleTouchMoveOut(event);
+                elements[touch.elementIndex]->handleTouchMoveOut(event);
             }
-            lastTouchElement = index;
-            if(index != npos)
+            if(!touch.captured) // might have been captured in touch move out
             {
-                elements[index]->handleTouchMoveIn(event);
+                touch.elementIndex = index;
+                if(index != npos)
+                {
+                    elements[index]->handleTouchMoveIn(event);
+                }
             }
         }
-        if(index != npos)
+        if(touch.elementIndex != npos)
         {
-            return elements[index]->handleTouchMove(event);
+            return elements[touch.elementIndex]->handleTouchMove(event);
         }
         return Element::handleTouchMove(event);
     }
     virtual bool handleTouchMoveOut(TouchEvent &event) override
     {
-        auto iter = touchElementMap.find(event.touchId);
-        if(iter == touchElementMap.end())
+        auto iter = touchMap.find(event.touchId);
+        if(iter == touchMap.end())
             return Element::handleTouchMoveOut(event);
-        std::size_t lastTouchElement = std::get<1>(*iter);
-        touchElementMap.erase(iter);
-        if(lastTouchElement != npos)
+        TouchStruct touch = std::get<1>(*iter);
+        touchMap.erase(iter);
+        if(touch.elementIndex != npos)
         {
-            const std::shared_ptr<Element> &e = elements[lastTouchElement];
-            lastTouchElement = npos;
+            const std::shared_ptr<Element> &e = elements[touch.elementIndex];
+            touch.elementIndex = npos;
             return e->handleTouchMoveOut(event);
         }
         return Element::handleTouchMoveOut(event);
@@ -316,11 +357,11 @@ public:
     virtual bool handleTouchMoveIn(TouchEvent &event) override
     {
         std::size_t index = getIndexFromPosition(Display::transformTouchTo3D(event.x, event.y));
-        std::size_t &lastTouchElement = findOrGetTouch(event.touchId);
-        lastTouchElement = index;
-        if(index != npos)
+        TouchStruct &touch = findOrGetTouch(event.touchId);
+        touch.elementIndex = index;
+        if(touch.elementIndex != npos)
         {
-            return elements[index]->handleTouchMoveIn(event);
+            return elements[touch.elementIndex]->handleTouchMoveIn(event);
         }
         return Element::handleTouchMoveIn(event);
     }
