@@ -54,6 +54,26 @@ class GameUi : public Ui
     GameUi(const GameUi &) = delete;
     GameUi &operator =(const GameUi &) = delete;
 private:
+    struct TouchStruct final
+    {
+        VectorF startPosition;
+        VectorF position;
+        enum class State
+        {
+            Move,
+            Attack,
+            StartDelay,
+        };
+        float startDelayTimeLeft;
+        State state;
+        TouchStruct(VectorF position, bool gotTouchDown)
+            : startPosition(position),
+            position(position),
+            startDelayTimeLeft(gotTouchDown ? 0.5f : 0.0f),
+            state(gotTouchDown ? State::StartDelay : State::Move)
+        {
+        }
+    };
     AudioScheduler audioScheduler;
     std::shared_ptr<PlayingAudio> playingAudio;
     std::shared_ptr<World> world;
@@ -66,22 +86,23 @@ private:
     std::shared_ptr<Ui> dialog = nullptr;
     std::shared_ptr<Ui> newDialog = nullptr;
     std::mutex newDialogLock;
-    bool isWDown = false;
-    bool isADown = false;
-    bool isSDown = false;
-    bool isDDown = false;
+    int pressForwardCount = 0;
+    int pressLeftCount = 0;
+    int pressBackwardCount = 0;
+    int pressRightCount = 0;
+    int pressAttackCount = 0;
     void calculateMoveDirection()
     {
         VectorF v = VectorF(0);
         VectorF forward(0, 0, -1);
         VectorF left(-1, 0, 0);
-        if(isWDown)
+        if(pressForwardCount > 0)
             v += forward;
-        if(isSDown)
+        if(pressBackwardCount > 0)
             v -= forward;
-        if(isADown)
+        if(pressLeftCount > 0)
             v += left;
-        if(isDDown)
+        if(pressRightCount > 0)
             v -= left;
         if(gameInput->paused.get())
             v = VectorF(0);
@@ -103,6 +124,7 @@ private:
     std::atomic_bool abortWorldCreation;
     std::shared_ptr<Ui> mainMenu;
     std::shared_ptr<Audio> mainMenuSong;
+    std::unordered_map<int, TouchStruct> touches;
     void addUi();
     void finalizeCreateWorld()
     {
@@ -180,9 +202,27 @@ public:
         {
             deltaViewTheta = 0;
             deltaViewPhi = 0;
+            touches.clear();
         }
         else
         {
+            for(std::pair<const int, TouchStruct> &p : touches)
+            {
+                TouchStruct &touch = std::get<1>(p);
+                if(touch.state == TouchStruct::State::StartDelay)
+                {
+                    touch.startDelayTimeLeft -= static_cast<float>(deltaTime);
+                    if(touch.startDelayTimeLeft <= 0)
+                    {
+                        touch.startDelayTimeLeft = 0;
+                        touch.state = TouchStruct::State::Attack;
+                        if(pressAttackCount++ == 0)
+                        {
+                            gameInput->attack.set(true);
+                        }
+                    }
+                }
+            }
             float viewTheta = gameInput->viewTheta.get();
             float viewPhi = gameInput->viewPhi.get();
             deltaViewTheta *= 0.5f;
@@ -252,7 +292,18 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
+        if(touches.count(event.touchId) == 0)
+            return true;
+        TouchStruct &touch = touches.at(event.touchId);
+        if(touch.state == TouchStruct::State::Attack)
+        {
+            if(--pressAttackCount <= 0)
+            {
+                gameInput->attack.set(false);
+                pressAttackCount = 0;
+            }
+        }
+        touches.erase(event.touchId);
         return true;
     }
     virtual bool handleTouchDown(TouchDownEvent &event) override
@@ -261,7 +312,10 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
+        VectorF position = Display::transformTouchTo3D(event.x, event.y);
+        if(touches.count(event.touchId))
+            return true; // ignore duplicates
+        touches.emplace(event.touchId, TouchStruct(position, true));
         return true;
     }
     virtual bool handleTouchMove(TouchMoveEvent &event) override
@@ -270,7 +324,32 @@ public:
             return true;
         if(dialog)
             return true;
-        FIXME_MESSAGE(implement)
+        if(gameInput->paused.get())
+            return true;
+        VectorF position = Display::transformTouchTo3D(event.x, event.y);
+        VectorF deltaPos = Display::transformTouchTo3D(event.x + event.deltaX, event.y + event.deltaY) - position;
+        if(touches.count(event.touchId) == 0)
+            touches.emplace(event.touchId, TouchStruct(position, false));
+        TouchStruct &touch = touches.at(event.touchId);
+        touch.position = position;
+        const float thresholdDistance = 0.04f;
+        if(absSquared(position - touch.startPosition) >= thresholdDistance * thresholdDistance)
+        {
+            if(touch.state == TouchStruct::State::Attack)
+            {
+                if(--pressAttackCount <= 0)
+                {
+                    gameInput->attack.set(false);
+                    pressAttackCount = 0;
+                }
+            }
+            touch.state = TouchStruct::State::Move;
+        }
+        if(touch.state == TouchStruct::State::Move)
+        {
+            deltaViewTheta += deltaPos.x;
+            deltaViewPhi -= deltaPos.y;
+        }
         return true;
     }
     virtual bool handleMouseUp(MouseUpEvent &event) override
@@ -279,7 +358,11 @@ public:
             return true;
         if(event.button == MouseButton_Left)
         {
-            gameInput->attack.set(false);
+            if(--pressAttackCount <= 0)
+            {
+                gameInput->attack.set(false);
+                pressAttackCount = 0;
+            }
             return true;
         }
         if(dialog)
@@ -298,7 +381,8 @@ public:
             return true;
         if(event.button == MouseButton_Left)
         {
-            gameInput->attack.set(true);
+            if(pressAttackCount++ == 0)
+                gameInput->attack.set(true);
             return true;
         }
         if(event.button == MouseButton_Right)
@@ -359,25 +443,33 @@ public:
         }
         case KeyboardKey::W:
         {
-            isWDown = false;
+            pressForwardCount--;
+            if(pressForwardCount < 0)
+                pressForwardCount = 0;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::A:
         {
-            isADown = false;
+            pressLeftCount--;
+            if(pressLeftCount < 0)
+                pressLeftCount = 0;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::S:
         {
-            isSDown = false;
+            pressBackwardCount--;
+            if(pressBackwardCount < 0)
+                pressBackwardCount = 0;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::D:
         {
-            isDDown = false;
+            pressRightCount--;
+            if(pressRightCount < 0)
+                pressRightCount = 0;
             calculateMoveDirection();
             return true;
         }
@@ -431,25 +523,29 @@ public:
         }
         case KeyboardKey::W:
         {
-            isWDown = true;
+            if(!event.isRepetition)
+                pressForwardCount++;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::A:
         {
-            isADown = true;
+            if(!event.isRepetition)
+                pressLeftCount++;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::S:
         {
-            isSDown = true;
+            if(!event.isRepetition)
+                pressBackwardCount++;
             calculateMoveDirection();
             return true;
         }
         case KeyboardKey::D:
         {
-            isDDown = true;
+            if(!event.isRepetition)
+                pressRightCount++;
             calculateMoveDirection();
             return true;
         }
@@ -568,6 +664,12 @@ public:
     }
     virtual void reset() override
     {
+        pressForwardCount = 0;
+        pressLeftCount = 0;
+        pressBackwardCount = 0;
+        pressRightCount = 0;
+        pressAttackCount = 0;
+        touches.clear();
         if(!addedUi)
         {
             addedUi = true;

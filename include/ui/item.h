@@ -183,15 +183,23 @@ protected:
 
 class HotBarItem : public UiItemWithBorder
 {
+private:
+    std::function<void()> onSelect;
 public:
-    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::recursive_mutex *itemStackLock = nullptr)
-        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock)
+    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::function<void()> onSelect, std::recursive_mutex *itemStackLock = nullptr)
+        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock), onSelect(onSelect)
     {
     }
     virtual void layout() override
     {
         moveBy(0, getParent()->minY - minY);
         UiItemWithBorder::layout();
+    }
+    virtual bool handleTouchDown(TouchDownEvent &event) override
+    {
+        onSelect();
+        ignore_unused_variable_warning(event);
+        return true;
     }
 };
 }

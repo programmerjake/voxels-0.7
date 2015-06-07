@@ -1327,7 +1327,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                     touch.x = newX;
                     touch.y = newY;
                     int touchId = touchSimulationState->draggingId;
-                    if(button == MouseButton_Right && buttonState == MouseButton_None)
+                    if(button == MouseButton_Left && buttonState == MouseButton_None)
                     {
                         touchSimulationState->touches.erase(touchId);
                         touchSimulationState->draggingId = -1;

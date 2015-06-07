@@ -273,6 +273,10 @@ void GameUi::addWorldUi()
             if(player == nullptr)
                 return false;
             return player->currentItemIndex == i;
+        }, [this, i]()
+        {
+            HotBarSelectEventArguments args(i);
+            gameInput->hotBarSelect(args);
         }, &player->itemsLock);
         add(e);
         worldDependantElements.push_back(e);
@@ -449,6 +453,7 @@ GameUi::GameUi(Renderer &renderer, TLS &tls)
     abortWorldCreation(false),
     mainMenu(),
     mainMenuSong(std::make_shared<Audio>(L"menu-theme.ogg", true)),
+    touches(),
     blockDestructProgress(-1.0f)
 {
     gameInput->paused.set(true);
