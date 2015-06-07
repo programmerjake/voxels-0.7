@@ -27,6 +27,7 @@
 #include "player/player.h"
 #include "ui/image.h"
 #include "ui/item.h"
+#include "ui/button.h"
 
 namespace programmerjake
 {
@@ -36,6 +37,8 @@ namespace ui
 {
 class PlayerDialog : public Ui
 {
+    PlayerDialog(const PlayerDialog &) = delete;
+    PlayerDialog &operator =(const PlayerDialog &) = delete;
 private:
     class BackgroundElement : public ShadedContainer
     {
@@ -55,6 +58,7 @@ private:
     };
     bool addedElements = false;
     std::shared_ptr<ImageElement> backgroundImageElement;
+    WorldLockManager *plock_manager = nullptr;
 protected:
     static constexpr int imageXRes()
     {
@@ -111,6 +115,11 @@ protected:
     const std::shared_ptr<Player> player;
     TextureDescriptor backgroundImage;
     std::shared_ptr<UiItem> selectedItem = nullptr;
+    bool isTouchSelection = false;
+    int selectedTouch = -1;
+    float touchHoldTimeLeft = 0;
+    VectorF touchStartPosition = VectorF(0);
+    bool hasTouchMoved = false;
 public:
     PlayerDialog(std::shared_ptr<Player> player, TextureDescriptor backgroundImage)
         : backgroundImageElement(), player(player), backgroundImage(backgroundImage)
@@ -147,6 +156,12 @@ protected:
 public:
     virtual void reset() override
     {
+        selectedItem = nullptr;
+        selectedTouch = -1;
+        isTouchSelection = false;
+        touchHoldTimeLeft = 0;
+        touchStartPosition = VectorF(0);
+        hasTouchMoved = false;
         if(!addedElements)
         {
             addedElements = true;
@@ -170,12 +185,49 @@ public:
                                                  std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y]), &player->itemsLock));
                 }
             }
+            if(Display::needTouchControls())
+            {
+                class CloseButton final : public Button
+                {
+                    CloseButton(const CloseButton &) = delete;
+                    CloseButton &operator =(const CloseButton &) = delete;
+                private:
+                    PlayerDialog *const playerDialog;
+                public:
+                    CloseButton(PlayerDialog *playerDialog)
+                        : Button(L"\u2190",
+                                 Display::scaleX() - Display::getTouchControlSize(),
+                                 Display::scaleX(),
+                                 -Display::scaleY(),
+                                 Display::getTouchControlSize() - Display::scaleY()),
+                        playerDialog(playerDialog)
+                    {
+                        click.bind([this](EventArguments &)->Event::ReturnType
+                        {
+                            this->playerDialog->quit();
+                            return Event::Propagate;
+                        });
+                    }
+                    virtual void layout() override
+                    {
+                        moveBottomRightTo(getParent()->maxX, getParent()->minY);
+                        Button::layout();
+                    }
+                    virtual bool canHaveKeyboardFocus() const override
+                    {
+                        return false;
+                    }
+                };
+                add(std::make_shared<CloseButton>(this));
+            }
             addElements();
         }
         Ui::reset();
     }
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
+        if(plock_manager)
+            plock_manager->clear();
         backgroundImageElement->image = backgroundImage;
         Ui::render(renderer, minZ, maxZ, hasFocus);
     }
@@ -192,11 +244,15 @@ public:
     {
         if(Ui::handleMouseDown(event))
             return true;
+        if(isTouchSelection)
+            return true;
         VectorF position = Display::transformMouseTo3D(event.x, event.y);
         std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
         if(std::get<0>(itemStack) == nullptr)
-            return false;
+            return true;
         std::unique_lock<std::recursive_mutex> theLock;
+        if(plock_manager)
+            plock_manager->clear();
         if(std::get<1>(itemStack) != nullptr)
             theLock = std::unique_lock<std::recursive_mutex>(*std::get<1>(itemStack));
         if(selectedItem == nullptr)
@@ -266,7 +322,7 @@ public:
     }
     virtual bool handleMouseMove(MouseMoveEvent &event) override
     {
-        if(selectedItem)
+        if(selectedItem && !isTouchSelection)
         {
             VectorF position = Display::transformMouseTo3D(event.x, event.y);
             selectedItem->moveCenterTo(position.x, position.y);
@@ -275,6 +331,135 @@ public:
     }
     virtual void setWorldAndLockManager(World &world, WorldLockManager &lock_manager)
     {
+        plock_manager = &lock_manager;
+    }
+protected:
+    void handleTouch(VectorF position, bool isLongPress)
+    {
+        if(selectedItem && !isTouchSelection)
+            return;
+        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        if(std::get<0>(itemStack) == nullptr)
+            return;
+        std::unique_lock<std::recursive_mutex> theLock;
+        if(plock_manager)
+            plock_manager->clear();
+        if(std::get<1>(itemStack) != nullptr)
+            theLock = std::unique_lock<std::recursive_mutex>(*std::get<1>(itemStack));
+        if(selectedItem == nullptr)
+        {
+            if(!std::get<0>(itemStack)->good())
+                return;
+            std::shared_ptr<Player> player = this->player;
+            std::shared_ptr<ItemStack> selectedItemItemStack = std::shared_ptr<ItemStack>(new ItemStack(), [player](ItemStack *itemStack)
+            {
+                if(itemStack->good())
+                {
+                    for(std::size_t i = 0; i < itemStack->count; i++)
+                    {
+                        if(player->addItem(itemStack->item) < 1)
+                        {
+                            FIXME_MESSAGE(finish)
+                        }
+                    }
+                }
+                delete itemStack;
+            });
+            unsigned transferCount = 0;
+            if(isLongPress)
+            {
+                transferCount = std::get<0>(itemStack)->count;
+                transferCount = transferCount / 2 + transferCount % 2;
+            }
+            else
+            {
+                transferCount = std::get<0>(itemStack)->count;
+            }
+            transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
+            if(selectedItemItemStack->good())
+            {
+                selectedItem = std::make_shared<UiItem>(-16 * imageScale(), 16 * imageScale(),
+                                                        -16 * imageScale(), 16 * imageScale(), selectedItemItemStack);
+                selectedItem->moveTopLeftTo(getParent()->minX, getParent()->maxY);
+                isTouchSelection = true;
+                add(selectedItem);
+            }
+        }
+        else
+        {
+            std::shared_ptr<ItemStack> selectedItemItemStack = selectedItem->getItemStack();
+            unsigned transferCount = 0;
+            if(isLongPress)
+            {
+                transferCount = selectedItemItemStack->count;
+            }
+            else
+            {
+                transferCount = 1;
+            }
+            transferItems(selectedItemItemStack, std::get<0>(itemStack), transferCount);
+            if(!selectedItemItemStack->good())
+            {
+                remove(selectedItem);
+                selectedItem = nullptr;
+                isTouchSelection = false;
+            }
+        }
+    }
+public:
+    virtual bool handleTouchUp(TouchUpEvent &event) override
+    {
+        if(Ui::handleTouchUp(event))
+            return true;
+        if(event.touchId == selectedTouch)
+        {
+            selectedTouch = -1;
+            if(!hasTouchMoved)
+                handleTouch(touchStartPosition, touchHoldTimeLeft <= 0);
+        }
+        return true;
+    }
+    virtual bool handleTouchDown(TouchDownEvent &event) override
+    {
+        if(Ui::handleTouchDown(event))
+            return true;
+        if(selectedTouch != -1 || (selectedItem != nullptr && !isTouchSelection))
+            return true;
+        VectorF position = Display::transformTouchTo3D(event.x, event.y);
+        selectedTouch = event.touchId;
+        captureTouch(event.touchId);
+        touchHoldTimeLeft = 0.5f;
+        touchStartPosition = position;
+        hasTouchMoved = false;
+        return true;
+    }
+    virtual void move(double deltaTime) override
+    {
+        touchHoldTimeLeft -= static_cast<float>(deltaTime);
+        if(touchHoldTimeLeft <= 0)
+            touchHoldTimeLeft = 0;
+        Ui::move(deltaTime);
+    }
+    virtual bool handleTouchMove(TouchMoveEvent &event) override
+    {
+        if(Ui::handleTouchMove(event))
+            return true;
+        if(event.touchId == selectedTouch)
+        {
+            VectorF position = Display::transformTouchTo3D(event.x, event.y);
+            const float thresholdDistance = 0.04f;
+            if(absSquared(position - touchStartPosition) >= thresholdDistance * thresholdDistance)
+                hasTouchMoved = true;
+        }
+        return true;
+    }
+    virtual void layout() override
+    {
+        Ui::layout();
+        if(selectedItem && isTouchSelection)
+        {
+            selectedItem->moveTopLeftTo(getParent()->minX, getParent()->maxY);
+        }
     }
 };
 }

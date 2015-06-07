@@ -75,8 +75,12 @@ protected:
         BlockIterator bi = world.getBlockIterator(blockPosition, lock_manager.tls);
         Block b = bi.get(lock_manager);
         if(!b.good() || dynamic_cast<const Blocks::builtin::Furnace *>(b.descriptor) == nullptr)
+        {
+            lock_manager.clear();
             return retval;
+        }
         world.rescheduleBlockUpdate(bi, lock_manager, BlockUpdateKind::General, 0);
+        lock_manager.clear();
         return retval;
     }
     virtual void addElements() override
@@ -96,6 +100,7 @@ protected:
     {
         pworld = &world;
         plock_manager = &lock_manager;
+        PlayerDialog::setWorldAndLockManager(world, lock_manager);
     }
 public:
     virtual void move(double deltaTime) override
@@ -108,6 +113,7 @@ public:
         Block b = bi.get(lock_manager);
         if(!b.good() || dynamic_cast<const Blocks::builtin::Furnace *>(b.descriptor) == nullptr)
             quit();
+        lock_manager.clear();
         PlayerDialog::move(deltaTime);
     }
 };
