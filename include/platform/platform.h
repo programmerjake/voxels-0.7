@@ -360,6 +360,7 @@ namespace Display
     float screenRefreshRate();
     bool fullScreen();
     void fullScreen(bool fs);
+    bool needTouchControls();
 }
 
 void startGraphics();
