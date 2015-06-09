@@ -16,7 +16,6 @@
 					<Add option="-march=native" />
 					<Add option="-fPIC" />
 					<Add option="-pie" />
-					<Add option="-Og" />
 					<Add option="-DDEBUG_VERSION" />
 					<Add option="-D_GLIBCXX_DEBUG" />
 					<Add option="-DDEBUG_LOCKS" />
@@ -285,6 +284,7 @@
 		<Unit filename="include/util/ordered_weak_ptr.h" />
 		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
+		<Unit filename="include/util/random.h" />
 		<Unit filename="include/util/rc4_random_engine.h" />
 		<Unit filename="include/util/redstone_signal.h" />
 		<Unit filename="include/util/rw_lock.h" />
