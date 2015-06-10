@@ -31,7 +31,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-march=k8" />
+					<Add option="-march=nocona" />
 					<Add option="-O3" />
 					<Add option="-DNDEBUG" />
 				</Compiler>
@@ -69,7 +69,7 @@
 				<Compiler>
 					<Add option="-O3" />
 					<Add option="-g" />
-					<Add option="-march=k8" />
+					<Add option="-march=nocona" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 			</Target>
@@ -82,7 +82,7 @@
 					<Add option="-O3" />
 					<Add option="-pg" />
 					<Add option="-g" />
-					<Add option="-march=native" />
+					<Add option="-march=nocona" />
 					<Add option="-DDEBUG_VERSION" />
 				</Compiler>
 				<Linker>
@@ -95,7 +95,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-march=k8" />
+					<Add option="-march=nocona" />
 					<Add option="-O3" />
 					<Add option="-g" />
 					<Add option="-fsanitize=address" />
