@@ -233,10 +233,11 @@ struct BlockChunkBlock final
     LightValueType directSkylight : lightBitWidth;
     LightValueType indirectSkylight : lightBitWidth;
     LightValueType indirectArtificalLight : lightBitWidth;
-    static constexpr int blockKindBitWidth = 32 - 3 * lightBitWidth;
+    bool hasOptionalData : 1;
+    static constexpr int blockKindBitWidth = 32 - 1 - 3 * lightBitWidth;
     unsigned blockKind : blockKindBitWidth;
     BlockChunkBlock()
-        : directSkylight(0), indirectSkylight(0), indirectArtificalLight(0), blockKind((static_cast<unsigned>(1) << blockKindBitWidth) - 1)
+        : directSkylight(0), indirectSkylight(0), indirectArtificalLight(0), hasOptionalData(false), blockKind((static_cast<unsigned>(1) << blockKindBitWidth) - 1)
     {
     }
     void invalidate()
@@ -476,7 +477,7 @@ public:
             return nullptr;
         return node->data;
     }
-    void setData(VectorI pos, BlockDataPointer<BlockData> data, TLS &tls)
+    bool setData(VectorI pos, BlockDataPointer<BlockData> data, TLS &tls)
     {
         BlockOptionalData *node;
         if(data != nullptr)
@@ -484,12 +485,16 @@ public:
         else
             node = get(pos);
         if(node == nullptr)
-            return;
+            return false;
         node->data = std::move(data);
         if(node->empty())
+        {
             erase(pos, tls);
+            return false;
+        }
+        return true;
     }
-    void setUpdateListHead(VectorI pos, BlockUpdate *updateListHead, TLS &tls)
+    bool setUpdateListHead(VectorI pos, BlockUpdate *updateListHead, TLS &tls)
     {
         BlockOptionalData *node;
         if(updateListHead != nullptr)
@@ -497,10 +502,14 @@ public:
         else
             node = get(pos);
         if(node == nullptr)
-            return;
+            return false;
         node->updateListHead = updateListHead;
         if(node->empty())
+        {
             erase(pos, tls);
+            return false;
+        }
+        return true;
     }
     BlockUpdate *getUpdateListHead(VectorI pos)
     {
@@ -688,13 +697,13 @@ GCC_PRAGMA(diagnostic pop)
     {
         BlockDescriptorPointer bd = subchunk.getBlockKind(blockChunkBlock);
         Lighting lighting = blockChunkBlock.getLighting();
-        return Block(bd, lighting, subchunk.blockOptionalData.getData(subchunkRelativePosition));
+        return Block(bd, lighting, blockChunkBlock.hasOptionalData ? subchunk.blockOptionalData.getData(subchunkRelativePosition) : BlockDataPointer<BlockData>(nullptr));
     }
     static void putBlockIntoArray(VectorI subchunkRelativePosition, BlockChunkBlock &blockChunkBlock, BlockChunkSubchunk &subchunk, Block newBlock, TLS &tls) /// @note doesn't handle updates or particles or anything except copying the members from Block
     {
         subchunk.setBlockKind(blockChunkBlock, newBlock.descriptor);
         blockChunkBlock.setLighting(newBlock.lighting);
-        subchunk.blockOptionalData.setData(subchunkRelativePosition, std::move(newBlock.data), tls);
+        blockChunkBlock.hasOptionalData = subchunk.blockOptionalData.setData(subchunkRelativePosition, std::move(newBlock.data), tls);
     }
     IndirectBlockChunk *const indirectBlockChunk;
     BlockChunkChunkVariables &getChunkVariables();

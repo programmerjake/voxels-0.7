@@ -502,8 +502,12 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
             node = next_node;
             VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
             VectorI subchunkRelativePosition = BlockChunk::getSubchunkRelativePosition(retval->position);
+            VectorI chunkRelativePosition = BlockChunk::getChunkRelativePosition(retval->position);
             BlockChunkSubchunk &subchunk = chunk->subchunks[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
-            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
+            BlockChunkBlock &block = chunk->blocks[chunkRelativePosition.x][chunkRelativePosition.y][chunkRelativePosition.z];
+            BlockOptionalData *blockOptionalData = nullptr;
+            if(block.hasOptionalData)
+                blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
             if(blockOptionalData != nullptr)
             {
                 for(BlockUpdate **pnode = &blockOptionalData->updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
@@ -515,7 +519,10 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIter
                     }
                 }
                 if(blockOptionalData->empty())
+                {
                     subchunk.blockOptionalData.erase(subchunkRelativePosition, lock_manager.tls);
+                    block.hasOptionalData = false;
+                }
             }
             retval->block_next = nullptr;
         }
@@ -565,8 +572,12 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
             node = next_node;
             VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
             VectorI subchunkRelativePosition = BlockChunk::getSubchunkRelativePosition(retval->position);
+            VectorI chunkRelativePosition = BlockChunk::getChunkRelativePosition(retval->position);
             BlockChunkSubchunk &subchunk = chunk->subchunks[subchunkIndex.x][subchunkIndex.y][subchunkIndex.z];
-            BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
+            BlockChunkBlock &block = chunk->blocks[chunkRelativePosition.x][chunkRelativePosition.y][chunkRelativePosition.z];
+            BlockOptionalData *blockOptionalData = nullptr;
+            if(block.hasOptionalData)
+                blockOptionalData = subchunk.blockOptionalData.get(subchunkRelativePosition);
             if(blockOptionalData != nullptr)
             {
                 for(BlockUpdate **pnode = &blockOptionalData->updateListHead; *pnode != nullptr; pnode = &(*pnode)->block_next)
@@ -578,7 +589,10 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
                     }
                 }
                 if(blockOptionalData->empty())
+                {
                     subchunk.blockOptionalData.erase(subchunkRelativePosition, lock_manager.tls);
+                    block.hasOptionalData = false;
+                }
             }
             retval->block_next = nullptr;
         }
@@ -1565,6 +1579,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                             biXYZ.getSubchunk().invalidate();
                             biXYZ.chunk->getChunkVariables().invalidate();
                             BlockOptionalData *blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(biXYZ.currentRelativePosition), lock_manager.tls);
+                            biXYZ.getBlock().hasOptionalData = true;
                             enum_array<bool, BlockUpdateKind> neededBlockUpdates;
                             for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
                             {

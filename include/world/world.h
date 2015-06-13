@@ -336,11 +336,18 @@ public:
     {
         bi.updateLock(lock_manager);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
-        BlockOptionalData *blockOptionalData;
+        BlockChunkBlock &block = bi.getBlock();
+        BlockOptionalData *blockOptionalData = nullptr;
         if(updateTimeFromNow < 0)
-            blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+        {
+            if(block.hasOptionalData)
+                blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+        }
         else
+        {
             blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+            block.hasOptionalData = true;
+        }
         if(blockOptionalData == nullptr)
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
@@ -365,7 +372,10 @@ public:
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
                     BlockUpdate::free(pnode, lock_manager.tls);
                     if(blockOptionalData->empty())
+                    {
                         subchunk.blockOptionalData.erase(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+                        block.hasOptionalData = false;
+                    }
                 }
                 else
                 {
@@ -405,11 +415,18 @@ public:
         std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(bi.chunk->getChunkVariables().blockUpdateListLock);
         assert(updateTimeFromNow >= 0);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
-        BlockOptionalData *blockOptionalData;
+        BlockChunkBlock &block = bi.getBlock();
+        BlockOptionalData *blockOptionalData = nullptr;
         if(updateTimeFromNow < 0)
-            blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+        {
+            if(block.hasOptionalData)
+                blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+        }
         else
+        {
             blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+            block.hasOptionalData = true;
+        }
         if(blockOptionalData == nullptr)
             return false;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
