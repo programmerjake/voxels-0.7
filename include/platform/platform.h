@@ -375,6 +375,8 @@ int main(std::vector<std::wstring> args); // called by the platform's main funct
 std::uint32_t allocateTexture();
 void freeTexture(std::uint32_t texture);
 
+std::size_t getProcessorCount();
+
 }
 }
 

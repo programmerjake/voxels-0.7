@@ -915,13 +915,6 @@ private:
     bool isPaused = false;
     std::size_t unpausedThreadCount = 0;
     std::thread chunkUnloaderThread;
-    static constexpr std::size_t lightingThreadCount = 2;
-    static constexpr std::size_t blockUpdateThreadCount = 3;
-    #if 1 || defined(NDEBUG)
-    static constexpr std::size_t generateThreadCount = 5;
-    #else
-    static constexpr std::size_t generateThreadCount = 1;
-    #endif
     // private functions
     void lightingThreadFn(TLS &tls);
     void blockUpdateThreadFn(TLS &tls);

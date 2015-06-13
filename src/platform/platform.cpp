@@ -368,6 +368,8 @@ namespace
     std::shared_ptr<TouchSimulationState> touchSimulationState;
 }
 
+static std::size_t processorCount = 1;
+
 static int xResInternal, yResInternal;
 
 static SDL_Window *window = nullptr;
@@ -563,9 +565,9 @@ static void runPlatformSetup()
 
 static void startSDL()
 {
-    runPlatformSetup();
     if(runningSDL.exchange(true))
         return;
+    runPlatformSetup();
     if(0 != SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO))
     {
         cerr << "error : can't start SDL : " << SDL_GetError() << endl;
@@ -580,6 +582,7 @@ static void startSDL()
     }
     SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
     SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
+    processorCount = SDL_GetCPUCount();
 }
 
 static SDL_AudioSpec globalAudioSpec;
@@ -2803,6 +2806,12 @@ struct TemporaryFile final
                                                                                            std::shared_ptr<stream::Writer>(tempFile, tempFile->fileWriter));
     }
 };
+}
+
+std::size_t getProcessorCount()
+{
+    startSDL();
+    return processorCount;
 }
 
 }

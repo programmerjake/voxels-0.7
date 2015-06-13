@@ -492,8 +492,8 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
         TLS tls;
         generateMeshesFn(tls);
     });
-    const int threadCount = 5;
-    for(int i = 0; i < threadCount; i++)
+    std::size_t threadCount = getProcessorCount();
+    for(std::size_t i = 0; i < threadCount; i++)
     {
         generateSubchunkMeshesThreads.emplace_back([this]()
         {

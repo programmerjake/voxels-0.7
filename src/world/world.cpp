@@ -64,6 +64,21 @@ namespace voxels
 {
 namespace
 {
+std::size_t roundUpThreadCount(std::size_t v)
+{
+    if(v == 0)
+        return 1;
+    return v;
+}
+
+const std::size_t lightingThreadCount = roundUpThreadCount(getProcessorCount() / 2);
+const std::size_t blockUpdateThreadCount = roundUpThreadCount(getProcessorCount() / 2);
+#if 1 || defined(NDEBUG)
+const std::size_t generateThreadCount = getProcessorCount();
+#else
+const std::size_t generateThreadCount = 1;
+#endif
+
 class BiomesCache final
 {
 private:
