@@ -184,6 +184,7 @@
 		<Unit filename="include/item/builtin/bedrock.h" />
 		<Unit filename="include/item/builtin/block.h" />
 		<Unit filename="include/item/builtin/bucket.h" />
+		<Unit filename="include/item/builtin/chest.h" />
 		<Unit filename="include/item/builtin/cobblestone.h" />
 		<Unit filename="include/item/builtin/crafting_table.h" />
 		<Unit filename="include/item/builtin/dirt.h" />
@@ -326,6 +327,7 @@
 		<Unit filename="src/generate/decorator.cpp" />
 		<Unit filename="src/generate/decorator/builtins.cpp" />
 		<Unit filename="src/item/builtin/bucket.cpp" />
+		<Unit filename="src/item/builtin/chest.cpp" />
 		<Unit filename="src/item/builtin/crafting_table.cpp" />
 		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/glass.cpp" />

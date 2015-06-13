@@ -60,7 +60,6 @@ protected:
         mesh(),
         block(block)
     {
-        assert(block != nullptr);
         Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
         tform = tform.concat(Matrix::rotateY(-M_PI / 4));
         tform = tform.concat(Matrix::rotateX(M_PI / 6));
@@ -102,6 +101,8 @@ public:
     }
     virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
     {
+        if(block == nullptr)
+            return item;
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
         if(c.valid())
         {

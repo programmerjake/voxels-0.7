@@ -23,7 +23,6 @@
 #include "item/builtin/minerals.h" // coal redstone
 #include "item/builtin/wood.h" // stick
 #include "recipe/builtin/pattern.h"
-#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -40,7 +39,7 @@ class TorchRecipe final : public PatternRecipe<1, 2>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Torch::descriptor()), 4));
         return true;
@@ -71,7 +70,7 @@ class TorchRecipe2 final : public PatternRecipe<1, 2>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Torch::descriptor()), 4));
         return true;
@@ -102,7 +101,7 @@ class RedstoneTorchRecipe final : public PatternRecipe<1, 2>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::RedstoneTorch::descriptor()), 1));
         return true;

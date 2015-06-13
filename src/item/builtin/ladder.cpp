@@ -22,7 +22,6 @@
 #include "item/builtin/ladder.h"
 #include "item/builtin/wood.h" // stick
 #include "recipe/builtin/pattern.h"
-#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -39,7 +38,7 @@ class LadderRecipe final : public PatternRecipe<3, 3>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Ladder::descriptor()), 3));
         return true;

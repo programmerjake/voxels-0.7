@@ -25,7 +25,6 @@
 #include "block/builtin/water.h"
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/minerals.h" // iron ingot
-#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -76,7 +75,7 @@ class BucketRecipe final : public PatternRecipe<3, 2>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Bucket::descriptor()), 1));
         return true;

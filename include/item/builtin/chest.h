@@ -18,8 +18,8 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef ITEM_CRAFTING_TABLE_H_INCLUDED
-#define ITEM_CRAFTING_TABLE_H_INCLUDED
+#ifndef ITEM_CHEST_H_INCLUDED
+#define ITEM_CHEST_H_INCLUDED
 
 #include "item/builtin/block.h"
 #include "util/global_instance_maker.h"
@@ -32,27 +32,19 @@ namespace Items
 {
 namespace builtin
 {
-class CraftingTable final : public ItemBlock
+class Chest final : public ItemBlock
 {
-    friend class global_instance_maker<CraftingTable>;
+    friend class global_instance_maker<Chest>;
 private:
-    CraftingTable();
+    Chest();
 public:
-    static const CraftingTable *pointer()
+    static const Chest *pointer()
     {
-        return global_instance_maker<CraftingTable>::getInstance();
+        return global_instance_maker<Chest>::getInstance();
     }
     static ItemDescriptorPointer descriptor()
     {
         return pointer();
-    }
-    virtual float getFurnaceBurnTime() const override
-    {
-        return 15.0f;
-    }
-    virtual bool isToolForCrafting() const override
-    {
-        return true;
     }
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
@@ -67,4 +59,4 @@ public:
 }
 }
 
-#endif // ITEM_CRAFTING_TABLE_H_INCLUDED
+#endif // ITEM_CHEST_H_INCLUDED

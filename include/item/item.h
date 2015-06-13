@@ -103,6 +103,10 @@ public:
     {
         UNREACHABLE();
     }
+    virtual bool isToolForCrafting() const
+    {
+        return false;
+    }
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity = VectorF(0.0f));
     static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, std::weak_ptr<Player> player, double ignoreTime = 1);
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const = 0;

@@ -26,6 +26,7 @@
 #include "recipe/builtin/unordered.h"
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/crafting_table.h"
+#include "item/builtin/chest.h"
 
 namespace programmerjake
 {
@@ -125,9 +126,35 @@ public:
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::CraftingTable::descriptor()), 1));
+        return true;
+    }
+};
+
+class ChestRecipe : PatternRecipe<3, 3>
+{
+    ChestRecipe(ChestRecipe &) = delete;
+    ChestRecipe &operator =(ChestRecipe &) = delete;
+private:
+    WoodDescriptorPointer woodDescriptor;
+public:
+    ChestRecipe(WoodDescriptorPointer woodDescriptor)
+        : PatternRecipe(checked_array<Item, 3 * 3>
+                        {
+                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()),
+                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(), Item(woodDescriptor->getPlanksItemDescriptor()),
+                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor())
+                        }), woodDescriptor(woodDescriptor)
+    {
+    }
+protected:
+    virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
+    {
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
+            return false;
+        output = RecipeOutput(ItemStack(Item(Items::builtin::Chest::descriptor()), 1));
         return true;
     }
 };
@@ -146,7 +173,7 @@ public:
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(woodDescriptor->getPlanksItemDescriptor()), 4));
         return true;
@@ -171,7 +198,7 @@ public:
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Stick::descriptor()), 4));
         return true;
@@ -223,6 +250,7 @@ SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescr
     new Recipes::builtin::WoodToPlanksRecipe(this);
     new Recipes::builtin::PlanksToSticksRecipe(this);
     new Recipes::builtin::CraftingTableRecipe(this);
+    new Recipes::builtin::ChestRecipe(this);
 }
 }
 }

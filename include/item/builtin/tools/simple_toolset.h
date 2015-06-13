@@ -24,7 +24,6 @@
 #include "item/builtin/tools/tools.h"
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/wood.h" // for stick
-#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -55,7 +54,7 @@ protected:
         const ItemDescriptorPointer itemDescriptor;
         virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
         {
-            if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
                 return false;
             output = RecipeOutput(ItemStack(Item(itemDescriptor), outputCount));
             return true;
@@ -120,7 +119,7 @@ protected:
         const ItemDescriptorPointer itemDescriptor;
         virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
         {
-            if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
                 return false;
             output = RecipeOutput(ItemStack(Item(itemDescriptor), outputCount));
             return true;
@@ -183,7 +182,7 @@ protected:
         const ItemDescriptorPointer itemDescriptor;
         virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
         {
-            if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
                 return false;
             output = RecipeOutput(ItemStack(Item(itemDescriptor), outputCount));
             return true;
@@ -246,7 +245,7 @@ protected:
         const ItemDescriptorPointer itemDescriptor;
         virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
         {
-            if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+            if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
                 return false;
             output = RecipeOutput(ItemStack(Item(itemDescriptor), outputCount));
             return true;

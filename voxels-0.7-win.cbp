@@ -282,6 +282,7 @@
 		<Unit filename="include/item/builtin/bedrock.h" />
 		<Unit filename="include/item/builtin/block.h" />
 		<Unit filename="include/item/builtin/bucket.h" />
+		<Unit filename="include/item/builtin/chest.h" />
 		<Unit filename="include/item/builtin/cobblestone.h" />
 		<Unit filename="include/item/builtin/crafting_table.h" />
 		<Unit filename="include/item/builtin/dirt.h" />
@@ -382,6 +383,7 @@
 		<Unit filename="include/util/ordered_weak_ptr.h" />
 		<Unit filename="include/util/parallel_map.h" />
 		<Unit filename="include/util/position.h" />
+		<Unit filename="include/util/random.h" />
 		<Unit filename="include/util/rc4_random_engine.h" />
 		<Unit filename="include/util/redstone_signal.h" />
 		<Unit filename="include/util/rw_lock.h" />
@@ -423,6 +425,7 @@
 		<Unit filename="src/generate/decorator.cpp" />
 		<Unit filename="src/generate/decorator/builtins.cpp" />
 		<Unit filename="src/item/builtin/bucket.cpp" />
+		<Unit filename="src/item/builtin/chest.cpp" />
 		<Unit filename="src/item/builtin/crafting_table.cpp" />
 		<Unit filename="src/item/builtin/dirt.cpp" />
 		<Unit filename="src/item/builtin/glass.cpp" />

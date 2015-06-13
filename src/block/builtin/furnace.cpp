@@ -23,7 +23,6 @@
 #include "ui/player_dialog.h"
 #include "recipe/builtin/pattern.h"
 #include "item/builtin/cobblestone.h"
-#include "item/builtin/crafting_table.h"
 
 namespace programmerjake
 {
@@ -173,7 +172,7 @@ class FurnaceRecipe : public PatternRecipe<3, 3>
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
-        if(input.getRecipeBlock().good() && input.getRecipeBlock().descriptor != Items::builtin::CraftingTable::descriptor())
+        if(input.getRecipeBlock().good() && !input.getRecipeBlock().descriptor->isToolForCrafting())
             return false;
         output = RecipeOutput(ItemStack(Item(Items::builtin::Furnace::descriptor()), 1));
         return true;
