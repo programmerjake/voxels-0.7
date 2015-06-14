@@ -111,12 +111,16 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     add(std::make_shared<BackgroundElement>());
     std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
     std::shared_ptr<CheckBox> fullScreenCheckBox = std::make_shared<CheckBox>(L"Full Screen", -0.8f, 0.8f, -0.65f, -0.4f);
+#ifdef DEBUG_VERSION
+    FIXME_MESSAGE(testing vector font)
+    fullScreenCheckBox->textProperties.font = Text::getVectorFont();
+#endif
     add(fullScreenCheckBox);
-    MonitoredBool &fullScreenCheckBoxChecked = fullScreenCheckBox->checked;
-    fullScreenCheckBoxChecked.set(Display::fullScreen());
-    fullScreenCheckBox->checked.onChange.bind([&fullScreenCheckBoxChecked](EventArguments &)->Event::ReturnType
+    CheckBox &fullScreenCheckBoxR = *fullScreenCheckBox;
+    fullScreenCheckBox->checked.set(Display::fullScreen());
+    fullScreenCheckBox->checked.onChange.bind([&fullScreenCheckBoxR](EventArguments &)->Event::ReturnType
     {
-        Display::fullScreen(fullScreenCheckBoxChecked.get());
+        Display::fullScreen(fullScreenCheckBoxR.checked.get());
         return Event::ReturnType::Propagate;
     });
     std::shared_ptr<Button> backButton = std::make_shared<Button>(L"Back", -0.8f, 0.8f, -0.95f, -0.7f);

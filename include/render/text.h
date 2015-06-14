@@ -31,16 +31,35 @@ namespace voxels
 {
 namespace Text
 {
-    struct TextProperties
+class FontDescriptor;
+typedef const FontDescriptor *FontDescriptorPointer;
+struct Font final
+{
+    Font(const Font &) = default;
+    Font &operator =(const Font &) = default;
+    FontDescriptorPointer descriptor;
+    explicit Font(FontDescriptorPointer descriptor = nullptr)
+        : descriptor(descriptor)
     {
-        float tabWidth = 8;
-    };
-    extern const TextProperties defaultTextProperties;
-    float width(std::wstring str, const TextProperties & properties = defaultTextProperties);
-    float height(std::wstring str, const TextProperties & properties = defaultTextProperties);
-    float xPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
-    float yPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
-    Mesh mesh(std::wstring str, ColorF color = colorizeIdentity(), const TextProperties & properties = defaultTextProperties);
+    }
+};
+inline Font getDefaultFont()
+{
+    return Font();
+}
+Font getBitmappedFont8x8();
+Font getVectorFont();
+struct TextProperties final
+{
+    float tabWidth = 8;
+    Font font = getDefaultFont();
+};
+extern const TextProperties defaultTextProperties;
+float width(std::wstring str, const TextProperties & properties = defaultTextProperties);
+float height(std::wstring str, const TextProperties & properties = defaultTextProperties);
+float xPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
+float yPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
+Mesh mesh(std::wstring str, ColorF color = colorizeIdentity(), const TextProperties & properties = defaultTextProperties);
 }
 }
 }

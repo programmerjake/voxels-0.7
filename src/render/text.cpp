@@ -32,13 +32,35 @@ namespace voxels
 {
 const Text::TextProperties Text::defaultTextProperties = Text::TextProperties();
 
+namespace Text
+{
+class FontDescriptor final
+{
+public:
+    bool isVectorFont;
+};
+
+Font getBitmappedFont8x8()
+{
+    static const FontDescriptor staticDescriptor = {false};
+    return Font(&staticDescriptor);
+}
+
+Font getVectorFont()
+{
+    static const FontDescriptor staticDescriptor = {true};
+    return Font(&staticDescriptor);
+}
+}
+
 namespace
 {
 const float charWidth = 1, charHeight = 1;
-const TextureAtlas & Font = TextureAtlas::Font8x8;
+const TextureAtlas & FontTexture = TextureAtlas::Font8x8;
 const int fontWidth = 8, fontHeight = 8;
 const int textureXRes = 128, textureYRes = 128;
 const float pixelOffset = TextureAtlas::pixelOffset;
+constexpr size_t glyphCount = 256;
 
 const wchar_t topPageTranslations[128] =
 {
@@ -344,7 +366,1069 @@ int translateToFontIndex(wchar_t ch)
     }
 }
 
-checked_array<Mesh, 256> charMesh;
+struct VectorFontVertex final
+{
+    float x;
+    float y;
+    enum Kind
+    {
+        StartLoop,
+        Vertex,
+        EndLoop,
+        EndGlyph,
+        UnimplementedGlyph,
+    };
+    Kind kind;
+};
+
+static const VectorFontVertex vectorFontVertices[] =
+{
+    // Glyph 0 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 1 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 2 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 3 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 4 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 5 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 6 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 7 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 8 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 9 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 10 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 11 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 12 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 13 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 14 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 15 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 16 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 17 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 18 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 19 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 20 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 21 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 22 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 23 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 24 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 25 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 26 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 27 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 28 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 29 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 30 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 31 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 32 : ' '
+    {0, 0, VectorFontVertex::EndGlyph},
+
+    // Glyph 33 : '!'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 34 : '"'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 35 : '#'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 36 : '$'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 37 : '%'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 38 : '&'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 39 : '''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 40 : '('
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 41 : ')'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 42 : '*'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 43 : '+'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 44 : ','
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 45 : '-'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 46 : '.'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 47 : '/'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 48 : '0'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 49 : '1'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 50 : '2'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 51 : '3'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 52 : '4'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 53 : '5'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 54 : '6'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 55 : '7'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 56 : '8'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 57 : '9'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 58 : ':'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 59 : ';'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 60 : '<'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 61 : '='
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 62 : '>'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 63 : '?'
+    {6, 1, VectorFontVertex::StartLoop},
+    {5, 0, VectorFontVertex::Vertex},
+    {1, 0, VectorFontVertex::Vertex},
+    {0, 1, VectorFontVertex::EndLoop},
+    {0, 1, VectorFontVertex::StartLoop},
+    {0, 2, VectorFontVertex::Vertex},
+    {1, 2, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::EndLoop},
+    {4, 1, VectorFontVertex::StartLoop},
+    {4, 3, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {6, 1, VectorFontVertex::EndLoop},
+    {4, 3, VectorFontVertex::StartLoop},
+    {2, 5, VectorFontVertex::Vertex},
+    {4, 5, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::EndLoop},
+    {2, 6, VectorFontVertex::StartLoop},
+    {2, 7, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
+
+    // Glyph 64 : '@'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 65 : 'A'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 66 : 'B'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 67 : 'C'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 68 : 'D'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 69 : 'E'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 70 : 'F'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 71 : 'G'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 72 : 'H'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 73 : 'I'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 74 : 'J'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 75 : 'K'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 76 : 'L'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 77 : 'M'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 78 : 'N'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 79 : 'O'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 80 : 'P'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 81 : 'Q'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 82 : 'R'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 83 : 'S'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 84 : 'T'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 85 : 'U'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 86 : 'V'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 87 : 'W'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 88 : 'X'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 89 : 'Y'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 90 : 'Z'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 91 : '['
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 92 : '\'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 93 : ']'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 94 : '^'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 95 : '_'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 96 : '`'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 97 : 'a'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 98 : 'b'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 99 : 'c'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 100 : 'd'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 101 : 'e'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 102 : 'f'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 103 : 'g'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 104 : 'h'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 105 : 'i'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 106 : 'j'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 107 : 'k'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 108 : 'l'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 109 : 'm'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 110 : 'n'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 111 : 'o'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 112 : 'p'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 113 : 'q'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 114 : 'r'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 115 : 's'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 116 : 't'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 117 : 'u'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 118 : 'v'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 119 : 'w'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 120 : 'x'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 121 : 'y'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 122 : 'z'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 123 : '{'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 124 : '|'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 125 : '}'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 126 : '~'
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 127 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 128 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 129 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 130 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 131 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 132 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 133 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 134 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 135 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 136 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 137 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 138 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 139 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 140 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 141 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 142 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 143 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 144 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 145 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 146 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 147 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 148 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 149 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 150 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 151 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 152 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 153 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 154 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 155 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 156 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 157 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 158 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 159 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 160 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 161 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 162 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 163 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 164 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 165 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 166 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 167 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 168 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 169 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 170 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 171 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 172 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 173 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 174 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 175 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 176 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 177 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 178 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 179 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 180 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 181 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 182 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 183 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 184 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 185 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 186 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 187 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 188 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 189 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 190 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 191 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 192 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 193 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 194 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 195 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 196 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 197 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 198 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 199 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 200 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 201 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 202 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 203 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 204 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 205 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 206 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 207 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 208 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 209 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 210 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 211 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 212 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 213 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 214 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 215 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 216 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 217 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 218 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 219 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 220 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 221 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 222 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 223 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 224 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 225 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 226 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 227 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 228 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 229 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 230 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 231 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 232 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 233 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 234 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 235 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 236 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 237 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 238 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 239 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 240 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 241 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 242 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 243 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 244 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 245 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 246 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 247 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 248 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 249 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 250 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 251 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 252 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 253 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 254 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+    // Glyph 255 : ''
+    FIXME_MESSAGE(finish creating glyph)
+    {0, 0, VectorFontVertex::UnimplementedGlyph},
+
+};
+
+checked_array<Mesh, glyphCount> bitmappedCharMesh;
+checked_array<Mesh, glyphCount> vectorCharMesh;
 bool didInit = false;
 
 void init()
@@ -355,7 +1439,7 @@ void init()
     }
 
     didInit = true;
-    for(size_t i = 0; i < sizeof(charMesh) / sizeof(charMesh[0]); i++)
+    for(size_t i = 0; i < bitmappedCharMesh.size(); i++)
     {
         int left = (i % (textureXRes / fontWidth)) * fontWidth;
         int top = (i / (textureXRes / fontWidth)) * fontHeight;
@@ -365,16 +1449,99 @@ void init()
         float maxU = (left + width - pixelOffset) / textureXRes;
         float minV = 1 - (top + height - pixelOffset) / textureYRes;
         float maxV = 1 - (top + pixelOffset) / textureYRes;
-        TextureDescriptor texture = Font.tdNoOffset();
+        TextureDescriptor texture = FontTexture.tdNoOffset();
         texture = texture.subTexture(minU, maxU, minV, maxV);
-        charMesh[i] = Generate::quadrilateral(texture, VectorF(0, 0, 0), colorizeIdentity(), VectorF(1, 0, 0), colorizeIdentity(), VectorF(1, 1, 0), colorizeIdentity(), VectorF(0, 1, 0), colorizeIdentity());
+        bitmappedCharMesh[i] = Generate::quadrilateral(texture, VectorF(0, 0, 0), colorizeIdentity(), VectorF(1, 0, 0), colorizeIdentity(), VectorF(1, 1, 0), colorizeIdentity(), VectorF(0, 1, 0), colorizeIdentity());
+    }
+    checked_array<bool, glyphCount> isUnimplementedGlyph;
+    for(bool &v : isUnimplementedGlyph)
+        v = false;
+    size_t glyphNumber = 0;
+    TextureDescriptor td = TextureAtlas::Blank.td();
+    td = td.subTexture(0.5f, 0.5f, 0.5f, 0.5f);
+    Mesh glyphMesh;
+    glyphMesh.image = td.image;
+    float startX = 0;
+    float startY = 0;
+    bool haveStart = false;
+    bool haveLastPoint = false;
+    float lastX = 0;
+    float lastY = 0;
+    TextureCoord tc(td.minU, td.minV);
+    for(const VectorFontVertex &v : vectorFontVertices)
+    {
+        assert(glyphNumber < vectorCharMesh.size());
+        float x = v.x / 8.0f;
+        float y = 1.0f - v.y / 8.0f;
+        switch(v.kind)
+        {
+        case VectorFontVertex::UnimplementedGlyph:
+            isUnimplementedGlyph[glyphNumber] = true;
+            assert(!haveStart);
+            assert(!haveLastPoint);
+            vectorCharMesh[glyphNumber++] = Mesh();
+            glyphMesh = Mesh();
+            glyphMesh.image = td.image;
+            break;
+        case VectorFontVertex::EndGlyph:
+            assert(!haveStart);
+            assert(!haveLastPoint);
+            vectorCharMesh[glyphNumber++] = std::move(glyphMesh);
+            glyphMesh = Mesh();
+            glyphMesh.image = td.image;
+            break;
+        case VectorFontVertex::EndLoop:
+            assert(haveStart);
+            assert(haveLastPoint);
+            glyphMesh.append(Triangle(VectorF(startX, startY, 0.0f), tc,
+                                      VectorF(lastX, lastY, 0.0f), tc,
+                                      VectorF(x, y, 0.0f), tc));
+            haveStart = false;
+            haveLastPoint = false;
+            break;
+        case VectorFontVertex::StartLoop:
+            assert(!haveStart);
+            assert(!haveLastPoint);
+            haveStart = true;
+            startX = x;
+            startY = y;
+            break;
+        case VectorFontVertex::Vertex:
+            assert(haveStart);
+            if(haveLastPoint)
+            {
+                glyphMesh.append(Triangle(VectorF(startX, startY, 0.0f), tc,
+                                          VectorF(lastX, lastY, 0.0f), tc,
+                                          VectorF(x, y, 0.0f), tc));
+            }
+            haveLastPoint = true;
+            lastX = x;
+            lastY = y;
+            break;
+        }
+    }
+    assert(glyphNumber == vectorCharMesh.size());
+    for(size_t i = 0; i < vectorCharMesh.size(); i++)
+    {
+        if(isUnimplementedGlyph[i])
+            vectorCharMesh[i] = vectorCharMesh[(int)'?'];
     }
 }
 
-void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch)
+void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch, const Text::TextProperties &properties)
 {
     init();
-    dest.append(colorize(color, transform(m, charMesh[translateToFontIndex(ch)])));
+    Text::Font font = properties.font;
+    if(font.descriptor == nullptr)
+        font = Text::getBitmappedFont8x8();
+    if(font.descriptor->isVectorFont)
+    {
+        dest.append(colorize(color, transform(m, vectorCharMesh[translateToFontIndex(ch)])));
+    }
+    else
+    {
+        dest.append(colorize(color, transform(m, bitmappedCharMesh[translateToFontIndex(ch)])));
+    }
 }
 
 bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Text::TextProperties &properties)
@@ -474,11 +1641,150 @@ Mesh Text::mesh(wstring str, ColorF color, const TextProperties &properties)
         Matrix mat = Matrix::translate(x, totalHeight - y - 1, 0);
         if(updateFromChar(x, y, w, h, ch, properties))
         {
-            renderChar(retval, mat, color, ch);
+            renderChar(retval, mat, color, ch, properties);
         }
     }
 
     return retval;
 }
+
 }
 }
+
+#if 0
+#define MAKE_VECTOR_FONT
+#endif // 1
+
+#ifdef MAKE_VECTOR_FONT
+#include <iostream>
+#include <cstdlib>
+namespace programmerjake
+{
+namespace voxels
+{
+namespace Text
+{
+namespace
+{
+ColorI getGlyphPixel(std::size_t glyphIndex, int x, int y)
+{
+    if(x < 0 || x >= fontWidth || y < 0 || y >= fontHeight || glyphIndex >= 0x100)
+    {
+        return GrayscaleAI(0, 0);
+    }
+    int i = glyphIndex;
+    int left = (i % (textureXRes / fontWidth)) * fontWidth;
+    int top = (i / (textureXRes / fontWidth)) * fontHeight;
+    const int width = fontWidth;
+    const int height = fontHeight;
+    float minU = (left + pixelOffset) / textureXRes;
+    float maxU = (left + width - pixelOffset) / textureXRes;
+    float minV = 1 - (top + height - pixelOffset) / textureYRes;
+    float maxV = 1 - (top + pixelOffset) / textureYRes;
+    TextureDescriptor texture = FontTexture.tdNoOffset();
+    texture = texture.subTexture(minU, maxU, minV, maxV);
+    float u = interpolate<float>((float)x / width, texture.minU, texture.maxU);
+    float v = interpolate<float>((float)y / width, texture.maxV, texture.minV);
+    int ix = (int)(u * texture.image.width());
+    int iy = (int)((1 - v) * texture.image.width());
+    return texture.image.getPixel(ix, iy)
+}
+
+bool testGlyphPixel(std::size_t glyphIndex, int x, int y) // returns true if the glyph is non-transparent at the selected pixel
+{
+    return getGlyphPixel(glyphIndex, x, y).a != 0;
+}
+
+int steppedSin(int angle)
+{
+    angle &= 7;
+    switch(angle)
+    {
+    case 1:
+    case 2:
+    case 3:
+        return 1;
+    case 5:
+    case 6:
+    case 7:
+        return -1;
+    default:
+        return 0;
+    }
+}
+
+int steppedCos(int angle)
+{
+    angle &= 7;
+    switch(angle)
+    {
+    case 0:
+    case 1:
+    case 7:
+        return 1;
+    case 3:
+    case 4:
+    case 5:
+        return -1;
+    default:
+        return 0;
+    }
+}
+
+Initializer init1([]()
+{
+    using namespace std;
+    for(std::size_t glyphIndex = 0; glyphIndex < 0x100; glyphIndex++)
+    {
+        constexpr int pixelsXOffset = 1, pixelsYOffset = 1;
+        constexpr int pixelsXSize = 2 * pixelsXOffset + fontWidth, pixelsYSize = 2 * pixelsYOffset + fontHeight;
+        checked_array<checked_array<bool, pixelsYSize>, pixelsXSize> pixels;
+        checked_array<checked_array<bool, pixelsYSize>, pixelsXSize> borderInsidePixels;
+        for(int y = 0; y < pixelsYSize; y++)
+        {
+            for(int x = 0; x < pixelsXSize; x++)
+            {
+                pixels[x][y] = testGlyphPixel(glyphIndex, x - pixelsXOffset, y - pixelsYOffset);
+                borderInsidePixels[x][y] = false;
+            }
+        }
+        for(int y = 0; y < fontHeight; y++)
+        {
+            for(int x = 0; x < fontWidth; x++)
+            {
+                bool borderInsidePixel = false;
+                if(pixels[x + pixelsXOffset][y + pixelsYOffset])
+                {
+                    borderInsidePixel = !pixels[x + 1 + pixelsXOffset][y + 0 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x + 1 + pixelsXOffset][y + 1 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x + 0 + pixelsXOffset][y + 1 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x - 1 + pixelsXOffset][y + 1 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x - 1 + pixelsXOffset][y + 0 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x - 1 + pixelsXOffset][y - 1 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x + 0 + pixelsXOffset][y - 1 + pixelsYOffset] || borderInsidePixel;
+                    borderInsidePixel = !pixels[x + 1 + pixelsXOffset][y - 1 + pixelsYOffset] || borderInsidePixel;
+                }
+                borderInsidePixels[x + pixelsXOffset][y + pixelsYOffset] = borderInsidePixel;
+            }
+        }
+        checked_array<checked_array<bool, fontHeight>, fontWidth> pixelHandled;
+        for(auto &i : pixelHandled)
+            for(bool &v : i)
+                v = false;
+        for(int y = 0; y < fontHeight; y++)
+        {
+            for(int x = 0; x < fontWidth; x++)
+            {
+                if(pixelHandled[x][y])
+                    continue;
+                #error finish
+            }
+        }
+    }
+    exit(0);
+});
+}
+}
+}
+}
+#endif // MAKE_VECTOR_FONT
