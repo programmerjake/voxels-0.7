@@ -682,8 +682,31 @@ static const VectorFontVertex vectorFontVertices[] =
     {0, 0, VectorFontVertex::UnimplementedGlyph},
 
     // Glyph 70 : 'F'
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    {0, 0, VectorFontVertex::StartLoop},
+    {1, 1, VectorFontVertex::Vertex},
+    {1, 0, VectorFontVertex::EndLoop},
+    {1, 0, VectorFontVertex::StartLoop},
+    {1, 7, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {3, 1, VectorFontVertex::Vertex},
+    {7, 1, VectorFontVertex::Vertex},
+    {7, 0, VectorFontVertex::EndLoop},
+    {7, 1, VectorFontVertex::StartLoop},
+    {6, 1, VectorFontVertex::Vertex},
+    {7, 2, VectorFontVertex::EndLoop},
+    {4, 3, VectorFontVertex::StartLoop},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {4, 4, VectorFontVertex::Vertex},
+    {5, 5, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::EndLoop},
+    {1, 6, VectorFontVertex::StartLoop},
+    {0, 7, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::EndLoop},
+    {3, 6, VectorFontVertex::StartLoop},
+    {3, 7, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 71 : 'G'
     FIXME_MESSAGE(finish creating glyph)
