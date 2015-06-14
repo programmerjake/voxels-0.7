@@ -369,11 +369,10 @@ protected:
             if(isLongPress)
             {
                 transferCount = std::get<0>(itemStack)->count;
-                transferCount = transferCount / 2 + transferCount % 2;
             }
             else
             {
-                transferCount = std::get<0>(itemStack)->count;
+                transferCount = 1;
             }
             transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
             if(selectedItemItemStack->good())

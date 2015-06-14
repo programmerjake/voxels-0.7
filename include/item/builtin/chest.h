@@ -46,6 +46,7 @@ public:
     {
         return pointer();
     }
+    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
         return nullptr;

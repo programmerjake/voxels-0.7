@@ -19,6 +19,7 @@
  *
  */
 #include "item/builtin/chest.h"
+#include "block/builtin/chest.h"
 #include "texture/texture_atlas.h"
 #include "util/util.h"
 
@@ -35,20 +36,20 @@ Chest::Chest()
                 TextureAtlas::ChestSide.td(), TextureAtlas::ChestSide.td(),
                 TextureAtlas::ChestTop.td(), TextureAtlas::ChestTop.td(),
                 TextureAtlas::ChestSide.td(), TextureAtlas::ChestFront.td(),
-#if 0
                 Blocks::builtin::Chest::descriptor())
-#else
-                FIXME_MESSAGE(add chest block)
-                nullptr)
-#endif
 {
 }
-}
-}
-
-namespace
+Item Chest::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
 {
-
+    RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
+    if(c.valid())
+    {
+        if(player.placeBlock(c, world, lock_manager, Block(Blocks::builtin::Chest::descriptor(player.getViewDirectionXZBlockFaceIn()))))
+            return getAfterPlaceItem();
+    }
+    return item;
+}
+}
 }
 }
 }

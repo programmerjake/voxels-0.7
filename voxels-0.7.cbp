@@ -132,6 +132,7 @@
 		<Unit filename="include/block/builtin/air.h" />
 		<Unit filename="include/block/builtin/attached_block.h" />
 		<Unit filename="include/block/builtin/bedrock.h" />
+		<Unit filename="include/block/builtin/chest.h" />
 		<Unit filename="include/block/builtin/cobblestone.h" />
 		<Unit filename="include/block/builtin/crafting_table.h" />
 		<Unit filename="include/block/builtin/dirt.h" />
@@ -308,6 +309,7 @@
 		<Unit filename="src/audio/audio_scheduler.cpp" />
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
+		<Unit filename="src/block/builtin/chest.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/furnace.cpp" />
 		<Unit filename="src/block/builtin/glass.cpp" />
