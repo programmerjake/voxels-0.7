@@ -28,6 +28,7 @@
 #include <mutex>
 #include <memory>
 #include <type_traits>
+#include <vector>
 #include "util/color.h"
 #include "stream/stream.h"
 
@@ -108,12 +109,28 @@ public:
     }
     void write(stream::Writer &writer) const;
     static Image read(stream::Reader &reader);
-private:
-    enum RowOrder
+    std::size_t getDataSize() const
+    {
+        return static_cast<std::size_t>(data->width) * static_cast<std::size_t>(data->height) * static_cast<std::size_t>(4); // 4 for RGBA
+    }
+    enum class RowOrder
     {
         TopToBottom,
         BottomToTop
     };
+    void getData(std::uint8_t *dest, RowOrder rowOrder = RowOrder::TopToBottom) const;
+    void getData(std::vector<std::uint8_t> &dest, RowOrder rowOrder = RowOrder::TopToBottom) const
+    {
+        dest.resize(getDataSize());
+        getData(&dest[0], rowOrder);
+    }
+    void setData(const std::uint8_t *src, RowOrder rowOrder = RowOrder::TopToBottom);
+    void setData(const std::vector<std::uint8_t> &src, RowOrder rowOrder = RowOrder::TopToBottom)
+    {
+        assert(src.size() >= getDataSize());
+        setData(&src[0], rowOrder);
+    }
+private:
     struct data_t
     {
         data_t(const data_t &) = delete;

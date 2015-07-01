@@ -165,6 +165,36 @@ void Image::bind() const
     data->lock.unlock();
 }
 
+void Image::getData(std::uint8_t *dest, RowOrder rowOrder) const
+{
+    assert(dest != nullptr);
+    assert(rowOrder == RowOrder::TopToBottom || rowOrder == RowOrder::BottomToTop);
+    data->lock.lock();
+    setRowOrder(rowOrder);
+    const std::uint8_t *src = data->data;
+    for(std::size_t i = getDataSize(); i > 0; i--)
+    {
+        *dest++ = *src++;
+    }
+    data->lock.unlock();
+}
+
+void Image::setData(const std::uint8_t *src, RowOrder rowOrder) const
+{
+    assert(src != nullptr);
+    assert(rowOrder == RowOrder::TopToBottom || rowOrder == RowOrder::BottomToTop);
+    data->lock.lock();
+    copyOnWrite();
+    data->textureValid = false;
+    data->rowOrder = rowOrder; // everything is going to be overwritten so we don't need to use setRowOrder
+    std::uint8_t *dest = data->data;
+    for(std::size_t i = getDataSize(); i > 0; i--)
+    {
+        *dest++ = *src++;
+    }
+    data->lock.unlock();
+}
+
 void Image::unbind()
 {
     glBindTexture(GL_TEXTURE_2D, 0);

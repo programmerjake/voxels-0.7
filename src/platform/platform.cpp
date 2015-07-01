@@ -2765,6 +2765,26 @@ bool Display::needTouchControls()
     return false;
 }
 
+DynamicLinkLibrary::DynamicLinkLibrary(std::wstring name)
+    : handle(SDL_LoadObject(string_cast<std::string>(name).c_str()))
+{
+}
+
+void DynamicLinkLibrary::destroy()
+{
+    SDL_UnloadObject(handle);
+}
+
+void *DynamicLinkLibrary::resolve(std::wstring name)
+{
+    if(handle == nullptr)
+        throw std::logic_error("resolve called on empty DynamicLinkLibrary");
+    void *retval = SDL_LoadFunction(handle, string_cast<std::string>(name).c_str());
+    if(retval == nullptr)
+        throw SymbolNotFoundException("symbol not found");
+    return retval;
+}
+
 namespace
 {
 struct TemporaryFile final

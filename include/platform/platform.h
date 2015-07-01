@@ -377,6 +377,64 @@ void freeTexture(std::uint32_t texture);
 
 std::size_t getProcessorCount();
 
+class SymbolNotFoundException final : public std::runtime_error
+{
+public:
+    using runtime_error::runtime_error;
+};
+
+class DynamicLinkLibrary final
+{
+    DynamicLinkLibrary(const DynamicLinkLibrary &) = delete;
+    DynamicLinkLibrary &operator =(const DynamicLinkLibrary &) = delete;
+private:
+    void *handle;
+    void destroy();
+public:
+    /** loads a dynamic link library
+     *
+     * if loading failed then creates an empty DynamicLinkLibrary
+     */
+    DynamicLinkLibrary(std::wstring name);
+    DynamicLinkLibrary() /// creates an empty DynamicLinkLibrary
+        : handle(nullptr)
+    {
+    }
+    ~DynamicLinkLibrary()
+    {
+        if(handle != nullptr)
+            destroy();
+    }
+    DynamicLinkLibrary(DynamicLinkLibrary &&rt)
+        : handle(rt.handle)
+    {
+        rt.handle = nullptr;
+    }
+    DynamicLinkLibrary &operator =(DynamicLinkLibrary &&rt)
+    {
+        if(handle != nullptr)
+            destroy();
+        handle = rt.handle;
+        rt.handle = nullptr;
+        return *this;
+    }
+    /** resolves a symbol from this library
+     * @param name the symbol's name
+     * @return the address of the symbol
+     * @throw std::logic_error thrown if this DynamicLinkLibrary is empty
+     * @throw SymbolNotFoundException thrown if the symbol is not found
+     */
+    void *resolve(std::wstring name);
+    explicit operator bool() const /// returns true if this DynamicLinkLibrary is non-empty
+    {
+        return handle != nullptr;
+    }
+    bool operator !() const /// returns true if this DynamicLinkLibrary is empty
+    {
+        return handle == nullptr;
+    }
+};
+
 }
 }
 
