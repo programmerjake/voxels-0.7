@@ -24,12 +24,72 @@
 #include "platform/event.h"
 #include "texture/image.h"
 #include "render/renderer.h"
+#include "util/matrix.h"
+#include <tuple>
 
 namespace programmerjake
 {
 namespace voxels
 {
+class VirtualRealityCallbacks : public EventHandler
+{
+public:
+    virtual bool handleTouchUp(TouchUpEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleTouchDown(TouchDownEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleTouchMove(TouchMoveEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleMouseUp(MouseUpEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleMouseDown(MouseDownEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleMouseMove(MouseMoveEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleMouseScroll(MouseScrollEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleKeyUp(KeyUpEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleKeyDown(KeyDownEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleKeyPress(KeyPressEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleQuit(QuitEvent &event) override
+    {
+        return false;
+    }
+    virtual Image transformBackgroundImage(Image backgroundImage)
+    {
+        return backgroundImage;
+    }
+    virtual void render(Renderer &renderer)
+    {
 
+    }
+    virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix)
+    {
+    }
+};
 }
 }
 

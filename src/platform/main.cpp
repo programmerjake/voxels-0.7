@@ -42,7 +42,7 @@ int main(std::vector<std::wstring> args)
     startGraphics();
     Renderer renderer;
     std::shared_ptr<ui::GameUi> theUi = std::make_shared<ui::GameUi>(renderer, tls);
-#if 1
+#if 0
     const std::vector<const VideoInputDevice *> &videoInputDevices = getVideoInputDeviceList();
     if(!videoInputDevices.empty())
         theUi->setBackgroundCamera(videoInputDevices.front()->makeVideoInput());

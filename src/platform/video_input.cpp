@@ -22,6 +22,13 @@
 #include "util/util.h"
 #include "util/string_cast.h"
 #include <cstdlib>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include "platform/platform.h"
+#include "platform/thread_priority.h"
+#include "platform/thread_name.h"
+#include <utility>
 
 namespace programmerjake
 {
@@ -29,6 +36,79 @@ namespace voxels
 {
 namespace
 {
+class BufferedVideoInput final : public VideoInput
+{
+    BufferedVideoInput(const BufferedVideoInput &) = delete;
+    BufferedVideoInput &operator =(const BufferedVideoInput &) = delete;
+private:
+    std::unique_ptr<VideoInput> videoInput;
+    std::thread frameReaderThread;
+    Image buffer, buffer2;
+    bool done;
+    const double maxFrameTime;
+    std::mutex stateLock;
+    void frameReaderThreadFn()
+    {
+        using std::swap;
+        auto lastTime = std::chrono::steady_clock::now();
+        std::unique_lock<std::mutex> theLock(stateLock);
+        while(!done)
+        {
+            theLock.unlock();
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsedTime = currentTime - lastTime;
+            lastTime = currentTime;
+            if(elapsedTime < std::chrono::duration<double>(maxFrameTime))
+            {
+                auto waitTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(maxFrameTime)) - elapsedTime;
+                std::this_thread::sleep_for(waitTime);
+            }
+            videoInput->readFrameIntoImage(buffer2);
+            theLock.lock();
+            swap(buffer, buffer2);
+        }
+    }
+public:
+    BufferedVideoInput(std::unique_ptr<VideoInput> videoInput, double maxFrameTime = 1.0 / 60.0)
+        : videoInput(std::move(videoInput)),
+        frameReaderThread(),
+        buffer(),
+        buffer2(),
+        done(false),
+        maxFrameTime(maxFrameTime),
+        stateLock()
+    {
+        int width, height;
+        this->videoInput->getSize(width, height);
+        buffer = Image(width, height);
+        buffer2 = buffer;
+        frameReaderThread = std::thread([this]()
+        {
+            setThreadPriority(ThreadPriority::Normal);
+            setThreadName(L"Frame Reader");
+            frameReaderThreadFn();
+        });
+    }
+    ~BufferedVideoInput()
+    {
+        std::unique_lock<std::mutex> theLock(stateLock);
+        done = true;
+        theLock.unlock();
+        frameReaderThread.join();
+    }
+    virtual void getSize(int &width, int &height) override
+    {
+        std::unique_lock<std::mutex> theLock(stateLock);
+        width = buffer.width();
+        height = buffer.height();
+    }
+    virtual void readFrameIntoImage(Image &dest) override
+    {
+        std::unique_lock<std::mutex> theLock(stateLock);
+        dest = buffer;
+    }
+};
+
 std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
 }
 }
@@ -136,7 +216,9 @@ public:
         std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(new MyVideoInput(deviceId, requestedWidth, requestedHeight, requestedFrameRate));
         if(!retval->good)
             return std::unique_ptr<VideoInput>();
-        return std::move(retval);
+        if(requestedFrameRate > 0)
+            return std::unique_ptr<VideoInput>(new BufferedVideoInput(std::move(retval), 1.0 / (double)requestedFrameRate));
+        return std::unique_ptr<VideoInput>(new BufferedVideoInput(std::move(retval)));
     }
 };
 

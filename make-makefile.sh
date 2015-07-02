@@ -3,16 +3,16 @@
 # This file is part of Voxels.
 #
 # Voxels is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
 # Voxels is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with Voxels; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA 02110-1301, USA.
@@ -262,7 +262,7 @@ for source in "${!objects[@]}"; do
     else
         compiler_line_start=$'\t@$(CXX)'
     fi
-    (bash -c "$gcc_executable ${compiler_command_line[*]} $source -M" | sed '{s/^ *//; s/ \\$//g; s/ \([^ \\]\)/\n\1/g}' | sed '{s/^[^/].*[^:]$/&/p; d}' | tr $'\n' ' ' | sed '{s/^\(.*[^ ]\) *$/\1\n/}' | sed '{s/.*/& | prebuild/}') 2> >(while read v || [ ! -z "$v" ]; do printf "\r%s\x1b[K\n" "$v" >&2; done) 
+    (bash -c "$gcc_executable ${compiler_command_line[*]} $source -M" | sed '{s/^ *//; s/ \\$//g; s/ \([^ \\]\)/\n\1/g}' | sed '{s/^[^/].*[^:]$/&/p; d}' | tr $'\n' ' ' | sed '{s/^\(.*[^ ]\) *$/\1\n/}' | sed '{s/.*/& | prebuild/}') 2> >(while read v || [ ! -z "$v" ]; do printf "\r%s\x1b[K\n" "$v" >&2; done)
     echo $'\t'"@printf '\x1b[0;1;34mCompiling ${source}\x1b[m\n'"
     echo "$compiler_line_start" -c -o "${objects["$source"]}" "${compiler_command_line[@]}" "$source"
     echo

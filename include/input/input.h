@@ -53,6 +53,7 @@ struct GameInput
     MonitoredBool paused; // p esc
     MonitoredFloat viewTheta;
     MonitoredFloat viewPhi;
+    MonitoredFloat viewPsi;
     void copy(const GameInput &rt)
     {
         isCreativeMode.set(rt.isCreativeMode.get());
@@ -64,6 +65,7 @@ struct GameInput
         paused.set(rt.paused.get());
         viewTheta.set(rt.viewTheta.get());
         viewPhi.set(rt.viewPhi.get());
+        viewPsi.set(rt.viewPsi.get());
     }
     GameInput()
         : isCreativeMode(),
@@ -80,7 +82,8 @@ struct GameInput
         openInventory(),
         paused(),
         viewTheta(),
-        viewPhi()
+        viewPhi(),
+        viewPsi()
     {
     }
 };

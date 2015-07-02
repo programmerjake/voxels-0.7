@@ -40,6 +40,7 @@
 #include "platform/audio.h"
 #include "util/tls.h"
 #include "platform/video_input.h"
+#include "vr/vr_callbacks.h"
 
 namespace programmerjake
 {
@@ -144,6 +145,7 @@ private:
     std::unique_ptr<VideoInput> backgroundCamera;
     Image backgroundCameraTexture;
     Image backgroundCameraBuffer;
+    std::unique_ptr<VirtualRealityCallbacks> virtualRealityCallbacks;
     void addUi();
     void finalizeCreateWorld()
     {

@@ -178,12 +178,12 @@ public:
     }
     Matrix getWorldOrientationTransform() const
     {
-        return Matrix::rotateX(gameInput->viewPhi.get()).concat(Matrix::rotateY(gameInput->viewTheta.get()));
+        return Matrix::rotateZ(gameInput->viewPsi.get()).concat(Matrix::rotateX(gameInput->viewPhi.get())).concat(Matrix::rotateY(gameInput->viewTheta.get()));
     }
     Matrix getViewTransform()
     {
         VectorF pos = getPosition() + VectorF(0, 0.6, 0);
-        return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get()));
+        return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get())).concat(Matrix::rotateZ(-gameInput->viewPsi.get()));
     }
     PositionF getPosition()
     {

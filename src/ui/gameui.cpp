@@ -957,6 +957,7 @@ GameUi::GameUi(Renderer &renderer, TLS &tls)
     backgroundCamera(),
     backgroundCameraTexture(),
     backgroundCameraBuffer(),
+    virtualRealityCallbacks(),
     blockDestructProgress(-1.0f)
 {
     gameInput->paused.set(true);
