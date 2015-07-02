@@ -106,39 +106,69 @@ void GameUi::clear(Renderer &renderer)
     Matrix tform = player->getViewTransform();
     viewPoint->setPosition(playerPosition);
     renderer << RenderLayer::Opaque;
-    if(hasSun(playerPosition.d))
-        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getSunPosition(), TextureAtlas::Sun.td());
-    if(hasMoon(playerPosition.d))
+    if(backgroundCamera)
     {
-        TextureDescriptor moonTD;
-        switch(world->getVisibleMoonPhase())
+        int width, height;
+        backgroundCamera->getSize(width, height);
+        if(!backgroundCameraBuffer || !backgroundCameraTexture || (int)backgroundCameraBuffer.width() != width || (int)backgroundCameraBuffer.height() != height)
         {
-        case 0:
-            moonTD = TextureAtlas::Moon0.td();
-            break;
-        case 1:
-            moonTD = TextureAtlas::Moon1.td();
-            break;
-        case 2:
-            moonTD = TextureAtlas::Moon2.td();
-            break;
-        case 3:
-            moonTD = TextureAtlas::Moon3.td();
-            break;
-        case 4:
-            moonTD = TextureAtlas::Moon4.td();
-            break;
-        case 5:
-            moonTD = TextureAtlas::Moon5.td();
-            break;
-        case 6:
-            moonTD = TextureAtlas::Moon6.td();
-            break;
-        default:
-            moonTD = TextureAtlas::Moon7.td();
-            break;
+            backgroundCameraBuffer = Image(width, height);
+            if(!backgroundCameraTexture || (int)backgroundCameraTexture.width() < width || (int)backgroundCameraTexture.height() < height)
+            {
+                int adjustedWidth = 1;
+                while(adjustedWidth < width)
+                    adjustedWidth *= 2;
+                int adjustedHeight = 1;
+                while(adjustedHeight < height)
+                    adjustedHeight *= 2;
+                backgroundCameraTexture = Image(adjustedWidth, adjustedHeight);
+            }
         }
-        renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
+        backgroundCamera->readFrameIntoImage(backgroundCameraBuffer);
+        backgroundCameraTexture.copyRect(0, backgroundCameraTexture.height() - backgroundCameraBuffer.height(), width, height, backgroundCameraBuffer, 0, 0);
+        ColorF colorizeColor = GrayscaleAF(1, 1);
+        renderer << Generate::quadrilateral(TextureDescriptor(backgroundCameraTexture, 0, width / (float)backgroundCameraTexture.width(), 0, height / (float)backgroundCameraTexture.height()),
+                                            VectorF(minX, minY, -1), colorizeColor,
+                                            VectorF(maxX, minY, -1), colorizeColor,
+                                            VectorF(maxX, maxY, -1), colorizeColor,
+                                            VectorF(minX, maxY, -1), colorizeColor);
+    }
+    else
+    {
+        if(hasSun(playerPosition.d))
+            renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getSunPosition(), TextureAtlas::Sun.td());
+        if(hasMoon(playerPosition.d))
+        {
+            TextureDescriptor moonTD;
+            switch(world->getVisibleMoonPhase())
+            {
+            case 0:
+                moonTD = TextureAtlas::Moon0.td();
+                break;
+            case 1:
+                moonTD = TextureAtlas::Moon1.td();
+                break;
+            case 2:
+                moonTD = TextureAtlas::Moon2.td();
+                break;
+            case 3:
+                moonTD = TextureAtlas::Moon3.td();
+                break;
+            case 4:
+                moonTD = TextureAtlas::Moon4.td();
+                break;
+            case 5:
+                moonTD = TextureAtlas::Moon5.td();
+                break;
+            case 6:
+                moonTD = TextureAtlas::Moon6.td();
+                break;
+            default:
+                moonTD = TextureAtlas::Moon7.td();
+                break;
+            }
+            renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
+        }
     }
     RayCasting::Collision collision = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
     Mesh additionalObjects;
@@ -924,6 +954,9 @@ GameUi::GameUi(Renderer &renderer, TLS &tls)
     mainMenu(),
     mainMenuSong(std::make_shared<Audio>(L"menu-theme.ogg", true)),
     touches(),
+    backgroundCamera(),
+    backgroundCameraTexture(),
+    backgroundCameraBuffer(),
     blockDestructProgress(-1.0f)
 {
     gameInput->paused.set(true);

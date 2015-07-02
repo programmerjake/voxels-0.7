@@ -29,6 +29,7 @@
 #include "render/renderer.h"
 #include "render/render_settings.h"
 #include "util/tls.h"
+#include "platform/video_input.h"
 
 namespace programmerjake
 {
@@ -40,7 +41,12 @@ int main(std::vector<std::wstring> args)
     //globalRenderSettings.useFancyLeaves = true;
     startGraphics();
     Renderer renderer;
-    auto theUi = std::make_shared<ui::GameUi>(renderer, tls);
+    std::shared_ptr<ui::GameUi> theUi = std::make_shared<ui::GameUi>(renderer, tls);
+#if 1
+    const std::vector<const VideoInputDevice *> &videoInputDevices = getVideoInputDeviceList();
+    if(!videoInputDevices.empty())
+        theUi->setBackgroundCamera(videoInputDevices.front()->makeVideoInput());
+#endif
     theUi->run(renderer);
     theUi = nullptr;
     endGraphics();

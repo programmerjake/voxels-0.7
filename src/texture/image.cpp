@@ -39,7 +39,7 @@ Image::Image(wstring resourceName)
     {
         shared_ptr<stream::Reader> preader = getResourceReader(resourceName);
         PngDecoder decoder(*preader);
-        data = shared_ptr<data_t>(new data_t(decoder.removeData(), decoder.width(), decoder.height(), TopToBottom));
+        data = shared_ptr<data_t>(new data_t(decoder.removeData(), decoder.width(), decoder.height(), RowOrder::TopToBottom));
     }
     catch(stream::IOException &e)
     {
@@ -50,14 +50,14 @@ Image::Image(wstring resourceName)
 Image::Image(unsigned w, unsigned h)
     : data()
 {
-    data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * w * h], w, h, TopToBottom));
+    data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * w * h], w, h, RowOrder::TopToBottom));
     memset((void *)data->data, 0, BytesPerPixel * w * h);
 }
 
 Image::Image(ColorI c)
     : data()
 {
-    data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel], 1, 1, TopToBottom));
+    data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel], 1, 1, RowOrder::TopToBottom));
     setPixel(0, 0, c);
 }
 
@@ -80,7 +80,7 @@ void Image::setPixel(int x, int y, ColorI c)
 
     data->lock.lock();
 
-    if(data->rowOrder == BottomToTop)
+    if(data->rowOrder == RowOrder::BottomToTop)
     {
         y = data->h - y - 1;
     }
@@ -110,7 +110,7 @@ ColorI Image::getPixel(int x, int y) const
 
     data->lock.lock();
 
-    if(data->rowOrder == BottomToTop)
+    if(data->rowOrder == RowOrder::BottomToTop)
     {
         y = data->h - y - 1;
     }
@@ -138,7 +138,7 @@ void Image::bind() const
     }
 
     data->lock.lock();
-    setRowOrder(BottomToTop);
+    setRowOrder(RowOrder::BottomToTop);
 
     if(data->textureValid)
     {
@@ -150,17 +150,22 @@ void Image::bind() const
     if(data->texture == 0)
     {
         data->texture = allocateTexture();
+        glBindTexture(GL_TEXTURE_2D, data->texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glPixelTransferf(GL_ALPHA_SCALE, 1.0);
+        glPixelTransferf(GL_ALPHA_BIAS, 0.0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data->w, data->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)data->data);
+    }
+    else
+    {
+        glBindTexture(GL_TEXTURE_2D, data->texture);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, data->w, data->h, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)data->data);
     }
 
-    glBindTexture(GL_TEXTURE_2D, data->texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelTransferf(GL_ALPHA_SCALE, 1.0);
-    glPixelTransferf(GL_ALPHA_BIAS, 0.0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data->w, data->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)data->data);
     data->textureValid = true;
     data->lock.unlock();
 }
@@ -179,7 +184,7 @@ void Image::getData(std::uint8_t *dest, RowOrder rowOrder) const
     data->lock.unlock();
 }
 
-void Image::setData(const std::uint8_t *src, RowOrder rowOrder) const
+void Image::setData(const std::uint8_t *src, RowOrder rowOrder)
 {
     assert(src != nullptr);
     assert(rowOrder == RowOrder::TopToBottom || rowOrder == RowOrder::BottomToTop);
@@ -193,6 +198,107 @@ void Image::setData(const std::uint8_t *src, RowOrder rowOrder) const
         *dest++ = *src++;
     }
     data->lock.unlock();
+}
+
+void Image::copyRect(int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop)
+{
+    if(destLeft < 0)
+    {
+        destW += destLeft;
+        srcLeft -= destLeft;
+        destLeft = 0;
+    }
+    if(destTop < 0)
+    {
+        destH += destTop;
+        srcTop -= destTop;
+        destTop = 0;
+    }
+    if(destW > (int)data->w - destLeft)
+        destW = (int)data->w - destLeft;
+    if(destH > (int)data->h - destTop)
+        destH = (int)data->h - destTop;
+    if(destW <= 0 || destH <= 0)
+        return;
+    std::unique_lock<std::mutex> destLock(data->lock, std::defer_lock);
+    std::unique_lock<std::mutex> srcLock;
+    if(src.data == data)
+    {
+        destLock.lock();
+    }
+    else
+    {
+        srcLock = std::unique_lock<std::mutex>(src.data->lock, std::defer_lock);
+        std::lock(srcLock, destLock);
+    }
+    setRowOrder(RowOrder::TopToBottom);
+    copyOnWrite();
+    src.setRowOrder(RowOrder::TopToBottom);
+    data->textureValid = false;
+    for(int y = 0; y < destH; y++)
+    {
+        int destY = y + destTop;
+        if(data->rowOrder == RowOrder::BottomToTop)
+        {
+            destY = data->h - destY - 1;
+        }
+        int srcY = y + srcTop;
+        if(src.data->rowOrder == RowOrder::BottomToTop)
+        {
+            srcY = src.data->h - srcY - 1;
+        }
+        if(srcY < 0 || srcY >= (int)src.data->h)
+        {
+            std::uint8_t *pDest = &data->data[BytesPerPixel * (destLeft + destY * data->w)];
+            for(int x = 0; x < destW; x++, pDest += BytesPerPixel)
+            {
+                pDest[0] = 0;
+                pDest[1] = 0;
+                pDest[2] = 0;
+                pDest[3] = 0;
+            }
+        }
+        else
+        {
+            int x = 0;
+            std::uint8_t *pDest = &data->data[BytesPerPixel * (destLeft + destY * data->w)];
+            if(srcLeft < 0)
+            {
+                int limit = destW;
+                if(limit > -srcLeft)
+                    limit = -srcLeft;
+                for(; x < limit; x++, pDest += BytesPerPixel)
+                {
+                    pDest[0] = 0;
+                    pDest[1] = 0;
+                    pDest[2] = 0;
+                    pDest[3] = 0;
+                }
+            }
+            const std::uint8_t *pSrc = &src.data->data[BytesPerPixel * (srcLeft + x + srcY * src.data->w)];
+            int limit = (int)src.data->w - srcLeft;
+            if(limit > destW)
+                limit = destW;
+            for(; x < limit; x++, pDest += BytesPerPixel, pSrc += BytesPerPixel)
+            {
+                std::uint8_t r = pSrc[0];
+                std::uint8_t g = pSrc[1];
+                std::uint8_t b = pSrc[2];
+                std::uint8_t a = pSrc[3];
+                pDest[0] = r;
+                pDest[1] = g;
+                pDest[2] = b;
+                pDest[3] = a;
+            }
+            for(; x < destW; x++, pDest += BytesPerPixel)
+            {
+                pDest[0] = 0;
+                pDest[1] = 0;
+                pDest[2] = 0;
+                pDest[3] = 0;
+            }
+        }
+    }
 }
 
 void Image::unbind()
@@ -336,7 +442,7 @@ void Image::write(stream::Writer &writer) const
     {
         data->lock.lock();
         size_t adjustedY = y;
-        if(data->rowOrder == BottomToTop)
+        if(data->rowOrder == RowOrder::BottomToTop)
         {
             adjustedY = data->h - adjustedY - 1;
         }

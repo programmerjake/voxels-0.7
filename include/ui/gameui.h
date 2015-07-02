@@ -39,6 +39,7 @@
 #include "audio/audio_scheduler.h"
 #include "platform/audio.h"
 #include "util/tls.h"
+#include "platform/video_input.h"
 
 namespace programmerjake
 {
@@ -140,6 +141,9 @@ private:
     std::shared_ptr<Ui> mainMenu;
     std::shared_ptr<Audio> mainMenuSong;
     std::unordered_map<int, TouchStruct> touches;
+    std::unique_ptr<VideoInput> backgroundCamera;
+    Image backgroundCameraTexture;
+    Image backgroundCameraBuffer;
     void addUi();
     void finalizeCreateWorld()
     {
@@ -211,6 +215,10 @@ public:
         dialog = nullptr;
         newDialog = nullptr;
         clearWorld();
+    }
+    void setBackgroundCamera(std::unique_ptr<VideoInput> &&newBackgroundCamera)
+    {
+        backgroundCamera = std::move(newBackgroundCamera);
     }
     virtual void move(double deltaTime) override
     {

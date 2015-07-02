@@ -111,7 +111,7 @@ public:
     static Image read(stream::Reader &reader);
     std::size_t getDataSize() const
     {
-        return static_cast<std::size_t>(data->width) * static_cast<std::size_t>(data->height) * static_cast<std::size_t>(4); // 4 for RGBA
+        return static_cast<std::size_t>(data->w) * static_cast<std::size_t>(data->h) * BytesPerPixel;
     }
     enum class RowOrder
     {
@@ -130,6 +130,8 @@ public:
         assert(src.size() >= getDataSize());
         setData(&src[0], rowOrder);
     }
+    void copyRect(int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop);
+    static constexpr std::size_t BytesPerPixel = 4;
 private:
     struct data_t
     {
@@ -152,7 +154,6 @@ private:
         ~data_t();
     };
     std::shared_ptr<data_t> data;
-    static constexpr std::size_t BytesPerPixel = 4;
     void setRowOrder(RowOrder newRowOrder) const;
     void swapRows(unsigned y1, unsigned y2) const;
     void copyOnWrite();

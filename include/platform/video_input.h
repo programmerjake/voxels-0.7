@@ -24,6 +24,7 @@
 #include "texture/image.h"
 #include <vector>
 #include <memory>
+#include <iterator>
 
 namespace programmerjake
 {
@@ -49,28 +50,44 @@ public:
         return h;
     }
     virtual void getSize(int &width, int &height) = 0;
-    virtual void readFrameIntoImage(Image &dest, int left, int top) = 0;
-    void readFrameIntoImage(Image &dest)
+    virtual void readFrameIntoImage(Image &dest) = 0;
+};
+
+struct VideoInputFormat final
+{
+    int width = 0, height = 0;
+    int frameRate = 0;
+    VideoInputFormat() = default;
+    VideoInputFormat(int width, int height, int frameRate)
+        : width(width), height(height), frameRate(frameRate)
     {
-        readFrameIntoImage(dest, 0, 0);
     }
 };
 
-class CameraDevice
+class VideoInputDevice
 {
-    CameraDevice(const CameraDevice &) = delete;
-    CameraDevice &operator =(const CameraDevice &) = delete;
+    friend class VideoInputFormatIterator;
+    VideoInputDevice(const VideoInputDevice &) = delete;
+    VideoInputDevice &operator =(const VideoInputDevice &) = delete;
 public:
     const std::wstring name;
-    CameraDevice(std::wstring name)
+    VideoInputDevice(std::wstring name)
         : name(name)
     {
     }
-    virtual ~CameraDevice() = default;
-    virtual std::unique_ptr<VideoInput> makeVideoInput() const = 0;
+    virtual ~VideoInputDevice() = default;
+    virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight, int requestedFrameRate) const = 0; /// can only have one VideoInput at a time
+    std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight) const
+    {
+        return makeVideoInput(requestedWidth, requestedHeight, -1);
+    }
+    std::unique_ptr<VideoInput> makeVideoInput(int requestedFrameRate = -1) const
+    {
+        return makeVideoInput(-1, -1, requestedFrameRate);
+    }
 };
 
-const std::vector<const CameraDevice *> &getCameraDeviceList();
+const std::vector<const VideoInputDevice *> &getVideoInputDeviceList();
 
 }
 }

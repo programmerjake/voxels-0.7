@@ -20,15 +20,8 @@
  */
 #include "platform/video_input.h"
 #include "util/util.h"
+#include "util/string_cast.h"
 #include <cstdlib>
-
-#if 0
-extern "C"
-{
-#include <libavformat/avformat.h>
-#include <libavdevice/avdevice.h>
-}
-#endif
 
 namespace programmerjake
 {
@@ -36,83 +29,160 @@ namespace voxels
 {
 namespace
 {
-
-#if 0
-#define DECLARE_FUNCTION(fn) \
-typedef decltype(::fn) *PFN_##fn; \
-PFN_##fn fn = nullptr;
-
-DECLARE_FUNCTION(avdevice_register_all)
-DECLARE_FUNCTION(av_input_video_device_next)
-DECLARE_FUNCTION(av_register_all)
-
-#undef DECLARE_FUNCTION
-#endif
-
-bool loadFFmpeg()
-{
-#if 1
-    return false;
-#else
-    static bool loaded = false;
-    if(loaded)
-        return true;
-    static DynamicLinkLibrary avformat, avdevice;
-#if _WIN64 || _WIN32
-    avformat = DynamicLinkLibrary(L"avformat-56.dll");
-    avdevice = DynamicLinkLibrary(L"avdevice-56.dll");
-#else
-    FIXME_MESSAGE(implement loadFFmpeg for platform)
-#endif
-    if(!avformat)
-        return false;
-    if(!avdevice)
-        return false;
-#define LOAD_FUNCTION(fn, lib) \
-    fn = (PFN_##fn)lib.resolve(L #fn);
-    LOAD_FUNCTION(avdevice_register_all, avdevice)
-    LOAD_FUNCTION(av_input_video_device_next, avdevice)
-    LOAD_FUNCTION(av_register_all, avformat)
-#undef LOAD_FUNCTION
-    av_register_all();
-    avdevice_register_all();
-    loaded = true;
-    return true;
-#endif
+std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
+}
+}
 }
 
-#if 1
-FIXME_MESSAGE(finish implementing video_input.cpp : change to use "https://github.com/ofTheo/videoInput/tree/2014-Stable")
-#else
-class FFmpegVideoInput final : public VideoInput
+#if _WIN64 || _WIN32
+
+#include "videoInput.h"
+
+namespace programmerjake
 {
-
-};
-
-class FFmpegCameraDevice final : public CameraDevice
+namespace voxels
 {
-
-};
-#endif
-
-std::vector<const CameraDevice *> makeCameraDeviceList()
+namespace
 {
-    std::vector<const CameraDevice *> deviceList;
-    if(!loadFFmpeg())
-        return std::move(deviceList);
-#if 0
-    for(AVInputFormat *inputFormat = av_input_video_device_next(nullptr); inputFormat != nullptr; inputFormat = av_input_video_device_next(inputFormat))
+class MyVideoInputDevice;
+
+class MyVideoInput final : public VideoInput
+{
+    friend class MyVideoInputDevice;
+    MyVideoInput(const MyVideoInput &) = delete;
+    MyVideoInput &operator =(const MyVideoInput &) = delete;
+private:
+    ::videoInput input;
+    bool good;
+    const int deviceId;
+    int actualWidth, actualHeight;
+    std::vector<std::uint8_t> buffer;
+    MyVideoInput(int deviceId, int requestedWidth, int requestedHeight, int requestedFrameRate)
+        : input(), good(true), deviceId(deviceId), buffer()
     {
-
+        if(requestedFrameRate > 0)
+            input.setIdealFramerate(deviceId, requestedFrameRate);
+        if(requestedWidth > 0 && requestedHeight > 0)
+        {
+            if(!input.setupDevice(deviceId, requestedWidth, requestedHeight))
+            {
+                good = false;
+                return;
+            }
+        }
+        else
+        {
+            if(!input.setupDevice(deviceId))
+            {
+                good = false;
+                return;
+            }
+        }
+        actualWidth = input.getWidth(deviceId);
+        actualHeight = input.getHeight(deviceId);
+        buffer.resize(static_cast<std::size_t>(actualWidth) * static_cast<std::size_t>(actualWidth) * Image::BytesPerPixel, 0);
     }
-#endif
+public:
+    virtual ~MyVideoInput()
+    {
+        if(good)
+        {
+            input.stopDevice(deviceId);
+        }
+    }
+    virtual void getSize(int &width, int &height) override
+    {
+        assert(good);
+        width = actualWidth;
+        height = actualHeight;
+    }
+    virtual void readFrameIntoImage(Image &dest) override
+    {
+        assert(good);
+        if(input.isFrameNew(deviceId))
+        {
+            static_assert(sizeof(std::uint8_t) == sizeof(unsigned char), "std::uint8_t is not unsigned char");
+            input.getPixels(deviceId, static_cast<unsigned char *>(&buffer[0]), false, false);
+            for(std::size_t i = (std::size_t)actualWidth * (std::size_t)actualHeight; i > 0; i--)
+            {
+                std::uint8_t r = buffer[i * 3 + 2];
+                std::uint8_t g = buffer[i * 3 + 1];
+                std::uint8_t b = buffer[i * 3 + 0];
+                std::uint8_t a = 0xFF;
+                buffer[i * Image::BytesPerPixel + 0] = r;
+                buffer[i * Image::BytesPerPixel + 1] = g;
+                buffer[i * Image::BytesPerPixel + 2] = b;
+                buffer[i * Image::BytesPerPixel + 3] = a;
+            }
+        }
+        dest.setData(buffer, Image::RowOrder::BottomToTop);
+    }
+};
+
+std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
+
+class MyVideoInputDevice final : public VideoInputDevice
+{
+    friend std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
+private:
+    const int deviceId;
+    MyVideoInputDevice(int deviceId, std::wstring name)
+        : VideoInputDevice(name), deviceId(deviceId)
+    {
+    }
+public:
+    virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight, int requestedFrameRate) const override
+    {
+        std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(new MyVideoInput(deviceId, requestedWidth, requestedHeight, requestedFrameRate));
+        if(!retval->good)
+            return std::unique_ptr<VideoInput>();
+        return std::move(retval);
+    }
+};
+
+std::vector<const VideoInputDevice *> makeVideoInputDeviceList()
+{
+    ::videoInput::setComMultiThreaded(true);
+    ::videoInput::setVerbose(false);
+    std::vector<const VideoInputDevice *> deviceList;
+    int deviceCount = ::videoInput::listDevices(true);
+    for(int deviceId = 0; deviceId < deviceCount; deviceId++)
+    {
+        const char *name = ::videoInput::getDeviceName(deviceId);
+        if(name == nullptr)
+            continue;
+        deviceList.push_back(new MyVideoInputDevice(deviceId, string_cast<std::wstring>(name)));
+    }
     return std::move(deviceList);
 }
 }
-
-const std::vector<const CameraDevice *> &getCameraDeviceList()
+}
+}
+#else
+FIXME_MESSAGE(implement video input for platform)
+namespace programmerjake
 {
-    static std::vector<const CameraDevice *> retval = makeCameraDeviceList();
+namespace voxels
+{
+namespace
+{
+std::vector<const VideoInputDevice *> makeVideoInputDeviceList()
+{
+    return std::vector<const VideoInputDevice *>();
+}
+}
+}
+}
+#endif
+
+namespace programmerjake
+{
+namespace voxels
+{
+const std::vector<const VideoInputDevice *> &getVideoInputDeviceList()
+{
+    static std::vector<const VideoInputDevice *> retval = makeVideoInputDeviceList();
+    return retval;
 }
 }
 }

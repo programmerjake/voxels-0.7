@@ -147,6 +147,7 @@
 					<Add library="version" />
 					<Add library="imm32" />
 					<Add library="oleaut32" />
+					<Add library="strmiids" />
 				</Linker>
 			</Target>
 			<Target title="Release MSVC">
@@ -195,6 +196,7 @@
 					<Add library="version" />
 					<Add library="imm32" />
 					<Add library="oleaut32" />
+					<Add library="strmiids" />
 				</Linker>
 			</Target>
 		</Build>
@@ -208,6 +210,7 @@
 			<Add option="-fexceptions" />
 			<Add option="-pthread" />
 			<Add directory="include" />
+			<Add directory="external-lib" />
 		</Compiler>
 		<Linker>
 			<Add option="-pthread" />
@@ -224,6 +227,8 @@
 			<Add library="SDL2main" />
 			<Add library="SDL2" />
 		</Linker>
+		<Unit filename="external-lib/videoInput.cpp" />
+		<Unit filename="external-lib/videoInput.h" />
 		<Unit filename="include/audio/audio_scheduler.h" />
 		<Unit filename="include/block/block.h" />
 		<Unit filename="include/block/block_struct.h" />
@@ -408,6 +413,7 @@
 		<Unit filename="src/audio/audio_scheduler.cpp" />
 		<Unit filename="src/block/block.cpp" />
 		<Unit filename="src/block/builtin/air.cpp" />
+		<Unit filename="src/block/builtin/chest.cpp" />
 		<Unit filename="src/block/builtin/dirt.cpp" />
 		<Unit filename="src/block/builtin/furnace.cpp" />
 		<Unit filename="src/block/builtin/glass.cpp" />
