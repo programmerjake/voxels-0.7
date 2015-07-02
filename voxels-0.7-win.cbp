@@ -407,6 +407,7 @@
 		<Unit filename="include/util/wood_descriptor.h" />
 		<Unit filename="include/util/world_lock_manager.h" />
 		<Unit filename="include/util/wrapped_entity.h" />
+		<Unit filename="include/vr/vr_callbacks.h" />
 		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="include/world/world_generator.h" />

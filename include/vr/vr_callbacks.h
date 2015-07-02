@@ -18,11 +18,19 @@
  * MA 02110-1301, USA.
  *
  */
-#include "util/logging.h"
+#ifndef VR_CALLBACKS_H_INCLUDED
+#define VR_CALLBACKS_H_INCLUDED
+
+#include "platform/event.h"
+#include "texture/image.h"
+#include "render/renderer.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
+
 }
 }
+
+#endif // VR_CALLBACKS_H_INCLUDED
