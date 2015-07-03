@@ -18,20 +18,14 @@
  * MA 02110-1301, USA.
  *
  */
-#ifndef VR_CALLBACKS_H_INCLUDED
-#define VR_CALLBACKS_H_INCLUDED
-
-#include "platform/event.h"
-#include "texture/image.h"
-#include "render/renderer.h"
-#include "util/matrix.h"
-#include <tuple>
-
+#include "vr/vr_callbacks.h"
 namespace programmerjake
 {
 namespace voxels
 {
-class VirtualRealityCallbacks : public EventHandler
+namespace
+{
+class MyVirtualRealityCallbacks final : public VirtualRealityCallbacks
 {
 public:
     virtual bool handleTouchUp(TouchUpEvent &event) override
@@ -86,10 +80,15 @@ public:
     {
 
     }
-    virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix) = 0;
-    static void std::unique_ptr<VirtualRealityCallbacks> make();
+    virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix) override
+    {
+
+    }
 };
 }
+void std::unique_ptr<VirtualRealityCallbacks> VirtualRealityCallbacks::make()
+{
+    return std::unique_ptr<VirtualRealityCallbacks>(new MyVirtualRealityCallbacks);
 }
-
-#endif // VR_CALLBACKS_H_INCLUDED
+}
+}

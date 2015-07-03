@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include <chrono>
 #include "platform/platform.h"
 #include "platform/thread_priority.h"
@@ -46,7 +47,9 @@ private:
     Image buffer, buffer2;
     bool done;
     const double maxFrameTime;
+    bool needNextFrame;
     std::mutex stateLock;
+    std::condition_variable stateCond;
     void frameReaderThreadFn()
     {
         using std::swap;
@@ -66,6 +69,13 @@ private:
             videoInput->readFrameIntoImage(buffer2);
             theLock.lock();
             swap(buffer, buffer2);
+            while(!needNextFrame)
+            {
+                stateCond.wait(theLock);
+                if(done)
+                    break;
+            }
+            needNextFrame = false;
         }
     }
 public:
@@ -76,7 +86,9 @@ public:
         buffer2(),
         done(false),
         maxFrameTime(maxFrameTime),
-        stateLock()
+        needNextFrame(true),
+        stateLock(),
+        stateCond()
     {
         int width, height;
         this->videoInput->getSize(width, height);
@@ -84,7 +96,7 @@ public:
         buffer2 = buffer;
         frameReaderThread = std::thread([this]()
         {
-            setThreadPriority(ThreadPriority::Normal);
+            setThreadPriority(ThreadPriority::Low);
             setThreadName(L"Frame Reader");
             frameReaderThreadFn();
         });
@@ -93,6 +105,7 @@ public:
     {
         std::unique_lock<std::mutex> theLock(stateLock);
         done = true;
+        stateCond.notify_all();
         theLock.unlock();
         frameReaderThread.join();
     }
@@ -106,6 +119,8 @@ public:
     {
         std::unique_lock<std::mutex> theLock(stateLock);
         dest = buffer;
+        needNextFrame = true;
+        stateCond.notify_all();
     }
 };
 

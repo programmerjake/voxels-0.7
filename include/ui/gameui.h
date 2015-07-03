@@ -222,6 +222,10 @@ public:
     {
         backgroundCamera = std::move(newBackgroundCamera);
     }
+    bool hasBackgroundCamera() const
+    {
+        return backgroundCamera != nullptr;
+    }
     virtual void move(double deltaTime) override
     {
         jumpDoubleTapTimeLeft -= static_cast<float>(deltaTime);
