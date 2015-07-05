@@ -26,6 +26,7 @@
 #include "render/renderer.h"
 #include "util/matrix.h"
 #include <tuple>
+#include <memory>
 
 namespace programmerjake
 {
@@ -78,16 +79,15 @@ public:
     {
         return false;
     }
-    virtual Image transformBackgroundImage(Image backgroundImage)
+    virtual void transformBackgroundImage(Image &backgroundImage)
     {
-        return backgroundImage;
     }
     virtual void render(Renderer &renderer)
     {
 
     }
     virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix) = 0;
-    static void std::unique_ptr<VirtualRealityCallbacks> make();
+    static std::unique_ptr<VirtualRealityCallbacks> make();
 };
 }
 }

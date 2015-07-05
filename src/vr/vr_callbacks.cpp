@@ -72,9 +72,8 @@ public:
     {
         return false;
     }
-    virtual Image transformBackgroundImage(Image backgroundImage)
+    virtual void transformBackgroundImage(Image &backgroundImage)
     {
-        return backgroundImage;
     }
     virtual void render(Renderer &renderer)
     {
@@ -86,7 +85,7 @@ public:
     }
 };
 }
-void std::unique_ptr<VirtualRealityCallbacks> VirtualRealityCallbacks::make()
+std::unique_ptr<VirtualRealityCallbacks> VirtualRealityCallbacks::make()
 {
     return std::unique_ptr<VirtualRealityCallbacks>(new MyVirtualRealityCallbacks);
 }

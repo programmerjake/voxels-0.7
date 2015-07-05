@@ -110,22 +110,30 @@ void GameUi::clear(Renderer &renderer)
     {
         int width, height;
         backgroundCamera->getSize(width, height);
-        if(!backgroundCameraBuffer || !backgroundCameraTexture || (int)backgroundCameraBuffer.width() != width || (int)backgroundCameraBuffer.height() != height)
+        if(!backgroundCameraBuffer || (int)backgroundCameraBuffer.width() != width || (int)backgroundCameraBuffer.height() != height)
         {
             backgroundCameraBuffer = Image(width, height);
-            if(!backgroundCameraTexture || (int)backgroundCameraTexture.width() < width || (int)backgroundCameraTexture.height() < height)
-            {
-                int adjustedWidth = 1;
-                while(adjustedWidth < width)
-                    adjustedWidth *= 2;
-                int adjustedHeight = 1;
-                while(adjustedHeight < height)
-                    adjustedHeight *= 2;
-                backgroundCameraTexture = Image(adjustedWidth, adjustedHeight);
-            }
         }
         backgroundCamera->readFrameIntoImage(backgroundCameraBuffer);
-        backgroundCameraTexture.copyRect(0, backgroundCameraTexture.height() - backgroundCameraBuffer.height(), width, height, backgroundCameraBuffer, 0, 0);
+        Image newBackgroundCameraBuffer = backgroundCameraBuffer;
+        if(virtualRealityCallbacks)
+        {
+            virtualRealityCallbacks->transformBackgroundImage(newBackgroundCameraBuffer);
+            assert(newBackgroundCameraBuffer);
+            width = newBackgroundCameraBuffer.width();
+            height = newBackgroundCameraBuffer.height();
+        }
+        if(!backgroundCameraTexture || (int)backgroundCameraTexture.width() < width || (int)backgroundCameraTexture.height() < height)
+        {
+            int adjustedWidth = 1;
+            while(adjustedWidth < width)
+                adjustedWidth *= 2;
+            int adjustedHeight = 1;
+            while(adjustedHeight < height)
+                adjustedHeight *= 2;
+            backgroundCameraTexture = Image(adjustedWidth, adjustedHeight);
+        }
+        backgroundCameraTexture.copyRect(0, backgroundCameraTexture.height() - height, width, height, newBackgroundCameraBuffer, 0, 0);
         ColorF colorizeColor = GrayscaleAF(1, 1);
         renderer << Generate::quadrilateral(TextureDescriptor(backgroundCameraTexture, 0, width / (float)backgroundCameraTexture.width(), 0, height / (float)backgroundCameraTexture.height()),
                                             VectorF(minX, minY, -1), colorizeColor,
@@ -218,6 +226,11 @@ void GameUi::clear(Renderer &renderer)
     }
     renderer << start_overlay;
     viewPoint->render(renderer, tform, lock_manager, additionalObjects);
+    if(virtualRealityCallbacks)
+    {
+        renderer << start_overlay << reset_render_layer;
+        virtualRealityCallbacks->render(renderer);
+    }
     renderer << start_overlay << reset_render_layer;
 }
 void GameUi::startInventoryDialog()
@@ -966,6 +979,17 @@ GameUi::GameUi(Renderer &renderer, TLS &tls)
 void GameUi::startMainMenu()
 {
     setDialog(mainMenu);
+}
+
+void GameUi::handleSetViewMatrix(Matrix viewMatrix)
+{
+    float viewTheta = gameInput->viewTheta.get();
+    float viewPhi = gameInput->viewPhi.get();
+    float viewPsi = gameInput->viewPsi.get();
+    FIXME_MESSAGE(finish implementing GameUi::handleSetViewMatrix)
+    gameInput->viewTheta.set(viewTheta);
+    gameInput->viewPhi.set(viewPhi);
+    gameInput->viewPsi.set(viewPsi);
 }
 
 }

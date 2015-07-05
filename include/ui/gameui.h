@@ -198,6 +198,7 @@ private:
             pressJumpCount = 0;
         }
     }
+    void handleSetViewMatrix(Matrix viewMatrix);
 public:
     std::atomic<float> blockDestructProgress;
     GameUi(Renderer &renderer, TLS &tls);
@@ -221,6 +222,14 @@ public:
     void setBackgroundCamera(std::unique_ptr<VideoInput> &&newBackgroundCamera)
     {
         backgroundCamera = std::move(newBackgroundCamera);
+        if(backgroundCamera && !virtualRealityCallbacks)
+        {
+            virtualRealityCallbacks = VirtualRealityCallbacks::make();
+        }
+        else if(!backgroundCamera && virtualRealityCallbacks)
+        {
+            virtualRealityCallbacks.reset();
+        }
     }
     bool hasBackgroundCamera() const
     {
@@ -231,6 +240,15 @@ public:
         jumpDoubleTapTimeLeft -= static_cast<float>(deltaTime);
         if(jumpDoubleTapTimeLeft < 0)
             jumpDoubleTapTimeLeft = 0;
+        bool needSetViewDirection = true;
+        if(virtualRealityCallbacks)
+        {
+            virtualRealityCallbacks->move(deltaTime, [this, &needSetViewDirection](Matrix viewMatrix)
+            {
+                needSetViewDirection = false;
+                handleSetViewMatrix(viewMatrix);
+            });
+        }
         if(!dialog)
         {
             std::unique_lock<std::mutex> lockIt(newDialogLock);
@@ -270,16 +288,25 @@ public:
                     }
                 }
             }
-            float viewTheta = gameInput->viewTheta.get();
-            float viewPhi = gameInput->viewPhi.get();
-            deltaViewTheta *= 0.5f;
-            deltaViewPhi *= 0.5f;
-            viewTheta += deltaViewTheta;
-            viewPhi += deltaViewPhi;
-            viewTheta = std::fmod(viewTheta, 2 * (float)M_PI);
-            viewPhi = limit<float>(viewPhi, -(float)M_PI / 2, (float)M_PI / 2);
-            gameInput->viewTheta.set(viewTheta);
-            gameInput->viewPhi.set(viewPhi);
+            if(needSetViewDirection)
+            {
+                float viewTheta = gameInput->viewTheta.get();
+                float viewPhi = gameInput->viewPhi.get();
+                deltaViewTheta *= 0.5f;
+                deltaViewPhi *= 0.5f;
+                viewTheta += deltaViewTheta;
+                viewPhi += deltaViewPhi;
+                viewTheta = std::fmod(viewTheta, 2 * (float)M_PI);
+                viewPhi = limit<float>(viewPhi, -(float)M_PI / 2, (float)M_PI / 2);
+                gameInput->viewTheta.set(viewTheta);
+                gameInput->viewPhi.set(viewPhi);
+                gameInput->viewPsi.set(0.0f);
+            }
+            else
+            {
+                deltaViewTheta = 0;
+                deltaViewPhi = 0;
+            }
         }
         Display::grabMouse(!dialog && world && !gameInput->paused.get());
         Ui::move(deltaTime);
@@ -335,6 +362,8 @@ public:
     }
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleTouchUp(event))
+            return true;
         if(Ui::handleTouchUp(event))
             return true;
         if(dialog)
@@ -360,6 +389,8 @@ public:
     }
     virtual bool handleTouchDown(TouchDownEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleTouchDown(event))
+            return true;
         if(Ui::handleTouchDown(event))
             return true;
         if(dialog)
@@ -372,6 +403,8 @@ public:
     }
     virtual bool handleTouchMove(TouchMoveEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleTouchMove(event))
+            return true;
         if(Ui::handleTouchMove(event))
             return true;
         if(dialog)
@@ -407,6 +440,8 @@ public:
     }
     virtual bool handleMouseUp(MouseUpEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleMouseUp(event))
+            return true;
         if(Ui::handleMouseUp(event))
             return true;
         if(event.button == MouseButton_Left)
@@ -428,6 +463,8 @@ public:
     }
     virtual bool handleMouseDown(MouseDownEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleMouseDown(event))
+            return true;
         if(Ui::handleMouseDown(event))
             return true;
         if(dialog)
@@ -451,6 +488,8 @@ public:
     }
     virtual bool handleMouseMove(MouseMoveEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleMouseMove(event))
+            return true;
         if(!dialog && !gameInput->paused.get())
         {
             VectorF deltaPos = Display::transformMouseTo3D(event.x + event.deltaX, event.y + event.deltaY) - Display::transformMouseTo3D(event.x, event.y);
@@ -464,6 +503,8 @@ public:
     }
     virtual bool handleMouseScroll(MouseScrollEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleMouseScroll(event))
+            return true;
         if(Ui::handleMouseScroll(event))
             return true;
         if(dialog)
@@ -480,6 +521,8 @@ public:
     }
     virtual bool handleKeyUp(KeyUpEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleKeyUp(event))
+            return true;
         if(Ui::handleKeyUp(event))
             return true;
         switch(event.key)
@@ -553,6 +596,8 @@ public:
     }
     virtual bool handleKeyDown(KeyDownEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleKeyDown(event))
+            return true;
         if(Ui::handleKeyDown(event))
             return true;
         if(dialog)
@@ -671,6 +716,8 @@ public:
     }
     virtual bool handleKeyPress(KeyPressEvent &event) override
     {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleKeyPress(event))
+            return true;
         if(Ui::handleKeyPress(event))
             return true;
         if(dialog)
@@ -719,6 +766,12 @@ public:
             addUi();
         }
         Ui::reset();
+    }
+    virtual bool handleQuit(QuitEvent &event) override
+    {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleQuit(event))
+            return true;
+        return Ui::handleQuit(event);
     }
 protected:
     virtual void clear(Renderer &renderer) override;
