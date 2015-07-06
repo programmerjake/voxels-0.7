@@ -158,6 +158,10 @@ private:
     World &world;
     std::weak_ptr<World> worldW;
 public:
+    static VectorF getViewPositionOffset()
+    {
+        return VectorF(0.0f, 0.6f, 0.0f);
+    }
     const std::shared_ptr<GameInput> gameInput;
     const std::wstring name;
     std::size_t currentItemIndex = 0;
@@ -189,7 +193,7 @@ public:
     }
     Matrix getViewTransform()
     {
-        VectorF pos = getPosition() + VectorF(0, 0.6, 0);
+        VectorF pos = getPosition() + getViewPositionOffset();
         return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get())).concat(Matrix::rotateZ(-gameInput->viewPsi.get()));
     }
     PositionF getPosition()
