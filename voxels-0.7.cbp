@@ -304,6 +304,7 @@
 		<Unit filename="include/util/wood_descriptor.h" />
 		<Unit filename="include/util/world_lock_manager.h" />
 		<Unit filename="include/util/wrapped_entity.h" />
+		<Unit filename="include/vr/vr_callbacks.h" />
 		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
 		<Unit filename="include/world/world_generator.h" />
@@ -379,6 +380,7 @@
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />
 		<Unit filename="src/util/wood_descriptor.cpp" />
+		<Unit filename="src/vr/vr_callbacks.cpp" />
 		<Unit filename="src/world/view_point.cpp" />
 		<Unit filename="src/world/world.cpp" />
 		<Extensions>

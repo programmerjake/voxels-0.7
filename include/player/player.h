@@ -148,7 +148,8 @@ private:
     void setBlockDestructProgress(float v);
     Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
     PositionF lastPosition;
-    std::recursive_mutex lastPositionLock;
+    int warpToLastPositionCount = 0;
+    std::recursive_mutex positionLock;
     Entity *playerEntity;
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
     ui::GameUi *gameUi;
@@ -172,6 +173,12 @@ public:
     {
         removeFromPlayersList();
     }
+    void warpToPosition(PositionF position)
+    {
+        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
+        lastPosition = position;
+        warpToLastPositionCount = 2; // extra overlap so we don't have issues with a data-race
+    }
     Matrix getWorldOrientationXZTransform() const
     {
         return Matrix::rotateY(gameInput->viewTheta.get());
@@ -187,7 +194,7 @@ public:
     }
     PositionF getPosition()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(lastPositionLock);
+        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
         return lastPosition;
     }
     VectorF getViewDirectionXZ() const

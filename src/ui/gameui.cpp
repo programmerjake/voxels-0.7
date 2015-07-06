@@ -986,7 +986,8 @@ void GameUi::handleSetViewMatrix(Matrix viewMatrix)
     float viewTheta = gameInput->viewTheta.get();
     float viewPhi = gameInput->viewPhi.get();
     float viewPsi = gameInput->viewPsi.get();
-    FIXME_MESSAGE(finish implementing GameUi::handleSetViewMatrix)
+    // assume that viewMatrix is a rotation and/or a translation matrix
+    FIXME_MESSAGE(finish implementing handleSetViewMatrix using Player::warpToPosition)
     gameInput->viewTheta.set(viewTheta);
     gameInput->viewPhi.set(viewPhi);
     gameInput->viewPsi.set(viewPsi);

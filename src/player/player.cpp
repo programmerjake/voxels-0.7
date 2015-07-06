@@ -57,10 +57,20 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
         return;
     }
     PositionF lastPosition = entity.physicsObject->getPosition();
+    bool didWarp = false;
     BlockEffects blockEffects = entity.physicsObject->getBlockEffects();
     {
-        std::unique_lock<std::recursive_mutex> lockIt(player->lastPositionLock);
-        player->lastPosition = lastPosition;
+        std::unique_lock<std::recursive_mutex> lockIt(player->positionLock);
+        if(player->warpToLastPositionCount > 0)
+        {
+            lastPosition = player->lastPosition;
+            player->warpToLastPositionCount--;
+            didWarp = true;
+        }
+        else
+        {
+            player->lastPosition = lastPosition;
+        }
     }
     VectorF moveDirection = transform(player->getWorldOrientationXZTransform(), player->gameInput->moveDirectionPlayerRelative.get());
     VectorF newVelocity = entity.physicsObject->getVelocity();
@@ -264,6 +274,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             item.descriptor->dropAsEntity(item, world, lock_manager, *player);
         }
     }
+    if(didWarp)
+        newVelocity = VectorF(0);
     entity.physicsObject->setCurrentState(lastPosition, newVelocity, gravity);
     FIXME_MESSAGE(implement)
 }
