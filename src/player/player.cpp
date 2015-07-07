@@ -288,8 +288,18 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
         return;
     }
     player->playerEntity = &entity;
-    std::unique_lock<std::recursive_mutex> lockIt(player->lastPositionLock);
-    player->lastPosition = entity.physicsObject->getPosition();
+    std::unique_lock<std::recursive_mutex> lockIt(player->positionLock);
+    if(player->warpToLastPositionCount > 0)
+    {
+        PositionF lastPosition = player->lastPosition;
+        player->warpToLastPositionCount--;
+        lockIt.unlock();
+        entity.physicsObject->setCurrentState(lastPosition, VectorF(0));
+    }
+    else
+    {
+        player->lastPosition = entity.physicsObject->getPosition();
+    }
 }
 Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity)
 {
@@ -431,7 +441,7 @@ void Player::write(stream::Writer &writer)
 {
     PositionF lastPosition;
     {
-        std::unique_lock<std::recursive_mutex> lockIt(lastPositionLock);
+        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
         lastPosition = this->lastPosition;
     }
     stream::write<PositionF>(writer, lastPosition);
@@ -470,7 +480,7 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
 
 Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     : lastPosition(),
-    lastPositionLock(),
+    positionLock(),
     playerEntity(nullptr),
     gameInputMonitoring(),
     gameUi(gameUi),

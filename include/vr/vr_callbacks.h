@@ -86,7 +86,7 @@ public:
     {
 
     }
-    virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix) = 0;
+    virtual void move(double deltaTime, Matrix originalViewMatrix, std::function<void(Matrix viewMatrix)> setViewMatrix) = 0;
     static std::unique_ptr<VirtualRealityCallbacks> make();
 };
 }

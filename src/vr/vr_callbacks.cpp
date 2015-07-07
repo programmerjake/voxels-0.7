@@ -19,6 +19,7 @@
  *
  */
 #include "vr/vr_callbacks.h"
+#include "util/math_constants.h"
 namespace programmerjake
 {
 namespace voxels
@@ -79,9 +80,12 @@ public:
     {
 
     }
-    virtual void move(double deltaTime, std::function<void(Matrix viewMatrix)> setViewMatrix) override
+    virtual void move(double deltaTime, Matrix originalViewMatrix, std::function<void(Matrix viewMatrix)> setViewMatrix) override
     {
-
+        Matrix originalCameraToWorldMatrix = inverse(originalViewMatrix);
+        static double t = 0;
+        t += deltaTime;
+        setViewMatrix(Matrix::translate(-transform(originalCameraToWorldMatrix, VectorF(0))).concat(Matrix::rotateY(t)).concat(Matrix::rotateX(M_PI / 6)).concat(Matrix::translate(0, 0, -20)));
     }
 };
 }

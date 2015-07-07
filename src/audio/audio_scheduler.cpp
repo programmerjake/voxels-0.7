@@ -34,28 +34,28 @@ float AudioScheduler::SongDescriptor::getSongTimeOfDayFactor(float timeOfDayFrac
 {
     if(timeOfDayFocusAmount <= 0 || lengthOfDayInSeconds <= 0)
         return 1;
-    auto &log = getDebugLog();
-    log << "timeOfDayFraction: " << timeOfDayFraction << " focusedTimeOfDay: " << focusedTimeOfDay;
+    //auto &log = getDebugLog();
+    //log << "timeOfDayFraction: " << timeOfDayFraction << " focusedTimeOfDay: " << focusedTimeOfDay;
     float x = timeOfDayFraction - focusedTimeOfDay;
     x -= std::floor(x);
-    log << " x: " << x << "\n";
+    //log << " x: " << x << "\n";
     float durationFraction = static_cast<float>(duration / lengthOfDayInSeconds);
     if(durationFraction <= 1e-3)
         durationFraction = 1e-3;
-    log << "durationFraction: " << durationFraction;
+    //log << "durationFraction: " << durationFraction;
     float start = x, end = x + durationFraction;
     float outputFactor = 1 / durationFraction;
     float integral = std::floor(end) - std::floor(start);
     start -= std::floor(start);
     end -= std::floor(end);
-    log << " start: " << start << " end: " << end;
+    //log << " start: " << start << " end: " << end;
     float startBase = std::fabs(0.5f - start) * 2;
     float endBase = std::fabs(0.5f - end) * 2;
-    log << " startBase: " << startBase << " endBase: " << endBase;
+    //log << " startBase: " << startBase << " endBase: " << endBase;
     float v = std::pow(startBase, timeOfDayFocusAmount) * (0.5f - start) - std::pow(endBase, timeOfDayFocusAmount) * (0.5f - end);
-    log << " v: " << v;
+    //log << " v: " << v;
     integral += v;
-    log << " integral: " << integral << postnl;
+    //log << " integral: " << integral << postnl;
     return outputFactor * integral;
 }
 
@@ -163,7 +163,7 @@ std::shared_ptr<PlayingAudio> AudioScheduler::next(float timeOfDayInSeconds,
                 break;
             }
         }
-        getDebugLog() << L"song " << i << " : " << songFactor << postnl;
+        //getDebugLog() << L"song " << i << " : " << songFactor << postnl;
         if(isFirst || songFactor > bestSongFactor)
         {
             isFirst = false;

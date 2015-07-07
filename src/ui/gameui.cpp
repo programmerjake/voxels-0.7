@@ -108,6 +108,11 @@ void GameUi::clear(Renderer &renderer)
     renderer << RenderLayer::Opaque;
     if(backgroundCamera)
     {
+        if(viewMatrixOverridden)
+        {
+            viewMatrixOverridden = false;
+            tform = overridingViewMatrix;
+        }
         int width, height;
         backgroundCamera->getSize(width, height);
         if(!backgroundCameraBuffer || (int)backgroundCameraBuffer.width() != width || (int)backgroundCameraBuffer.height() != height)
@@ -306,7 +311,8 @@ void GameUi::addWorldUi()
     std::shared_ptr<Player> player = playerW.lock();
     std::size_t hotBarSize = player->items.itemStacks.size();
     float hotBarWidth = hotBarItemSize * hotBarSize;
-    std::shared_ptr<Element> crosshairs = std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40);
+    std::shared_ptr<ImageElement> crosshairs = std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40);
+    crosshairsW = crosshairs;
     add(crosshairs);
     worldDependantElements.push_back(crosshairs);
     for(std::size_t i = 0; i < hotBarSize; i++)
@@ -971,6 +977,7 @@ GameUi::GameUi(Renderer &renderer, TLS &tls)
     backgroundCameraTexture(),
     backgroundCameraBuffer(),
     virtualRealityCallbacks(),
+    crosshairsW(),
     blockDestructProgress(-1.0f)
 {
     gameInput->paused.set(true);
@@ -983,12 +990,17 @@ void GameUi::startMainMenu()
 
 void GameUi::handleSetViewMatrix(Matrix viewMatrix)
 {
+#if 1
+    overridingViewMatrix = viewMatrix;
+    viewMatrixOverridden = true;
+#else
     float viewTheta = gameInput->viewTheta.get();
     float viewPhi = gameInput->viewPhi.get();
     float viewPsi = gameInput->viewPsi.get();
     // assume that viewMatrix is a rotation and/or a translation matrix
 	Matrix worldOrientationMatrix = inverse(viewMatrix);
-	VectorF viewPoint = transform(worldOrientationMatrix, VectorF(0)) - getViewPositionOffset();
+	VectorF viewPoint = transform(worldOrientationMatrix, VectorF(0)) - Player::getViewPositionOffset();
+	std::shared_ptr<Player> player = playerW.lock();
     if(player)
     {
         PositionF playerPosition;
@@ -1017,6 +1029,7 @@ void GameUi::handleSetViewMatrix(Matrix viewMatrix)
     gameInput->viewTheta.set(viewTheta);
     gameInput->viewPhi.set(viewPhi);
     gameInput->viewPsi.set(viewPsi);
+#endif
 }
 
 }
