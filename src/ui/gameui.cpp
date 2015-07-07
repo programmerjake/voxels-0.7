@@ -983,33 +983,37 @@ void GameUi::startMainMenu()
 
 void GameUi::handleSetViewMatrix(Matrix viewMatrix)
 {
-    // used Mathematica code : RotationMatrix[-\[Theta], {0, 1, 0}].RotationMatrix[-\[Phi], {1, 0, 0}].RotationMatrix[-\[Psi], {0, 0, 1}] // MatrixForm
     float viewTheta = gameInput->viewTheta.get();
     float viewPhi = gameInput->viewPhi.get();
     float viewPsi = gameInput->viewPsi.get();
     // assume that viewMatrix is a rotation and/or a translation matrix
+	Matrix worldOrientationMatrix = inverse(viewMatrix);
+	VectorF viewPoint = transform(worldOrientationMatrix, VectorF(0)) - getViewPositionOffset();
     if(player)
     {
         PositionF playerPosition;
         playerPosition = player->getPosition();
-        VectorF viewPoint = -transform(VectorF(0), viewMatrix) - getViewPositionOffset();
         player->warpToPosition(PositionF(viewPoint, playerPosition.d));
     }
-    float cosPhi = std::sqrt(viewMatrix.x01 * viewMatrix.x01 + viewMatrix.x11 * viewMatrix.x11);
-    float sinPhi = viewMatrix.x21;
-    viewPhi = std::atan2(sinPhi, cosPhi);
-    if(cosPhi == 0)
-    {
-        viewPsi = 0;
-        float cosTheta = 0.5f * (viewMatrix.x00 - viewMatrix.x12);
-        float sinTheta = 0.5f * (viewMatrix.x10 + viewMatrix.x02);
-        viewTheta = std::atan2(sinTheta, cosTheta);
-    }
-    else
-    {
-        viewPsi = std::atan2(-viewMatrix.x01, viewMatrix.x11);
-        viewTheta = std::atan2(-viewMatrix.x20, viewMatrix.x22);
-    }
+	VectorF backVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 0, 1)));
+	VectorF upVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 1, 0)));
+	VectorF backVectorXZ = backVector;
+	backVectorXZ.y = 0;
+	viewPhi = std::atan2(-backVector.y, abs(backVectorXZ));
+	if (absSquared(backVectorXZ) >= 1e-8)
+	{
+		viewTheta = std::atan2(backVector.x, backVector.z);
+		upVector =
+			transform(Matrix::rotateY(-viewTheta).concat(Matrix::rotateX(-viewPhi)), upVector);
+		viewPsi = std::atan2(-upVector.x, upVector.y);
+	}
+	else
+	{
+		viewPsi = 0;
+	    if(viewPhi < 0)
+	        upVector = -upVector;
+	    viewTheta = std::atan2(upVector.x, upVector.z);
+	}
     gameInput->viewTheta.set(viewTheta);
     gameInput->viewPhi.set(viewPhi);
     gameInput->viewPsi.set(viewPsi);
