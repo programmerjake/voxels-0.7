@@ -108,6 +108,7 @@
 				<Option projectCompilerOptionsRelation="1" />
 				<Option projectLinkerOptionsRelation="1" />
 				<Compiler>
+					<Add option="/MDd" />
 					<Add option="/arch:SSE2" />
 					<Add option="/fp:fast" />
 					<Add option="/fp:except-" />
@@ -118,7 +119,6 @@
 					<Add option="/Zc:wchar_t" />
 					<Add option="/Zi" />
 					<Add option="/FS" />
-					<Add option="/MTd" />
 					<Add option="/DDEBUG_VERSION" />
 					<Add option="/DDEBUG_LOCKS" />
 					<Add directory="C:/SDL2-2.0.3/include" />
@@ -158,7 +158,7 @@
 				<Option projectCompilerOptionsRelation="1" />
 				<Option projectLinkerOptionsRelation="1" />
 				<Compiler>
-					<Add option="/MT" />
+					<Add option="/MD" />
 					<Add option="/arch:SSE2" />
 					<Add option="/fp:fast" />
 					<Add option="/fp:except-" />
