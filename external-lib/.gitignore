@@ -1,4 +1,5 @@
 !*.pdb
 !*.lib
+!*.bsc
 !Debug
 !Release
