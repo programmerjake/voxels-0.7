@@ -42,16 +42,27 @@ struct QuitEvent;
 
 struct EventHandler
 {
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleTouchUp(TouchUpEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleTouchDown(TouchDownEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleTouchMove(TouchMoveEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleMouseUp(MouseUpEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleMouseDown(MouseDownEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleMouseMove(MouseMoveEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleMouseScroll(MouseScrollEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleKeyUp(KeyUpEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleKeyDown(KeyDownEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleKeyPress(KeyPressEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
     virtual bool handleQuit(QuitEvent &event) = 0;
     virtual ~EventHandler() = default;
 };
