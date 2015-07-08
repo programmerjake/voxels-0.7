@@ -25,6 +25,8 @@ Makefile
 *.lib
 *.ilk
 *.bsc
+*.obj
+*.idb
 .vs
 Debug
 Release
