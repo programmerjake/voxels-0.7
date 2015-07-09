@@ -750,21 +750,25 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
             if(arg2->type() == Data::Type::Float)
             {
                 auto v2 = dynamic_cast<DataFloat *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Integer)
             {
                 auto v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Vector)
             {
                 auto v2 = dynamic_cast<DataVector *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Matrix)
             {
                 auto v2 = dynamic_cast<DataMatrix *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
         }
@@ -774,21 +778,25 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
             if(arg2->type() == Data::Type::Float)
             {
                 auto v2 = dynamic_cast<DataFloat *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Integer)
             {
                 auto v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Vector)
             {
                 auto v2 = dynamic_cast<DataVector *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Matrix)
             {
                 auto v2 = dynamic_cast<DataMatrix *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
         }
@@ -798,21 +806,25 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
             if(arg2->type() == Data::Type::Float)
             {
                 auto v2 = dynamic_cast<DataFloat *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Integer)
             {
                 auto v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Vector)
             {
                 auto v2 = dynamic_cast<DataVector *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Matrix)
             {
                 auto v2 = dynamic_cast<DataMatrix *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
         }
@@ -822,21 +834,25 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
             if(arg2->type() == Data::Type::Float)
             {
                 auto v2 = dynamic_cast<DataFloat *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Integer)
             {
                 auto v2 = dynamic_cast<DataInteger *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Vector)
             {
                 auto v2 = dynamic_cast<DataVector *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
             if(arg2->type() == Data::Type::Matrix)
             {
                 auto v2 = dynamic_cast<DataMatrix *>(arg2.get())->value;
+                MSVC_PRAGMA(warning(suppress : 4244))
                 return toData(ChildClass::evalFn(v1, v2));
             }
         }
@@ -844,6 +860,7 @@ struct NodeBinaryArithmatic : public NodeConstArgCount<2, ChildClass>
         {
             auto v1 = dynamic_cast<DataBoolean *>(arg1.get())->value;
             auto v2 = dynamic_cast<DataBoolean *>(arg2.get())->value;
+            MSVC_PRAGMA(warning(suppress : 4244))
             return toData(ChildClass::evalFn(v1, v2));
         }
         return ChildClass::evaluateBackup(arg1, arg2);

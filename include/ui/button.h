@@ -190,7 +190,7 @@ protected:
     void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus, bool isPressed)
     {
         float backgroundZ = 0.5f * (minZ + maxZ);
-        float spacing = std::min<float>(0.15 * (maxX - minX), 0.25 * (maxY - minY));
+        float spacing = std::min<float>(0.15f * (maxX - minX), 0.25f * (maxY - minY));
         ColorF currentTextColor = textColor;
         ColorF topColor = color;
         if(hasFocus)
@@ -198,7 +198,7 @@ protected:
             currentTextColor = selectedTextColor;
             topColor = selectedColor;
         }
-        ColorF bottomColor = colorize(GrayscaleF(0.7), topColor);
+        ColorF bottomColor = colorize(GrayscaleF(0.7f), topColor);
         float textWidth = Text::width(text, textProperties);
         float textHeight = Text::height(text, textProperties);
         if(textWidth == 0)
@@ -211,17 +211,17 @@ protected:
         {
             currentTextColor = pressedTextColor;
             bottomColor = pressedColor;
-            topColor = colorize(GrayscaleF(0.7), pressedColor);
-            textScale *= 0.9;
+            topColor = colorize(GrayscaleF(0.7f), pressedColor);
+            textScale *= 0.9f;
         }
         renderer << Generate::quadrilateral(whiteTexture(),
                                                   VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), bottomColor,
                                                   VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), bottomColor,
                                                   VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), topColor,
                                                   VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), topColor);
-        float xOffset = -0.5 * textWidth, yOffset = -0.5 * textHeight;
-        xOffset = textScale * xOffset + 0.5 * (minX + maxX);
-        yOffset = textScale * yOffset + 0.5 * (minY + maxY);
+        float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
+        xOffset = textScale * xOffset + 0.5f * (minX + maxX);
+        yOffset = textScale * yOffset + 0.5f * (minY + maxY);
         renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, currentTextColor, textProperties));
     }
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
