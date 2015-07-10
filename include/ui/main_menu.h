@@ -51,10 +51,12 @@ private:
     };
     std::shared_ptr<Element> setupMainMenu();
     std::shared_ptr<Element> setupSettingsMenu();
+    std::shared_ptr<Element> setupBackgroundCameraSelectionMenu();
     enum class MenuState
     {
         MainMenu_,
-        SettingsMenu
+        SettingsMenu,
+        BackgroundCameraSelectionMenu
     };
     MenuState menuState = MenuState::MainMenu_;
     bool needChangeMenuState = false;
@@ -98,6 +100,9 @@ public:
                 break;
             case MenuState::SettingsMenu:
                 setFocus(setupSettingsMenu());
+                break;
+            case MenuState::BackgroundCameraSelectionMenu:
+                setFocus(setupBackgroundCameraSelectionMenu());
                 break;
             }
         }

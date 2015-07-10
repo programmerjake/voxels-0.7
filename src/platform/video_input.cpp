@@ -80,7 +80,8 @@ private:
     }
 public:
     BufferedVideoInput(std::unique_ptr<VideoInput> videoInput, double maxFrameTime = 1.0 / 60.0)
-        : videoInput(std::move(videoInput)),
+        : VideoInput(videoInput->videoInputDevice),
+        videoInput(),
         frameReaderThread(),
         buffer(),
         buffer2(),
@@ -91,6 +92,7 @@ public:
         stateCond()
     {
         int width, height;
+        this->videoInput = std::move(videoInput);
         this->videoInput->getSize(width, height);
         buffer = Image(width, height);
         buffer2 = buffer;
@@ -152,8 +154,12 @@ private:
     const int deviceId;
     int actualWidth, actualHeight;
     std::vector<std::uint8_t> buffer;
-    MyVideoInput(int deviceId, int requestedWidth, int requestedHeight, int requestedFrameRate)
-        : input(), good(true), deviceId(deviceId), buffer()
+    MyVideoInput(const VideoInputDevice *videoInputDevice, int deviceId, int requestedWidth, int requestedHeight, int requestedFrameRate)
+        : VideoInput(videoInputDevice),
+        input(),
+        good(true),
+        deviceId(deviceId),
+        buffer()
     {
         if(requestedFrameRate > 0)
             input.setIdealFramerate(deviceId, requestedFrameRate);
@@ -228,7 +234,7 @@ private:
 public:
     virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight, int requestedFrameRate) const override
     {
-        std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(new MyVideoInput(deviceId, requestedWidth, requestedHeight, requestedFrameRate));
+        std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(new MyVideoInput(this, deviceId, requestedWidth, requestedHeight, requestedFrameRate));
         if(!retval->good)
             return std::unique_ptr<VideoInput>();
         if(requestedFrameRate > 0)

@@ -139,13 +139,49 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     add(backgroundCameraCheckBox);
     CheckBox &backgroundCameraCheckBoxR = *backgroundCameraCheckBox;
     backgroundCameraCheckBox->checked.set(gameUi->hasBackgroundCamera());
-    backgroundCameraCheckBox->checked.onChange.bind([&backgroundCameraCheckBoxR, &gameUiR](EventArguments &)->Event::ReturnType
+    backgroundCameraCheckBox->checked.onChange.bind([&backgroundCameraCheckBoxR, &gameUiR, this](EventArguments &)->Event::ReturnType
     {
+        class ReentryProtector
+        {
+            ReentryProtector(const ReentryProtector &) = delete;
+            ReentryProtector &operator =(const ReentryProtector &) = delete;
+        private:
+            static bool &getReentryFlag()
+            {
+                static thread_local bool retval = false;
+                return retval;
+            }
+        public:
+            const bool isReentry;
+            ReentryProtector()
+                : isReentry(getReentryFlag())
+            {
+                getReentryFlag() = true;
+            }
+            ~ReentryProtector()
+            {
+                getReentryFlag() = isReentry;
+            }
+        };
+        ReentryProtector reentryProtector;
+        if(reentryProtector.isReentry)
+            return Event::ReturnType::Propagate;
         if(backgroundCameraCheckBoxR.checked.get())
         {
             const std::vector<const VideoInputDevice *> &videoInputDevices = getVideoInputDeviceList();
-            if(!videoInputDevices.empty())
-                gameUiR.setBackgroundCamera(videoInputDevices.front()->makeVideoInput());
+            std::unique_ptr<VideoInput> videoInput;
+            if(videoInputDevices.size() == 1)
+                videoInput = videoInputDevices.front()->makeVideoInput();
+            else if(videoInputDevices.size() > 1)
+            {
+                menuState = MenuState::BackgroundCameraSelectionMenu;
+                needChangeMenuState = true;
+                return Event::ReturnType::Propagate;
+            }
+            if(videoInput)
+                gameUiR.setBackgroundCamera(std::move(videoInput));
+            else
+                backgroundCameraCheckBoxR.checked.set(false);
         }
         else
         {
@@ -167,6 +203,37 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     backButton->click.bind([this](EventArguments &)->Event::ReturnType
     {
         menuState = MenuState::MainMenu_;
+        needChangeMenuState = true;
+        return Event::ReturnType::Propagate;
+    });
+    return backButton;
+}
+
+std::shared_ptr<Element> MainMenu::setupBackgroundCameraSelectionMenu()
+{
+    add(std::make_shared<BackgroundElement>());
+    std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
+    GameUi &gameUiR = *gameUi;
+    float topY = 0.95f;
+    for(const VideoInputDevice *videoInputDevice : getVideoInputDeviceList())
+    {
+        std::wstring name = videoInputDevice->name;
+        std::shared_ptr<Button> cameraButton = std::make_shared<Button>(name, -0.8f, 0.8f, topY - 0.15f, topY);
+        topY -= 0.2f;
+        add(cameraButton);
+        cameraButton->click.bind([&gameUiR, videoInputDevice, this](EventArguments &)->Event::ReturnType
+        {
+            gameUiR.setBackgroundCamera(videoInputDevice->makeVideoInput());
+            menuState = MenuState::SettingsMenu;
+            needChangeMenuState = true;
+            return Event::ReturnType::Propagate;
+        });
+    }
+    std::shared_ptr<Button> backButton = std::make_shared<Button>(L"Back", -0.8f, 0.8f, -0.95f, -0.7f);
+    add(backButton);
+    backButton->click.bind([this](EventArguments &)->Event::ReturnType
+    {
+        menuState = MenuState::SettingsMenu;
         needChangeMenuState = true;
         return Event::ReturnType::Propagate;
     });

@@ -30,12 +30,18 @@ namespace programmerjake
 {
 namespace voxels
 {
+class VideoInputDevice;
+
 class VideoInput
 {
     VideoInput(const VideoInput &) = delete;
     VideoInput &operator =(const VideoInput &) = delete;
 public:
-    VideoInput() = default;
+    const VideoInputDevice *const videoInputDevice;
+    explicit VideoInput(const VideoInputDevice *videoInputDevice)
+        : videoInputDevice(videoInputDevice)
+    {
+    }
     virtual ~VideoInput() = default;
     int getWidth()
     {
@@ -53,20 +59,8 @@ public:
     virtual void readFrameIntoImage(Image &dest) = 0;
 };
 
-struct VideoInputFormat final
-{
-    int width = 0, height = 0;
-    int frameRate = 0;
-    VideoInputFormat() = default;
-    VideoInputFormat(int width, int height, int frameRate)
-        : width(width), height(height), frameRate(frameRate)
-    {
-    }
-};
-
 class VideoInputDevice
 {
-    friend class VideoInputFormatIterator;
     VideoInputDevice(const VideoInputDevice &) = delete;
     VideoInputDevice &operator =(const VideoInputDevice &) = delete;
 public:

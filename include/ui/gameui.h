@@ -238,6 +238,12 @@ public:
     {
         return backgroundCamera != nullptr;
     }
+    const VideoInputDevice *getBackgroundCameraDevice() const
+    {
+        if(backgroundCamera != nullptr)
+            return backgroundCamera->videoInputDevice;
+        return nullptr;
+    }
     virtual void move(double deltaTime) override
     {
         jumpDoubleTapTimeLeft -= static_cast<float>(deltaTime);
