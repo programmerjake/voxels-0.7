@@ -556,7 +556,7 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLoc
     float deltaTime = 0;
     std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     if(chunk->getChunkVariables().lastBlockUpdateTimeValid)
-        deltaTime = std::chrono::duration_cast<std::chrono::duration<double>>(now - chunk->getChunkVariables().lastBlockUpdateTime).count();
+        deltaTime = static_cast<float>(std::chrono::duration_cast<std::chrono::duration<double>>(now - chunk->getChunkVariables().lastBlockUpdateTime).count());
     chunk->getChunkVariables().lastBlockUpdateTimeValid = true;
     chunk->getChunkVariables().lastBlockUpdateTime = now;
     BlockUpdate *retval = nullptr;
@@ -1197,7 +1197,7 @@ float World::getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_m
     float retval = 0;
     bool retvalSet = false;
     PositionF chunkMinCorner = bi.position();
-    PositionF chunkMaxCorner = chunkMinCorner + VectorF(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
+    PositionF chunkMaxCorner = chunkMinCorner + VectorI(BlockChunk::chunkSizeX, BlockChunk::chunkSizeY, BlockChunk::chunkSizeZ);
     PositionF chunkMinCornerXZ = chunkMinCorner;
     PositionF chunkMaxCornerXZ = chunkMaxCorner;
     chunkMinCornerXZ.y = 0;
@@ -1317,9 +1317,9 @@ void World::moveEntitiesThreadFn(TLS &tls)
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
             if(isGenerated && isChunkCloseEnough)
             {
-                float fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
+                double fRandomTickCount = deltaTime * (20.0f * 3.0f / 16.0f / 16.0f / 16.0f * BlockChunk::chunkSizeX * BlockChunk::chunkSizeY * BlockChunk::chunkSizeZ);
                 //fRandomTickCount *= 5;
-                int randomTickCount = ifloor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator()));
+                int randomTickCount = static_cast<int>(std::floor(fRandomTickCount + std::generate_canonical<float, 20>(getRandomGenerator())));
                 for(int i = 0; i < randomTickCount; i++)
                 {
                     VectorI relativePosition = VectorI(std::uniform_int_distribution<>(0, BlockChunk::chunkSizeX - 1)(getRandomGenerator()),

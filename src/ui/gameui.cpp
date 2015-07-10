@@ -317,7 +317,7 @@ void GameUi::addWorldUi()
     worldDependantElements.push_back(crosshairs);
     for(std::size_t i = 0; i < hotBarSize; i++)
     {
-        std::shared_ptr<Element> e = std::make_shared<HotBarItem>(i * hotBarItemSize - hotBarWidth * 0.5f, (i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1, -1 + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [this, i]()->bool
+        std::shared_ptr<Element> e = std::make_shared<HotBarItem>(static_cast<float>(i) * hotBarItemSize - hotBarWidth * 0.5f, static_cast<float>(i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1.0f, -1.0f + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [this, i]()->bool
         {
             std::shared_ptr<Player> player = playerW.lock();
             if(player == nullptr)

@@ -550,6 +550,7 @@ static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadSt
 
 static int globalSetup()
 {
+MSVC_PRAGMA(warning(suppress : 4996))
     if(getenv("VOXELS_SIMULATE_TOUCH") != nullptr) // enable touch simulation
     {
         touchSimulationState = std::make_shared<TouchSimulationState>();

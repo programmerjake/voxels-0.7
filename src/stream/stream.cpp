@@ -231,6 +231,7 @@ FileReader::FileReader(std::wstring fileName)
 {
     std::string str = string_cast<std::string>(fileName);
     errno = 0;
+MSVC_PRAGMA(warning(suppress : 4996))
     f = FILE_OPEN(str.c_str(), "rb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
@@ -263,6 +264,7 @@ void FileReader::seek(std::int64_t offset, SeekPosition seekPosition)
         UNREACHABLE();
     }
     errno = 0;
+MSVC_PRAGMA(warning(suppress : 4244))
     if(0 != FILE_SEEK(f, offset, whence))
         IOException::throwErrorFromErrno("fseek");
 }
@@ -285,6 +287,7 @@ FileWriter::FileWriter(std::wstring fileName)
     : f(nullptr)
 {
     std::string str = string_cast<std::string>(fileName);
+MSVC_PRAGMA(warning(suppress : 4996))
     f = FILE_OPEN(str.c_str(), "wb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
@@ -327,6 +330,7 @@ void FileWriter::seek(std::int64_t offset, SeekPosition seekPosition)
         UNREACHABLE();
     }
     errno = 0;
+MSVC_PRAGMA(warning(suppress : 4244))
     if(0 != FILE_SEEK(f, offset, whence))
         IOException::throwErrorFromErrno("fseek");
 }

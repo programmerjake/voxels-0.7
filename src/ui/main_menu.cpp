@@ -25,6 +25,7 @@
 #include "stream/stream.h"
 #include "util/logging.h"
 #include "ui/label.h"
+#include "ui/shaded_container.h"
 
 namespace programmerjake
 {
@@ -132,8 +133,11 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     demoString += L"\u2568\u2564\u2565\u2559\u2558\u2552\u2553\u256B\u256A\u2518\u250C\u2588\u2584\u258C\u2590\u2580\n";
     demoString += L"\u03B1\u00DF\u0393\u03C0\u03A3\u03C3\u00B5\u03C4\u03A6\u0398\u03A9\u03B4\u221E\u03C6\u03B5\u2229\n";
     demoString += L"\u2261\u00B1\u2265\u2264\u2320\u2321\u00F7\u2248\u00B0\u2219\u00B7\u221A\u207F\u00B2\u25A0\u2610";
-    add(std::make_shared<Label>(demoString, -1, -0.1f, 0, 1));
-    add(std::make_shared<Label>(demoString, 0.1f, 1, 0, 1, GrayscaleF(0), vectorFont));
+    std::shared_ptr<Container> textContainer = std::make_shared<ShadedContainer>(-1.05f, 1.05f, 0.0f, 1.0f, GrayscaleAF(0.0f, 0.75f));
+    textContainer->add(std::make_shared<Label>(demoString, -1.0f, -0.1f, 0.05f, 0.95f, GrayscaleF(0.5f)));
+    textContainer->add(std::make_shared<Label>(demoString, 0.1f, 1.0f, 0.05f, 0.95f, RGBF(0.0f, 1.0f, 1.0f), vectorFont));
+    textContainer->add(std::make_shared<Label>(demoString, 0.1f, 1.0f, 0.05f, 0.95f, RGBAF(1.0f, 0.0f, 0.0f, 0.5f), vectorFont));
+    add(textContainer);
 #endif
     std::shared_ptr<CheckBox> backgroundCameraCheckBox = std::make_shared<CheckBox>(L"Background Camera", -0.8f, 0.8f, -0.35f, -0.1f);
     add(backgroundCameraCheckBox);

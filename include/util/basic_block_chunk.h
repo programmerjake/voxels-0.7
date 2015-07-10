@@ -593,10 +593,11 @@ private:
         }
     };
 public:
+    struct const_iterator;
     struct iterator final : public std::iterator<std::forward_iterator_tag, value_type>
     {
         friend class ChunkMap;
-        friend class const_iterator;
+        friend struct const_iterator;
     private:
         iterator_imp imp;
         iterator(iterator_imp imp)

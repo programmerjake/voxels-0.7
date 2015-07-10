@@ -177,7 +177,6 @@
 					<Add directory="C:/zlib-1.2.8" />
 				</Compiler>
 				<Linker>
-					<Add option="/LTCG" />
 					<Add option="/SUBSYSTEM:CONSOLE" />
 					<Add library="C:\SDL2-2.0.3\VisualC\SDLmain\Win32\Release\SDL2main.lib" />
 					<Add library="opengl32" />
@@ -187,6 +186,56 @@
 					<Add library="C:\libvorbis-1.3.5\win32\VS2010\Win32\Release\libvorbis_static.lib" />
 					<Add library="C:\libvorbis-1.3.5\win32\VS2010\Win32\Release\libvorbisfile_static.lib" />
 					<Add library="C:\SDL2-2.0.3\VisualC\SDL\Win32\Release\SDL2.lib" />
+					<Add library="kernel32" />
+					<Add library="user32" />
+					<Add library="shell32" />
+					<Add library="winmm" />
+					<Add library="ole32" />
+					<Add library="gdi32" />
+					<Add library="version" />
+					<Add library="imm32" />
+					<Add library="oleaut32" />
+					<Add library="strmiids" />
+				</Linker>
+			</Target>
+			<Target title="Optimized MSVC">
+				<Option output="voxels-optimized-msvc" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Optimized-MSVC/" />
+				<Option type="1" />
+				<Option compiler="microsoft_visual_c_2015" />
+				<Option projectCompilerOptionsRelation="1" />
+				<Option projectLinkerOptionsRelation="1" />
+				<Compiler>
+					<Add option="/MDd" />
+					<Add option="/arch:SSE2" />
+					<Add option="/fp:fast" />
+					<Add option="/fp:except-" />
+					<Add option="/EHa" />
+					<Add option="/GR" />
+					<Add option="/O2" />
+					<Add option="/W3" />
+					<Add option="/Zc:auto" />
+					<Add option="/Zc:wchar_t" />
+					<Add option="/Zi" />
+					<Add option="/FS" />
+					<Add option="/DDEBUG_VERSION" />
+					<Add directory="C:/SDL2-2.0.3/include" />
+					<Add directory="C:/libogg-1.3.2/include" />
+					<Add directory="C:/libvorbis-1.3.5/include" />
+					<Add directory="C:/lpng1617" />
+					<Add directory="C:/zlib-1.2.8" />
+				</Compiler>
+				<Linker>
+					<Add option="/DEBUG" />
+					<Add option="/SUBSYSTEM:CONSOLE" />
+					<Add library="C:\SDL2-2.0.3\VisualC\SDLmain\Win32\Debug\SDL2main.lib" />
+					<Add library="opengl32" />
+					<Add library="C:\lpng1617\projects\vstudio\Debug Library\libpng16.lib" />
+					<Add library="C:\lpng1617\projects\vstudio\Debug Library\zlib.lib" />
+					<Add library="C:\libogg-1.3.2\win32\VS2010\Win32\Debug\libogg_static.lib" />
+					<Add library="C:\libvorbis-1.3.5\win32\VS2010\Win32\Debug\libvorbis_static.lib" />
+					<Add library="C:\libvorbis-1.3.5\win32\VS2010\Win32\Debug\libvorbisfile_static.lib" />
+					<Add library="C:\SDL2-2.0.3\VisualC\SDL\Win32\Debug\SDL2.lib" />
 					<Add library="kernel32" />
 					<Add library="user32" />
 					<Add library="shell32" />
