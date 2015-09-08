@@ -1712,28 +1712,35 @@ float Text::height(wstring str, const TextProperties &properties)
     return h;
 }
 
-float Text::xPos(wstring str, const TextProperties &properties)
+float Text::xPos(wstring str, std::size_t cursorPosition, const TextProperties &properties)
 {
     float x = 0, y = 0, w = 0, h = 0;
 
     for(wchar_t ch : str)
     {
+        if(cursorPosition == 0)
+            return x;
+        cursorPosition--;
         updateFromChar(x, y, w, h, ch, properties);
     }
 
     return x;
 }
 
-float Text::yPos(wstring str, const TextProperties &properties)
+float Text::yPos(wstring str, std::size_t cursorPosition, const TextProperties &properties)
 {
+    float totalHeight = height(str, properties);
     float x = 0, y = 0, w = 0, h = 0;
 
     for(wchar_t ch : str)
     {
+        if(cursorPosition == 0)
+            return totalHeight - y - 1;
+        cursorPosition--;
         updateFromChar(x, y, w, h, ch, properties);
     }
 
-    return h - y - 1;
+    return totalHeight - y - 1;
 }
 
 Mesh Text::mesh(wstring str, ColorF color, const TextProperties &properties)

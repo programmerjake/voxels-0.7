@@ -57,8 +57,8 @@ struct TextProperties final
 extern const TextProperties defaultTextProperties;
 float width(std::wstring str, const TextProperties & properties = defaultTextProperties);
 float height(std::wstring str, const TextProperties & properties = defaultTextProperties);
-float xPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
-float yPos(std::wstring str, const TextProperties & properties = defaultTextProperties);
+float xPos(std::wstring str, std::size_t cursorPosition, const TextProperties & properties = defaultTextProperties);
+float yPos(std::wstring str, std::size_t cursorPosition, const TextProperties & properties = defaultTextProperties);
 Mesh mesh(std::wstring str, ColorF color = colorizeIdentity(), const TextProperties & properties = defaultTextProperties);
 }
 }
