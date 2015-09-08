@@ -81,6 +81,29 @@ public:
                 functions.push_back(fn);
         }
     }
+    void bind(std::function<void (EventArguments &args)> fn, ReturnType returnType, Priority p = Priority::Default)
+    {
+        bind([fn, returnType](EventArguments &args)->ReturnType
+        {
+            fn(args);
+            return returnType;
+        }, p);
+    }
+    void bind(std::function<void ()> fn, ReturnType returnType, Priority p = Priority::Default)
+    {
+        bind([fn, returnType](EventArguments &)->ReturnType
+        {
+            fn();
+            return returnType;
+        }, p);
+    }
+    void bind(std::function<ReturnType ()> fn, Priority p = Priority::Default)
+    {
+        bind([fn](EventArguments &)->ReturnType
+        {
+            return fn();
+        }, p);
+    }
     ReturnType operator ()(EventArguments &args)
     {
         for(auto fn : functions)
