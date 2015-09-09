@@ -114,6 +114,11 @@ public:
         }
         return Propagate;
     }
+    ReturnType operator()()
+    {
+        EventArguments args;
+        return operator()(args);
+    }
 };
 
 }

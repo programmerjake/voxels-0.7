@@ -954,11 +954,11 @@ void GameUi::addUi()
     setDialog(mainMenu);
 }
 
-GameUi::GameUi(Renderer &renderer, TLS &tls)
+GameUi::GameUi()
     : audioScheduler(),
     playingAudio(),
     world(),
-    lock_manager(tls),
+    lock_manager(TLS::getSlow()),
     viewPoint(),
     gameInput(std::make_shared<GameInput>()),
     playerW(),

@@ -65,7 +65,11 @@ public:
     {
         return false;
     }
-    virtual bool handleKeyPress(KeyPressEvent &event) override
+    virtual bool handleTextInput(TextInputEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleTextEdit(TextEditEvent &event) override
     {
         return false;
     }

@@ -87,7 +87,11 @@ public:
     {
         return false;
     }
-    virtual bool handleKeyPress(KeyPressEvent &event) override
+    virtual bool handleTextInput(TextInputEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleTextEdit(TextEditEvent &event) override
     {
         return false;
     }
@@ -170,6 +174,9 @@ public:
         moveBy(x - maxX, y - minY);
     }
     virtual void layout()
+    {
+    }
+    virtual void handleFocusChange(bool gettingFocus)
     {
     }
 protected:

@@ -362,6 +362,12 @@ namespace Display
     void fullScreen(bool fs);
     bool needTouchControls();
     float getTouchControlSize(); /// never returns a value > 0.3
+    namespace Text
+    {
+        bool active();
+        void start(float minX, float maxX, float minY, float maxY);
+        void stop();
+    }
 }
 
 void startGraphics();

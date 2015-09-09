@@ -50,6 +50,7 @@
 #include "platform/thread_priority.h"
 #include "util/logging.h"
 #include "render/generate.h"
+#include "util/tls.h"
 #include <csignal>
 #include <cstdio>
 #include <ctime>
@@ -1189,15 +1190,6 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
 
 static std::shared_ptr<PlatformEvent> makeEvent()
 {
-    static bool needCharEvent = false;
-    static wstring characters;
-    if(needCharEvent)
-    {
-        needCharEvent = false;
-        wchar_t character = characters[0];
-        characters.erase(0, 1);
-        return std::make_shared<KeyPressEvent>(character);
-    }
     if(needQuitEvent)
     {
         needQuitEvent = false;
@@ -1373,6 +1365,16 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         case SDL_SYSWMEVENT:
             //TODO (jacob#): handle SDL_SYSWMEVENT
             break;
+        case SDL_TEXTEDITING:
+        {
+            std::string text = SDLEvent.edit.text;
+            return std::make_shared<TextEditEvent>(string_cast<std::wstring>(text), string_cast<std::wstring>(text.substr(0, SDLEvent.edit.start)).size(), SDLEvent.edit.length);
+        }
+        case SDL_TEXTINPUT:
+        {
+            std::string text = SDLEvent.text.text;
+            return std::make_shared<TextInputEvent>(string_cast<std::wstring>(text));
+        }
         }
     }
 }
@@ -1422,7 +1424,11 @@ struct DefaultEventHandler : public EventHandler
         }
         return true;
     }
-    virtual bool handleKeyPress(KeyPressEvent &) override
+    virtual bool handleTextInput(TextInputEvent &) override
+    {
+        return true;
+    }
+    virtual bool handleTextEdit(TextEditEvent &) override
     {
         return true;
     }
@@ -2786,6 +2792,34 @@ void *DynamicLinkLibrary::resolve(std::wstring name)
     return retval;
 }
 
+bool Display::Text::active()
+{
+    return SDL_IsTextInputActive() ? true : false;
+}
+
+void Display::Text::start(float minX, float maxX, float minY, float maxY)
+{
+    SDL_StartTextInput();
+    VectorF corner1 = Display::transform3DToMouse(VectorF(minX, minY, -1.0f));
+    VectorF corner2 = Display::transform3DToMouse(VectorF(maxX, maxY, -1.0f));
+    VectorF minCorner, maxCorner;
+    minCorner.x = std::min(corner1.x, corner2.x);
+    minCorner.y = std::min(corner1.y, corner2.y);
+    maxCorner.x = std::max(corner1.x, corner2.x);
+    maxCorner.y = std::max(corner1.y, corner2.y);
+    SDL_Rect rect;
+    rect.x = (int)minCorner.x;
+    rect.y = (int)minCorner.y;
+    rect.w = (int)(maxCorner.x - minCorner.x);
+    rect.h = (int)(maxCorner.y - minCorner.y);
+    SDL_SetTextInputRect(&rect);
+}
+
+void Display::Text::stop()
+{
+    SDL_StopTextInput();
+}
+
 namespace
 {
 struct TemporaryFile final
@@ -2979,6 +3013,7 @@ namespace
 {
 int callMyMain(int argc, char **argv)
 {
+    TLS tls;
     std::vector<std::wstring> args;
     args.reserve(argc);
     for(int i = 0; i < argc; i++)

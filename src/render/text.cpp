@@ -1656,6 +1656,10 @@ bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Te
     {
         x = 0;
         y += charHeight;
+        if(y + charHeight > h)
+        {
+            h = y + charHeight;
+        }
     }
     else if(ch == L'\r')
     {
@@ -1664,10 +1668,11 @@ bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Te
     else if(ch == L'\t')
     {
         x = floor(x / properties.tabWidth + 1) * properties.tabWidth;
-    }
-    else if(ch == L' ')
-    {
-        x += charWidth;
+
+        if(x > w)
+        {
+            w = x;
+        }
     }
     else
     {
@@ -1682,7 +1687,7 @@ bool updateFromChar(float &x, float &y, float &w, float &h, wchar_t ch, const Te
         {
             h = y + charHeight;
         }
-        return true;
+        return ch != L' ';
     }
     return false;
 }

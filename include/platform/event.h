@@ -37,7 +37,8 @@ struct MouseDownEvent;
 struct MouseMoveEvent;
 struct MouseScrollEvent;
 class KeyUpEvent;
-struct KeyPressEvent;
+struct TextInputEvent;
+struct TextEditEvent;
 struct QuitEvent;
 
 struct EventHandler
@@ -61,7 +62,9 @@ struct EventHandler
     /// @return true if the event doesn't need to propagate anymore
     virtual bool handleKeyDown(KeyDownEvent &event) = 0;
     /// @return true if the event doesn't need to propagate anymore
-    virtual bool handleKeyPress(KeyPressEvent &event) = 0;
+    virtual bool handleTextInput(TextInputEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
+    virtual bool handleTextEdit(TextEditEvent &event) = 0;
     /// @return true if the event doesn't need to propagate anymore
     virtual bool handleQuit(QuitEvent &event) = 0;
     virtual ~EventHandler() = default;
@@ -89,9 +92,10 @@ public:
         MouseScroll,
         KeyUp,
         KeyDown,
-        KeyPress,
+        TextInput,
+        TextEdit,
         Quit,
-        DEFINE_ENUM_LIMITS(MouseUp, Quit)
+        DEFINE_ENUM_LIMITS(TouchUp, Quit)
     };
     const Type type;
 protected:
@@ -205,16 +209,31 @@ public:
     }
 };
 
-struct KeyPressEvent : public PlatformEvent
+struct TextInputEvent : public PlatformEvent
 {
-    const wchar_t character;
-    KeyPressEvent(wchar_t character)
-        : PlatformEvent(Type::KeyPress), character(character)
+    const std::wstring text;
+    TextInputEvent(const std::wstring text)
+        : PlatformEvent(Type::TextInput), text(text)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
     {
-        return eventHandler->handleKeyPress(*this);
+        return eventHandler->handleTextInput(*this);
+    }
+};
+
+struct TextEditEvent : public PlatformEvent
+{
+    const std::wstring text;
+    const std::size_t start;
+    const std::size_t length;
+    TextEditEvent(const std::wstring text, std::size_t start, std::size_t length)
+        : PlatformEvent(Type::TextEdit), text(text), start(start), length(length)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handleTextEdit(*this);
     }
 };
 
@@ -382,14 +401,23 @@ public:
 
         return second->handleKeyDown(event);
     }
-    virtual bool handleKeyPress(KeyPressEvent &event)override
+    virtual bool handleTextInput(TextInputEvent &event) override
     {
-        if(first->handleKeyPress(event))
+        if(first->handleTextInput(event))
         {
             return true;
         }
 
-        return second->handleKeyPress(event);
+        return second->handleTextInput(event);
+    }
+    virtual bool handleTextEdit(TextEditEvent &event) override
+    {
+        if(first->handleTextEdit(event))
+        {
+            return true;
+        }
+
+        return second->handleTextEdit(event);
     }
     virtual bool handleQuit(QuitEvent &event)override
     {

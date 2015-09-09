@@ -204,7 +204,7 @@ private:
     void handleSetViewMatrix(Matrix viewMatrix);
 public:
     std::atomic<float> blockDestructProgress;
-    GameUi(Renderer &renderer, TLS &tls);
+    GameUi();
     void createNewWorld();
     void loadWorld(std::wstring fileName);
     ~GameUi()
@@ -737,11 +737,22 @@ public:
             return false;
         }
     }
-    virtual bool handleKeyPress(KeyPressEvent &event) override
+    virtual bool handleTextInput(TextInputEvent &event) override
     {
-        if(virtualRealityCallbacks && virtualRealityCallbacks->handleKeyPress(event))
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleTextInput(event))
             return true;
-        if(Ui::handleKeyPress(event))
+        if(Ui::handleTextInput(event))
+            return true;
+        if(dialog)
+            return false;
+        FIXME_MESSAGE(implement)
+        return false;
+    }
+    virtual bool handleTextEdit(TextEditEvent &event) override
+    {
+        if(virtualRealityCallbacks && virtualRealityCallbacks->handleTextEdit(event))
+            return true;
+        if(Ui::handleTextEdit(event))
             return true;
         if(dialog)
             return false;

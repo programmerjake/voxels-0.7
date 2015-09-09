@@ -54,9 +54,6 @@ private:
     }
 protected:
     static constexpr std::size_t npos = ~(std::size_t)0;
-    virtual void onSetFocus()
-    {
-    }
     std::shared_ptr<Element> operator [](std::size_t index)
     {
         return elements[index];
@@ -91,6 +88,15 @@ public:
         return std::move(sthis);
     }
 private:
+    void onSetFocus(std::shared_ptr<Element> newFocusedElement, std::shared_ptr<Element> oldFocusedElement)
+    {
+        if(newFocusedElement == oldFocusedElement)
+            return;
+        if(oldFocusedElement.get() != this)
+            oldFocusedElement->handleFocusChange(false);
+        if(newFocusedElement.get() != this)
+            newFocusedElement->handleFocusChange(true);
+    }
     void removeHelper(std::size_t removedIndex, std::size_t &adjustIndex) const
     {
         if(adjustIndex != npos)
@@ -162,46 +168,51 @@ public:
     }
     virtual void firstFocusElement() override final
     {
+        auto oldFocusElement = getFocusElement();
         for(currentFocusIndex = 0; currentFocusIndex < elements.size(); currentFocusIndex++)
         {
             if(elements[currentFocusIndex]->canHaveKeyboardFocus())
             {
                 elements[currentFocusIndex]->firstFocusElement();
-                onSetFocus();
+                onSetFocus(getFocusElement(), oldFocusElement);
                 return;
             }
         }
         currentFocusIndex = 0;
-        onSetFocus();
+        onSetFocus(getFocusElement(), oldFocusElement);
     }
 
     virtual void lastFocusElement() override final
     {
+        auto oldFocusElement = getFocusElement();
         currentFocusIndex = elements.size() - 1;
         for(size_t i = 0; i < elements.size(); currentFocusIndex--, i++)
         {
             if(elements[currentFocusIndex]->canHaveKeyboardFocus())
             {
                 elements[currentFocusIndex]->lastFocusElement();
-                onSetFocus();
+                onSetFocus(getFocusElement(), oldFocusElement);
                 return;
             }
         }
         currentFocusIndex = 0;
-        onSetFocus();
+        onSetFocus(getFocusElement(), oldFocusElement);
     }
 
     virtual bool prevFocusElement() override final /// returns true when reached container boundary
     {
+        auto oldFocusElement = getFocusElement();
         if(elements.size() == 0)
             return true;
         if(currentFocusIndex >= elements.size())
         {
             currentFocusIndex = 0;
+            onSetFocus(getFocusElement(), oldFocusElement);
             return true;
         }
         if(!elements[currentFocusIndex]->prevFocusElement())
             return false;
+        std::size_t oldFocusIndex = currentFocusIndex;
         do
         {
             currentFocusIndex += elements.size() - 1;
@@ -209,26 +220,30 @@ public:
             if(elements[currentFocusIndex]->canHaveKeyboardFocus())
             {
                 elements[currentFocusIndex]->lastFocusElement();
-                onSetFocus();
+                onSetFocus(getFocusElement(), oldFocusElement);
                 return currentFocusIndex == elements.size() - 1;
             }
         }
         while(currentFocusIndex != elements.size() - 1);
+        currentFocusIndex = oldFocusIndex;
         lastFocusElement();
         return true;
     }
 
     virtual bool nextFocusElement() override final /// returns true when reached container boundary
     {
+        auto oldFocusElement = getFocusElement();
         if(elements.size() == 0)
             return true;
         if(currentFocusIndex >= elements.size())
         {
             currentFocusIndex = 0;
+            onSetFocus(getFocusElement(), oldFocusElement);
             return true;
         }
         if(!elements[currentFocusIndex]->nextFocusElement())
             return false;
+        std::size_t oldFocusIndex = currentFocusIndex;
         do
         {
             currentFocusIndex++;
@@ -236,11 +251,12 @@ public:
             if(elements[currentFocusIndex]->canHaveKeyboardFocus())
             {
                 elements[currentFocusIndex]->firstFocusElement();
-                onSetFocus();
+                onSetFocus(getFocusElement(), oldFocusElement);
                 return currentFocusIndex == 0;
             }
         }
         while(currentFocusIndex != 0);
+        currentFocusIndex = oldFocusIndex;
         firstFocusElement();
         return true;
     }
@@ -507,12 +523,19 @@ public:
         }
         return false;
     }
-    virtual bool handleKeyPress(KeyPressEvent &event) override
+    virtual bool handleTextInput(TextInputEvent &event) override
     {
         auto e = getFocusElement();
         if(e.get() == this)
-            return Element::handleKeyPress(event);
-        return e->handleKeyPress(event);
+            return Element::handleTextInput(event);
+        return e->handleTextInput(event);
+    }
+    virtual bool handleTextEdit(TextEditEvent &event) override
+    {
+        auto e = getFocusElement();
+        if(e.get() == this)
+            return Element::handleTextEdit(event);
+        return e->handleTextEdit(event);
     }
     virtual bool handleQuit(QuitEvent &event) override
     {
@@ -520,6 +543,12 @@ public:
         if(e.get() == this)
             return Element::handleQuit(event);
         return e->handleQuit(event);
+    }
+    virtual void handleFocusChange(bool gettingFocus) override
+    {
+        auto e = getFocusElement();
+        if(e.get() != this)
+            e->handleFocusChange(gettingFocus);
     }
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override;
@@ -534,12 +563,23 @@ public:
             {
                 if(e->canHaveKeyboardFocus())
                 {
-                    currentFocusIndex = i;
+                    auto oldFocusElement = getFocusElement();
+                    if(oldFocusElement == e)
+                    {
+                        if(getParent() != nullptr)
+                        {
+                            getParent()->setFocus(shared_from_this());
+                        }
+                        return;
+                    }
+                    currentFocusIndex = npos;
+                    onSetFocus(shared_from_this(), oldFocusElement);
                     if(getParent() != nullptr)
                     {
                         getParent()->setFocus(shared_from_this());
                     }
-                    onSetFocus();
+                    currentFocusIndex = i;
+                    onSetFocus(e, shared_from_this());
                 }
             }
         }

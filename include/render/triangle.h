@@ -25,6 +25,7 @@
 #include "util/matrix.h"
 #include "util/color.h"
 #include "stream/stream.h"
+#include "util/math_constants.h"
 #include <algorithm>
 #include <tuple>
 #include <cstddef> // offsetof
@@ -65,6 +66,40 @@ struct TextureCoord
     }
 };
 
+constexpr TextureCoord interpolate(float t, TextureCoord a, TextureCoord b)
+{
+    return TextureCoord(interpolate(t, a.u, b.u), interpolate(t, a.v, b.v));
+}
+
+struct Vertex
+{
+    TextureCoord t; // do NOT change the order of the variables
+    VectorF p;
+    ColorF c;
+    VectorF n;
+    constexpr Vertex(TextureCoord t, VectorF p, ColorF c, VectorF n)
+        : t(t), p(p), c(c), n(n)
+    {
+    }
+    constexpr Vertex()
+        : t(), p(), c(), n()
+    {
+    }
+    constexpr bool operator ==(const Vertex &rt) const
+    {
+        return t == rt.t && p == rt.p && c == rt.c && n == rt.n;
+    }
+    constexpr bool operator !=(const Vertex &rt) const
+    {
+        return !operator ==(rt);
+    }
+};
+
+inline Vertex interpolate(float t, Vertex a, Vertex b)
+{
+    return Vertex(interpolate(t, a.t, b.t), interpolate(t, a.p, b.p), interpolate(t, a.c, b.c), normalizeNoThrow(interpolate(t, a.n, b.n)));
+}
+
 struct Triangle
 {
     TextureCoord t1; // do NOT change the order of the variables
@@ -79,6 +114,12 @@ struct Triangle
     VectorF p3;
     ColorF c3;
     VectorF n3;
+    constexpr Triangle(Vertex v1, Vertex v2, Vertex v3)
+        : t1(v1.t), p1(v1.p), c1(v1.c), n1(v1.n),
+        t2(v2.t), p2(v2.p), c2(v2.c), n2(v2.n),
+        t3(v3.t), p3(v3.p), c3(v3.c), n3(v3.n)
+    {
+    }
     Triangle(VectorF p1, VectorF p2, VectorF p3, ColorF color = colorizeIdentity())
         : t1(0, 0),
           p1(p1),
@@ -290,6 +331,18 @@ struct Triangle
     {
         return !operator ==(rt);
     }
+    constexpr Vertex v1() const
+    {
+        return Vertex(t1, p1, c1, n1);
+    }
+    constexpr Vertex v2() const
+    {
+        return Vertex(t2, p2, c2, n2);
+    }
+    constexpr Vertex v3() const
+    {
+        return Vertex(t3, p3, c3, n3);
+    }
 private:
     std::pair<VectorF, float> getPlaneEquationHelper(VectorF normal) const
     {
@@ -339,6 +392,116 @@ constexpr Triangle reverse(const Triangle & t)
 {
     return Triangle(t.p1, t.t1, t.c1, -t.n1, t.p3, t.t3, t.c3, -t.n3, t.p2, t.t2, t.c2, -t.n2);
 }
+
+struct CutTriangle final
+{
+    Triangle frontTriangles[2];
+    size_t frontTriangleCount = 0;
+    Triangle coplanarTriangles[1];
+    size_t coplanarTriangleCount = 0;
+    Triangle backTriangles[2];
+    size_t backTriangleCount = 0;
+private:
+    static void triangulate(Triangle triangles[], size_t &triangleCount, const Vertex vertices[], size_t vertexCount)
+    {
+        size_t myTriangleCount = 0;
+        if(vertexCount >= 3)
+        {
+            for(size_t i = 0, j = 1, k = 2; k < vertexCount; i++, j++, k++)
+            {
+                Triangle tri(vertices[0], vertices[j], vertices[k]);
+                triangles[myTriangleCount++] = tri;
+            }
+        }
+        triangleCount = myTriangleCount;
+    }
+public:
+    CutTriangle(Triangle tri, VectorF planeNormal, float planeD)
+    {
+        const size_t triangleVertexCount = 3, resultMaxVertexCount = triangleVertexCount + 1;
+        Vertex triVertices[triangleVertexCount] = {tri.v1(), tri.v2(), tri.v3()};
+        float planeDistances[triangleVertexCount];
+        bool isFront[triangleVertexCount];
+        bool isBack[triangleVertexCount];
+        bool isCoplanar = true, anyFront = false;
+        for(size_t i = 0; i < triangleVertexCount; i++)
+        {
+            planeDistances[i] = dot(triVertices[i].p, planeNormal) + planeD;
+            isFront[i] = planeDistances[i] > eps;
+            isBack[i] = planeDistances[i] < -eps;
+            if(isFront[i] || isBack[i])
+                isCoplanar = false;
+            if(isFront[i])
+                anyFront = true;
+        }
+        if(isCoplanar)
+        {
+            coplanarTriangles[0] = tri;
+            coplanarTriangleCount = 1;
+            return;
+        }
+        if(anyFront)
+        {
+            for(size_t i = 0; i < triangleVertexCount; i++)
+            {
+                isFront[i] = !isBack[i];
+            }
+        }
+        Vertex frontVertices[resultMaxVertexCount];
+        size_t frontVertexCount = 0;
+        Vertex backVertices[resultMaxVertexCount];
+        size_t backVertexCount = 0;
+        for(size_t i = 0, j = 1; i < triangleVertexCount; i++, j++, j %= triangleVertexCount)
+        {
+            if(isFront[i])
+            {
+                if(isFront[j])
+                {
+                    frontVertices[frontVertexCount++] = triVertices[i];
+                }
+                else
+                {
+                    frontVertices[frontVertexCount++] = triVertices[i];
+                    float divisor = dot(triVertices[j].p - triVertices[i].p, planeNormal);
+                    if(std::fabs(divisor) >= eps * eps)
+                    {
+                        float t = (-planeD - dot(triVertices[i].p, planeNormal)) / divisor;
+                        Vertex v = interpolate(t, triVertices[i], triVertices[j]);
+                        frontVertices[frontVertexCount++] = v;
+                        backVertices[backVertexCount++] = v;
+                    }
+                }
+            }
+            else
+            {
+                if(isFront[j])
+                {
+                    backVertices[backVertexCount++] = triVertices[i];
+                    float divisor = dot(triVertices[j].p - triVertices[i].p, planeNormal);
+                    if(std::fabs(divisor) >= eps * eps)
+                    {
+                        float t = (-planeD - dot(triVertices[i].p, planeNormal)) / divisor;
+                        Vertex v = interpolate(t, triVertices[i], triVertices[j]);
+                        frontVertices[frontVertexCount++] = v;
+                        backVertices[backVertexCount++] = v;
+                    }
+                }
+                else
+                {
+                    backVertices[backVertexCount++] = triVertices[i];
+                }
+            }
+        }
+        triangulate(frontTriangles, frontTriangleCount, frontVertices, frontVertexCount);
+        triangulate(backTriangles, backTriangleCount, backVertices, backVertexCount);
+    }
+};
+
+inline CutTriangle cut(Triangle tri, VectorF planeNormal, float planeD)
+{
+    return CutTriangle(tri, planeNormal, planeD);
+}
+
 }
 }
 

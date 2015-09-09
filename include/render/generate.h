@@ -85,6 +85,75 @@ inline Mesh lightMesh(Mesh m, std::function<ColorF(ColorF color, VectorF positio
     return m;
 }
 
+struct CutMesh
+{
+    Mesh front, coplanar, back;
+    CutMesh(Mesh front, Mesh coplanar, Mesh back)
+        : front(std::move(front)), coplanar(std::move(coplanar)), back(std::move(back))
+    {
+    }
+    CutMesh()
+        : front(), coplanar(), back()
+    {
+    }
+};
+
+inline CutMesh cut(const Mesh &mesh, VectorF planeNormal, float planeD)
+{
+    Mesh front, coplanar, back;
+    front.triangles.reserve(mesh.size() * 2);
+    coplanar.triangles.reserve(mesh.size());
+    back.triangles.reserve(mesh.size() * 2);
+    front.image = mesh.image;
+    coplanar.image = mesh.image;
+    back.image = mesh.image;
+    for(Triangle tri : mesh.triangles)
+    {
+        CutTriangle ct = cut(tri, planeNormal, planeD);
+        for(size_t i = 0; i < ct.frontTriangleCount; i++)
+            front.append(ct.frontTriangles[i]);
+        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
+            coplanar.append(ct.coplanarTriangles[i]);
+        for(size_t i = 0; i < ct.backTriangleCount; i++)
+            back.append(ct.backTriangles[i]);
+    }
+    return CutMesh(std::move(front), std::move(coplanar), std::move(back));
+}
+
+inline Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD)
+{
+    static thread_local std::vector<Triangle> triangles;
+    triangles = std::move(mesh.triangles);
+    mesh.triangles.clear();
+    mesh.triangles.reserve(triangles.size());
+    for(Triangle tri : triangles)
+    {
+        CutTriangle ct = cut(tri, planeNormal, planeD);
+        for(size_t i = 0; i < ct.frontTriangleCount; i++)
+            mesh.append(ct.frontTriangles[i]);
+        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
+            mesh.append(ct.coplanarTriangles[i]);
+    }
+    return std::move(mesh);
+}
+
+inline Mesh cutAndGetBack(Mesh mesh, VectorF planeNormal, float planeD)
+{
+    static thread_local std::vector<Triangle> triangles;
+    triangles = std::move(mesh.triangles);
+    mesh.triangles.clear();
+    mesh.triangles.reserve(triangles.size());
+    for(Triangle tri : triangles)
+    {
+        CutTriangle ct = cut(tri, planeNormal, planeD);
+        for(size_t i = 0; i < ct.backTriangleCount; i++)
+            mesh.append(ct.backTriangles[i]);
+        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
+            mesh.append(ct.coplanarTriangles[i]);
+    }
+    return std::move(mesh);
+}
+
 namespace Generate
 {
 	inline Mesh quadrilateral(TextureDescriptor texture, VectorF p1, ColorF c1, VectorF p2, ColorF c2, VectorF p3, ColorF c3, VectorF p4, ColorF c4)

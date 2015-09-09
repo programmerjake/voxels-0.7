@@ -37,11 +37,10 @@ namespace voxels
 {
 int main(std::vector<std::wstring> args)
 {
-    TLS tls;
     //globalRenderSettings.useFancyLeaves = true;
     startGraphics();
     Renderer renderer;
-    std::shared_ptr<ui::GameUi> theUi = std::make_shared<ui::GameUi>(renderer, tls);
+    std::shared_ptr<ui::GameUi> theUi = std::make_shared<ui::GameUi>();
     theUi->run(renderer);
     theUi = nullptr;
     endGraphics();

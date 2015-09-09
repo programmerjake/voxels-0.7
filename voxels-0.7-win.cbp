@@ -395,6 +395,7 @@
 		<Unit filename="include/ui/checkbox.h" />
 		<Unit filename="include/ui/container.h" />
 		<Unit filename="include/ui/dynamic_label.h" />
+		<Unit filename="include/ui/edit.h" />
 		<Unit filename="include/ui/element.h" />
 		<Unit filename="include/ui/gameui.h" />
 		<Unit filename="include/ui/image.h" />
@@ -516,6 +517,7 @@
 		<Unit filename="src/texture/image.cpp" />
 		<Unit filename="src/texture/texture_atlas.cpp" />
 		<Unit filename="src/ui/container.cpp" />
+		<Unit filename="src/ui/edit.cpp" />
 		<Unit filename="src/ui/element.cpp" />
 		<Unit filename="src/ui/gameui.cpp" />
 		<Unit filename="src/ui/main_menu.cpp" />
