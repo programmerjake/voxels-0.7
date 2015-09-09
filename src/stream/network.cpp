@@ -21,17 +21,11 @@
 #include "stream/network.h"
 #include "util/util.h"
 #if _WIN64 || _WIN32
-#if 1
-FIXME_MESSAGE(finish networking for windows)
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
-#include <netinet/tcp.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <vector>
+#include <cassert>
+#include <sstream>
 
 using namespace std;
 
@@ -42,51 +36,195 @@ namespace voxels
 namespace stream
 {
 
-NetworkConnection::NetworkConnection(int readFd, int writeFd)
-    : readerInternal(new FileReader(fdopen(readFd, "r"))), writerInternal(new FileWriter(fdopen(writeFd, "w")))
-{
-}
-
-
 namespace
 {
-initializer signalInit([]()
+struct NetworkInit final
 {
-    signal(SIGPIPE, SIG_IGN);
-});
+    NetworkInit(const NetworkInit &) = delete;
+    NetworkInit &operator =(const NetworkInit &) = delete;
+    NetworkInit()
+    {
+        WSADATA data;
+        int wsaStartupRetVal = WSAStartup(MAKEDWORD(2, 2), &data);
+        if(wsaStartupRetVal != 0)
+        {
+            std::ostringstream ss;
+            ss << "WSAStartup failed: " << wsaStartupRetVal;
+            throw NetworkException(ss.str());
+        }
+    }
+    ~NetworkInit()
+    {
+        WSACleanup();
+    }
+};
+
+void initNetwork()
+{
+    static std::shared_ptr<NetworkInit> retval = std::make_shared<NetworkInit>();
+}
+
+std::string winsockStrError(DWORD errorCode)
+{
+    LPWSTR message = nullptr;
+    DWORD formatMessageRetVal = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorCode, 0, (LPWSTR)&message, 1, nullptr);
+    if(formatMessageRetVal == 0 || message == nullptr)
+    {
+        std::ostringstream ss;
+        ss << errorCode << " (message formatting failed)";
+        return ss.str();
+    }
+    std::wstring retval = std::wstring(message, formatMessageRetVal);
+    LocalFree(message);
+    return string_cast<std::string>(retval);
+}
+
+class NetworkReader final : public Reader
+{
+private:
+    std::shared_ptr<unsigned> fd;
+    bool availableData = false;
+public:
+    explicit NetworkReader(std::shared_ptr<unsigned> fd)
+        : fd(fd)
+    {
+        assert(fd != nullptr);
+        DWORD flag = 1;
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+    }
+    virtual ~NetworkReader()
+    {
+        shutdown(*fd, SD_RECEIVE);
+    }
+    virtual std::uint8_t readByte() override
+    {
+        std::uint8_t retval;
+        readAllBytes(&retval, 1);
+        return retval;
+    }
+    virtual bool dataAvailable() override
+    {
+        if(availableData)
+            return true;
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(*fd, &readfds);
+        TIMEVAL timeout = {0, 0};
+        int selectRetVal = select(*fd + 1, &readfds, nullptr, nullptr, &timeout);
+        if(selectRetVal == SOCKET_ERROR)
+        {
+            DWORD errorValue = WSAGetLastError();
+            throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
+        }
+        if(selectRetVal == 0)
+            return false;
+        availableData = true;
+        return true;
+    }
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        if(maxCount == 0)
+            return 0;
+        availableData = false;
+        std::size_t retval = 0;
+        for(;;)
+        {
+            int recvSize = (int)maxCount;
+            if(maxCount >= 0x10000)
+                recvSize = 0x10000;
+            int recvRetVal = recv(*fd, (char *)array, recvSize, MSG_WAITALL);
+            if(recvRetVal == SOCKET_ERROR)
+            {
+                DWORD errorValue = WSAGetLastError();
+                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
+            }
+            else if(recvRetVal == 0)
+            {
+                return retval;
+            }
+            else if((std::size_t)recvRetVal == maxCount)
+            {
+                return retval + maxCount;
+            }
+            else
+            {
+                array += recvRetVal;
+                maxCount -= recvRetVal;
+                retval += recvRetVal;
+            }
+        }
+    }
+    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        if(maxCount == 0)
+            return 0;
+        std::size_t retval = 0;
+        for(;;)
+        {
+            if(!dataAvailable())
+                return retval;
+            int recvSize = (int)maxCount;
+            if(maxCount >= 0x10000)
+                recvSize = 0x10000;
+            int recvRetVal = recv(*fd, (char *)array, recvSize, 0);
+            availableData = false;
+            if(recvRetVal == SOCKET_ERROR)
+            {
+                DWORD errorValue = WSAGetLastError();
+                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
+            }
+            else if(recvRetVal == 0)
+            {
+                return retval;
+            }
+            else if((std::size_t)recvRetVal == maxCount)
+            {
+                return retval + maxCount;
+            }
+            else
+            {
+                array += recvRetVal;
+                maxCount -= recvRetVal;
+                retval += recvRetVal;
+            }
+        }
+    }
+};
 
 class NetworkWriter final : public Writer
 {
 private:
-    vector<uint8_t> buffer;
-    int fd;
+    std::vector<std::uint8_t> buffer;
+    std::shared_ptr<unsigned> fd;
 public:
-    NetworkWriter(int fd)
+    explicit NetworkWriter(std::shared_ptr<unsigned> fd)
         : buffer(), fd(fd)
     {
-        int flag = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+        assert(fd != nullptr);
+        DWORD flag = 1;
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
     }
     virtual ~NetworkWriter()
     {
-        close(fd);
+        shutdown(*fd, SD_SEND);
     }
-    virtual void writeByte(uint8_t v) override
+    virtual void writeByte(std::uint8_t v) override
     {
         buffer.push_back(v);
-        if(buffer.size() >= 16384)
+        if(buffer.size() >= 0x4000)
             flush();
     }
     virtual void flush() override
     {
-        const uint8_t * pbuffer = buffer.data();
-        ssize_t sizeLeft = buffer.size();
+        const std::uint8_t *pbuffer = buffer.data();
+        std::size_t sizeLeft = buffer.size();
         while(sizeLeft > 0)
         {
-            ssize_t retval = send(fd, (const void *)pbuffer, sizeLeft, 0);
-            if(retval == -1)
+            int retval = send(*fd, (const char *)pbuffer, sizeLeft, 0);
+            if(retval == SOCKET_ERROR)
             {
-                throw IOException(string("io error : ") + strerror(errno));
+                DWORD errorValue = WSAGetLastError();
+                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
             }
             else
             {
@@ -95,17 +233,18 @@ public:
             }
         }
         int flag = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
         buffer.clear();
     }
 };
 }
 
-NetworkConnection::NetworkConnection(wstring url, uint16_t port)
+NetworkConnection::NetworkConnection(std::wstring url, std::uint16_t port)
     : readerInternal(),
     writerInternal()
 {
-    string url_utf8 = string_cast<string>(url), port_str = to_string((unsigned)port);
+    initNetwork();
+    std::string url_utf8 = string_cast<std::string>(url), port_str = std::to_string((unsigned)port);
     addrinfo *addrList = nullptr;
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -117,32 +256,35 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
 
     if(0 != retval)
     {
-        throw NetworkException(string("getaddrinfo: ") + gai_strerror(retval));
+        throw NetworkException(std::string("getaddrinfo: ") + winsockStrError(retval));
     }
 
-    int fd = -1;
+    unsigned fd = INVALID_SOCKET;
+
+    DWORD errorValue;
 
     for(addrinfo *addr = addrList; addr; addr = addr->ai_next)
     {
         fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
-        if(fd == -1)
+        if(fd == INVALID_SOCKET)
         {
+            errorValue = WSAGetLastError();
             continue;
         }
-        if(-1 != connect(fd, addr->ai_addr, addr->ai_addrlen))
+        if(SOCKET_ERROR != connect(fd, addr->ai_addr, addr->ai_addrlen))
         {
             break;
         }
-
-        close(fd);
-        fd = -1;
+        errorValue = WSAGetLastError();
+        closesocket(fd);
+        fd = INVALID_SOCKET;
     }
 
-    if(fd == -1)
+    if(fd == INVALID_SOCKET)
     {
-        string msg = "can't connect: ";
-        msg += strerror(errno);
+        std::string msg = "can't connect: ";
+        msg += winsockStrError(errorValue);
         freeaddrinfo(addrList);
         throw NetworkException(msg);
     }
@@ -151,13 +293,18 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
 
     freeaddrinfo(addrList);
-    readerInternal = unique_ptr<Reader>(new FileReader(fdopen(dup(fd), "r")));
-    writerInternal = unique_ptr<Writer>(new NetworkWriter(fd));
+    std::shared_ptr<unsigned> pfd = std::shared_ptr<unsigned>(new unsigned(fd), [](unsigned *pfd)
+    {
+        closesocket(*pfd);
+        delete pfd;
+    });
+    readerInternal = std::shared_ptr<Reader>(new NetworkReader(pfd));
+    writerInternal = std::shared_ptr<Writer>(new NetworkWriter(pfd));
 }
 
-NetworkServer::NetworkServer(uint16_t port)
-    : fd()
+unsigned NetworkServer::startServer(std::uint16_t port)
 {
+    initNetwork();
     addrinfo hints;
     memset((void *)&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -165,24 +312,27 @@ NetworkServer::NetworkServer(uint16_t port)
     hints.ai_protocol = 0;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     addrinfo *addrList;
-    string port_str = to_string((unsigned)port);
+    std::string port_str = std::to_string((unsigned)port);
     int retval = getaddrinfo(NULL, port_str.c_str(), &hints, &addrList);
 
     if(0 != retval)
     {
-        throw NetworkException(string("getaddrinfo: ") + gai_strerror(retval));
+        throw NetworkException(std::string("getaddrinfo: ") + winsockStrError(retval));
     }
 
-    fd = -1;
+    unsigned fd = INVALID_SOCKET;
     const char *errorStr = "getaddrinfo";
+
+    DWORD errorValue;
 
     for(addrinfo *addr = addrList; addr != NULL; addr = addr->ai_next)
     {
         fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
         errorStr = "socket";
 
-        if(fd < 0)
+        if(fd == INVALID_SOCKET)
         {
+            errorValue = WSAGetLastError();
             continue;
         }
 
@@ -194,60 +344,74 @@ NetworkServer::NetworkServer(uint16_t port)
             break;
         }
 
-        int temp = errno;
-        close(fd);
-        errno = temp;
+        errorValue = WSAGetLastError();
+        closesocket(fd);
         errorStr = "bind";
-        fd = -1;
+        fd = INVALID_SOCKET;
     }
 
-    if(fd < 0)
+    if(fd == INVALID_SOCKET)
     {
-        string msg = string(errorStr) + ": ";
-        msg += strerror(errno);
+        std::string msg = std::string(errorStr) + ": ";
+        msg += winsockStrError(errorValue);
         freeaddrinfo(addrList);
         throw NetworkException(msg);
     }
 
     freeaddrinfo(addrList);
 
-    if(listen(fd, 50) == -1)
+    if(listen(fd, 50) == SOCKET_ERROR)
     {
-        string msg = "listen: ";
-        msg += strerror(errno);
-        close(fd);
+        DWORD errorValue = WSAGetLastError();
+        std::string msg = "listen: ";
+        msg += winsockStrError(errorValue);
+        closesocket(fd);
         throw NetworkException(msg);
     }
+    return (unsigned)fd;
+}
+
+NetworkServer::NetworkServer(std::uint16_t port)
+    : fd(new unsigned(startServer(port)), [](unsigned *pfd)
+    {
+        closesocket(*pfd);
+        delete pfd;
+    })
+{
 }
 
 NetworkServer::~NetworkServer()
 {
-    close(fd);
 }
 
-shared_ptr<StreamRW> NetworkServer::accept()
+std::shared_ptr<StreamRW> NetworkServer::accept()
 {
-    int fd2 = ::accept(fd, nullptr, nullptr);
+    unsigned fd2 = ::accept(*fd, nullptr, nullptr);
 
-    if(fd2 < 0)
+    if(fd2 == INVALID_SOCKET)
     {
-        string msg = "accept: ";
-        msg += strerror(errno);
+        DWORD errorValue = WSAGetLastError();
+        std::string msg = "accept: ";
+        msg += winsockStrError(errorValue);
         throw NetworkException(msg);
     }
 
     int flag = 1;
     setsockopt(fd2, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
 
-    shared_ptr<Reader> reader = shared_ptr<Reader>(new FileReader(fdopen(dup(fd2), "r")));
-    shared_ptr<Writer> writer = shared_ptr<Writer>(new NetworkWriter(fd2));
-    return shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
+    std::shared_ptr<unsigned> pfd2 = std::shared_ptr<unsigned>(new unsigned(fd2), [](unsigned *pfd)
+    {
+        closesocket(*pfd);
+        delete pfd;
+    });
+    std::shared_ptr<Reader> reader = std::shared_ptr<Reader>(new NetworkReader(pfd2));
+    std::shared_ptr<Writer> writer = std::shared_ptr<Writer>(new NetworkWriter(pfd2));
+    return std::shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
 }
 
 }
 }
 }
-#endif
 #elif __ANDROID || __APPLE__ || __linux || __unix || __posix
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -274,38 +438,144 @@ initializer signalInit([]()
     signal(SIGPIPE, SIG_IGN);
 });
 
+class NetworkReader final : public Reader
+{
+private:
+    std::shared_ptr<unsigned> fd;
+    bool availableData = false;
+public:
+    explicit NetworkReader(std::shared_ptr<unsigned> fd)
+        : fd(fd)
+    {
+        assert(fd != nullptr);
+        int flag = 1;
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+    }
+    virtual ~NetworkReader()
+    {
+        shutdown(*fd, SHUT_RD);
+    }
+    virtual std::uint8_t readByte() override
+    {
+        std::uint8_t retval;
+        readAllBytes(&retval, 1);
+        return retval;
+    }
+    virtual bool dataAvailable() override
+    {
+        if(availableData)
+            return true;
+        pollfd fds;
+        fds.fd = *fd;
+        fds.events = POLLIN;
+        int pollRetVal = poll(&fds, 1, 0);
+        if(pollRetVal < 0)
+        {
+            int errorValue = errno;
+            throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
+        }
+        if(pollRetVal == 0)
+            return false;
+        if(fds.revents & (POLLERR | POLLHUP))
+            return false;
+        availableData = true;
+        return true;
+    }
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        std::size_t retval = 0;
+        for(;;)
+        {
+            ssize_t recvRetVal = recv(*fd, (void *)array, maxCount, 0);
+            if(recvRetVal == -1)
+            {
+                int errorValue = errno;
+                if(errorValue != EINTR)
+                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
+            }
+            else if(recvRetVal == 0)
+            {
+                return retval;
+            }
+            else if((std::size_t)recvRetVal == maxCount)
+            {
+                return retval + maxCount;
+            }
+            else
+            {
+                array += recvRetVal;
+                maxCount -= recvRetVal;
+                retval += recvRetVal;
+            }
+        }
+    }
+    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        std::size_t retval = 0;
+        for(;;)
+        {
+            ssize_t recvRetVal = recv(*fd, (void *)array, maxCount, MSG_DONTWAIT);
+            if(recvRetVal == -1)
+            {
+                int errorValue = errno;
+                if(errorValue == EAGAIN || errorValue == EWOULDBLOCK)
+                    return retval;
+                if(errorValue != EINTR)
+                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
+            }
+            else if(recvRetVal == 0)
+            {
+                return retval;
+            }
+            else if((std::size_t)recvRetVal == maxCount)
+            {
+                return retval + maxCount;
+            }
+            else
+            {
+                array += recvRetVal;
+                maxCount -= recvRetVal;
+                retval += recvRetVal;
+            }
+        }
+    }
+};
+
 class NetworkWriter final : public Writer
 {
 private:
-    vector<uint8_t> buffer;
-    int fd;
+    std::vector<std::uint8_t> buffer;
+    std::shared_ptr<unsigned> fd;
 public:
-    NetworkWriter(int fd)
+    explicit NetworkWriter(std::shared_ptr<unsigned> fd)
         : buffer(), fd(fd)
     {
+        assert(fd != nullptr);
         int flag = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
     }
     virtual ~NetworkWriter()
     {
-        close(fd);
+        shutdown(*fd, SHUT_WR);
     }
-    virtual void writeByte(uint8_t v) override
+    virtual void writeByte(std::uint8_t v) override
     {
         buffer.push_back(v);
-        if(buffer.size() >= 16384)
+        if(buffer.size() >= 0x4000)
             flush();
     }
     virtual void flush() override
     {
-        const uint8_t * pbuffer = buffer.data();
+        const std::uint8_t *pbuffer = buffer.data();
         ssize_t sizeLeft = buffer.size();
         while(sizeLeft > 0)
         {
-            ssize_t retval = send(fd, (const void *)pbuffer, sizeLeft, 0);
+            ssize_t retval = send(*fd, (const void *)pbuffer, sizeLeft, 0);
             if(retval == -1)
             {
-                throw IOException(string("io error : ") + strerror(errno));
+                int errorValue = errno;
+                if(errorValue != EINTR)
+                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
             }
             else
             {
@@ -314,17 +584,17 @@ public:
             }
         }
         int flag = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
+        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
         buffer.clear();
     }
 };
 }
 
-NetworkConnection::NetworkConnection(wstring url, uint16_t port)
+NetworkConnection::NetworkConnection(std::wstring url, std::uint16_t port)
     : readerInternal(),
     writerInternal()
 {
-    string url_utf8 = string_cast<string>(url), port_str = to_string((unsigned)port);
+    std::string url_utf8 = string_cast<std::string>(url), port_str = std::to_string((unsigned)port);
     addrinfo *addrList = nullptr;
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -336,7 +606,7 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
 
     if(0 != retval)
     {
-        throw NetworkException(string("getaddrinfo: ") + gai_strerror(retval));
+        throw NetworkException(std::string("getaddrinfo: ") + gai_strerror(retval));
     }
 
     int fd = -1;
@@ -353,15 +623,17 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
         {
             break;
         }
-
+        int errorValue = errno;
         close(fd);
+        errno = errorValue;
         fd = -1;
     }
 
     if(fd == -1)
     {
-        string msg = "can't connect: ";
-        msg += strerror(errno);
+        int errorValue = errno;
+        std::string msg = "can't connect: ";
+        msg += std::strerror(errorValue);
         freeaddrinfo(addrList);
         throw NetworkException(msg);
     }
@@ -370,12 +642,16 @@ NetworkConnection::NetworkConnection(wstring url, uint16_t port)
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
 
     freeaddrinfo(addrList);
-    readerInternal = unique_ptr<Reader>(new FileReader(fdopen(dup(fd), "r")));
-    writerInternal = unique_ptr<Writer>(new NetworkWriter(fd));
+    std::shared_ptr<unsigned> pfd = std::shared_ptr<unsigned>(new unsigned(fd), [](unsigned *pfd)
+    {
+        close(*pfd);
+        delete pfd;
+    });
+    readerInternal = std::shared_ptr<Reader>(new NetworkReader(pfd));
+    writerInternal = std::shared_ptr<Writer>(new NetworkWriter(pfd));
 }
 
-NetworkServer::NetworkServer(uint16_t port)
-    : fd()
+unsigned NetworkServer::startServer(std::uint16_t port)
 {
     addrinfo hints;
     memset((void *)&hints, 0, sizeof(hints));
@@ -384,15 +660,15 @@ NetworkServer::NetworkServer(uint16_t port)
     hints.ai_protocol = 0;
     hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
     addrinfo *addrList;
-    string port_str = to_string((unsigned)port);
+    std::string port_str = std::to_string((unsigned)port);
     int retval = getaddrinfo(NULL, port_str.c_str(), &hints, &addrList);
 
     if(0 != retval)
     {
-        throw NetworkException(string("getaddrinfo: ") + gai_strerror(retval));
+        throw NetworkException(std::string("getaddrinfo: ") + gai_strerror(retval));
     }
 
-    fd = -1;
+    int fd = -1;
     const char *errorStr = "getaddrinfo";
 
     for(addrinfo *addr = addrList; addr != NULL; addr = addr->ai_next)
@@ -422,8 +698,9 @@ NetworkServer::NetworkServer(uint16_t port)
 
     if(fd < 0)
     {
-        string msg = string(errorStr) + ": ";
-        msg += strerror(errno);
+        int errorValue = errno;
+        std::string msg = std::string(errorStr) + ": ";
+        msg += std::strerror(errorValue);
         freeaddrinfo(addrList);
         throw NetworkException(msg);
     }
@@ -432,35 +709,51 @@ NetworkServer::NetworkServer(uint16_t port)
 
     if(listen(fd, 50) == -1)
     {
-        string msg = "listen: ";
-        msg += strerror(errno);
+        int errorValue = errno;
+        std::string msg = "listen: ";
+        msg += std::strerror(errorValue);
         close(fd);
         throw NetworkException(msg);
     }
+    return (unsigned)fd;
+}
+
+NetworkServer::NetworkServer(std::uint16_t port)
+    : fd(new unsigned(startServer(port)), [](unsigned *pfd)
+    {
+        close(*pfd);
+        delete pfd;
+    })
+{
 }
 
 NetworkServer::~NetworkServer()
 {
-    close(fd);
 }
 
-shared_ptr<StreamRW> NetworkServer::accept()
+std::shared_ptr<StreamRW> NetworkServer::accept()
 {
-    int fd2 = ::accept(fd, nullptr, nullptr);
+    int fd2 = ::accept(*fd, nullptr, nullptr);
 
     if(fd2 < 0)
     {
-        string msg = "accept: ";
-        msg += strerror(errno);
+        int errorValue = errno;
+        std::string msg = "accept: ";
+        msg += std::strerror(errorValue);
         throw NetworkException(msg);
     }
 
     int flag = 1;
     setsockopt(fd2, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
 
-    shared_ptr<Reader> reader = shared_ptr<Reader>(new FileReader(fdopen(dup(fd2), "r")));
-    shared_ptr<Writer> writer = shared_ptr<Writer>(new NetworkWriter(fd2));
-    return shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
+    std::shared_ptr<unsigned> pfd2 = std::shared_ptr<unsigned>(new unsigned(fd2), [](unsigned *pfd)
+    {
+        close(*pfd);
+        delete pfd;
+    });
+    std::shared_ptr<Reader> reader = std::shared_ptr<Reader>(new NetworkReader(pfd2));
+    std::shared_ptr<Writer> writer = std::shared_ptr<Writer>(new NetworkWriter(pfd2));
+    return std::shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
 }
 
 }

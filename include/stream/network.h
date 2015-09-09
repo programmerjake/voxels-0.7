@@ -47,9 +47,9 @@ class NetworkConnection final : public StreamRW
 private:
     std::shared_ptr<Reader> readerInternal;
     std::shared_ptr<Writer> writerInternal;
-    NetworkConnection(int readFd, int writeFd);
+    NetworkConnection(std::shared_ptr<unsigned> fd);
 public:
-    explicit NetworkConnection(std::wstring url, uint16_t port);
+    explicit NetworkConnection(std::wstring url, std::uint16_t port);
     std::shared_ptr<Reader> preader() override
     {
         return readerInternal;
@@ -65,9 +65,10 @@ class NetworkServer final : public StreamServer
     NetworkServer(const NetworkServer &) = delete;
     const NetworkServer & operator =(const NetworkServer &) = delete;
 private:
-    int fd;
+    std::shared_ptr<unsigned> fd;
+    static unsigned startServer(std::uint16_t port);
 public:
-    explicit NetworkServer(uint16_t port);
+    explicit NetworkServer(std::uint16_t port);
     ~NetworkServer();
     std::shared_ptr<StreamRW> accept() override;
 };
