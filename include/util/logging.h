@@ -29,6 +29,7 @@
 #include <utility>
 #include <cassert>
 #include <functional>
+#include "util/string_cast.h"
 
 namespace programmerjake
 {
@@ -124,9 +125,9 @@ inline LogStream &getDebugLog()
             {
                 currentLine += L"\x1b[K";
             }
-            std::wcout << currentLine;
+            std::cout << string_cast<std::string>(currentLine);
         }
-        std::wcout << std::flush;
+        std::cout << std::flush;
     };
     struct theLogStream_tls_tag
     {

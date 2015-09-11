@@ -41,38 +41,252 @@ public:
     }
 };
 
-class NetworkConnection final : public StreamRW
+enum class SSLCertificateValidationError
 {
-    friend class NetworkServer;
-private:
-    std::shared_ptr<Reader> readerInternal;
-    std::shared_ptr<Writer> writerInternal;
-    NetworkConnection(std::shared_ptr<unsigned> fd);
+    /** no error
+     */
+    NoError,
+    /** no certificate was supplied
+     */
+    NoCertificateSupplied,
+    /** the issuer certificate could not be found
+     */
+    IssuerCertificateNotFound,
+    /** the CRL of a certificate could not be found
+     */
+    CRLNotFound,
+    /**
+     */
+    UnableToDecryptCertificateSignature,
+    /**
+     */
+    UnableToDecryptCRLSignature,
+    /**
+     */
+    UnableToDecodeIssuerPublicKey,
+    /**
+     */
+    CertificateSignatureInvalid,
+    /**
+     */
+    CRLSignatureInvalid,
+    /**
+     */
+    CertificateNotYetValid,
+    /**
+     */
+    CertificateHasExpired,
+    /**
+     */
+    CRLNotYetValid,
+    /**
+     */
+    CRLHasExpired,
+    /**
+     */
+    FormatErrorInCertificateNotBeforeField,
+    /**
+     */
+    FormatErrorInCertificateNotAfterField,
+    /**
+     */
+    FormatErrorInCRLLastUpdateField,
+    /**
+     */
+    FormatErrorInCRLNextUpdateField,
+    /** the passed certificate is self-signed and is not found in the list of trusted certificates
+     */
+    UntrustedSelfSignedCertificate,
+    /** the passed certificate's root certificate is not found in the list of trusted certificates
+     */
+    UntrustedRootCertificate,
+    /** the issuer certificate of a local certificate could not be found
+     */
+    LocalIssuerCertificateNotFound,
+    /**
+     */
+    LeafCertificateVerificationFailed,
+    /**
+     */
+    CertificateChainTooLong,
+    /**
+     */
+    CertificateRevoked,
+    /**
+     */
+    InvalidCACertificate,
+    /**
+     */
+    PathTooLong,
+    /**
+     */
+    UnsupportedCertificatePurpose,
+    /**
+     */
+    RootCACertificateUntrustedForPurpose,
+    /**
+     */
+    RootCACertificateRejectsPurpose,
+    /**
+     */
+    AuthorityKeyIdentifierDoesNotMatchSubjectKey,
+    /**
+     */
+    AuthorityKeySerialNumberDoesNotMatchSubjectKey,
+    /**
+     */
+    InvalidExtension,
+    /**
+     */
+    InvalidPolicyExtension,
+    /**
+     */
+    MissingExplicitPolicy,
+    /**
+     */
+    DifferentCRLScope,
+    /**
+     */
+    UnsupportedExtensionFeature,
+    /**
+     */
+    NameConstraintViolationInPermittedSubtrees,
+    /**
+     */
+    NameConstraintViolationInExcludedSubtrees,
+    /**
+     */
+    UnsupportedNameConstraintsMinimumOrMaximum,
+    /**
+     */
+    UnsupportedNameConstraintsType,
+    /**
+     */
+    UnsupportedNameConstraintsSyntax,
+    /**
+     */
+    CRLPathValidationError,
+};
+
+class SSLCertificateValidationException : public NetworkException
+{
 public:
-    explicit NetworkConnection(std::wstring url, std::uint16_t port);
-    std::shared_ptr<Reader> preader() override
+    static std::string toMessage(SSLCertificateValidationError errorCode)
     {
-        return readerInternal;
+        switch(errorCode)
+        {
+        case SSLCertificateValidationError::NoError:
+            return "no error";
+        case SSLCertificateValidationError::NoCertificateSupplied:
+            return "no certificate was supplied";
+        case SSLCertificateValidationError::IssuerCertificateNotFound:
+            return "issuer certificate not found";
+        case SSLCertificateValidationError::CRLNotFound:
+            return "CRL not found";
+        case SSLCertificateValidationError::UnableToDecryptCertificateSignature:
+            return "unable to decrypt certificate signature";
+        case SSLCertificateValidationError::UnableToDecryptCRLSignature:
+            return "unable to decrypt CRL signature";
+        case SSLCertificateValidationError::UnableToDecodeIssuerPublicKey:
+            return "unable to decode issuer public key";
+        case SSLCertificateValidationError::CertificateSignatureInvalid:
+            return "certificate signature invalid";
+        case SSLCertificateValidationError::CRLSignatureInvalid:
+            return "CRL signature invalid";
+        case SSLCertificateValidationError::CertificateNotYetValid:
+            return "certificate not yet valid";
+        case SSLCertificateValidationError::CertificateHasExpired:
+            return "certificate has expired";
+        case SSLCertificateValidationError::CRLNotYetValid:
+            return "CRL not yet valid";
+        case SSLCertificateValidationError::CRLHasExpired:
+            return "CRL has expired";
+        case SSLCertificateValidationError::FormatErrorInCertificateNotBeforeField:
+            return "format error in certificate notBefore field";
+        case SSLCertificateValidationError::FormatErrorInCertificateNotAfterField:
+            return "format error in certificate notAfter field";
+        case SSLCertificateValidationError::FormatErrorInCRLLastUpdateField:
+            return "format error in CRL lastUpdate field";
+        case SSLCertificateValidationError::FormatErrorInCRLNextUpdateField:
+            return "format error in CRL nextUpdate field";
+        case SSLCertificateValidationError::UntrustedSelfSignedCertificate:
+            return "untrusted self-signed certificate";
+        case SSLCertificateValidationError::UntrustedRootCertificate:
+            return "untrusted root certificate";
+        case SSLCertificateValidationError::LocalIssuerCertificateNotFound:
+            return "certificate's issuer not found locally";
+        case SSLCertificateValidationError::LeafCertificateVerificationFailed:
+            return "leaf certificate verification failed";
+        case SSLCertificateValidationError::CertificateChainTooLong:
+            return "certificate chain too long";
+        case SSLCertificateValidationError::CertificateRevoked:
+            return "certificate revoked";
+        case SSLCertificateValidationError::InvalidCACertificate:
+            return "invalid CA certificate";
+        case SSLCertificateValidationError::PathTooLong:
+            return "path too long";
+        case SSLCertificateValidationError::UnsupportedCertificatePurpose:
+            return "unsupported certificate purpose";
+        case SSLCertificateValidationError::RootCACertificateUntrustedForPurpose:
+            return "root CA certificate untrusted for purpose";
+        case SSLCertificateValidationError::RootCACertificateRejectsPurpose:
+            return "root CA certificate rejects purpose";
+        case SSLCertificateValidationError::AuthorityKeyIdentifierDoesNotMatchSubjectKey:
+            return "authority key identifier does not match subject key";
+        case SSLCertificateValidationError::AuthorityKeySerialNumberDoesNotMatchSubjectKey:
+            return "authority key serial number does not match subject key";
+        case SSLCertificateValidationError::InvalidExtension:
+            return "invalid extension";
+        case SSLCertificateValidationError::InvalidPolicyExtension:
+            return "invalid policy extension";
+        case SSLCertificateValidationError::MissingExplicitPolicy:
+            return "missing explicit policy";
+        case SSLCertificateValidationError::DifferentCRLScope:
+            return "different CRL scope";
+        case SSLCertificateValidationError::UnsupportedExtensionFeature:
+            return "unsupported extension feature";
+        case SSLCertificateValidationError::NameConstraintViolationInPermittedSubtrees:
+            return "name constraint violation occurred in permitted subtrees";
+        case SSLCertificateValidationError::NameConstraintViolationInExcludedSubtrees:
+            return "name constraint violation occurred in excluded subtrees";
+        case SSLCertificateValidationError::UnsupportedNameConstraintsMinimumOrMaximum:
+            return "certificate name constraints field not supported: minimum or maximum";
+        case SSLCertificateValidationError::UnsupportedNameConstraintsType:
+            return "certificate name constraints type not supported";
+        case SSLCertificateValidationError::UnsupportedNameConstraintsSyntax:
+            return "certificate name constraints syntax invalid or not supported";
+        case SSLCertificateValidationError::CRLPathValidationError:
+            return "CRL path validation error";
+        }
+        UNREACHABLE();
     }
-    std::shared_ptr<Writer> pwriter() override
+    const SSLCertificateValidationError errorCode;
+    explicit SSLCertificateValidationException(SSLCertificateValidationError errorCode)
+        : NetworkException("SSL Certificate Validation Error: " + toMessage(errorCode)),
+        errorCode(errorCode)
     {
-        return writerInternal;
     }
 };
 
-class NetworkServer final : public StreamServer
+namespace Network
 {
-    NetworkServer(const NetworkServer &) = delete;
-    const NetworkServer & operator =(const NetworkServer &) = delete;
-private:
-    std::shared_ptr<unsigned> fd;
-    static unsigned startServer(std::uint16_t port);
-public:
-    explicit NetworkServer(std::uint16_t port);
-    ~NetworkServer();
-    std::shared_ptr<StreamRW> accept() override;
-};
-
+std::shared_ptr<StreamRW> makeTCPConnection(std::wstring address, std::uint16_t defaultPort);
+std::shared_ptr<StreamServer> makeTCPServer(std::uint16_t listenPort);
+std::shared_ptr<StreamRW> makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn = nullptr);
+/**
+ * @param listenPort the TCP port number to listen on
+ * @param certificateFile the certificate file name
+ * @param privateKeyFile the private key file name
+ * @param getDecryptionPasswordFn the function called to get a decryption password.
+ * If decryption fails, then the function is called again.
+ * The function should throw when it can't return the password.
+ * @return the new StreamServer
+ */
+std::shared_ptr<StreamServer> makeSSLServer(std::uint16_t listenPort,
+                                            std::wstring certificateFile,
+                                            std::wstring privateKeyFile,
+                                            std::function<std::wstring()> getDecryptionPasswordFn = nullptr);
+}
 }
 }
 }

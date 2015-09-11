@@ -113,12 +113,14 @@
 			<Add option="-fexceptions" />
 			<Add option="-pthread" />
 			<Add option="`sdl2-config --cflags`" />
+			<Add option="`pkg-config --cflags openssl`" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
 			<Add option="`sdl2-config --libs`" />
 			<Add option="-pthread" />
 			<Add option="-rdynamic" />
+			<Add option="`pkg-config --libs openssl`" />
 			<Add library="png" />
 			<Add library="vorbis" />
 			<Add library="ogg" />

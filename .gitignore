@@ -30,3 +30,5 @@ Makefile
 .vs
 Debug
 Release
+!libeay*.*
+!ssleay*.*

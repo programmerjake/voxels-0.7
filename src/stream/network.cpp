@@ -20,14 +20,23 @@
  */
 #include "stream/network.h"
 #include "util/util.h"
-#if _WIN64 || _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <vector>
-#include <cassert>
-#include <sstream>
+#include <openssl/bio.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/crypto.h>
+#include <openssl/conf.h>
+#include <openssl/rand.h>
+#include <iostream>
+#include <mutex>
+#include <thread>
+#include <cstdlib>
+#include <new> // for std::bad_alloc
+#include <random>
+#include <exception>
 
-using namespace std;
+#ifndef OPENSSL_THREADS
+#error OpenSSL must be configured to support threads
+#endif // OPENSSL_THREADS
 
 namespace programmerjake
 {
@@ -38,727 +47,636 @@ namespace stream
 
 namespace
 {
-struct NetworkInit final
+struct OpenSSLCallbacks final
 {
-    NetworkInit(const NetworkInit &) = delete;
-    NetworkInit &operator =(const NetworkInit &) = delete;
-    NetworkInit()
+    OpenSSLCallbacks() = delete;
+    OpenSSLCallbacks(OpenSSLCallbacks &) = delete;
+    OpenSSLCallbacks &operator =(OpenSSLCallbacks &) = delete;
+    ~OpenSSLCallbacks() = delete;
+    struct dynlock final
     {
-        WSADATA data;
-        int wsaStartupRetVal = WSAStartup(MAKEDWORD(2, 2), &data);
-        if(wsaStartupRetVal != 0)
+        std::mutex lock;
+        dynlock()
+            : lock()
         {
-            std::ostringstream ss;
-            ss << "WSAStartup failed: " << wsaStartupRetVal;
-            throw NetworkException(ss.str());
         }
-    }
-    ~NetworkInit()
+    };
+    static struct CRYPTO_dynlock_value *dyn_create_function(const char *, int)
     {
-        WSACleanup();
+        return reinterpret_cast<struct CRYPTO_dynlock_value *>(new dynlock);
+    }
+    static void dyn_destroy_function(struct CRYPTO_dynlock_value *lockIn, const char *, int)
+    {
+        if(lockIn == nullptr)
+            return;
+        delete reinterpret_cast<dynlock *>(lockIn);
+    }
+    static void dyn_lock_function(int mode, struct CRYPTO_dynlock_value *lockIn, const char *, int)
+    {
+        assert(lockIn != nullptr);
+        dynlock *lock = reinterpret_cast<dynlock *>(lockIn);
+        if(mode & CRYPTO_LOCK)
+            lock->lock.lock();
+        else
+            lock->lock.unlock();
+    }
+    struct MutexArray final
+    {
+        std::mutex *const array;
+        MutexArray(const MutexArray &) = delete;
+        MutexArray &operator =(const MutexArray &) = delete;
+        MutexArray(std::size_t count)
+            : array(new std::mutex[count])
+        {
+        }
+        ~MutexArray()
+        {
+            delete []array;
+        }
+    };
+    static void locking_function(int mode, int n, const char *, int)
+    {
+        static const std::size_t limit = CRYPTO_num_locks();
+        std::size_t index = n;
+        assert(index < limit);
+        static MutexArray mutexArray(limit);
+        if(mode & CRYPTO_LOCK)
+            mutexArray.array[index].lock();
+        else
+            mutexArray.array[index].unlock();
     }
 };
 
-void initNetwork()
+const std::size_t maxSingleReadWriteSize = 0x10000;
+
+void throwOpenSSLError(unsigned long errorCode)
 {
-    static std::shared_ptr<NetworkInit> retval = std::make_shared<NetworkInit>();
+    std::string msg;
+    msg.resize(0x100, '\0');
+    ERR_error_string_n(errorCode, &msg[0], (int)msg.size());
+    std::size_t index = msg.find_first_of('\0');
+    if(index != std::string::npos)
+        msg.erase(index);
+    throw NetworkException("OpenSSL error: " + msg);
 }
 
-std::string winsockStrError(DWORD errorCode)
+void throwOpenSSLError()
 {
-    LPWSTR message = nullptr;
-    DWORD formatMessageRetVal = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorCode, 0, (LPWSTR)&message, 1, nullptr);
-    if(formatMessageRetVal == 0 || message == nullptr)
+    throwOpenSSLError(ERR_get_error());
+}
+
+SSL_CTX *startOpenSSLLibAndClient()
+{
+    OpenSSL_add_all_ciphers();
+    SSL_library_init();
+    ERR_load_BIO_strings();
+    SSL_load_error_strings();
+    ERR_load_crypto_strings();
+    ERR_load_X509_strings();
+    OPENSSL_config(nullptr);
+    OPENSSL_add_all_algorithms_conf();
+    CRYPTO_set_dynlock_create_callback(OpenSSLCallbacks::dyn_create_function);
+    CRYPTO_set_dynlock_destroy_callback(OpenSSLCallbacks::dyn_destroy_function);
+    CRYPTO_set_dynlock_lock_callback(OpenSSLCallbacks::dyn_lock_function);
+    CRYPTO_set_locking_callback(OpenSSLCallbacks::locking_function);
+    static unsigned buf[0x1000 / sizeof(unsigned)] = {0};
+    double addedEntropy;
+    {
+        std::random_device engine;
+        addedEntropy = engine.entropy() * (sizeof(buf) / sizeof(unsigned));
+        for(unsigned &v : buf)
+        {
+            v = engine();
+        }
+    }
+    RAND_add((const void *)buf, sizeof(buf), addedEntropy);
+    const SSL_METHOD *sslMethods;
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    sslMethods = TLS_client_method();
+#else
+    sslMethods = SSLv23_client_method();
+#endif
+    SSL_CTX *retval = SSL_CTX_new(sslMethods);
+    if(retval == nullptr)
+        throwOpenSSLError();
+    SSL_CTX_set_options(retval, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    if(!SSL_CTX_set_default_verify_paths(retval))
+        throwOpenSSLError();
+    return retval;
+}
+
+SSL_CTX *initOpenSSLLibAndClient()
+{
+    static SSL_CTX *retval = startOpenSSLLibAndClient();
+    return retval;
+}
+
+void initOpenSSL()
+{
+    initOpenSSLLibAndClient();
+}
+
+struct BIOReader final : public Reader
+{
+    std::shared_ptr<BIO> bio;
+    std::shared_ptr<SSL_CTX> sslContext;
+    explicit BIOReader(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
+        : bio(bio),
+        sslContext(nullptr)
+    {
+    }
+    virtual ~BIOReader()
+    {
+        bio = nullptr; // must be first
+        sslContext = nullptr;
+    }
+    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
+    {
+        std::size_t readByteCount = 0;
+        for(;;)
+        {
+            int currentReadLen = (int)maxCount;
+            if(maxCount > maxSingleReadWriteSize)
+                currentReadLen = maxSingleReadWriteSize;
+            int readRetVal = BIO_read(bio.get(), (void *)array, currentReadLen);
+            if(readRetVal > 0)
+            {
+                maxCount -= readRetVal;
+                array += readRetVal;
+                readByteCount += readRetVal;
+                if(maxCount == 0)
+                    return readByteCount;
+                continue;
+            }
+            else if(readRetVal == 0)
+            {
+                return readByteCount;
+            }
+            if(BIO_should_retry(bio.get()))
+                continue;
+            throwOpenSSLError();
+        }
+    }
+    virtual std::uint8_t readByte() override
+    {
+        std::uint8_t retval;
+        readAllBytes(&retval, 1);
+        return retval;
+    }
+};
+
+struct BIOWriter final : public Writer
+{
+    std::shared_ptr<BIO> bio;
+    std::shared_ptr<SSL_CTX> sslContext;
+    explicit BIOWriter(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
+        : bio(bio),
+        sslContext(nullptr)
+    {
+    }
+    virtual ~BIOWriter()
+    {
+        bio = nullptr; // must be first
+        sslContext = nullptr;
+    }
+    virtual void writeByte(std::uint8_t byte) override
+    {
+        writeBytes(&byte, 1);
+    }
+    virtual void writeBytes(const std::uint8_t *array, std::size_t count) override
+    {
+        for(;;)
+        {
+            int currentWriteLen = (int)count;
+            if(count > maxSingleReadWriteSize)
+                currentWriteLen = maxSingleReadWriteSize;
+            int writeRetVal = BIO_write(bio.get(), (const void *)array, currentWriteLen);
+            if(writeRetVal > 0)
+            {
+                count -= writeRetVal;
+                array += writeRetVal;
+                if(count == 0)
+                    return;
+                continue;
+            }
+            if(BIO_should_retry(bio.get()))
+                continue;
+            throwOpenSSLError();
+        }
+    }
+    virtual void flush() override
+    {
+        while(1 != BIO_flush(bio.get()))
+        {
+            if(BIO_should_retry(bio.get()))
+                continue;
+            throwOpenSSLError();
+        }
+    }
+};
+
+std::wstring handleAddressDefaultPort(std::wstring address, std::uint16_t defaultPort)
+{
+    if(address.find_last_of(L':') != std::wstring::npos)
+        return std::move(address);
+    std::wostringstream ss;
+    ss << address << L":" << (unsigned)defaultPort;
+    return std::move(ss).str();
+}
+
+struct MyStreamServer final : public StreamServer
+{
+    std::shared_ptr<BIO> bio;
+    std::shared_ptr<SSL_CTX> sslContext;
+    explicit MyStreamServer(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
+        : bio(bio),
+        sslContext(sslContext)
+    {
+    }
+    virtual ~MyStreamServer()
+    {
+        bio = nullptr; // must be first
+        sslContext = nullptr;
+    }
+    virtual std::shared_ptr<StreamRW> accept() override
+    {
+        while(BIO_do_accept(bio.get()) <= 0)
+        {
+            if(BIO_should_retry(bio.get()))
+                continue;
+            throwOpenSSLError();
+        }
+        std::shared_ptr<BIO> retval = std::shared_ptr<BIO>(BIO_pop(bio.get()), [](BIO *pbio)
+        {
+            BIO_free_all(pbio);
+        });
+        return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(retval, sslContext), std::make_shared<BIOWriter>(retval, sslContext));
+    }
+};
+
+SSLCertificateValidationError translateOpenSSLX509ErrorCode(long errorCode)
+{
+    switch(errorCode)
+    {
+    case X509_V_OK:
+        return SSLCertificateValidationError::NoError;
+    case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+        return SSLCertificateValidationError::IssuerCertificateNotFound;
+    case X509_V_ERR_UNABLE_TO_GET_CRL:
+        return SSLCertificateValidationError::CRLNotFound;
+    case X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE:
+        return SSLCertificateValidationError::UnableToDecryptCertificateSignature;
+    case X509_V_ERR_UNABLE_TO_DECRYPT_CRL_SIGNATURE:
+        return SSLCertificateValidationError::UnableToDecryptCRLSignature;
+    case X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:
+        return SSLCertificateValidationError::UnableToDecodeIssuerPublicKey;
+    case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+        return SSLCertificateValidationError::CertificateSignatureInvalid;
+    case X509_V_ERR_CRL_SIGNATURE_FAILURE:
+        return SSLCertificateValidationError::CRLSignatureInvalid;
+    case X509_V_ERR_CERT_NOT_YET_VALID:
+        return SSLCertificateValidationError::CertificateNotYetValid;
+    case X509_V_ERR_CERT_HAS_EXPIRED:
+        return SSLCertificateValidationError::CertificateHasExpired;
+    case X509_V_ERR_CRL_NOT_YET_VALID:
+        return SSLCertificateValidationError::CRLNotYetValid;
+    case X509_V_ERR_CRL_HAS_EXPIRED:
+        return SSLCertificateValidationError::CRLHasExpired;
+    case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
+        return SSLCertificateValidationError::FormatErrorInCertificateNotBeforeField;
+    case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
+        return SSLCertificateValidationError::FormatErrorInCertificateNotAfterField;
+    case X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD:
+        return SSLCertificateValidationError::FormatErrorInCRLLastUpdateField;
+    case X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD:
+        return SSLCertificateValidationError::FormatErrorInCRLNextUpdateField;
+    case X509_V_ERR_OUT_OF_MEM:
+        UNREACHABLE(); // should be caught before
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+        return SSLCertificateValidationError::UntrustedSelfSignedCertificate;
+    case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+        return SSLCertificateValidationError::UntrustedRootCertificate;
+    case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+        return SSLCertificateValidationError::LocalIssuerCertificateNotFound;
+    case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
+        return SSLCertificateValidationError::LeafCertificateVerificationFailed;
+    case X509_V_ERR_CERT_CHAIN_TOO_LONG:
+        return SSLCertificateValidationError::CertificateChainTooLong;
+    case X509_V_ERR_CERT_REVOKED:
+        return SSLCertificateValidationError::CertificateRevoked;
+    case X509_V_ERR_INVALID_CA:
+        return SSLCertificateValidationError::InvalidCACertificate;
+    case X509_V_ERR_PATH_LENGTH_EXCEEDED:
+        return SSLCertificateValidationError::PathTooLong;
+    case X509_V_ERR_INVALID_PURPOSE:
+        return SSLCertificateValidationError::UnsupportedCertificatePurpose;
+    case X509_V_ERR_CERT_UNTRUSTED:
+        return SSLCertificateValidationError::RootCACertificateUntrustedForPurpose;
+    case X509_V_ERR_CERT_REJECTED:
+        return SSLCertificateValidationError::RootCACertificateRejectsPurpose;
+    case X509_V_ERR_SUBJECT_ISSUER_MISMATCH:
+        return SSLCertificateValidationError::NoError;
+    case X509_V_ERR_AKID_SKID_MISMATCH:
+        return SSLCertificateValidationError::AuthorityKeyIdentifierDoesNotMatchSubjectKey;
+    case X509_V_ERR_AKID_ISSUER_SERIAL_MISMATCH:
+        return SSLCertificateValidationError::AuthorityKeySerialNumberDoesNotMatchSubjectKey;
+    case X509_V_ERR_KEYUSAGE_NO_CERTSIGN:
+        return SSLCertificateValidationError::NoError;
+    case X509_V_ERR_INVALID_EXTENSION:
+        return SSLCertificateValidationError::InvalidExtension;
+    case X509_V_ERR_INVALID_POLICY_EXTENSION:
+        return SSLCertificateValidationError::InvalidPolicyExtension;
+    case X509_V_ERR_NO_EXPLICIT_POLICY:
+        return SSLCertificateValidationError::MissingExplicitPolicy;
+    case X509_V_ERR_DIFFERENT_CRL_SCOPE:
+        return SSLCertificateValidationError::DifferentCRLScope;
+    case X509_V_ERR_UNSUPPORTED_EXTENSION_FEATURE:
+        return SSLCertificateValidationError::UnsupportedExtensionFeature;
+    case X509_V_ERR_PERMITTED_VIOLATION:
+        return SSLCertificateValidationError::NameConstraintViolationInPermittedSubtrees;
+    case X509_V_ERR_EXCLUDED_VIOLATION:
+        return SSLCertificateValidationError::NameConstraintViolationInExcludedSubtrees;
+    case X509_V_ERR_SUBTREE_MINMAX:
+        return SSLCertificateValidationError::UnsupportedNameConstraintsMinimumOrMaximum;
+    case X509_V_ERR_UNSUPPORTED_CONSTRAINT_TYPE:
+        return SSLCertificateValidationError::UnsupportedNameConstraintsType;
+    case X509_V_ERR_UNSUPPORTED_CONSTRAINT_SYNTAX:
+        return SSLCertificateValidationError::UnsupportedNameConstraintsSyntax;
+    case X509_V_ERR_CRL_PATH_VALIDATION_ERROR:
+        return SSLCertificateValidationError::CRLPathValidationError;
+    case X509_V_ERR_APPLICATION_VERIFICATION:
+        UNREACHABLE();
+    }
+    UNREACHABLE();
+}
+
+}
+
+std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address, std::uint16_t defaultPort)
+{
+    initOpenSSL();
+    address = handleAddressDefaultPort(std::move(address), defaultPort);
+    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_connect((char *)string_cast<std::string>(address).c_str()), [](BIO *pbio)
+    {
+        BIO_free_all(pbio);
+    });
+    if(bio == nullptr)
+        throwOpenSSLError();
+    if(BIO_do_connect(bio.get()) <= 0)
+        throwOpenSSLError();
+    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio), std::make_shared<BIOWriter>(bio));
+}
+
+std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
+{
+    initOpenSSL();
+    std::ostringstream ss;
+    ss << "*:" << listenPort;
+    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()), [](BIO *pbio)
+    {
+        BIO_free_all(pbio);
+    });
+    if(bio == nullptr)
+        throwOpenSSLError();
+    if(BIO_do_accept(bio.get()) <= 0)
+        throwOpenSSLError();
+    return std::make_shared<MyStreamServer>(bio);
+}
+
+std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
+{
+    if(handleCertificateValidationErrorFn == nullptr)
+    {
+        handleCertificateValidationErrorFn = [](SSLCertificateValidationError errorCode)
+        {
+            throw SSLCertificateValidationException(errorCode);
+        };
+    }
+    SSL_CTX *ctx = initOpenSSLLibAndClient();
+    address = handleAddressDefaultPort(std::move(address), defaultPort);
+    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_ssl_connect(ctx), [](BIO *pbio)
+    {
+        BIO_free_all(pbio);
+    });
+    if(bio == nullptr)
+        throwOpenSSLError();
+    SSL *ssl;
+    if(BIO_get_ssl(bio.get(), &ssl) <= 0)
+        throwOpenSSLError();
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    if(BIO_set_conn_hostname(bio.get(), (char *)string_cast<std::string>(address).c_str()) <= 0)
+        throwOpenSSLError();
+    std::size_t colonLocation = address.find_last_of(L':');
+    assert(colonLocation != std::wstring::npos);
+    SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
+    SSL_set_cipher_list(ssl, "ALL:!EXPORT:!EXPORT40:!EXPORT56:!aNULL:!LOW:!RC4:@STRENGTH");
+    if(BIO_do_connect(bio.get()) <= 0)
+        throwOpenSSLError();
+    std::shared_ptr<X509> peerCertificate = std::shared_ptr<X509>(SSL_get_peer_certificate(ssl), [](X509 *v)
+    {
+        X509_free(v);
+    });
+    if(peerCertificate == nullptr)
+    {
+        handleCertificateValidationErrorFn(SSLCertificateValidationError::NoCertificateSupplied);
+    }
+    else
+    {
+        long verifyResult = SSL_get_verify_result(ssl);
+        if(verifyResult == X509_V_ERR_OUT_OF_MEM)
+        {
+            throw std::bad_alloc();
+        }
+        bool handledError = false;
+        if(verifyResult != X509_V_OK)
+        {
+            SSLCertificateValidationError errorCode = translateOpenSSLX509ErrorCode(verifyResult);
+            if(errorCode != SSLCertificateValidationError::NoError)
+            {
+                handleCertificateValidationErrorFn(errorCode);
+                handledError = true;
+            }
+        }
+        if(!handledError)
+        {
+
+        }
+    }
+    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio), std::make_shared<BIOWriter>(bio));
+}
+
+std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
+                                                     std::wstring certificateFile,
+                                                     std::wstring privateKeyFile,
+                                                     std::function<std::wstring()> getDecryptionPasswordFn)
+{
+    if(getDecryptionPasswordFn == nullptr)
+    {
+        getDecryptionPasswordFn = []()->std::wstring
+        {
+            throw NetworkException("decryption password needed");
+        };
+    }
+    initOpenSSL();
+    struct PasswordFunctionUserData final
+    {
+        std::function<std::wstring()> getDecryptionPasswordFn;
+        std::exception_ptr thrownException;
+        PasswordFunctionUserData()
+            : getDecryptionPasswordFn(),
+            thrownException()
+        {
+        }
+    };
+    PasswordFunctionUserData *passwordUserData = new PasswordFunctionUserData();
+    const SSL_METHOD *sslMethods;
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    sslMethods = TLS_server_method();
+#else
+    sslMethods = SSLv23_server_method();
+#endif
+    std::shared_ptr<SSL_CTX> ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(sslMethods), [passwordUserData](SSL_CTX *ctx)
+    {
+        SSL_CTX_free(ctx);
+        delete passwordUserData;
+    });
+    if(ctx == nullptr)
+    {
+        delete passwordUserData;
+        throwOpenSSLError();
+    }
+    SSL_CTX_set_options(ctx.get(), SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    SSL_CTX_set_default_passwd_cb(ctx.get(), [](char *buf, int size, int rwFlag, void *userDataIn)->int
+    {
+        assert(!rwFlag);
+        PasswordFunctionUserData *userData = (PasswordFunctionUserData *)userDataIn;
+        try
+        {
+            assert(userData->getDecryptionPasswordFn);
+            std::string password = string_cast<std::string>(userData->getDecryptionPasswordFn());
+            if(password.size() > (std::size_t)size)
+            {
+                return -1;
+            }
+            for(std::size_t i = 0; i < password.size(); i++)
+                buf[i] = password[i];
+            return password.size();
+        }
+        catch(...)
+        {
+            userData->thrownException = std::current_exception();
+        }
+        return -1;
+    });
+    SSL_CTX_set_default_passwd_cb_userdata(ctx.get(), (void *)passwordUserData);
+
+    passwordUserData->getDecryptionPasswordFn = []()->std::wstring
+    {
+        throw NetworkException("decryption of public certificate not supported");
+    };
+    int SSL_CTX_use_certificate_file_retval = SSL_CTX_use_certificate_file(ctx.get(), string_cast<std::string>(certificateFile).c_str(), SSL_FILETYPE_PEM);
+    if(passwordUserData->thrownException != nullptr)
+        std::rethrow_exception(passwordUserData->thrownException);
+    passwordUserData->getDecryptionPasswordFn = nullptr;
+    if(!SSL_CTX_use_certificate_file_retval)
+    {
+        throwOpenSSLError();
+    }
+    for(;;)
+    {
+        passwordUserData->getDecryptionPasswordFn = getDecryptionPasswordFn;
+        int SSL_CTX_use_PrivateKey_file_retval = SSL_CTX_use_PrivateKey_file(ctx.get(), string_cast<std::string>(privateKeyFile).c_str(), SSL_FILETYPE_PEM);
+        if(passwordUserData->thrownException != nullptr)
+            std::rethrow_exception(passwordUserData->thrownException);
+        passwordUserData->getDecryptionPasswordFn = nullptr;
+        if(!SSL_CTX_use_PrivateKey_file_retval)
+        {
+            unsigned long errorCode = ERR_get_error();
+            if(ERR_GET_LIB(errorCode) == ERR_LIB_PEM &&
+               (ERR_GET_REASON(errorCode) == PEM_R_BAD_DECRYPT ||
+                ERR_GET_REASON(errorCode) == PEM_R_BAD_PASSWORD_READ))
+                continue;
+            throwOpenSSLError(errorCode);
+        }
+        else
+        {
+            break;
+        }
+    }
+    if(!SSL_CTX_check_private_key(ctx.get()))
+    {
+        throwOpenSSLError();
+    }
+    BIO *sslBio = BIO_new_ssl(ctx.get(), 0);
+    if(sslBio == nullptr)
+    {
+        throwOpenSSLError();
+    }
+    SSL *ssl;
+    if(BIO_get_ssl(sslBio, &ssl) <= 0)
+    {
+        unsigned long errorCode = ERR_get_error();
+        BIO_free_all(sslBio);
+        throwOpenSSLError(errorCode);
+    }
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    SSL_set_cipher_list(ssl, "ALL:!EXPORT:!EXPORT40:!EXPORT56:!aNULL:!LOW:!RC4:@STRENGTH");
+    std::shared_ptr<BIO> retval;
+    try
     {
         std::ostringstream ss;
-        ss << errorCode << " (message formatting failed)";
-        return ss.str();
-    }
-    std::wstring retval = std::wstring(message, formatMessageRetVal);
-    LocalFree(message);
-    return string_cast<std::string>(retval);
-}
-
-class NetworkReader final : public Reader
-{
-private:
-    std::shared_ptr<unsigned> fd;
-    bool availableData = false;
-public:
-    explicit NetworkReader(std::shared_ptr<unsigned> fd)
-        : fd(fd)
-    {
-        assert(fd != nullptr);
-        DWORD flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-    }
-    virtual ~NetworkReader()
-    {
-        shutdown(*fd, SD_RECEIVE);
-    }
-    virtual std::uint8_t readByte() override
-    {
-        std::uint8_t retval;
-        readAllBytes(&retval, 1);
-        return retval;
-    }
-    virtual bool dataAvailable() override
-    {
-        if(availableData)
-            return true;
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(*fd, &readfds);
-        TIMEVAL timeout = {0, 0};
-        int selectRetVal = select(*fd + 1, &readfds, nullptr, nullptr, &timeout);
-        if(selectRetVal == SOCKET_ERROR)
+        ss << "*:" << listenPort;
+        retval = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()), [](BIO *p)
         {
-            DWORD errorValue = WSAGetLastError();
-            throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
-        }
-        if(selectRetVal == 0)
-            return false;
-        availableData = true;
-        return true;
+            BIO_free_all(p);
+        });
+        if(retval == nullptr)
+            throwOpenSSLError();
+        BIO_set_accept_bios(retval.get(), sslBio);
     }
-    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
+    catch(...)
     {
-        if(maxCount == 0)
-            return 0;
-        availableData = false;
-        std::size_t retval = 0;
-        for(;;)
-        {
-            int recvSize = (int)maxCount;
-            if(maxCount >= 0x10000)
-                recvSize = 0x10000;
-            int recvRetVal = recv(*fd, (char *)array, recvSize, MSG_WAITALL);
-            if(recvRetVal == SOCKET_ERROR)
-            {
-                DWORD errorValue = WSAGetLastError();
-                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
-            }
-            else if(recvRetVal == 0)
-            {
-                return retval;
-            }
-            else if((std::size_t)recvRetVal == maxCount)
-            {
-                return retval + maxCount;
-            }
-            else
-            {
-                array += recvRetVal;
-                maxCount -= recvRetVal;
-                retval += recvRetVal;
-            }
-        }
+        BIO_free_all(sslBio);
+        throw;
     }
-    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount) override
-    {
-        if(maxCount == 0)
-            return 0;
-        std::size_t retval = 0;
-        for(;;)
-        {
-            if(!dataAvailable())
-                return retval;
-            int recvSize = (int)maxCount;
-            if(maxCount >= 0x10000)
-                recvSize = 0x10000;
-            int recvRetVal = recv(*fd, (char *)array, recvSize, 0);
-            availableData = false;
-            if(recvRetVal == SOCKET_ERROR)
-            {
-                DWORD errorValue = WSAGetLastError();
-                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
-            }
-            else if(recvRetVal == 0)
-            {
-                return retval;
-            }
-            else if((std::size_t)recvRetVal == maxCount)
-            {
-                return retval + maxCount;
-            }
-            else
-            {
-                array += recvRetVal;
-                maxCount -= recvRetVal;
-                retval += recvRetVal;
-            }
-        }
-    }
-};
-
-class NetworkWriter final : public Writer
-{
-private:
-    std::vector<std::uint8_t> buffer;
-    std::shared_ptr<unsigned> fd;
-public:
-    explicit NetworkWriter(std::shared_ptr<unsigned> fd)
-        : buffer(), fd(fd)
-    {
-        assert(fd != nullptr);
-        DWORD flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-    }
-    virtual ~NetworkWriter()
-    {
-        shutdown(*fd, SD_SEND);
-    }
-    virtual void writeByte(std::uint8_t v) override
-    {
-        buffer.push_back(v);
-        if(buffer.size() >= 0x4000)
-            flush();
-    }
-    virtual void flush() override
-    {
-        const std::uint8_t *pbuffer = buffer.data();
-        std::size_t sizeLeft = buffer.size();
-        while(sizeLeft > 0)
-        {
-            int retval = send(*fd, (const char *)pbuffer, sizeLeft, 0);
-            if(retval == SOCKET_ERROR)
-            {
-                DWORD errorValue = WSAGetLastError();
-                throw NetworkException(std::string("io error : ") + winsockStrError(errorValue));
-            }
-            else
-            {
-                sizeLeft -= retval;
-                pbuffer += retval;
-            }
-        }
-        int flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-        buffer.clear();
-    }
-};
+    if(BIO_do_accept(retval.get()) <= 0)
+        throwOpenSSLError();
+    return std::make_shared<MyStreamServer>(retval, ctx);
 }
 
-NetworkConnection::NetworkConnection(std::wstring url, std::uint16_t port)
-    : readerInternal(),
-    writerInternal()
-{
-    initNetwork();
-    std::string url_utf8 = string_cast<std::string>(url), port_str = std::to_string((unsigned)port);
-    addrinfo *addrList = nullptr;
-    addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = 0;
-    hints.ai_family = 0;
-    int retval = getaddrinfo(url_utf8.c_str(), port_str.c_str(), &hints, &addrList);
-
-    if(0 != retval)
-    {
-        throw NetworkException(std::string("getaddrinfo: ") + winsockStrError(retval));
-    }
-
-    unsigned fd = INVALID_SOCKET;
-
-    DWORD errorValue;
-
-    for(addrinfo *addr = addrList; addr; addr = addr->ai_next)
-    {
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-
-        if(fd == INVALID_SOCKET)
-        {
-            errorValue = WSAGetLastError();
-            continue;
-        }
-        if(SOCKET_ERROR != connect(fd, addr->ai_addr, addr->ai_addrlen))
-        {
-            break;
-        }
-        errorValue = WSAGetLastError();
-        closesocket(fd);
-        fd = INVALID_SOCKET;
-    }
-
-    if(fd == INVALID_SOCKET)
-    {
-        std::string msg = "can't connect: ";
-        msg += winsockStrError(errorValue);
-        freeaddrinfo(addrList);
-        throw NetworkException(msg);
-    }
-
-    int flag = 1;
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-
-    freeaddrinfo(addrList);
-    std::shared_ptr<unsigned> pfd = std::shared_ptr<unsigned>(new unsigned(fd), [](unsigned *pfd)
-    {
-        closesocket(*pfd);
-        delete pfd;
-    });
-    readerInternal = std::shared_ptr<Reader>(new NetworkReader(pfd));
-    writerInternal = std::shared_ptr<Writer>(new NetworkWriter(pfd));
-}
-
-unsigned NetworkServer::startServer(std::uint16_t port)
-{
-    initNetwork();
-    addrinfo hints;
-    memset((void *)&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = 0;
-    hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
-    addrinfo *addrList;
-    std::string port_str = std::to_string((unsigned)port);
-    int retval = getaddrinfo(NULL, port_str.c_str(), &hints, &addrList);
-
-    if(0 != retval)
-    {
-        throw NetworkException(std::string("getaddrinfo: ") + winsockStrError(retval));
-    }
-
-    unsigned fd = INVALID_SOCKET;
-    const char *errorStr = "getaddrinfo";
-
-    DWORD errorValue;
-
-    for(addrinfo *addr = addrList; addr != NULL; addr = addr->ai_next)
-    {
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-        errorStr = "socket";
-
-        if(fd == INVALID_SOCKET)
-        {
-            errorValue = WSAGetLastError();
-            continue;
-        }
-
-        int opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
-
-        if(::bind(fd, addr->ai_addr, addr->ai_addrlen) == 0)
-        {
-            break;
-        }
-
-        errorValue = WSAGetLastError();
-        closesocket(fd);
-        errorStr = "bind";
-        fd = INVALID_SOCKET;
-    }
-
-    if(fd == INVALID_SOCKET)
-    {
-        std::string msg = std::string(errorStr) + ": ";
-        msg += winsockStrError(errorValue);
-        freeaddrinfo(addrList);
-        throw NetworkException(msg);
-    }
-
-    freeaddrinfo(addrList);
-
-    if(listen(fd, 50) == SOCKET_ERROR)
-    {
-        DWORD errorValue = WSAGetLastError();
-        std::string msg = "listen: ";
-        msg += winsockStrError(errorValue);
-        closesocket(fd);
-        throw NetworkException(msg);
-    }
-    return (unsigned)fd;
-}
-
-NetworkServer::NetworkServer(std::uint16_t port)
-    : fd(new unsigned(startServer(port)), [](unsigned *pfd)
-    {
-        closesocket(*pfd);
-        delete pfd;
-    })
-{
-}
-
-NetworkServer::~NetworkServer()
-{
-}
-
-std::shared_ptr<StreamRW> NetworkServer::accept()
-{
-    unsigned fd2 = ::accept(*fd, nullptr, nullptr);
-
-    if(fd2 == INVALID_SOCKET)
-    {
-        DWORD errorValue = WSAGetLastError();
-        std::string msg = "accept: ";
-        msg += winsockStrError(errorValue);
-        throw NetworkException(msg);
-    }
-
-    int flag = 1;
-    setsockopt(fd2, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-
-    std::shared_ptr<unsigned> pfd2 = std::shared_ptr<unsigned>(new unsigned(fd2), [](unsigned *pfd)
-    {
-        closesocket(*pfd);
-        delete pfd;
-    });
-    std::shared_ptr<Reader> reader = std::shared_ptr<Reader>(new NetworkReader(pfd2));
-    std::shared_ptr<Writer> writer = std::shared_ptr<Writer>(new NetworkWriter(pfd2));
-    return std::shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
-}
-
-}
-}
-}
-#elif __ANDROID || __APPLE__ || __linux || __unix || __posix
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
-#include <netinet/tcp.h>
-#include <vector>
-
-using namespace std;
-
-namespace programmerjake
-{
-namespace voxels
-{
-namespace stream
-{
-
+#if 0
 namespace
 {
-initializer signalInit([]()
+initializer init1([]()
 {
-    signal(SIGPIPE, SIG_IGN);
+    try
+    {
+        bool gotPassword = false;
+        std::shared_ptr<StreamRW> connection = Network::makeSSLServer(4433, L"ssl_test_cert.pem", L"ssl_test_key.pem", [&]()
+        {
+            if(gotPassword)
+                throw IOException("password decode failed");
+            gotPassword = true;
+            return L"password";
+        })->accept();
+        for(;;)
+        {
+            const std::size_t bufferSize = 0x1000;
+            static char buffer[bufferSize];
+            std::size_t readSize = connection->preader()->readBytes((std::uint8_t *)buffer, bufferSize);
+            if(readSize == 0)
+                break;
+            std::cout.write(buffer, readSize);
+        }
+    }
+    catch(IOException e)
+    {
+        std::cerr << "error: " << e.what() << std::endl;
+    }
+    std::exit(0);
 });
-
-class NetworkReader final : public Reader
-{
-private:
-    std::shared_ptr<unsigned> fd;
-    bool availableData = false;
-public:
-    explicit NetworkReader(std::shared_ptr<unsigned> fd)
-        : fd(fd)
-    {
-        assert(fd != nullptr);
-        int flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-    }
-    virtual ~NetworkReader()
-    {
-        shutdown(*fd, SHUT_RD);
-    }
-    virtual std::uint8_t readByte() override
-    {
-        std::uint8_t retval;
-        readAllBytes(&retval, 1);
-        return retval;
-    }
-    virtual bool dataAvailable() override
-    {
-        if(availableData)
-            return true;
-        pollfd fds;
-        fds.fd = *fd;
-        fds.events = POLLIN;
-        int pollRetVal = poll(&fds, 1, 0);
-        if(pollRetVal < 0)
-        {
-            int errorValue = errno;
-            throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
-        }
-        if(pollRetVal == 0)
-            return false;
-        if(fds.revents & (POLLERR | POLLHUP))
-            return false;
-        availableData = true;
-        return true;
-    }
-    virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
-    {
-        std::size_t retval = 0;
-        for(;;)
-        {
-            ssize_t recvRetVal = recv(*fd, (void *)array, maxCount, 0);
-            if(recvRetVal == -1)
-            {
-                int errorValue = errno;
-                if(errorValue != EINTR)
-                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
-            }
-            else if(recvRetVal == 0)
-            {
-                return retval;
-            }
-            else if((std::size_t)recvRetVal == maxCount)
-            {
-                return retval + maxCount;
-            }
-            else
-            {
-                array += recvRetVal;
-                maxCount -= recvRetVal;
-                retval += recvRetVal;
-            }
-        }
-    }
-    virtual std::size_t readAvailableBytes(std::uint8_t *array, std::size_t maxCount) override
-    {
-        std::size_t retval = 0;
-        for(;;)
-        {
-            ssize_t recvRetVal = recv(*fd, (void *)array, maxCount, MSG_DONTWAIT);
-            if(recvRetVal == -1)
-            {
-                int errorValue = errno;
-                if(errorValue == EAGAIN || errorValue == EWOULDBLOCK)
-                    return retval;
-                if(errorValue != EINTR)
-                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
-            }
-            else if(recvRetVal == 0)
-            {
-                return retval;
-            }
-            else if((std::size_t)recvRetVal == maxCount)
-            {
-                return retval + maxCount;
-            }
-            else
-            {
-                array += recvRetVal;
-                maxCount -= recvRetVal;
-                retval += recvRetVal;
-            }
-        }
-    }
-};
-
-class NetworkWriter final : public Writer
-{
-private:
-    std::vector<std::uint8_t> buffer;
-    std::shared_ptr<unsigned> fd;
-public:
-    explicit NetworkWriter(std::shared_ptr<unsigned> fd)
-        : buffer(), fd(fd)
-    {
-        assert(fd != nullptr);
-        int flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-    }
-    virtual ~NetworkWriter()
-    {
-        shutdown(*fd, SHUT_WR);
-    }
-    virtual void writeByte(std::uint8_t v) override
-    {
-        buffer.push_back(v);
-        if(buffer.size() >= 0x4000)
-            flush();
-    }
-    virtual void flush() override
-    {
-        const std::uint8_t *pbuffer = buffer.data();
-        ssize_t sizeLeft = buffer.size();
-        while(sizeLeft > 0)
-        {
-            ssize_t retval = send(*fd, (const void *)pbuffer, sizeLeft, 0);
-            if(retval == -1)
-            {
-                int errorValue = errno;
-                if(errorValue != EINTR)
-                    throw NetworkException(std::string("io error : ") + std::strerror(errorValue));
-            }
-            else
-            {
-                sizeLeft -= retval;
-                pbuffer += retval;
-            }
-        }
-        int flag = 1;
-        setsockopt(*fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-        buffer.clear();
-    }
-};
 }
-
-NetworkConnection::NetworkConnection(std::wstring url, std::uint16_t port)
-    : readerInternal(),
-    writerInternal()
-{
-    std::string url_utf8 = string_cast<std::string>(url), port_str = std::to_string((unsigned)port);
-    addrinfo *addrList = nullptr;
-    addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = 0;
-    hints.ai_family = 0;
-    int retval = getaddrinfo(url_utf8.c_str(), port_str.c_str(), &hints, &addrList);
-
-    if(0 != retval)
-    {
-        throw NetworkException(std::string("getaddrinfo: ") + gai_strerror(retval));
-    }
-
-    int fd = -1;
-
-    for(addrinfo *addr = addrList; addr; addr = addr->ai_next)
-    {
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-
-        if(fd == -1)
-        {
-            continue;
-        }
-        if(-1 != connect(fd, addr->ai_addr, addr->ai_addrlen))
-        {
-            break;
-        }
-        int errorValue = errno;
-        close(fd);
-        errno = errorValue;
-        fd = -1;
-    }
-
-    if(fd == -1)
-    {
-        int errorValue = errno;
-        std::string msg = "can't connect: ";
-        msg += std::strerror(errorValue);
-        freeaddrinfo(addrList);
-        throw NetworkException(msg);
-    }
-
-    int flag = 1;
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-
-    freeaddrinfo(addrList);
-    std::shared_ptr<unsigned> pfd = std::shared_ptr<unsigned>(new unsigned(fd), [](unsigned *pfd)
-    {
-        close(*pfd);
-        delete pfd;
-    });
-    readerInternal = std::shared_ptr<Reader>(new NetworkReader(pfd));
-    writerInternal = std::shared_ptr<Writer>(new NetworkWriter(pfd));
-}
-
-unsigned NetworkServer::startServer(std::uint16_t port)
-{
-    addrinfo hints;
-    memset((void *)&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = 0;
-    hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
-    addrinfo *addrList;
-    std::string port_str = std::to_string((unsigned)port);
-    int retval = getaddrinfo(NULL, port_str.c_str(), &hints, &addrList);
-
-    if(0 != retval)
-    {
-        throw NetworkException(std::string("getaddrinfo: ") + gai_strerror(retval));
-    }
-
-    int fd = -1;
-    const char *errorStr = "getaddrinfo";
-
-    for(addrinfo *addr = addrList; addr != NULL; addr = addr->ai_next)
-    {
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-        errorStr = "socket";
-
-        if(fd < 0)
-        {
-            continue;
-        }
-
-        int opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
-
-        if(::bind(fd, addr->ai_addr, addr->ai_addrlen) == 0)
-        {
-            break;
-        }
-
-        int temp = errno;
-        close(fd);
-        errno = temp;
-        errorStr = "bind";
-        fd = -1;
-    }
-
-    if(fd < 0)
-    {
-        int errorValue = errno;
-        std::string msg = std::string(errorStr) + ": ";
-        msg += std::strerror(errorValue);
-        freeaddrinfo(addrList);
-        throw NetworkException(msg);
-    }
-
-    freeaddrinfo(addrList);
-
-    if(listen(fd, 50) == -1)
-    {
-        int errorValue = errno;
-        std::string msg = "listen: ";
-        msg += std::strerror(errorValue);
-        close(fd);
-        throw NetworkException(msg);
-    }
-    return (unsigned)fd;
-}
-
-NetworkServer::NetworkServer(std::uint16_t port)
-    : fd(new unsigned(startServer(port)), [](unsigned *pfd)
-    {
-        close(*pfd);
-        delete pfd;
-    })
-{
-}
-
-NetworkServer::~NetworkServer()
-{
-}
-
-std::shared_ptr<StreamRW> NetworkServer::accept()
-{
-    int fd2 = ::accept(*fd, nullptr, nullptr);
-
-    if(fd2 < 0)
-    {
-        int errorValue = errno;
-        std::string msg = "accept: ";
-        msg += std::strerror(errorValue);
-        throw NetworkException(msg);
-    }
-
-    int flag = 1;
-    setsockopt(fd2, IPPROTO_TCP, TCP_NODELAY, (const void *)&flag, sizeof(flag));
-
-    std::shared_ptr<unsigned> pfd2 = std::shared_ptr<unsigned>(new unsigned(fd2), [](unsigned *pfd)
-    {
-        close(*pfd);
-        delete pfd;
-    });
-    std::shared_ptr<Reader> reader = std::shared_ptr<Reader>(new NetworkReader(pfd2));
-    std::shared_ptr<Writer> writer = std::shared_ptr<Writer>(new NetworkWriter(pfd2));
-    return std::shared_ptr<StreamRW>(new StreamRWWrapper(reader, writer));
-}
-
-}
-}
-}
-#else
-#error unknown platform for network.cpp
 #endif
+}
+}
+}

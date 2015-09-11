@@ -1368,7 +1368,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         case SDL_TEXTEDITING:
         {
             std::string text = SDLEvent.edit.text;
-            return std::make_shared<TextEditEvent>(string_cast<std::wstring>(text), string_cast<std::wstring>(text.substr(0, SDLEvent.edit.start)).size(), SDLEvent.edit.length);
+            return std::make_shared<TextEditEvent>(string_cast<std::wstring>(text), SDLEvent.edit.start, SDLEvent.edit.length);
         }
         case SDL_TEXTINPUT:
         {

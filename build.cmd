@@ -1,8 +1,16 @@
 @echo off
 setlocal
-call "C:\Program Files\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
+set my_program_files=%ProgramFiles%
+if not "%ProgramFiles(x86)%"=="" set my_program_files=%ProgramFiles(x86)%
+call "%my_program_files%\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
 set startdir=%cd%
-set include_list=/I external-lib /I include /I external-lib/zlib-1.2.8 /I external-lib/SDL2-2.0.3/include /I external-lib/lpng1617 /I external-lib/libvorbis-1.3.5/include /I external-lib/libogg-1.3.2/include
+set include_list=/I external-lib /I include
+set include_list=%include_list% /I external-lib/zlib-1.2.8
+set include_list=%include_list% /I external-lib/SDL2-2.0.3/include
+set include_list=%include_list% /I external-lib/lpng1617
+set include_list=%include_list% /I external-lib/libvorbis-1.3.5/include
+set include_list=%include_list% /I external-lib/libogg-1.3.2/include
+set include_list=%include_list% /I external-lib/openssl-1.0.1p-vs2015/include
 set library_list=external-lib/libogg-1.3.2/Release/libogg_static.lib
 set library_list=%library_list% external-lib/libvorbis-1.3.5/Release/libvorbis_static.lib
 set library_list=%library_list% external-lib/libvorbis-1.3.5/Release/libvorbisfile_static.lib
@@ -10,6 +18,8 @@ set library_list=%library_list% external-lib/lpng1617/Release/libpng16.lib
 set library_list=%library_list% external-lib/zlib-1.2.8/Release/zlib.lib
 set library_list=%library_list% external-lib/SDL2-2.0.3/Release/SDL2.lib
 set library_list=%library_list% external-lib/SDL2-2.0.3/Release/SDL2main.lib
+set library_list=%library_list% external-lib/openssl-1.0.1p-vs2015/lib/libeay32MD.lib
+set library_list=%library_list% external-lib/openssl-1.0.1p-vs2015/lib/ssleay32MD.lib
 set library_list=%library_list% opengl32.lib kernel32.lib user32.lib shell32.lib winmm.lib
 set library_list=%library_list% ole32.lib gdi32.lib version.lib imm32.lib oleaut32.lib strmiids.lib
 set object_file_list=
