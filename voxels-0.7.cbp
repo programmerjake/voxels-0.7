@@ -114,6 +114,7 @@
 			<Add option="-pthread" />
 			<Add option="`sdl2-config --cflags`" />
 			<Add option="`pkg-config --cflags openssl`" />
+			<Add option="`cups-config --cflags`" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
@@ -121,6 +122,7 @@
 			<Add option="-pthread" />
 			<Add option="-rdynamic" />
 			<Add option="`pkg-config --libs openssl`" />
+			<Add option="`cups-config --libs`" />
 			<Add library="png" />
 			<Add library="vorbis" />
 			<Add library="ogg" />
@@ -350,6 +352,7 @@
 		<Unit filename="src/platform/main.cpp" />
 		<Unit filename="src/platform/memory_profile.cpp" />
 		<Unit filename="src/platform/platform.cpp" />
+		<Unit filename="src/platform/print.cpp" />
 		<Unit filename="src/platform/stack_trace.cpp" />
 		<Unit filename="src/platform/thread_name.cpp" />
 		<Unit filename="src/platform/video_input.cpp" />
