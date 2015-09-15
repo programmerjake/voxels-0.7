@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <iostream>
 #include "util/math_constants.h"
+#include "util/string_cast.h"
 
 using namespace std;
 namespace programmerjake
@@ -2391,7 +2392,7 @@ initializer init([]()
     try
     {
         shared_ptr<Script> script = Script::parse(scriptCode);
-        wcout << (wstring)*script->evaluate() << endl << L"No Errors." << endl;
+        cout << string_cast<string>((wstring)*script->evaluate()) << endl << "No Errors." << endl;
     }
     catch(exception &e)
     {

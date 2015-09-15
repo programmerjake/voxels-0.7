@@ -1058,9 +1058,9 @@ initializer init1([]()
     structTm1.tm_mday = 1;
     structTm1.tm_mon = 4;
     structTm1.tm_year = 70;
-    std::wcout << DateTime::fromStructTm(structTm1, false).asString(false) << std::endl;
-    std::wcout << DateTime::now().asString(false) << std::endl;
-    std::wcout << DateTime::now().asString(true) << std::endl;
+    std::cout << string_cast<std::string>(DateTime::fromStructTm(structTm1, false).asString(false)) << std::endl;
+    std::cout << string_cast<std::string>(DateTime::now().asString(false)) << std::endl;
+    std::cout << string_cast<std::string>(DateTime::now().asString(true)) << std::endl;
     std::vector<std::wstring> strings =
     {
         L"-100-1-1",
@@ -1089,7 +1089,7 @@ initializer init1([]()
         {
             result = L"FormatException: " + string_cast<std::wstring>(e.what());
         }
-        std::wcout << L"\"" << str << L"\" -> " << result << std::endl;
+        std::cout << "\"" << string_cast<std::string>(str) << "\" -> " << std::string_cast<std::string>(result) << std::endl;
     }
     std::exit(0);
 });

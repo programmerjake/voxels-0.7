@@ -230,9 +230,9 @@ initializer init1([]()
     {
         if(defaultPrinter == nullptr)
             defaultPrinter = printer;
-        std::wcout << L"Printer:\nid='" << printer->id << L"'\nname='" << printer->name;
-        std::wcout << L"'\ntype='" << printer->type << L"'\nlocation='" << printer->location;
-        std::wcout << L"'\nisOnline=" << (printer->isOnline ? L"true" : L"false") << L"\n" << std::endl;
+        std::cout << "Printer:\nid='" << string_cast<std::wstring>(printer->id) << "'\nname='" << string_cast<std::wstring>(printer->name);
+        std::cout << "'\ntype='" << string_cast<std::wstring>(printer->type) << "'\nlocation='" << string_cast<std::wstring>(printer->location);
+        std::cout << "'\nisOnline=" << (printer->isOnline ? "true" : "false") << "\n" << std::endl;
     }
     printers.clear();
     defaultPrinter->printText(L"This is a printer code test.\nLine 2.\fPage 2.", L"Printer Code Test");

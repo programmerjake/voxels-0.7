@@ -22,6 +22,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
+#include "util/string_cast.h"
 
 using namespace std;
 
@@ -35,9 +36,9 @@ Image loadImage(std::wstring name)
 {
     try
     {
-        wcout << L"loading " << name << L"..." << flush;
+        cout << "loading " << string_cast<std::string>(name) << "..." << flush;
         Image retval = Image(name);
-        wcout << L"\r\x1b[K" << flush;
+        cout << "\r\x1b[K" << flush;
         return retval;
     }
     catch(exception &e)

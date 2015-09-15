@@ -275,13 +275,22 @@ void ExpandReader::readBuffer()
 }
 
 }
+}
+}
 
 #if 0
 
 #include "util/util.h"
+#include "util/string_cast.h"
 #include <iostream>
 #include <cstdlib>
 
+using namespace std;
+
+namespace programmerjake
+{
+namespace voxels
+{
 namespace
 {
 initializer init1([]()
@@ -300,10 +309,10 @@ initializer init1([]()
     stream::MemoryReader mreader(std::move(buffer));
     stream::ExpandReader reader(mreader);
     for(int i = 0; i < 10; i++)
-        wcout << reader.readString() << endl;
+        cout << string_cast<std::string>(reader.readString()) << endl;
     exit(0);
 });
 }
+}
+}
 #endif // 1
-}
-}

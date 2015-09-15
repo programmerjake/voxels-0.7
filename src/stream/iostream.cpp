@@ -40,7 +40,7 @@ initializer init1([]()
     ReaderIStream is(reader);
     while(is.peek() != WEOF)
     {
-        std::wcout << (wchar_t)is.peek() << L":" << (int)is.peek() << L"\n";
+        std::cout << (char)(wchar_t)is.peek() << ":" << (int)is.peek() << "\n";
         is.get();
     }
     std::exit(0);
