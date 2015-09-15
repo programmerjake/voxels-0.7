@@ -669,7 +669,7 @@ initializer init1([]()
             std::cout.write(buffer, readSize);
         }
     }
-    catch(IOException e)
+    catch(IOException &e)
     {
         std::cerr << "error: " << e.what() << std::endl;
     }

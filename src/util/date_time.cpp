@@ -1085,7 +1085,7 @@ initializer init1([]()
         {
             result = DateTime::fromString(str).asString();
         }
-        catch(DateTime::FormatException e)
+        catch(DateTime::FormatException &e)
         {
             result = L"FormatException: " + string_cast<std::wstring>(e.what());
         }
