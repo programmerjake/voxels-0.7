@@ -41,13 +41,13 @@ public:
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
-        float backgroundZ = interpolate<float>(0.9, minZ, maxZ);
-        Container::render(renderer, minZ, backgroundZ, hasFocus);
+        float backgroundZ = interpolate<float>(0.9f, minZ, maxZ);
         renderer << Generate::quadrilateral(whiteTexture(),
                                                   VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), background,
                                                   VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), background,
                                                   VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), background,
                                                   VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), background);
+        Container::render(renderer, minZ, backgroundZ, hasFocus);
     }
 };
 }

@@ -214,7 +214,7 @@ void ExpandReader::readCompressedBuffer()
     bytes[0] = reader.readByte();
     try
     {
-        reader.readBytes(bytes + 1, bytesPerUint16 - 1);
+        reader.readAllBytes(bytes + 1, bytesPerUint16 - 1);
         MemoryReader mreader(bytes);
         size_t size = (uint16_t)stream::read<uint16_t>(mreader);
         if(size == 0)

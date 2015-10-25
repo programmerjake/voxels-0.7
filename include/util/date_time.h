@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <ctime>
 #include <string>
+#include <limits>
 #include "stream/stream.h"
 
 namespace programmerjake
@@ -159,6 +160,64 @@ public:
     }
     std::tm asStructTm(bool isLocalTime = true) const;
     std::wstring asString(bool isLocalTime = true) const;
+    bool operator ==(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch == rt.millisecondsSincePosixTimeEpoch;
+    }
+    bool operator !=(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch != rt.millisecondsSincePosixTimeEpoch;
+    }
+    bool operator <=(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch <= rt.millisecondsSincePosixTimeEpoch;
+    }
+    bool operator >=(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch >= rt.millisecondsSincePosixTimeEpoch;
+    }
+    bool operator <(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch < rt.millisecondsSincePosixTimeEpoch;
+    }
+    bool operator >(const DateTime &rt) const
+    {
+        return millisecondsSincePosixTimeEpoch > rt.millisecondsSincePosixTimeEpoch;
+    }
+    friend DateTime operator +(const std::chrono::milliseconds &d, const DateTime &dt)
+    {
+        return DateTime(dt.millisecondsSincePosixTimeEpoch + d.count());
+    }
+    friend std::chrono::milliseconds operator -(const DateTime &a, const DateTime &b)
+    {
+        return std::chrono::milliseconds(a.millisecondsSincePosixTimeEpoch - b.millisecondsSincePosixTimeEpoch);
+    }
+    DateTime operator +(const std::chrono::milliseconds &d) const
+    {
+        return DateTime(millisecondsSincePosixTimeEpoch + d.count());
+    }
+    DateTime operator -(const std::chrono::milliseconds &d) const
+    {
+        return DateTime(millisecondsSincePosixTimeEpoch - d.count());
+    }
+    DateTime &operator +=(const std::chrono::milliseconds &d)
+    {
+        millisecondsSincePosixTimeEpoch += d.count();
+        return *this;
+    }
+    DateTime &operator -=(const std::chrono::milliseconds &d)
+    {
+        millisecondsSincePosixTimeEpoch -= d.count();
+        return *this;
+    }
+    static DateTime min()
+    {
+        return DateTime(std::numeric_limits<std::int64_t>::min());
+    }
+    static DateTime max()
+    {
+        return DateTime(std::numeric_limits<std::int64_t>::max());
+    }
 };
 }
 }

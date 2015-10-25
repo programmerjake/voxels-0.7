@@ -24,6 +24,7 @@
 #include "util/vector.h"
 #include "util/matrix.h"
 #include "util/color.h"
+#include "util/util.h"
 #include "stream/stream.h"
 #include "util/math_constants.h"
 #include <algorithm>

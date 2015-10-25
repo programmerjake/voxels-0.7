@@ -41,6 +41,14 @@ public:
     }
 };
 
+struct NetworkDisconnectedException final : public NetworkException
+{
+    NetworkDisconnectedException()
+        : NetworkException("network disconnected")
+    {
+    }
+};
+
 enum class SSLCertificateValidationError
 {
     /** no error

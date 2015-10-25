@@ -584,6 +584,14 @@ public:
             }
         }
     }
+    using Element::setFocus;
+    void removeFocus(std::shared_ptr<Element> e)
+    {
+        if(getFocusElement() != e)
+            return;
+        std::shared_ptr<Container> topLevelParent = getTopLevelParent();
+        topLevelParent->nextFocusElement();
+    }
     virtual void reset() override
     {
         for(const std::shared_ptr<Element> &e : elements)

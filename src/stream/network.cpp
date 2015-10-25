@@ -19,7 +19,10 @@
  *
  */
 #include "stream/network.h"
+#include "util/password.h"
 #include "util/util.h"
+#include "util/logging.h"
+#include <openssl/sha.h>
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -33,6 +36,19 @@
 #include <new> // for std::bad_alloc
 #include <random>
 #include <exception>
+#include <csignal>
+#include <cerrno>
+#include <sstream>
+
+#if defined(_WIN64) || defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#undef min
+#undef max
+#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#else
+#error unrecognized platform
+#endif
 
 #ifndef OPENSSL_THREADS
 #error OpenSSL must be configured to support threads
@@ -47,6 +63,16 @@ namespace stream
 
 namespace
 {
+#if defined(_WIN64) || defined(_WIN32)
+#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+initializer clearSigPipe([]()
+{
+    std::signal(SIGPIPE, SIG_IGN);
+});
+#else
+#error unrecognized platform
+#endif
+
 struct OpenSSLCallbacks final
 {
     OpenSSLCallbacks() = delete;
@@ -122,6 +148,37 @@ void throwOpenSSLError(unsigned long errorCode)
 
 void throwOpenSSLError()
 {
+    unsigned long errorCode = ERR_get_error();
+    if(errorCode == 0)
+    {
+#if defined(_WIN64) || defined(_WIN32)
+        DWORD errnoValue = WSAGetLastError();
+#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+        int errnoValue = errno;
+#else
+#error unrecognized platform
+#endif
+        if(errnoValue != 0)
+        {
+#if defined(_WIN64) || defined(_WIN32)
+            if(errnoValue == WSAECONNRESET || errnoValue == WSAECONNABORTED || WSAESHUTDOWN)
+            {
+                throw NetworkDisconnectedException();
+            }
+            std::ostringstream ss;
+            ss << "io error : socket error : " << errnoValue;
+            throw NetworkException(ss.str());
+#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+            if(errnoValue == EPIPE)
+            {
+                throw NetworkDisconnectedException();
+            }
+            throw NetworkException("io error : " + std::string(std::strerror(errnoValue)));
+#else
+#error unrecognized platform
+#endif
+        }
+    }
     throwOpenSSLError(ERR_get_error());
 }
 
@@ -677,6 +734,22 @@ initializer init1([]()
 });
 }
 #endif
+}
+
+std::string Password::sha256HashString(std::string str)
+{
+    stream::initOpenSSL();
+    unsigned char outputBuffer[SHA256_DIGEST_LENGTH];
+    SHA256((const unsigned char *)str.data(), str.size(), outputBuffer);
+    std::ostringstream ss;
+    ss.fill('0');
+    ss << std::hex << std::nouppercase;
+    for(unsigned char byte : outputBuffer)
+    {
+        ss.width(2);
+        ss << (unsigned)byte;
+    }
+    return ss.str();
 }
 }
 }

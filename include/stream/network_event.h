@@ -28,7 +28,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-enum class NetworkEventType : uint8_t
+enum class NetworkEventType : std::uint8_t
 {
     Keepalive,
     SendNewChunk,
@@ -43,7 +43,7 @@ class NetworkEvent final
 public:
     NetworkEventType type;
 private:
-    vector<uint8_t> bytes;
+    std::vector<std::uint8_t> bytes;
 public:
     NetworkEvent(NetworkEventType type = NetworkEventType::Keepalive)
         : type(type), bytes()
@@ -57,38 +57,38 @@ public:
         : type(type), bytes(std::move(writer).getBuffer())
     {
     }
-    NetworkEvent(NetworkEventType type, const vector<uint8_t> & bytes)
+    NetworkEvent(NetworkEventType type, const std::vector<std::uint8_t> & bytes)
         : type(type), bytes(bytes)
     {
     }
-    NetworkEvent(NetworkEventType type, vector<uint8_t> && bytes)
+    NetworkEvent(NetworkEventType type, std::vector<std::uint8_t> && bytes)
         : type(type), bytes(bytes)
     {
     }
     void write(stream::Writer &writer) const
     {
         stream::write<NetworkEventType>(writer, type);
-        uint32_t eventSize = bytes.size();
-        assert((size_t)eventSize == bytes.size());
-        stream::write<uint32_t>(writer, eventSize);
+        std::uint32_t eventSize = bytes.size();
+        assert((std::size_t)eventSize == bytes.size());
+        stream::write<std::uint32_t>(writer, eventSize);
         writer.writeBytes(&bytes[0], bytes.size());
     }
     static NetworkEvent read(stream::Reader &reader)
     {
         NetworkEventType type = stream::read<NetworkEventType>(reader);
-        uint32_t eventSize = stream::read<uint32_t>(reader);
-        vector<uint8_t> bytes;
-        bytes.resize((size_t)eventSize);
-        reader.readBytes(&bytes[0], (size_t)eventSize);
+        std::uint32_t eventSize = stream::read<std::uint32_t>(reader);
+        std::vector<std::uint8_t> bytes;
+        bytes.resize((std::size_t)eventSize);
+        reader.readBytes(&bytes[0], (std::size_t)eventSize);
         return NetworkEvent(type, std::move(bytes));
     }
-    shared_ptr<stream::Reader> getReader() const &
+    std::shared_ptr<stream::Reader> getReader() const &
     {
-        return make_shared<stream::MemoryReader>(bytes);
+        return std::make_shared<stream::MemoryReader>(bytes);
     }
-    shared_ptr<stream::Reader> getReader() &&
+    std::shared_ptr<stream::Reader> getReader() &&
     {
-        return make_shared<stream::MemoryReader>(std::move(bytes));
+        return std::make_shared<stream::MemoryReader>(std::move(bytes));
     }
 };
 }

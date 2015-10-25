@@ -826,17 +826,23 @@ class FileReader final : public Reader
     FileReader(const FileReader &) = delete;
     FileReader &operator =(const FileReader &) = delete;
 private:
-    FILE * f;
+    FILE *const f;
+    const bool closeFile;
 public:
-    explicit FileReader(std::wstring fileName);
-    explicit FileReader(FILE * f)
-        : f(f)
+    static FILE *openFile(std::wstring fileName, bool forWriteToo = false);
+    explicit FileReader(std::wstring fileName)
+        : f(openFile(std::move(fileName))), closeFile(true)
+    {
+    }
+    explicit FileReader(FILE *f, bool closeFile = true)
+        : f(f), closeFile(closeFile)
     {
         assert(f != nullptr);
     }
     virtual ~FileReader()
     {
-        std::fclose(f);
+        if(closeFile)
+            std::fclose(f);
     }
     virtual std::uint8_t readByte() override
     {
@@ -859,17 +865,23 @@ class FileWriter final : public Writer
     FileWriter(const FileWriter &) = delete;
     FileWriter &operator =(const FileWriter &) = delete;
 private:
-    FILE * f;
+    FILE *const f;
+    const bool closeFile;
 public:
-    explicit FileWriter(std::wstring fileName);
-    explicit FileWriter(FILE * f)
-        : f(f)
+    static FILE *openFile(std::wstring fileName, bool forReadToo = false);
+    explicit FileWriter(std::wstring fileName)
+        : f(openFile(std::move(fileName))), closeFile(true)
+    {
+    }
+    explicit FileWriter(FILE *f, bool closeFile = true)
+        : f(f), closeFile(closeFile)
     {
         assert(f != nullptr);
     }
     virtual ~FileWriter()
     {
-        fclose(f);
+        if(closeFile)
+            std::fclose(f);
     }
     virtual void writeByte(std::uint8_t v) override
     {

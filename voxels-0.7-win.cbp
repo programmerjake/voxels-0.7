@@ -374,7 +374,9 @@
 		<Unit filename="include/platform/event.h" />
 		<Unit filename="include/platform/platform.h" />
 		<Unit filename="include/platform/platformgl.h" />
+		<Unit filename="include/platform/print.h" />
 		<Unit filename="include/platform/stack_trace.h" />
+		<Unit filename="include/platform/terminate_handler.h" />
 		<Unit filename="include/platform/thread_name.h" />
 		<Unit filename="include/platform/thread_priority.h" />
 		<Unit filename="include/platform/video_input.h" />
@@ -396,6 +398,7 @@
 		<Unit filename="include/stream/iostream.h" />
 		<Unit filename="include/stream/network.h" />
 		<Unit filename="include/stream/network_event.h" />
+		<Unit filename="include/stream/parallel.h" />
 		<Unit filename="include/stream/stream.h" />
 		<Unit filename="include/texture/image.h" />
 		<Unit filename="include/texture/texture_atlas.h" />
@@ -430,6 +433,7 @@
 		<Unit filename="include/util/circular_deque.h" />
 		<Unit filename="include/util/color.h" />
 		<Unit filename="include/util/cpu_relax.h" />
+		<Unit filename="include/util/date_time.h" />
 		<Unit filename="include/util/decorator_cache.h" />
 		<Unit filename="include/util/dimension.h" />
 		<Unit filename="include/util/enum_traits.h" />
@@ -448,6 +452,7 @@
 		<Unit filename="include/util/object_counter.h" />
 		<Unit filename="include/util/ordered_weak_ptr.h" />
 		<Unit filename="include/util/parallel_map.h" />
+		<Unit filename="include/util/password.h" />
 		<Unit filename="include/util/position.h" />
 		<Unit filename="include/util/random.h" />
 		<Unit filename="include/util/rc4_random_engine.h" />
@@ -510,6 +515,7 @@
 		<Unit filename="src/platform/memory_profile.cpp" />
 		<Unit filename="src/platform/platform.cpp" />
 		<Unit filename="src/platform/stack_trace.cpp" />
+		<Unit filename="src/platform/terminate_handler.cpp" />
 		<Unit filename="src/platform/thread_name.cpp" />
 		<Unit filename="src/platform/video_input.cpp" />
 		<Unit filename="src/player/player.cpp" />
@@ -535,6 +541,7 @@
 		<Unit filename="src/util/atomic_shared_ptr.cpp" />
 		<Unit filename="src/util/block_chunk.cpp" />
 		<Unit filename="src/util/chunk_cache.cpp" />
+		<Unit filename="src/util/date_time.cpp" />
 		<Unit filename="src/util/game_version.cpp" />
 		<Unit filename="src/util/lock.cpp" />
 		<Unit filename="src/util/logging.cpp" />

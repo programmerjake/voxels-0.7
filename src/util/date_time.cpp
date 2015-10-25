@@ -64,9 +64,9 @@ std::chrono::seconds DateTime::getTimeZoneOffset(DateTime time)
     }
     if(isDaylightSavingsTime(time))
     {
-        return std::chrono::seconds((std::int64_t)-60 * (tzInfo.DaylightBias + tzInfo.bias));
+        return std::chrono::seconds((std::int64_t)-60 * (tzInfo.DaylightBias + tzInfo.Bias));
     }
-    return std::chrono::seconds((std::int64_t)-60 * (tzInfo.StandardBias + tzInfo.bias));
+    return std::chrono::seconds((std::int64_t)-60 * (tzInfo.StandardBias + tzInfo.Bias));
 #elif __ANDROID || __APPLE__ || __linux || __unix || __posix
     std::tm tmStruct;
     std::time_t timeTValue = time.asTimeT();
@@ -129,65 +129,6 @@ DateTime::DateTime(std::tm time, bool isLocalTime)
 
 namespace
 {
-std::size_t getAlphaPrefixLength(const std::wstring &str, std::size_t startPosition)
-{
-    for(std::size_t i = startPosition; i < str.size(); i++)
-    {
-        if(!std::iswalpha(str[i]))
-            return i;
-    }
-    return str.size();
-}
-
-std::size_t getWhitespacePrefixLength(const std::wstring &str, std::size_t startPosition)
-{
-    for(std::size_t i = startPosition; i < str.size(); i++)
-    {
-        if(!std::iswspace(str[i]))
-            return i;
-    }
-    return str.size();
-}
-
-std::size_t getNumberPrefixLength(const std::wstring &str, std::size_t startPosition)
-{
-    for(std::size_t i = startPosition; i < str.size(); i++)
-    {
-        if(str[i] < L'0' || str[i] > L'9')
-            return i;
-    }
-    return str.size();
-}
-
-int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const std::wstring &a, std::size_t bStart, std::size_t bLength, const std::wstring &b)
-{
-    if(aStart >= a.size())
-        aLength = 0;
-    else if(aLength > a.size() - aStart)
-        aLength = a.size() - aStart;
-    if(bStart >= b.size())
-        bLength = 0;
-    else if(bLength > b.size() - bStart)
-        bLength = b.size() - bStart;
-    for(std::size_t i = 0; i < aLength && i < bLength; i++)
-    {
-        wchar_t aCh = a[i + aStart];
-        wchar_t bCh = b[i + bStart];
-        if(aCh == bCh)
-            continue;
-        if(std::towlower(aCh) == std::towlower(bCh))
-            continue;
-        if(aCh < bCh)
-            return -1;
-        return 1;
-    }
-    if(aLength < bLength)
-        return -1;
-    if(aLength > bLength)
-        return 1;
-    return 0;
-}
-
 int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const std::wstring &a, std::size_t bStart, std::size_t bLength, const wchar_t *const b)
 {
     if(aStart >= a.size())
@@ -223,19 +164,9 @@ int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const wchar_
     return -compareCaseInsensitive(bStart, bLength, b, aStart, aLength, a);
 }
 
-int compareCaseInsensitive(const std::wstring &a, const wchar_t *const b)
-{
-    return compareCaseInsensitive(0, a.size(), a, 0, std::wcslen(b), b);
-}
-
 int compareCaseInsensitive(const wchar_t *const a, const std::wstring &b)
 {
     return compareCaseInsensitive(0, std::wcslen(a), a, 0, b.size(), b);
-}
-
-int compareCaseInsensitive(const std::wstring &a, const std::wstring &b)
-{
-    return compareCaseInsensitive(0, a.size(), a, 0, b.size(), b);
 }
 
 const wchar_t *const weekNamesLong[7] =
@@ -720,7 +651,7 @@ struct FormatParser final
                 setError("expected week name");
                 return;
             }
-            structTm.tm_wday = intValue;
+            structTm.tm_wday = (int)intValue;
             setWeekDay = true;
             tokenizer.next();
             return;
@@ -735,7 +666,7 @@ struct FormatParser final
                 setError("day-of-month out of range");
                 return;
             }
-            structTm.tm_mday = intValue;
+            structTm.tm_mday = (int)intValue;
             tokenizer.next();
             return;
         case FormatTokenType::MonthNumber:
@@ -749,7 +680,7 @@ struct FormatParser final
                 setError("month out of range");
                 return;
             }
-            structTm.tm_mon = intValue - 1;
+            structTm.tm_mon = (int)intValue - 1;
             tokenizer.next();
             return;
         case FormatTokenType::MonthName:
@@ -758,7 +689,7 @@ struct FormatParser final
                 setError("expected month name");
                 return;
             }
-            structTm.tm_mon = intValue;
+            structTm.tm_mon = (int)intValue;
             tokenizer.next();
             return;
         case FormatTokenType::ShortYear:
@@ -768,9 +699,9 @@ struct FormatParser final
                 return;
             }
             if(intValue < 69)
-                structTm.tm_year = 2000 + intValue;
+                structTm.tm_year = 2000 + (int)intValue;
             else
-                structTm.tm_year = 1900 + intValue;
+                structTm.tm_year = 1900 + (int)intValue;
             structTm.tm_year -= 1900;
             tokenizer.next();
             return;
@@ -785,13 +716,13 @@ struct FormatParser final
                 setError("year out of range");
                 return;
             }
-            structTm.tm_year = intValue - 1900;
+            structTm.tm_year = (int)(intValue - 1900);
             tokenizer.next();
             return;
         case FormatTokenType::YearWithOptionalSign:
             if(signValue == 0 && (type == DateTokenType::Plus || type == DateTokenType::Hyphen))
             {
-                signValue = intValue;
+                signValue = (int)intValue;
                 return;
             }
             else if(signValue == 0)
@@ -808,7 +739,7 @@ struct FormatParser final
                 setError("year out of range");
                 return;
             }
-            structTm.tm_year = intValue - 1900;
+            structTm.tm_year = (int)(intValue - 1900);
             tokenizer.next();
             return;
         case FormatTokenType::Slash:
@@ -846,7 +777,7 @@ struct FormatParser final
                 setError("hour out of range");
                 return;
             }
-            structTm.tm_hour = intValue;
+            structTm.tm_hour = (int)intValue;
             tokenizer.next();
             return;
         case FormatTokenType::AmPm:
@@ -860,7 +791,7 @@ struct FormatParser final
                 setError("hour out of range");
                 return;
             }
-            structTm.tm_hour = (structTm.tm_hour % 12) + intValue;
+            structTm.tm_hour = (structTm.tm_hour % 12) + (int)intValue;
             tokenizer.next();
             return;
         case FormatTokenType::Minute:
@@ -874,7 +805,7 @@ struct FormatParser final
                 setError("minutes out of range");
                 return;
             }
-            structTm.tm_min = intValue;
+            structTm.tm_min = (int)intValue;
             tokenizer.next();
             return;
         case FormatTokenType::Second:
@@ -893,7 +824,7 @@ struct FormatParser final
                 setError("leap seconds are not supported");
                 return;
             }
-            structTm.tm_sec = intValue;
+            structTm.tm_sec = (int)intValue;
             tokenizer.next();
             return;
         }
@@ -970,7 +901,7 @@ std::tm DateTime::asStructTm(bool isLocalTime) const
         seconds += 60;
         minutes--;
     }
-    retval.tm_sec = seconds;
+    retval.tm_sec = (int)seconds;
     std::int64_t hours = minutes / 60;
     minutes %= 60;
     if(minutes < 0)
@@ -978,7 +909,7 @@ std::tm DateTime::asStructTm(bool isLocalTime) const
         minutes += 60;
         hours--;
     }
-    retval.tm_min = minutes;
+    retval.tm_min = (int)minutes;
     std::int64_t days = hours / 24;
     hours %= 24;
     if(hours < 0)
@@ -986,11 +917,11 @@ std::tm DateTime::asStructTm(bool isLocalTime) const
         hours += 24;
         days--;
     }
-    retval.tm_hour = hours;
+    retval.tm_hour = (int)hours;
     std::int64_t weekDay = (days - 3) % 7; // day 0 is Thursday
     if(weekDay < 0)
         weekDay += 7;
-    retval.tm_wday = weekDay;
+    retval.tm_wday = (int)weekDay;
     const int dayOffsetIn400YearCycle = -10957;
     days += dayOffsetIn400YearCycle;
     std::int64_t countOf400YearCycles = days / daysIn400Years;
@@ -1010,7 +941,7 @@ std::tm DateTime::asStructTm(bool isLocalTime) const
         currentDaysInYear = daysInYear(yearIn400YearCycle);
     }
     retval.tm_yday = dayInYear;
-    int startYearOf400YearCycle = 2000 + 400 * countOf400YearCycles;
+    int startYearOf400YearCycle = 2000 + 400 * (int)countOf400YearCycles;
     retval.tm_year = startYearOf400YearCycle + yearIn400YearCycle - 1900;
     bool leapYear = isLeapYear(yearIn400YearCycle);
     int dayInMonth = dayInYear;
@@ -1089,7 +1020,7 @@ initializer init1([]()
         {
             result = L"FormatException: " + string_cast<std::wstring>(e.what());
         }
-        std::cout << "\"" << string_cast<std::string>(str) << "\" -> " << std::string_cast<std::string>(result) << std::endl;
+        std::cout << "\"" << string_cast<std::string>(str) << "\" -> " << string_cast<std::string>(result) << std::endl;
     }
     std::exit(0);
 });

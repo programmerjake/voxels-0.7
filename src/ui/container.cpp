@@ -31,6 +31,7 @@ constexpr std::size_t Container::npos;
 
 void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
 {
+    assert(minZ < maxZ - 1e-5);
     struct MyElementType final
     {
         std::shared_ptr<Element> element;
@@ -76,7 +77,10 @@ void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus
         depths[i] = std::exp(interpolate((float)i / (maxDepth + 1), logMaxZ, logMinZ));
     for(const MyElementType &e : myElements)
     {
-        e.element->render(renderer, depths[e.depth + 1], depths[e.depth], e.hasFocus);
+        float minZ = depths[e.depth + 1];
+        float maxZ = depths[e.depth];
+        assert(minZ < maxZ - 1e-5);
+        e.element->render(renderer, minZ, maxZ, e.hasFocus);
     }
 }
 }

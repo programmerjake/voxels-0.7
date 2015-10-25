@@ -51,15 +51,6 @@ public:
     }
 };
 
-class CancelFailedException : public PrintingException
-{
-public:
-    explicit CancelFailedException(std::string msg)
-        : PrintingException(msg)
-    {
-    }
-};
-
 class Printer;
 
 GCC_PRAGMA(diagnostic push)

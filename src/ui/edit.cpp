@@ -35,8 +35,6 @@ namespace voxels
 namespace ui
 {
 
-constexpr float Edit::doNotBlink;
-
 Edit::Edit(float minX, float maxX, float minY, float maxY)
     : Element(minX, maxX, minY, maxY),
       mouseButtons(),
@@ -48,6 +46,11 @@ Edit::Edit(float minX, float maxX, float minY, float maxY)
       filterTextFunction(nullptr),
       textProperties()
 {
+    text.onChange.bind2v([this]()
+    {
+        if(text.get().empty())
+            cursorPosition = 0;
+    }, Event::Propagate);
 }
 
 bool Edit::handleTouchUp(TouchUpEvent &event)
@@ -97,6 +100,11 @@ bool Edit::handleKeyUp(KeyUpEvent &event)
 
 bool Edit::handleKeyDown(KeyDownEvent &event)
 {
+    if(currentEditingText != L"")
+    {
+        keysPressed.insert(event.key);
+        return true;
+    }
     switch(event.key)
     {
     case KeyboardKey::A:
@@ -237,6 +245,10 @@ bool Edit::handleTextInput(TextInputEvent &event)
 bool Edit::handleTextEdit(TextEditEvent &event)
 {
     cursorBlinkPhase = 0.0f;
+    currentEditingText = event.text;
+    currentEditingCursorPosition = event.start;
+    currentEditingSelectionLength = event.length;
+    Display::Text::start(minX, maxX, minY, maxY);
     return true;
 }
 
@@ -311,15 +323,22 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     if(std::isnan(textHeightFraction) || !std::isfinite(textHeightFraction))
         textHeightFraction = 0.8f;
     float backgroundZ = interpolate<float>(0.75f, minZ, maxZ);
-    float textZ = interpolate<float>(0.25f, minZ, maxZ);
+    float textZ = interpolate<float>(0.5f, minZ, maxZ);
+    float underlineZ = interpolate<float>(0.25f, minZ, maxZ);
     float cursorZ = minZ;
     bool cursorOn = hasFocus && (cursorBlinkPhase < 0.5f);
     std::wstring filteredText = text.get();
     if(filterTextFunction)
         filteredText = filterTextFunction((std::wstring)std::move(filteredText));
+    std::size_t currentCursorPosition = cursorPosition;
+    if(currentCursorPosition > filteredText.size())
+        currentCursorPosition = filteredText.size();
+    filteredText.insert(currentCursorPosition, currentEditingText);
     filteredText += L" "; // for space for cursor
-    float cursorX = Text::xPos(filteredText, cursorPosition, textProperties);
-    float cursorY = Text::yPos(filteredText, cursorPosition, textProperties);
+    float editStartX = Text::xPos(filteredText, currentCursorPosition, textProperties);
+    float editEndX = Text::xPos(filteredText, currentCursorPosition + currentEditingText.size(), textProperties);
+    float cursorX = Text::xPos(filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
+    float cursorY = Text::yPos(filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
     float textWidth = Text::width(filteredText, textProperties);
     float textHeight = Text::height(filteredText, textProperties);
     if(textWidth <= 0.0f || textHeight <= 0.0f)
@@ -333,16 +352,24 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     float controlHeight = maxY - minY;
     float controlCenterY = 0.5f * (minY + maxY);
     float adjustedCursorWidth = cursorWidth;
-    float pixelWidth = (Display::scaleX() * 2.0f) / (float)Display::width();
+    float underlineHeight = 0.05f;
+    float scale = controlHeight * textHeightFraction / textHeight;
+    float pixelWidth = (Display::scaleX() * 2.0f) / (float)Display::width() / scale;
     if(adjustedCursorWidth < pixelWidth)
         adjustedCursorWidth = pixelWidth;
     float cursorMinX = cursorX;
-    float cursorMinY = cursorY;
+    float cursorMidY = cursorY + 0.5f;
+    float cursorHeight = interpolate(0.5f, 1.0f / textHeightFraction, 1.0f);
+    float cursorMinY = cursorMidY - 0.5f * cursorHeight;
     float cursorMaxX = cursorMinX + adjustedCursorWidth;
-    if(cursorMaxX > textWidth)
-        cursorMaxX = textWidth;
-    float cursorMaxY = cursorMinY + 1.0f;
-    float scale = controlHeight * textHeightFraction / textHeight;
+    float cursorMaxY = cursorMidY + 0.5f * cursorHeight;
+    float pixelHeight = (Display::scaleY() * 2.0f) / (float)Display::height() / scale;
+    if(underlineHeight < pixelHeight)
+        underlineHeight = pixelHeight;
+    float underlineMinX = editStartX;
+    float underlineMaxX = editEndX;
+    float underlineMinY = cursorY;
+    float underlineMaxY = underlineMinY + underlineHeight;
     float visibleTextWidth = controlWidth / scale;
     float unitWidth = Text::width(L"A", textProperties);
     float visibleTextLeft = cursorX - visibleTextWidth;
@@ -353,6 +380,14 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     visibleTextLeft += unitWidth * (1.0f / 3.0f) + jumpWidth;
     if(visibleTextLeft < 0)
         visibleTextLeft = 0;
+    float translatedUnderlineMinX = underlineMinX - visibleTextLeft;
+    float translatedUnderlineMaxX = underlineMaxX - visibleTextLeft;
+    float translatedUnderlineMinY = underlineMinY;
+    float translatedUnderlineMaxY = underlineMaxY;
+    if(translatedUnderlineMinX < 0)
+        translatedUnderlineMinX = 0; // clip to text box bounds
+    if(translatedUnderlineMaxX > visibleTextWidth)
+        translatedUnderlineMaxX = visibleTextWidth; // clip to text box bounds
     Matrix textTransform = Matrix::translate(0, -0.5f * textHeight, 0.0f).concat(Matrix::scale(scale)).concat(Matrix::translate(minX, controlCenterY, -1.0f));
     Mesh mesh = Generate::quadrilateral(TextureAtlas::Blank.td(),
                                         VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), backgroundColor,
@@ -363,6 +398,15 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     textMesh = cutAndGetBack(textMesh, VectorF(1, 0, 0), -visibleTextWidth);
     textMesh = cutAndGetBack(textMesh, VectorF(-1, 0, 0), 0);
     mesh.append(transform(textTransform.concat(Matrix::scale(textZ)), textMesh));
+    if(currentEditingText != L"")
+    {
+        mesh.append(transform(textTransform.concat(Matrix::scale(underlineZ)),
+                              Generate::quadrilateral(TextureAtlas::Blank.td(),
+                                      VectorF(translatedUnderlineMinX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
+                                      VectorF(translatedUnderlineMaxX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
+                                      VectorF(translatedUnderlineMaxX, translatedUnderlineMaxY, 0.0f), editUnderlineColor,
+                                      VectorF(translatedUnderlineMinX, translatedUnderlineMaxY, 0.0f), editUnderlineColor)));
+    }
     if(cursorOn)
     {
         mesh.append(transform(textTransform.concat(Matrix::scale(cursorZ)),
@@ -541,4 +585,3 @@ void Edit::handleKey(KeyboardKey key)
 }
 }
 }
-

@@ -226,15 +226,15 @@ uint8_t DumpingReader::readByte()
 
 using namespace std;
 
-FileReader::FileReader(std::wstring fileName)
-    : f(nullptr)
+FILE *FileReader::openFile(std::wstring fileName, bool forWriteToo)
 {
-    std::string str = string_cast<std::string>(fileName);
+    std::string str = string_cast<std::string>(std::move(fileName));
     errno = 0;
 MSVC_PRAGMA(warning(suppress : 4996))
-    f = FILE_OPEN(str.c_str(), "rb");
+    FILE *f = FILE_OPEN(str.c_str(), forWriteToo ? "r+b" : "rb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
+    return f;
 }
 
 std::int64_t FileReader::tell()
@@ -283,14 +283,14 @@ std::size_t FileReader::readBytes(std::uint8_t *array, std::size_t maxCount)
     return retval;
 }
 
-FileWriter::FileWriter(std::wstring fileName)
-    : f(nullptr)
+FILE *FileWriter::openFile(std::wstring fileName, bool forReadToo)
 {
-    std::string str = string_cast<std::string>(fileName);
+    std::string str = string_cast<std::string>(std::move(fileName));
 MSVC_PRAGMA(warning(suppress : 4996))
-    f = FILE_OPEN(str.c_str(), "wb");
+    FILE *f = FILE_OPEN(str.c_str(), forReadToo ? "w+b" : "wb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
+    return f;
 }
 
 void FileWriter::writeBytes(const std::uint8_t *array, std::size_t count)

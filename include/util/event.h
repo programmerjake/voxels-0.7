@@ -53,10 +53,10 @@ public:
         DEFINE_ENUM_LIMITS(Low, High)
     };
 private:
-    std::list<std::function<ReturnType (EventArguments &args)>> functions;
+    std::shared_ptr<std::list<std::function<ReturnType (EventArguments &args)>>> functions;
 public:
     explicit Event(std::function<ReturnType (EventArguments &args)> fn = nullptr)
-        : functions()
+        : functions(std::make_shared<std::list<std::function<ReturnType (EventArguments &args)>>>())
     {
         bind(fn);
     }
@@ -76,12 +76,12 @@ public:
         if(fn != nullptr)
         {
             if(p == Priority::High)
-                functions.push_front(fn);
+                functions->push_front(fn);
             else
-                functions.push_back(fn);
+                functions->push_back(fn);
         }
     }
-    void bind(std::function<void (EventArguments &args)> fn, ReturnType returnType, Priority p = Priority::Default)
+    void bindv(std::function<void (EventArguments &args)> fn, ReturnType returnType, Priority p = Priority::Default)
     {
         bind([fn, returnType](EventArguments &args)->ReturnType
         {
@@ -89,7 +89,7 @@ public:
             return returnType;
         }, p);
     }
-    void bind(std::function<void ()> fn, ReturnType returnType, Priority p = Priority::Default)
+    void bind2v(std::function<void ()> fn, ReturnType returnType, Priority p = Priority::Default)
     {
         bind([fn, returnType](EventArguments &)->ReturnType
         {
@@ -97,7 +97,7 @@ public:
             return returnType;
         }, p);
     }
-    void bind(std::function<ReturnType ()> fn, Priority p = Priority::Default)
+    void bind2(std::function<ReturnType ()> fn, Priority p = Priority::Default)
     {
         bind([fn](EventArguments &)->ReturnType
         {
@@ -106,7 +106,8 @@ public:
     }
     ReturnType operator ()(EventArguments &args)
     {
-        for(auto fn : functions)
+        auto functions = this->functions;
+        for(auto fn : *functions)
         {
             ReturnType retval = fn(args);
             if(retval != Propagate)

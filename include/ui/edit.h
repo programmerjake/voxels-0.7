@@ -41,6 +41,9 @@ private:
     std::unordered_set<KeyboardKey> keysPressed;
     std::unordered_set<int> touchs;
     void handleKey(KeyboardKey key);
+    std::wstring currentEditingText = L"";
+    std::size_t currentEditingCursorPosition = 0;
+    std::size_t currentEditingSelectionLength = 0;
 public:
     MonitoredString text;
     Event enter;
@@ -53,9 +56,10 @@ public:
     static constexpr float doNotBlink = 0.0f;
     ColorF textColor = GrayscaleF(0.0f);
     ColorF cursorColor = GrayscaleF(0.0f);
+    ColorF editUnderlineColor = GrayscaleF(0.0f);
     ColorF backgroundColor = GrayscaleF(1.0f);
     float cursorWidth = 0.0625f;
-    float textHeightFraction = 0.8f;
+    float textHeightFraction = 0.6f;
     explicit Edit(float minX, float maxX, float minY, float maxY);
     virtual bool canHaveKeyboardFocus() const override
     {

@@ -18,35 +18,21 @@
  * MA 02110-1301, USA.
  *
  */
-#include "stream/iostream.h"
-#include <iostream>
-#include "util/util.h"
-#include <cwchar>
-#include <cstdlib>
+#ifndef TERMINATE_HANDLER_H_INCLUDED
+#define TERMINATE_HANDLER_H_INCLUDED
+
+#include <functional>
 
 namespace programmerjake
 {
 namespace voxels
 {
-namespace stream
-{
-#if 0
-namespace
-{
-initializer init1([]()
-{
-    static const std::uint8_t a[] = "this is a test.\n";
-    MemoryReader reader(a);
-    ReaderIStream is(reader);
-    while(is.peek() != WEOF)
-    {
-        std::cout << string_cast<std::string>(std::wstring(1, (wchar_t)is.peek())) << ":" << (int)is.peek() << "\n";
-        is.get();
-    }
-    std::exit(0);
-});
-}
-#endif
+/** install a handler for termination requests.
+ * @param handler the new termination request handler or nullptr to remove the termination request handler
+ * @note the handler is called in a new thread. The handler should call std::exit or something similar.
+ */
+void setTerminationRequestHandler(std::function<void()> handler);
 }
 }
-}
+
+#endif // TERMINATE_HANDLER_H_INCLUDED

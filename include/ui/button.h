@@ -40,8 +40,11 @@ private:
     std::unordered_set<MouseButton> mouseButtons;
     std::unordered_set<KeyboardKey> keysPressed;
     std::unordered_set<int> touchs;
+    bool disabled;
     bool isPressed()
     {
+        if(disabled)
+            return false;
         return !mouseButtons.empty() || !keysPressed.empty() || !touchs.empty();
     }
     void updatePressed(bool doClick)
@@ -50,7 +53,7 @@ private:
         if(v != pressed.get())
         {
             pressed.set(v);
-            if(doClick)
+            if(doClick && !disabled)
             {
                 setFocus();
                 EventArguments args;
@@ -61,18 +64,42 @@ private:
 public:
     MonitoredBool pressed;
     Event click;
-    GenericButton(float minX, float maxX, float minY, float maxY)
+    bool isDisabled() const
+    {
+        return disabled;
+    }
+    void setDisabled(bool disabled)
+    {
+        this->disabled = disabled;
+        if(disabled)
+        {
+            mouseButtons.clear();
+            keysPressed.clear();
+            touchs.clear();
+        }
+        updatePressed(false);
+        if(disabled)
+        {
+            std::shared_ptr<Container> parent = getParent();
+            if(parent != nullptr)
+            {
+                parent->removeFocus(shared_from_this());
+            }
+        }
+    }
+    GenericButton(float minX, float maxX, float minY, float maxY, bool disabled = false)
         : Element(minX, maxX, minY, maxY),
         mouseButtons(),
         keysPressed(),
         touchs(),
+        disabled(disabled),
         pressed(false),
         click()
     {
     }
     virtual bool canHaveKeyboardFocus() const override
     {
-        return true;
+        return !disabled;
     }
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
@@ -160,19 +187,39 @@ protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override = 0;
 };
 
+class InvisibleButton : public GenericButton
+{
+public:
+    InvisibleButton(float minX, float maxX, float minY, float maxY)
+        : GenericButton(minX, maxX, minY, maxY)
+    {
+    }
+    virtual bool canHaveKeyboardFocus() const override
+    {
+        return false;
+    }
+protected:
+    virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
+    {
+    }
+};
+
 class Button : public GenericButton
 {
 public:
     std::wstring text;
     Text::TextProperties textProperties;
-    ColorF textColor, selectedTextColor, pressedTextColor, color, selectedColor, pressedColor;
-    Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color, ColorF textColor, ColorF selectedTextColor, ColorF pressedTextColor, ColorF selectedColor, ColorF pressedColor, Text::TextProperties textProperties = Text::defaultTextProperties)
+    ColorF textColor, selectedTextColor, pressedTextColor;
+    ColorF disabledTextColor;
+    ColorF color, selectedColor, pressedColor;
+    Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color, ColorF textColor, ColorF selectedTextColor, ColorF pressedTextColor, ColorF disabledTextColor, ColorF selectedColor, ColorF pressedColor, Text::TextProperties textProperties = Text::defaultTextProperties)
         : GenericButton(minX, maxX, minY, maxY),
         text(text),
         textProperties(textProperties),
         textColor(textColor),
         selectedTextColor(selectedTextColor),
         pressedTextColor(pressedTextColor),
+        disabledTextColor(disabledTextColor),
         color(color),
         selectedColor(selectedColor),
         pressedColor(pressedColor)
@@ -182,7 +229,7 @@ public:
         : Button(text,
                  minX, maxX, minY, maxY,
                  color, textColor,
-                 colorize(GrayscaleF(0.75), textColor), colorize(GrayscaleF(0.5), textColor),
+                 colorize(GrayscaleF(0.75), textColor), colorize(GrayscaleF(0.5), textColor), interpolate(0.5, GrayscaleF(0.5f), textColor),
                  interpolate(0.5, GrayscaleF(1), color), color, textProperties)
     {
     }
@@ -193,7 +240,11 @@ protected:
         float spacing = std::min<float>(0.15f * (maxX - minX), 0.25f * (maxY - minY));
         ColorF currentTextColor = textColor;
         ColorF topColor = color;
-        if(hasFocus)
+        if(isDisabled())
+        {
+            currentTextColor = disabledTextColor;
+        }
+        else if(hasFocus)
         {
             currentTextColor = selectedTextColor;
             topColor = selectedColor;
@@ -207,7 +258,7 @@ protected:
             textHeight = 1;
         float textScale = (maxY - minY - 2 * spacing) / textHeight;
         textScale = std::min<float>(textScale, (maxX - minX - 2 * spacing) / textWidth);
-        if(isPressed)
+        if(isPressed && !isDisabled())
         {
             currentTextColor = pressedTextColor;
             bottomColor = pressedColor;
