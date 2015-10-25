@@ -597,100 +597,395 @@ static const VectorFontVertex vectorFontVertices[] =
     {2, 5, VectorFontVertex::EndLoop},
     {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 10 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 10 : '◙'
+    {3, 2, VectorFontVertex::StartLoop},
+    {2, 3, VectorFontVertex::Vertex},
+    {2, 5, VectorFontVertex::Vertex},
+    {3, 6, VectorFontVertex::Vertex},
+    {5, 6, VectorFontVertex::Vertex},
+    {6, 5, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::StartLoop},
+    {0, 8, VectorFontVertex::Vertex},
+    {1, 8, VectorFontVertex::Vertex},
+    {1, 2, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::Vertex},
+    {8, 1, VectorFontVertex::Vertex},
+    {8, 0, VectorFontVertex::EndLoop},
+    {8, 8, VectorFontVertex::StartLoop},
+    {8, 1, VectorFontVertex::Vertex},
+    {7, 1, VectorFontVertex::Vertex},
+    {7, 6, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::Vertex},
+    {1, 8, VectorFontVertex::EndLoop},
+    {7, 1, VectorFontVertex::StartLoop},
+    {6, 1, VectorFontVertex::Vertex},
+    {7, 2, VectorFontVertex::EndLoop},
+    {1, 7, VectorFontVertex::StartLoop},
+    {2, 7, VectorFontVertex::Vertex},
+    {1, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 11 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 11 : '♂'
+    {7, 1, VectorFontVertex::StartLoop},
+    {4, 1, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {4, 3, VectorFontVertex::Vertex},
+    {5, 4, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {6, 4, VectorFontVertex::Vertex},
+    {7, 4, VectorFontVertex::EndLoop},
+    {5, 4, VectorFontVertex::StartLoop},
+    {4, 3, VectorFontVertex::Vertex},
+    {2, 3, VectorFontVertex::Vertex},
+    {1, 4, VectorFontVertex::Vertex},
+    {4, 4, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::Vertex},
+    {5, 6, VectorFontVertex::EndLoop},
+    {2, 7, VectorFontVertex::StartLoop},
+    {4, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {2, 6, VectorFontVertex::Vertex},
+    {2, 4, VectorFontVertex::Vertex},
+    {1, 4, VectorFontVertex::Vertex},
+    {1, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 12 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 12 : '♀'
+    {6, 1, VectorFontVertex::StartLoop},
+    {5, 0, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::Vertex},
+    {5, 1, VectorFontVertex::Vertex},
+    {5, 4, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::EndLoop},
+    {3, 4, VectorFontVertex::StartLoop},
+    {5, 4, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 1, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::Vertex},
+    {2, 3, VectorFontVertex::EndLoop},
+    {3.5f, 5, VectorFontVertex::StartLoop},
+    {2, 5, VectorFontVertex::Vertex},
+    {2, 6, VectorFontVertex::Vertex},
+    {3.5f, 6, VectorFontVertex::Vertex},
+    {3.5f, 7, VectorFontVertex::Vertex},
+    {4.5f, 7, VectorFontVertex::Vertex},
+    {4.5f, 6, VectorFontVertex::Vertex},
+    {6, 6, VectorFontVertex::Vertex},
+    {6, 5, VectorFontVertex::Vertex},
+    {4.5f, 5, VectorFontVertex::Vertex},
+    {4.5f, 4, VectorFontVertex::Vertex},
+    {3.5f, 4, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 13 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 13 : '♪'
+    {3, 4, VectorFontVertex::StartLoop},
+    {2, 4, VectorFontVertex::Vertex},
+    {1, 5, VectorFontVertex::Vertex},
+    {1, 6, VectorFontVertex::Vertex},
+    {2, 7, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {4, 0, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::EndLoop},
+    {4, 0, VectorFontVertex::StartLoop},
+    {4, 1, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {6, 2, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 14 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 14 : '♫'
+    {2, 4, VectorFontVertex::StartLoop},
+    {1, 4, VectorFontVertex::Vertex},
+    {0, 5, VectorFontVertex::Vertex},
+    {0, 6, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::Vertex},
+    {2, 7, VectorFontVertex::Vertex},
+    {3, 6, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::Vertex},
+    {2, 0, VectorFontVertex::EndLoop},
+    {6, 5, VectorFontVertex::StartLoop},
+    {5, 5, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::Vertex},
+    {5, 8, VectorFontVertex::Vertex},
+    {6, 8, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::Vertex},
+    {7, 1, VectorFontVertex::Vertex},
+    {6, 1, VectorFontVertex::EndLoop},
+    {3, 0, VectorFontVertex::StartLoop},
+    {3, 1, VectorFontVertex::Vertex},
+    {6, 2, VectorFontVertex::Vertex},
+    {6, 1, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 15 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 15 : '☼'
+    {6, 3, VectorFontVertex::StartLoop},
+    {5, 2, VectorFontVertex::Vertex},
+    {3, 2, VectorFontVertex::Vertex},
+    {2, 3, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {5, 6, VectorFontVertex::Vertex},
+    {6, 5, VectorFontVertex::EndLoop},
+    {3, 6, VectorFontVertex::StartLoop},
+    {5, 6, VectorFontVertex::Vertex},
+    {5, 5, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {2, 3, VectorFontVertex::Vertex},
+    {2, 5, VectorFontVertex::EndLoop},
+    {3.5f, 0, VectorFontVertex::StartLoop},
+    {3.5f, 2, VectorFontVertex::Vertex},
+    {4.5f, 2, VectorFontVertex::Vertex},
+    {4.5f, 0, VectorFontVertex::EndLoop},
+    {3.5f, 6, VectorFontVertex::StartLoop},
+    {3.5f, 8, VectorFontVertex::Vertex},
+    {4.5f, 8, VectorFontVertex::Vertex},
+    {4.5f, 6, VectorFontVertex::EndLoop},
+    {2, 3.5f, VectorFontVertex::StartLoop},
+    {0, 3.5f, VectorFontVertex::Vertex},
+    {0, 4.5f, VectorFontVertex::Vertex},
+    {2, 4.5f, VectorFontVertex::EndLoop},
+    {8, 3.5f, VectorFontVertex::StartLoop},
+    {6, 3.5f, VectorFontVertex::Vertex},
+    {6, 4.5f, VectorFontVertex::Vertex},
+    {8, 4.5f, VectorFontVertex::EndLoop},
+    {3, 2, VectorFontVertex::StartLoop},
+    {1.5f, 0.5f, VectorFontVertex::Vertex},
+    {0.5f, 1.5f, VectorFontVertex::Vertex},
+    {2, 3, VectorFontVertex::EndLoop},
+    {5, 6, VectorFontVertex::StartLoop},
+    {6.5f, 7.5f, VectorFontVertex::Vertex},
+    {7.5f, 6.5f, VectorFontVertex::Vertex},
+    {6, 5, VectorFontVertex::EndLoop},
+    {6, 3, VectorFontVertex::StartLoop},
+    {7.5f, 1.5f, VectorFontVertex::Vertex},
+    {6.5f, 0.5f, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::EndLoop},
+    {2, 5, VectorFontVertex::StartLoop},
+    {0.5f, 6.5f, VectorFontVertex::Vertex},
+    {1.5f, 7.5f, VectorFontVertex::Vertex},
+    {3, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 16 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 16 : '►'
+    {0, 7, VectorFontVertex::StartLoop},
+    {7, 4, VectorFontVertex::Vertex},
+    {0, 1, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 17 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 17 : '◄'
+    {7, 1, VectorFontVertex::StartLoop},
+    {0, 4, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 18 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 18 : '↕'
+    {4, 0, VectorFontVertex::StartLoop},
+    {1, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {5, 5, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {7, 3, VectorFontVertex::EndLoop},
+    {7, 5, VectorFontVertex::StartLoop},
+    {1, 5, VectorFontVertex::Vertex},
+    {4, 8, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 19 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 19 : '‼'
+    {1, 0, VectorFontVertex::StartLoop},
+    {1, 5, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::EndLoop},
+    {5, 0, VectorFontVertex::StartLoop},
+    {5, 5, VectorFontVertex::Vertex},
+    {7, 5, VectorFontVertex::Vertex},
+    {7, 0, VectorFontVertex::EndLoop},
+    {1, 6, VectorFontVertex::StartLoop},
+    {1, 7, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {3, 6, VectorFontVertex::EndLoop},
+    {5, 6, VectorFontVertex::StartLoop},
+    {5, 7, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::Vertex},
+    {7, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 20 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 20 : '¶'
+    {4, 0, VectorFontVertex::StartLoop},
+    {2, 0, VectorFontVertex::Vertex},
+    {1, 1, VectorFontVertex::Vertex},
+    {1, 3, VectorFontVertex::Vertex},
+    {2, 4, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::EndLoop},
+    {6, 0, VectorFontVertex::StartLoop},
+    {4, 0, VectorFontVertex::Vertex},
+    {4, 1, VectorFontVertex::Vertex},
+    {5, 1, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 21 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 21 : '§'
+    {2, 2, VectorFontVertex::StartLoop},
+    {1, 3, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {3, 2, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::Vertex},
+    {2, 0, VectorFontVertex::Vertex},
+    {1, 1, VectorFontVertex::EndLoop},
+    {6, 0, VectorFontVertex::StartLoop},
+    {2, 0, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::Vertex},
+    {6, 1, VectorFontVertex::Vertex},
+    {7, 2, VectorFontVertex::Vertex},
+    {7, 1, VectorFontVertex::EndLoop},
+    {1, 3, VectorFontVertex::StartLoop},
+    {1, 5, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::EndLoop},
+    {5, 6, VectorFontVertex::StartLoop},
+    {6, 5, VectorFontVertex::Vertex},
+    {1, 5, VectorFontVertex::Vertex},
+    {2, 6, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {5, 8, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::EndLoop},
+    {1, 8, VectorFontVertex::StartLoop},
+    {5, 8, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::Vertex},
+    {0, 6, VectorFontVertex::Vertex},
+    {0, 7, VectorFontVertex::EndLoop},
+    {6, 5, VectorFontVertex::StartLoop},
+    {6, 3, VectorFontVertex::Vertex},
+    {4, 3, VectorFontVertex::Vertex},
+    {4, 5, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 22 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 22 : '▬'
+    {1, 4, VectorFontVertex::StartLoop},
+    {1, 7, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::Vertex},
+    {7, 4, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 23 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 23 : '↨'
+    {4, 0, VectorFontVertex::StartLoop},
+    {1, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {5, 4, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {7, 3, VectorFontVertex::EndLoop},
+    {7, 4, VectorFontVertex::StartLoop},
+    {1, 4, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::EndLoop},
+    {0, 7, VectorFontVertex::StartLoop},
+    {0, 8, VectorFontVertex::Vertex},
+    {8, 8, VectorFontVertex::Vertex},
+    {8, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 24 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 24 : '↑'
+    {4, 0, VectorFontVertex::StartLoop},
+    {1, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {7, 3, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 25 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 25 : '↓'
+    {4, 7, VectorFontVertex::StartLoop},
+    {7, 4, VectorFontVertex::Vertex},
+    {5, 4, VectorFontVertex::Vertex},
+    {5, 0, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {1, 4, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 26 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 26 : '→'
+    {7, 3, VectorFontVertex::StartLoop},
+    {4, 0, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {0, 2, VectorFontVertex::Vertex},
+    {0, 4, VectorFontVertex::Vertex},
+    {4, 4, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 27 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 27 : '←'
+    {0, 4, VectorFontVertex::StartLoop},
+    {3, 7, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {7, 5, VectorFontVertex::Vertex},
+    {7, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 1, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 28 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 28 : '∟'
+    {0, 6, VectorFontVertex::StartLoop},
+    {7, 6, VectorFontVertex::Vertex},
+    {7, 5, VectorFontVertex::Vertex},
+    {2, 5, VectorFontVertex::Vertex},
+    {2, 2, VectorFontVertex::Vertex},
+    {0, 2, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 29 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 29 : '↔'
+    {0, 4, VectorFontVertex::StartLoop},
+    {3, 7, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {5, 5, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 1, VectorFontVertex::EndLoop},
+    {5, 1, VectorFontVertex::StartLoop},
+    {5, 7, VectorFontVertex::Vertex},
+    {8, 4, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 30 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 30 : '▲'
+    {1, 6, VectorFontVertex::StartLoop},
+    {7, 6, VectorFontVertex::Vertex},
+    {4, 1, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
-    // Glyph 31 : ''
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    // Glyph 31 : '▼'
+    {7, 1, VectorFontVertex::StartLoop},
+    {1, 1, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 32 : ' '
     {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 33 : '!'
-    FIXME_MESSAGE(finish creating glyph)
-    {0, 0, VectorFontVertex::UnimplementedGlyph},
+    {2, 0, VectorFontVertex::StartLoop},
+    {1, 1, VectorFontVertex::Vertex},
+    {2, 5, VectorFontVertex::Vertex},
+    {4, 5, VectorFontVertex::Vertex},
+    {5, 1, VectorFontVertex::Vertex},
+    {4, 0, VectorFontVertex::EndLoop},
+    {2, 6, VectorFontVertex::StartLoop},
+    {2, 7, VectorFontVertex::Vertex},
+    {4, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 34 : '"'
     FIXME_MESSAGE(finish creating glyph)
