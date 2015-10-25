@@ -199,7 +199,7 @@ for file in "${objects[@]}"; do
     object_directories["$directory"]="$directory"
 done
 output_executable_name="$output_executable_name$output_file_extension"
-exec > Makefile
+exec 2>&1 > Makefile
 echo "# generated from $project_filename"
 cat <<'EOF'
 # Copyright (C) 2012-2015 Jacob R. Lifshay
@@ -250,9 +250,10 @@ index=0
 max_index=${#objects[@]}
 pound_line="##############################"
 space_line="                              "
+printf "processing dependencies...\n" >&2
 for source in "${!objects[@]}"; do
     index=$((index + 1))
-    printf "processing dependencies |%s%s| %i%% (%s)\x1b[K\r" "${pound_line::index * ${#pound_line} / max_index}" "${space_line:index * ${#pound_line} / max_index}" $((index * 100 / max_index)) "$source" >&2
+    printf "|%s%s| %i%% (%s)\x1b[K\r" "${pound_line::index * ${#pound_line} / max_index}" "${space_line:index * ${#pound_line} / max_index}" $((index * 100 / max_index)) "$source" >&2
     printf "%s: " "${objects["$source"]}"
     gcc_executable="$gxx_name"
     compiler_line_start=""
