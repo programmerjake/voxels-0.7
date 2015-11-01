@@ -42,6 +42,7 @@
 #include "util/circular_deque.h"
 #include "util/util.h"
 #include <sstream>
+#include <cerrno>
 #ifdef DEBUG_STREAM
 #include <iostream>
 #define DUMP_V(fn, v) do {std::cerr << #fn << ": read " << v << std::endl;} while(false)

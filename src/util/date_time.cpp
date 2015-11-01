@@ -46,7 +46,7 @@ namespace voxels
 {
 std::chrono::system_clock::time_point DateTime::makeEpoch()
 {
-#if _WIN64 || _WIN32 || __ANDROID || __APPLE__ || __linux || __unix || __posix
+#if _WIN64 || _WIN32 || __ANDROID__ || __APPLE__ || __linux || __unix || __posix
     return std::chrono::system_clock::from_time_t(0);
 #else
 #error unknown platform
@@ -67,7 +67,7 @@ std::chrono::seconds DateTime::getTimeZoneOffset(DateTime time)
         return std::chrono::seconds((std::int64_t)-60 * (tzInfo.DaylightBias + tzInfo.Bias));
     }
     return std::chrono::seconds((std::int64_t)-60 * (tzInfo.StandardBias + tzInfo.Bias));
-#elif __ANDROID || __APPLE__ || __linux || __unix || __posix
+#elif __ANDROID__ || __APPLE__ || __linux || __unix || __posix
     std::tm tmStruct;
     std::time_t timeTValue = time.asTimeT();
     gmtime_r(&timeTValue, &tmStruct);
@@ -92,7 +92,7 @@ bool DateTime::isDaylightSavingsTime(DateTime time)
     if(gtziRetVal == TIME_ZONE_ID_DAYLIGHT)
         return true;
     return false;
-#elif __ANDROID || __APPLE__ || __linux || __unix || __posix
+#elif __ANDROID__ || __APPLE__ || __linux || __unix || __posix
     std::tm tmStruct;
     std::time_t timeTValue = time.asTimeT();
     localtime_r(&timeTValue, &tmStruct);

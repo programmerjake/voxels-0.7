@@ -26,7 +26,7 @@
 
 #if _WIN64 || _WIN32
 #define TERMINATE_HANDLER_WINDOWS 1
-#elif __ANDROID
+#elif __ANDROID__
 #define TERMINATE_HANDLER_ANDROID 1
 #elif __APPLE__
 #include "TargetConditionals.h"
