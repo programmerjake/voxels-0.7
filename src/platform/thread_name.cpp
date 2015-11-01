@@ -75,7 +75,7 @@ void setThreadName(std::wstring name)
 }
 }
 #endif // _MSC_VER
-#elif __ANDROID
+#elif __ANDROID__
 #include <pthread.h>
 namespace programmerjake
 {

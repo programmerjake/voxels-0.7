@@ -36,7 +36,7 @@ std::vector<std::shared_ptr<Printer>> getPrinterList()
 }
 }
 }
-#elif __ANDROID
+#elif __ANDROID__
 FIXME_MESSAGE("implement printing for android")
 namespace programmerjake
 {

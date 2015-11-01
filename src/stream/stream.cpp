@@ -27,7 +27,7 @@
 #define FILE_TELL ftell
 #endif
 #define FILE_OPEN fopen
-#elif defined(__ANDROID) || defined(__APPLE__)
+#elif defined(__ANDROID__) || defined(__APPLE__)
 #define FILE_SEEK fseeko
 #define FILE_TELL ftello
 #define FILE_OPEN fopen

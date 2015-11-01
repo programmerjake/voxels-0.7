@@ -45,7 +45,7 @@
 #include <windows.h>
 #undef min
 #undef max
-#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
 #else
 #error unrecognized platform
 #endif
@@ -64,7 +64,7 @@ namespace stream
 namespace
 {
 #if defined(_WIN64) || defined(_WIN32)
-#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
 initializer clearSigPipe([]()
 {
     std::signal(SIGPIPE, SIG_IGN);
@@ -153,7 +153,7 @@ void throwOpenSSLError()
     {
 #if defined(_WIN64) || defined(_WIN32)
         DWORD errnoValue = WSAGetLastError();
-#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
         int errnoValue = errno;
 #else
 #error unrecognized platform

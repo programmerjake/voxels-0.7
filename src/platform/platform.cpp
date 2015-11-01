@@ -257,7 +257,7 @@ MSVC_PRAGMA(warning(suppress : 4996))
 }
 }
 }
-#elif __ANDROID
+#elif __ANDROID__
 #error implement getResourceReader and platformSetup for Android
 #elif __APPLE__
 #include "TargetConditionals.h"
@@ -2895,7 +2895,7 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
 }
 }
 }
-#elif __ANDROID
+#elif __ANDROID__
 namespace programmerjake
 {
 namespace voxels
