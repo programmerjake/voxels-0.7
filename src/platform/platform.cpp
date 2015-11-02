@@ -59,7 +59,15 @@
 #else
 #include <SDL2/SDL.h>
 #endif // _MSC_VER
+#ifdef __IPHONEOS__
+#include <OpenGLES/ES1/gl.h>
+#include <OpenGLES/ES1/glext.h>
+#elif defined(__ANDROID__)
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#else
 #include <GL/gl.h>
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
 #include <GL/glext.h>
 #else
@@ -258,7 +266,34 @@ MSVC_PRAGMA(warning(suppress : 4996))
 }
 }
 #elif __ANDROID__
-#error implement getResourceReader and platformSetup for Android
+#include <unistd.h>
+#include <climits>
+#include <cerrno>
+#include <cstring>
+#include <cwchar>
+namespace programmerjake
+{
+namespace voxels
+{
+shared_ptr<stream::Reader> getResourceReader(wstring resource)
+{
+    startSDL();
+    string fname = string_cast<string>(L"assets/res/" + resource);
+    try
+    {
+        return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
+    }
+    catch(RWOpsException & e)
+    {
+        throw RWOpsException("can't open resource : " + string_cast<string>(resource));
+    }
+}
+static int platformSetup()
+{
+    return 0;
+}
+}
+}
 #elif __APPLE__
 #include "TargetConditionals.h"
 #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
@@ -1665,7 +1700,7 @@ void renderInternal(const Mesh & m)
     glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
 }
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__ANDROID__)
 typedef std::ptrdiff_t GLsizeiptr;
 typedef std::ptrdiff_t GLintptr;
 typedef void (APIENTRYP PFNGLBINDBUFFERPROC) (GLenum target, GLuint buffer);
@@ -1771,8 +1806,13 @@ void setupRenderLayers()
                 continue;
             glGenTextures(1, &renderLayerTexture[rl]);
             glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
+#if defined(__ANDROID__)            
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+#else            
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+#endif            
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderLayerTextureW, renderLayerTextureH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -2318,7 +2358,12 @@ void finishDrawingRenderLayers()
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();
-        glOrtho(-1, 1, -1, 1, -1, 1);
+#if defined(__ANDROID__)
+        glOrthof
+#else        
+        glOrtho
+#endif        
+        (-1, 1, -1, 1, -1, 1);
         fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         for(RenderLayer rl : enum_traits<RenderLayer>())
         {
@@ -2632,7 +2677,12 @@ void Display::initFrame()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     const float minDistance = 5e-2f, maxDistance = 200.0f;
-    glFrustum(-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
+#if defined(__ANDROID__)
+    glFrustumf
+#else
+    glFrustum
+#endif    
+    (-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -2902,7 +2952,7 @@ namespace voxels
 {
 std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> createTemporaryFile()
 {
-    static std::atomic_size_t nextFileNumber = 0;
+    static std::atomic_size_t nextFileNumber(0);
     const char *internalStoragePath = SDL_AndroidGetInternalStoragePath();
     if(internalStoragePath == nullptr)
         throw stream::IOException(std::string("SDL_AndroidGetInternalStoragePath failed: ") + SDL_GetError());
@@ -2912,7 +2962,7 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
     std::wstring fileName = string_cast<std::wstring>(ss.str());
     std::shared_ptr<stream::Writer> writer = std::make_shared<stream::FileWriter>(fileName); // writer first to truncate; we don't need to keep file contents around because we are the only one using them
     std::shared_ptr<stream::Reader> reader = std::make_shared<stream::FileReader>(fileName);
-    unlink(ss.str().c_str()); // removes directory entry; linux keeps file around until file isn't open by anything
+    remove(ss.str().c_str()); // removes directory entry; linux keeps file around until file isn't open by anything
     return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
 }
 }

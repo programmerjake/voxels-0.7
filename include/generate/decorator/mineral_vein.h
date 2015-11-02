@@ -56,13 +56,16 @@ protected:
         virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
                                      BlocksGenerateArray &blocks) const override
         {
+#ifndef __ANDROID__
+            using std::cbrt; // work around android cbrt c++11 issue
+#endif
             if(maxBlockCount == 0)
                 return;
             VectorI chunkLimitPosition = chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1, BlockChunk::chunkSizeY - 1, BlockChunk::chunkSizeZ - 1);
             std::minstd_rand rg(seed);
             rg.discard(3);
             std::size_t blockCount = std::uniform_int_distribution<std::size_t>((maxBlockCount + 1) / 2, maxBlockCount)(rg);
-            float sizeF = std::cbrt((float)blockCount * (float)(0.75f / M_PI));
+            float sizeF = cbrt((float)blockCount * (float)(0.75f / M_PI));
             int size = iceil(sizeF * 2);
             VectorI minP = (position - VectorI(size));
             VectorI maxP = (position + VectorI(size));

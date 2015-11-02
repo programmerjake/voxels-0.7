@@ -48,6 +48,8 @@
 #elif TERMINATE_HANDLER_POSIX
 #include <semaphore.h>
 #include <signal.h>
+#elif defined(TERMINATE_HANDLER_ANDROID)
+FIXME_MESSAGE(finish terminate handler code for android)
 #else
 #error terminate handler not implemented for platform
 #endif
@@ -141,6 +143,12 @@ int initTerminateHandler()
     sigaction(SIGINT, &action, nullptr);
     sigaction(SIGTERM, &action, nullptr);
     sigaction(SIGHUP, &action, nullptr);
+    return 0;
+}
+#elif defined(TERMINATE_HANDLER_ANDROID)
+int initTerminateHandler()
+{
+    FIXME_MESSAGE(finish terminate handler code for android)
     return 0;
 }
 #else

@@ -213,9 +213,12 @@ SSL_CTX *startOpenSSLLibAndClient()
 #else
     sslMethods = SSLv23_client_method();
 #endif
-    SSL_CTX *retval = SSL_CTX_new(sslMethods);
+    SSL_CTX *retval = SSL_CTX_new((SSL_METHOD *)sslMethods);
     if(retval == nullptr)
         throwOpenSSLError();
+#ifndef SSL_OP_NO_COMPRESSION
+#define SSL_OP_NO_COMPRESSION 0
+#endif // SSL_OP_NO_COMPRESSION
     SSL_CTX_set_options(retval, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
     if(!SSL_CTX_set_default_verify_paths(retval))
         throwOpenSSLError();
@@ -445,22 +448,38 @@ SSLCertificateValidationError translateOpenSSLX509ErrorCode(long errorCode)
         return SSLCertificateValidationError::InvalidPolicyExtension;
     case X509_V_ERR_NO_EXPLICIT_POLICY:
         return SSLCertificateValidationError::MissingExplicitPolicy;
+#ifdef X509_V_ERR_DIFFERENT_CRL_SCOPE
     case X509_V_ERR_DIFFERENT_CRL_SCOPE:
         return SSLCertificateValidationError::DifferentCRLScope;
+#endif
+#ifdef X509_V_ERR_UNSUPPORTED_EXTENSION_FEATURE
     case X509_V_ERR_UNSUPPORTED_EXTENSION_FEATURE:
         return SSLCertificateValidationError::UnsupportedExtensionFeature;
+#endif
+#ifdef X509_V_ERR_PERMITTED_VIOLATION
     case X509_V_ERR_PERMITTED_VIOLATION:
         return SSLCertificateValidationError::NameConstraintViolationInPermittedSubtrees;
+#endif
+#ifdef X509_V_ERR_EXCLUDED_VIOLATION
     case X509_V_ERR_EXCLUDED_VIOLATION:
         return SSLCertificateValidationError::NameConstraintViolationInExcludedSubtrees;
+#endif
+#ifdef X509_V_ERR_SUBTREE_MINMAX
     case X509_V_ERR_SUBTREE_MINMAX:
         return SSLCertificateValidationError::UnsupportedNameConstraintsMinimumOrMaximum;
+#endif
+#ifdef X509_V_ERR_UNSUPPORTED_CONSTRAINT_TYPE
     case X509_V_ERR_UNSUPPORTED_CONSTRAINT_TYPE:
         return SSLCertificateValidationError::UnsupportedNameConstraintsType;
+#endif
+#ifdef X509_V_ERR_UNSUPPORTED_CONSTRAINT_SYNTAX
     case X509_V_ERR_UNSUPPORTED_CONSTRAINT_SYNTAX:
         return SSLCertificateValidationError::UnsupportedNameConstraintsSyntax;
+#endif
+#ifdef X509_V_ERR_CRL_PATH_VALIDATION_ERROR
     case X509_V_ERR_CRL_PATH_VALIDATION_ERROR:
         return SSLCertificateValidationError::CRLPathValidationError;
+#endif
     case X509_V_ERR_APPLICATION_VERIFICATION:
         UNREACHABLE();
     }
@@ -525,7 +544,11 @@ std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::
         throwOpenSSLError();
     std::size_t colonLocation = address.find_last_of(L':');
     assert(colonLocation != std::wstring::npos);
+#ifdef __ANDROID__
+    //SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
+#else
     SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
+#endif
     SSL_set_cipher_list(ssl, "ALL:!EXPORT:!EXPORT40:!EXPORT56:!aNULL:!LOW:!RC4:@STRENGTH");
     if(BIO_do_connect(bio.get()) <= 0)
         throwOpenSSLError();
@@ -592,7 +615,7 @@ std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
 #else
     sslMethods = SSLv23_server_method();
 #endif
-    std::shared_ptr<SSL_CTX> ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(sslMethods), [passwordUserData](SSL_CTX *ctx)
+    std::shared_ptr<SSL_CTX> ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new((SSL_METHOD *)sslMethods), [passwordUserData](SSL_CTX *ctx)
     {
         SSL_CTX_free(ctx);
         delete passwordUserData;

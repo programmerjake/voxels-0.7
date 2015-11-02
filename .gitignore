@@ -32,3 +32,4 @@ Debug
 Release
 !libeay*.*
 !ssleay*.*
+build
