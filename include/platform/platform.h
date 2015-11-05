@@ -380,6 +380,7 @@ bool audioRunning();
 int main(std::vector<std::wstring> args); // called by the platform's main function
 std::uint32_t allocateTexture();
 void freeTexture(std::uint32_t texture);
+void platformPostLogMessage(std::wstring msg);
 
 std::size_t getProcessorCount();
 

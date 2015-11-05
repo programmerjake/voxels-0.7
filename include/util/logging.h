@@ -91,47 +91,12 @@ inline void operator <<(std::wostream &os, post_t)
     logStream->inPostFunction = false;
 }
 
+void defaultDebugLogPostFunction(std::wstring str);
+
 inline LogStream &getDebugLog()
 {
     static std::recursive_mutex theLock;
-    static std::function<void(std::wstring)> postFunction = [](std::wstring str)
-    {
-        while(!str.empty())
-        {
-            std::size_t pos = str.find_first_of(L"\r\n");
-            std::wstring currentLine;
-            if(pos == std::wstring::npos)
-            {
-                currentLine = str;
-                str.clear();
-            }
-            else
-            {
-                currentLine = str.substr(0, pos + 1);
-                str.erase(0, pos + 1);
-            }
-            assert(!currentLine.empty());
-            if(currentLine[currentLine.size() - 1] == L'\r')
-            {
-                currentLine.erase(currentLine.size() - 1);
-                currentLine += L"\x1b[K\r";
-            }
-            else if(currentLine[currentLine.size() - 1] == L'\n')
-            {
-                currentLine.erase(currentLine.size() - 1);
-                currentLine += L"\x1b[K\n";
-            }
-            else
-            {
-                currentLine += L"\x1b[K";
-            }
-            std::cout << string_cast<std::string>(currentLine);
-        }
-        std::cout << std::flush;
-    };
-    struct theLogStream_tls_tag
-    {
-    };
+    static std::function<void(std::wstring)> postFunction = defaultDebugLogPostFunction;
     static thread_local std::unique_ptr<LogStream> theLogStream;
     if(theLogStream == nullptr)
         theLogStream.reset(new LogStream(&theLock, &postFunction));

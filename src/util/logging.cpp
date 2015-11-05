@@ -19,10 +19,17 @@
  *
  */
 #include "util/logging.h"
+#include "platform/platform.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
+
+void defaultDebugLogPostFunction(std::wstring str)
+{
+    platformPostLogMessage(str);
+}
+
 }
 }

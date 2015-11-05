@@ -296,9 +296,7 @@ static int platformSetup()
 }
 #elif __APPLE__
 #include "TargetConditionals.h"
-#if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
-#error implement getResourceReader and platformSetup for iPhone simulator
-#elif TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 #error implement getResourceReader and platformSetup for iPhone
 #else
 #error implement getResourceReader and platformSetup for OS X
@@ -3032,6 +3030,131 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
 }
 #else
 #error unknown platform in createTemporaryFile
+#endif
+
+#if _WIN64 || _WIN32
+namespace programmerjake
+{
+namespace voxels
+{
+void platformPostLogMessage(std::wstring msg)
+{
+    while(!msg.empty())
+    {
+        std::size_t pos = msg.find_first_of(L"\r\n");
+        std::wstring currentLine;
+        if(pos == std::wstring::npos)
+        {
+            currentLine = msg;
+            msg.clear();
+        }
+        else
+        {
+            currentLine = msg.substr(0, pos + 1);
+            msg.erase(0, pos + 1);
+        }
+        assert(!currentLine.empty());
+        if(currentLine[currentLine.size() - 1] == L'\r')
+        {
+            currentLine.erase(currentLine.size() - 1);
+            currentLine += L"        \r";
+        }
+        else if(currentLine[currentLine.size() - 1] == L'\n')
+        {
+            currentLine.erase(currentLine.size() - 1);
+            currentLine += L"        \n";
+        }
+        else
+        {
+            currentLine += L"";
+        }
+        std::cout << string_cast<std::string>(currentLine);
+    }
+    std::cout << std::flush;
+}
+}
+}
+#elif __ANDROID__
+namespace programmerjake
+{
+namespace voxels
+{
+void platformPostLogMessage(std::wstring msg)
+{
+    startSDL();
+    while(!msg.empty())
+    {
+        std::size_t pos = msg.find_first_of(L"\r\n");
+        std::wstring currentLine;
+        if(pos == std::wstring::npos)
+        {
+            currentLine = msg;
+            msg.clear();
+        }
+        else
+        {
+            currentLine = msg.substr(0, pos + 1);
+            msg.erase(0, pos + 1);
+        }
+        assert(!currentLine.empty());
+        if(currentLine[currentLine.size() - 1] == L'\r')
+        {
+            currentLine.erase(currentLine.size() - 1);
+        }
+        else if(currentLine[currentLine.size() - 1] == L'\n')
+        {
+            currentLine.erase(currentLine.size() - 1);
+        }
+        SDL_Log("%s", string_cast<std::string>(currentLine).c_str());
+    }
+}
+}
+}
+#elif __APPLE__ || __linux || __unix || __posix
+#include <fcntl.h>
+namespace programmerjake
+{
+namespace voxels
+{
+void platformPostLogMessage(std::wstring msg)
+{
+    while(!msg.empty())
+    {
+        std::size_t pos = msg.find_first_of(L"\r\n");
+        std::wstring currentLine;
+        if(pos == std::wstring::npos)
+        {
+            currentLine = msg;
+            msg.clear();
+        }
+        else
+        {
+            currentLine = msg.substr(0, pos + 1);
+            msg.erase(0, pos + 1);
+        }
+        assert(!currentLine.empty());
+        if(currentLine[currentLine.size() - 1] == L'\r')
+        {
+            currentLine.erase(currentLine.size() - 1);
+            currentLine += L"\x1b[K\r";
+        }
+        else if(currentLine[currentLine.size() - 1] == L'\n')
+        {
+            currentLine.erase(currentLine.size() - 1);
+            currentLine += L"\x1b[K\n";
+        }
+        else
+        {
+            currentLine += L"\x1b[K";
+        }
+        std::cout << string_cast<std::string>(currentLine);
+    }
+    std::cout << std::flush;
+}
+}
+}
+#else
+#error unknown platform in platformPostLogMessage
 #endif
 
 namespace programmerjake

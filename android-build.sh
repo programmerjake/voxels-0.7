@@ -31,6 +31,7 @@ LIBPNG_PATH="$EXTERNAL_PATH/libpng-1.6.18"
 LIBOGG_PATH="$EXTERNAL_PATH/libogg-1.3.2"
 LIBVORBIS_PATH="$EXTERNAL_PATH/libvorbis-1.3.5"
 OPENSSL_PATH="$EXTERNAL_PATH/android-external-openssl"
+RESOURCES_PATH="$PROJECT_PATH/res"
 NCPUS="1"
 case "$OSTYPE" in
     darwin*)
@@ -95,7 +96,7 @@ LOCAL_SHARED_LIBRARIES := ${LOCAL_SHARED_LIBRARIES}
 
 LOCAL_LDLIBS += -lz
 
-include \$(BUILD_STATIC_LIBRARY)
+include \$(BUILD_SHARED_LIBRARY)
 EOF
 }
 
@@ -124,7 +125,51 @@ typedef int64_t ogg_int64_t;
 
 #endif
 EOF
-make_lib "vorbis" "$LIBVORBIS_PATH" "" "/src/lib" "src/include ../ogg/src/include"
+mkdir -p "$BUILD_PATH/jni/vorbis"
+cp -r "$LIBVORBIS_PATH" "$BUILD_PATH/jni/vorbis/src"
+cat > "$BUILD_PATH/jni/vorbis/Android.mk" <<'EOF'
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := vorbis
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/src
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/src/include
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../ogg/src/include
+
+LOCAL_SRC_FILES := src/lib/mdct.c \
+                   src/lib/smallft.c \
+                   src/lib/block.c \
+                   src/lib/envelope.c \
+                   src/lib/window.c \
+                   src/lib/lsp.c \
+                   src/lib/lpc.c \
+                   src/lib/analysis.c \
+                   src/lib/synthesis.c \
+                   src/lib/psy.c \
+                   src/lib/info.c \
+                   src/lib/floor1.c \
+                   src/lib/floor0.c \
+                   src/lib/res0.c \
+                   src/lib/mapping0.c \
+                   src/lib/registry.c \
+                   src/lib/codebook.c \
+                   src/lib/sharedbook.c \
+                   src/lib/lookup.c \
+                   src/lib/bitrate.c \
+                   src/lib/vorbisfile.c
+
+LOCAL_CPP_FEATURES := rtti exceptions
+
+LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES
+
+LOCAL_CPPFLAGS += -std=c++11
+
+LOCAL_SHARED_LIBRARIES := ogg
+
+include $(BUILD_SHARED_LIBRARY)
+EOF
 cp -r "$OPENSSL_PATH" "$BUILD_PATH/jni/openssl"
 cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
@@ -213,6 +258,27 @@ LOCAL_LDLIBS += -lz -lGLESv1_CM
 
 include $(BUILD_SHARED_LIBRARY)
 EOF
+mkdir -p "$BUILD_PATH/src/cf/programmerjake/voxels"
+cat > "$BUILD_PATH/src/cf/programmerjake/voxels/MyActivity.java" <<'EOF'
+package cf.programmerjake.voxels;
+import org.libsdl.app.SDLActivity;
+
+public class MyActivity extends SDLActivity {
+    static {
+        System.loadLibrary("gnustl_shared");
+        System.loadLibrary("png");
+        System.loadLibrary("ogg");
+        System.loadLibrary("vorbis");
+        System.loadLibrary("SDL2");
+        System.loadLibrary("main");
+    }
+}
+EOF
+sed -i '{s/System\.loadLibrary("SDL2");/\/\/System.loadLibrary("SDL2");/g; s/System\.loadLibrary("main");/\/\/System.loadLibrary("main");/g}' "$BUILD_PATH/src/org/libsdl/app/SDLActivity.java"
+sed -i '{s/SDLActivity/Voxels-0.7/g}' "$BUILD_PATH/build.xml"
+sed -i '{s/<string name="app_name">SDL App<\/string>/<string name="app_name">Voxels 0.7<\/string>/g}' "$BUILD_PATH/res/values/strings.xml"
+mkdir -p "$BUILD_PATH/assets"
+ln -sT "$RESOURCES_PATH" "$BUILD_PATH/assets/res" 
 android update project --path "$BUILD_PATH" --target android-16
 pushd "$BUILD_PATH" > /dev/null
 ndk-build -j"$NCPUS" && ant debug
