@@ -159,15 +159,23 @@ struct PlayingAudioData
 
 namespace
 {
-mutex audioStateMutex;
-unordered_set<shared_ptr<PlayingAudioData>> playingAudioSet;
+mutex &getAudioStateMutex()
+{
+    static mutex audioStateMutex;
+    return audioStateMutex;
+}
+unordered_set<shared_ptr<PlayingAudioData>> &getPlayingAudioSet()
+{
+    static unordered_set<shared_ptr<PlayingAudioData>> playingAudioSet;
+    return playingAudioSet;
+}
 
 void startAudioImp(shared_ptr<PlayingAudioData> audio)
 {
     assert(audio);
     {
-        unique_lock<mutex> lock(audioStateMutex);
-        playingAudioSet.insert(audio);
+        unique_lock<mutex> lock(getAudioStateMutex());
+        getPlayingAudioSet().insert(audio);
     }
 
     programmerjake::voxels::startAudio();
@@ -179,9 +187,9 @@ void stopAudioImp(shared_ptr<PlayingAudioData> audio)
 
     bool terminateAudio = false;
     {
-        unique_lock<mutex> lock(audioStateMutex);
-        playingAudioSet.erase(audio);
-        if(playingAudioSet.empty())
+        unique_lock<mutex> lock(getAudioStateMutex());
+        getPlayingAudioSet().erase(audio);
+        if(getPlayingAudioSet().empty())
             terminateAudio = true;
     }
     if(terminateAudio)
@@ -198,16 +206,16 @@ void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
 {
     setThreadPriority(ThreadPriority::High);
     static vector<float> buffer;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     int16_t * buffer16 = (int16_t *)buffer_in;
     memset((void *)buffer16, 0, length);
     assert(length % (getGlobalAudioChannelCount() * sizeof(int16_t)) == 0);
     size_t sampleCount = length / (getGlobalAudioChannelCount() * sizeof(int16_t));
     buffer.assign(sampleCount * getGlobalAudioChannelCount(), 0);
-    for(auto i = playingAudioSet.begin(); i != playingAudioSet.end(); )
+    for(auto i = getPlayingAudioSet().begin(); i != getPlayingAudioSet().end(); )
     {
         if(!(*i)->addInAudio(buffer.data(), sampleCount))
-            i = playingAudioSet.erase(i);
+            i = getPlayingAudioSet().erase(i);
         else
             i++;
     }
@@ -221,7 +229,7 @@ bool PlayingAudio::isPlaying()
 {
     if(!data)
         return false;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     return audioRunning() && !data->hitEOF();
 }
 
@@ -229,7 +237,7 @@ double PlayingAudio::currentTime()
 {
     if(!data)
         return 0;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     return (double)data->playedSamples / data->decoder->samplesPerSecond();
 }
 
@@ -244,7 +252,7 @@ float PlayingAudio::volume()
 {
     if(!data)
         return 0;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     return data->volume;
 }
 
@@ -252,7 +260,7 @@ void PlayingAudio::volume(float v)
 {
     if(!data)
         return;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     data->volume = limit(v, 0.0f, 1.0f);
 }
 
@@ -260,7 +268,7 @@ double PlayingAudio::duration()
 {
     if(!data)
         return 0;
-    unique_lock<mutex> lock(audioStateMutex);
+    unique_lock<mutex> lock(getAudioStateMutex());
     return data->decoder->lengthInSeconds();
 }
 

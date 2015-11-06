@@ -28,6 +28,7 @@
 #endif
 #include "util/game_version.h"
 #include "platform/platform.h"
+#include "util/global_instance_maker.h"
 #include "util/matrix.h"
 #include "util/vector.h"
 #include "util/string_cast.h"
@@ -56,8 +57,10 @@
 #include <ctime>
 #ifdef _MSC_VER
 #include <SDL.h>
+#include <SDL_main.h>
 #else
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_main.h>
 #endif // _MSC_VER
 #ifdef __IPHONEOS__
 #include <OpenGLES/ES1/gl.h>
@@ -278,7 +281,7 @@ namespace voxels
 shared_ptr<stream::Reader> getResourceReader(wstring resource)
 {
     startSDL();
-    string fname = string_cast<string>(L"assets/res/" + resource);
+    string fname = string_cast<string>(L"res/" + resource);
     try
     {
         return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
@@ -773,16 +776,20 @@ static volatile double lastFlipTime = 0;
 
 static volatile double oldLastFlipTime = 0;
 
-static recursive_mutex flipTimeLock;
+static recursive_mutex &flipTimeLock()
+{
+    static recursive_mutex retval;
+    return retval;
+}
 
 static void lockFlipTime()
 {
-    flipTimeLock.lock();
+    flipTimeLock().lock();
 }
 
 static void unlockFlipTime()
 {
-    flipTimeLock.unlock();
+    flipTimeLock().unlock();
 }
 
 struct FlipTimeLocker
@@ -1804,13 +1811,13 @@ void setupRenderLayers()
                 continue;
             glGenTextures(1, &renderLayerTexture[rl]);
             glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
-#if defined(__ANDROID__)            
+#if defined(__ANDROID__)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#else            
+#else
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-#endif            
+#endif
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderLayerTextureW, renderLayerTextureH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -2358,9 +2365,9 @@ void finishDrawingRenderLayers()
         glLoadIdentity();
 #if defined(__ANDROID__)
         glOrthof
-#else        
+#else
         glOrtho
-#endif        
+#endif
         (-1, 1, -1, 1, -1, 1);
         fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
         for(RenderLayer rl : enum_traits<RenderLayer>())
@@ -2453,22 +2460,30 @@ struct FreeBuffer final
     }
 };
 
-vector<FreeBuffer> freeBuffers;
-mutex freeBuffersLock;
+static vector<FreeBuffer> &freeBuffers()
+{
+    static vector<FreeBuffer> retval;
+    return retval;
+}
+static mutex &freeBuffersLock()
+{
+    static mutex retval;
+    return retval;
+}
 GLuint allocateBuffer()
 {
     assert(haveOpenGLBuffers);
-    freeBuffersLock.lock();
-    if(freeBuffers.empty())
+    freeBuffersLock().lock();
+    if(freeBuffers().empty())
     {
-        freeBuffersLock.unlock();
+        freeBuffersLock().unlock();
         GLuint retval;
         fnGLGenBuffers(1, &retval);
         return retval;
     }
-    FreeBuffer retval = freeBuffers.back();
-    freeBuffers.pop_back();
-    freeBuffersLock.unlock();
+    FreeBuffer retval = freeBuffers().back();
+    freeBuffers().pop_back();
+    freeBuffersLock().unlock();
     if(retval.needUnmap)
     {
         fnGLBindBuffer(GL_ARRAY_BUFFER, retval.buffer);
@@ -2479,8 +2494,8 @@ GLuint allocateBuffer()
 }
 void freeBuffer(GLuint displayList, bool unmap)
 {
-    lock_guard<mutex> lockGuard(freeBuffersLock);
-    freeBuffers.push_back(displayList);
+    lock_guard<mutex> lockGuard(freeBuffersLock());
+    freeBuffers().push_back(displayList);
 }
 }
 
@@ -2679,7 +2694,7 @@ void Display::initFrame()
     glFrustumf
 #else
     glFrustum
-#endif    
+#endif
     (-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -3171,6 +3186,7 @@ int callMyMain(int argc, char **argv);
 extern "C" int main(int argc, char *argv[])
 {
     programmerjake::voxels::runPlatformSetup();
+    programmerjake::voxels::global_instance_maker_init_list::init_all();
     return programmerjake::voxels::callMyMain(argc, argv);
 }
 

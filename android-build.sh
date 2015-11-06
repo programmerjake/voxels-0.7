@@ -94,9 +94,9 @@ LOCAL_CPPFLAGS += -std=c++11
 
 LOCAL_SHARED_LIBRARIES := ${LOCAL_SHARED_LIBRARIES}
 
-LOCAL_LDLIBS += -lz
+#LOCAL_LDLIBS += -lz
 
-include \$(BUILD_SHARED_LIBRARY)
+include \$(BUILD_STATIC_LIBRARY)
 EOF
 }
 
@@ -166,11 +166,11 @@ LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES
 
 LOCAL_CPPFLAGS += -std=c++11
 
-LOCAL_SHARED_LIBRARIES := ogg
+LOCAL_STATIC_LIBRARIES := ogg
 
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 EOF
-cp -r "$OPENSSL_PATH" "$BUILD_PATH/jni/openssl"
+#cp -r "$OPENSSL_PATH" "$BUILD_PATH/jni/openssl"
 cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -252,7 +252,9 @@ LOCAL_CPPFLAGS += -std=c++11
 
 LOCAL_SHARED_LIBRARIES := SDL2
 
-LOCAL_STATIC_LIBRARIES := openssl-static png ogg vorbis
+#LOCAL_STATIC_LIBRARIES := openssl-static
+
+LOCAL_STATIC_LIBRARIES += png ogg vorbis
 
 LOCAL_LDLIBS += -lz -lGLESv1_CM
 
@@ -266,9 +268,9 @@ import org.libsdl.app.SDLActivity;
 public class MyActivity extends SDLActivity {
     static {
         System.loadLibrary("gnustl_shared");
-        System.loadLibrary("png");
-        System.loadLibrary("ogg");
-        System.loadLibrary("vorbis");
+        //System.loadLibrary("png");
+        //System.loadLibrary("ogg");
+        //System.loadLibrary("vorbis");
         System.loadLibrary("SDL2");
         System.loadLibrary("main");
     }

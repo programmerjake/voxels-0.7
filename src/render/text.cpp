@@ -2689,8 +2689,16 @@ static const VectorFontVertex vectorFontVertices[] =
 
 };
 
-checked_array<Mesh, glyphCount> bitmappedCharMesh;
-checked_array<Mesh, glyphCount> vectorCharMesh;
+static checked_array<Mesh, glyphCount> &bitmappedCharMesh()
+{
+    static checked_array<Mesh, glyphCount> retval;
+    return retval;
+}
+static checked_array<Mesh, glyphCount> &vectorCharMesh()
+{
+    static checked_array<Mesh, glyphCount> retval;
+    return retval;
+}
 bool didInit = false;
 
 void init()
@@ -2701,7 +2709,7 @@ void init()
     }
 
     didInit = true;
-    for(size_t i = 0; i < bitmappedCharMesh.size(); i++)
+    for(size_t i = 0; i < bitmappedCharMesh().size(); i++)
     {
         int left = (i % (textureXRes / fontWidth)) * fontWidth;
         int top = (i / (textureXRes / fontWidth)) * fontHeight;
@@ -2713,7 +2721,7 @@ void init()
         float maxV = 1 - (top + pixelOffset) / textureYRes;
         TextureDescriptor texture = FontTexture.tdNoOffset();
         texture = texture.subTexture(minU, maxU, minV, maxV);
-        bitmappedCharMesh[i] = Generate::quadrilateral(texture, VectorF(0, 0, 0), colorizeIdentity(), VectorF(1, 0, 0), colorizeIdentity(), VectorF(1, 1, 0), colorizeIdentity(), VectorF(0, 1, 0), colorizeIdentity());
+        bitmappedCharMesh()[i] = Generate::quadrilateral(texture, VectorF(0, 0, 0), colorizeIdentity(), VectorF(1, 0, 0), colorizeIdentity(), VectorF(1, 1, 0), colorizeIdentity(), VectorF(0, 1, 0), colorizeIdentity());
     }
     checked_array<bool, glyphCount> isUnimplementedGlyph;
     for(bool &v : isUnimplementedGlyph)
@@ -2732,7 +2740,7 @@ void init()
     TextureCoord tc(td.minU, td.minV);
     for(const VectorFontVertex &v : vectorFontVertices)
     {
-        assert(glyphNumber < vectorCharMesh.size());
+        assert(glyphNumber < vectorCharMesh().size());
         float x = v.x / 8.0f;
         float y = 1.0f - v.y / 8.0f;
         switch(v.kind)
@@ -2741,14 +2749,14 @@ void init()
             isUnimplementedGlyph[glyphNumber] = true;
             assert(!haveStart);
             assert(!haveLastPoint);
-            vectorCharMesh[glyphNumber++] = Mesh();
+            vectorCharMesh()[glyphNumber++] = Mesh();
             glyphMesh = Mesh();
             glyphMesh.image = td.image;
             break;
         case VectorFontVertex::EndGlyph:
             assert(!haveStart);
             assert(!haveLastPoint);
-            vectorCharMesh[glyphNumber++] = std::move(glyphMesh);
+            vectorCharMesh()[glyphNumber++] = std::move(glyphMesh);
             glyphMesh = Mesh();
             glyphMesh.image = td.image;
             break;
@@ -2782,11 +2790,11 @@ void init()
             break;
         }
     }
-    assert(glyphNumber == vectorCharMesh.size());
-    for(size_t i = 0; i < vectorCharMesh.size(); i++)
+    assert(glyphNumber == vectorCharMesh().size());
+    for(size_t i = 0; i < vectorCharMesh().size(); i++)
     {
         if(isUnimplementedGlyph[i])
-            vectorCharMesh[i] = vectorCharMesh[(int)'?'];
+            vectorCharMesh()[i] = vectorCharMesh()[(int)'?'];
     }
 }
 
@@ -2798,11 +2806,11 @@ void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch, const Text::Text
         font = Text::getBitmappedFont8x8();
     if(font.descriptor->isVectorFont)
     {
-        dest.append(colorize(color, transform(m, vectorCharMesh[translateToFontIndex(ch)])));
+        dest.append(colorize(color, transform(m, vectorCharMesh()[translateToFontIndex(ch)])));
     }
     else
     {
-        dest.append(colorize(color, transform(m, bitmappedCharMesh[translateToFontIndex(ch)])));
+        dest.append(colorize(color, transform(m, bitmappedCharMesh()[translateToFontIndex(ch)])));
     }
 }
 

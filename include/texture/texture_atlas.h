@@ -426,12 +426,6 @@ private:
         ImageDescriptor &operator =(const ImageDescriptor &) = delete;
     };
 	static checked_array<ImageDescriptor, 8> &textures();
-    class TextureLoader final
-    {
-    public:
-        TextureLoader();
-    };
-    static TextureLoader textureLoader;
 };
 }
 }

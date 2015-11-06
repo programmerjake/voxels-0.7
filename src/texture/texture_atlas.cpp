@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cassert>
 #include "util/string_cast.h"
+#include "util/logging.h"
 
 using namespace std;
 
@@ -36,14 +37,13 @@ Image loadImage(std::wstring name)
 {
     try
     {
-        cout << "loading " << string_cast<std::string>(name) << "..." << flush;
+        getDebugLog() << L"loading '" << name << "'..." << postnl;
         Image retval = Image(name);
-        cout << "\r\x1b[K" << flush;
         return retval;
     }
     catch(exception &e)
     {
-        cerr << "\r\x1b[Kerror : " << e.what() << endl;
+        getDebugLog() << L"error: " << string_cast<std::wstring>(e.what()) << postnl;
         exit(1);
     }
 }
@@ -65,8 +65,6 @@ checked_array<TextureAtlas::ImageDescriptor, 8> &TextureAtlas::textures()
     return retval;
 }
 
-TextureAtlas::TextureLoader TextureAtlas::textureLoader;
-
 Image TextureAtlas::texture(std::size_t textureIndex)
 {
     auto &textures_array = textures();
@@ -79,14 +77,6 @@ Image TextureAtlas::texture(std::size_t textureIndex)
         }
     }
     return *t.image;
-}
-
-TextureAtlas::TextureLoader::TextureLoader()
-{
-    for(std::size_t i = 0; i < textures().size(); i++)
-    {
-        texture(i);
-    }
 }
 
 const TextureAtlas

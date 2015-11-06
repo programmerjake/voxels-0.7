@@ -22,6 +22,7 @@
 #include "util/password.h"
 #include "util/util.h"
 #include "util/logging.h"
+#ifndef __ANDROID__
 #include <openssl/sha.h>
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
@@ -776,3 +777,50 @@ std::string Password::sha256HashString(std::string str)
 }
 }
 }
+#else // ifndef __ANDROID__
+#include <stdexcept>
+namespace programmerjake
+{
+namespace voxels
+{
+std::string Password::sha256HashString(std::string str)
+{
+    FIXME_MESSAGE(finish implementing SHA256)
+    assert(!"finish implementing SHA256");
+    throw std::runtime_error("finish implementing SHA256");
+}
+
+namespace stream
+{
+
+std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
+                                                     std::wstring certificateFile,
+                                                     std::wstring privateKeyFile,
+                                                     std::function<std::wstring()> getDecryptionPasswordFn)
+{
+    FIXME_MESSAGE(finish implementing makeSSLServer)
+    throw NetworkException("finish implementing makeSSLServer");
+}
+
+std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
+{
+    FIXME_MESSAGE(finish implementing makeSSLConnection)
+    throw NetworkException("finish implementing makeSSLConnection");
+}
+
+std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
+{
+    FIXME_MESSAGE(finish implementing makeTCPServer)
+    throw NetworkException("finish implementing makeTCPServer");
+}
+
+std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address, std::uint16_t defaultPort)
+{
+    FIXME_MESSAGE(finish implementing makeTCPConnection)
+    throw NetworkException("finish implementing makeTCPConnection");
+}
+
+}
+}
+}
+#endif

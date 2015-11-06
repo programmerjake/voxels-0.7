@@ -71,13 +71,21 @@ std::size_t roundUpThreadCount(std::size_t v)
     return v;
 }
 
-const std::size_t lightingThreadCount = roundUpThreadCount(getProcessorCount() / 2);
-const std::size_t blockUpdateThreadCount = roundUpThreadCount(getProcessorCount() / 2);
+struct ThreadCounts final
+{
+    const std::size_t lightingThreadCount = roundUpThreadCount(getProcessorCount() / 2);
+    const std::size_t blockUpdateThreadCount = roundUpThreadCount(getProcessorCount() / 2);
 #if 1 || defined(NDEBUG)
-const std::size_t generateThreadCount = getProcessorCount();
+    const std::size_t generateThreadCount = getProcessorCount();
 #else
-const std::size_t generateThreadCount = 1;
+    const std::size_t generateThreadCount = 1;
 #endif
+    static const ThreadCounts &get()
+    {
+        static ThreadCounts retval;
+        return retval;
+    }
+};
 
 class BiomesCache final
 {
@@ -671,7 +679,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             TLS tls;
             chunkUnloaderThreadFn(tls);
         });
-        for(std::size_t i = 0; i < lightingThreadCount; i++)
+        for(std::size_t i = 0; i < ThreadCounts::get().lightingThreadCount; i++)
         {
             lightingThreads.emplace_back([this]()
             {
@@ -690,7 +698,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             }
         }
         std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct = std::make_shared<InitialChunkGenerateStruct>(initialChunkGenerateCount, abortFlag);
-        for(std::size_t i = 0; i < generateThreadCount; i++)
+        for(std::size_t i = 0; i < ThreadCounts::get().generateThreadCount; i++)
         {
             chunkGeneratingThreads.emplace_back([this, initialChunkGenerateStruct]()
             {
@@ -722,7 +730,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
             initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
             return;
         }
-        for(std::size_t i = 0; i < blockUpdateThreadCount; i++)
+        for(std::size_t i = 0; i < ThreadCounts::get().blockUpdateThreadCount; i++)
         {
             blockUpdateThreads.emplace_back([this]()
             {
@@ -1918,7 +1926,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
     if(!hasAnyPlayers)
         throw stream::InvalidDataValueException("world has no players");
 
-    for(std::size_t i = 0; i < lightingThreadCount; i++)
+    for(std::size_t i = 0; i < ThreadCounts::get().lightingThreadCount; i++)
     {
         world.lightingThreads.emplace_back([&world]()
         {
@@ -1927,7 +1935,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
             world.lightingThreadFn(tls);
         });
     }
-    for(std::size_t i = 0; i < generateThreadCount; i++)
+    for(std::size_t i = 0; i < ThreadCounts::get().generateThreadCount; i++)
     {
         world.chunkGeneratingThreads.emplace_back([&world]()
         {
@@ -1937,7 +1945,7 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
             world.chunkGeneratingThreadFn(nullptr, tls);
         });
     }
-    for(std::size_t i = 0; i < blockUpdateThreadCount; i++)
+    for(std::size_t i = 0; i < ThreadCounts::get().blockUpdateThreadCount; i++)
     {
         world.blockUpdateThreads.emplace_back([&world]()
         {

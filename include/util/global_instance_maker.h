@@ -21,10 +21,39 @@
 #ifndef GLOBAL_INSTANCE_MAKER_H_INCLUDED
 #define GLOBAL_INSTANCE_MAKER_H_INCLUDED
 
+#include <cstdlib>
+
 namespace programmerjake
 {
 namespace voxels
 {
+template <typename T>
+class global_instance_maker;
+
+class global_instance_maker_init_list final
+{
+    template <typename T>
+    friend class global_instance_maker;
+    struct init_list_item
+    {
+        init_list_item *next;
+        void (*init_function)();
+    };
+    static init_list_item *&get_head()
+    {
+        static init_list_item *retval = nullptr;
+        return retval;
+    }
+public:
+    static void init_all()
+    {
+        for(init_list_item *node = get_head(); node != nullptr; node = node->next)
+        {
+            node->init_function();
+        }
+    }
+};
+
 template <typename T>
 class global_instance_maker final
 {
@@ -38,6 +67,7 @@ private:
     static void deinit()
     {
         delete instance;
+        instance = nullptr;
     }
     struct helper final
     {
@@ -45,7 +75,7 @@ private:
         void operator =(const helper &) = delete;
         helper()
         {
-            init();
+            addToInitList();
         }
         ~helper()
         {
@@ -56,6 +86,18 @@ private:
             return retval;
         }
     };
+    static void addToInitList()
+    {
+        static bool addedToInitList = false;
+        static global_instance_maker_init_list::init_list_item init_list_item;
+        if(!addedToInitList)
+        {
+            addedToInitList = true;
+            init_list_item.next = global_instance_maker_init_list::get_head();
+            init_list_item.init_function = init;
+            global_instance_maker_init_list::get_head() = &init_list_item;
+        }
+    }
     static helper theHelper;
 public:
     static const T *getInstance()
