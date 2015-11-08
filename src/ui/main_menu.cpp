@@ -152,8 +152,11 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
         private:
             static bool &getReentryFlag()
             {
-                static thread_local bool retval = false;
-                return retval;
+                struct RetvalTag
+                {
+                };
+                thread_local_variable<bool, RetvalTag> retval(TLS::getSlow(), false);
+                return retval.get();
             }
         public:
             const bool isReentry;

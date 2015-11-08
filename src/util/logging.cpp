@@ -31,5 +31,37 @@ void defaultDebugLogPostFunction(std::wstring str)
     platformPostLogMessage(str);
 }
 
+void operator <<(LogStream &os, post_t)
+{
+    LogStream *logStream = dynamic_cast<LogStream *>(&os);
+    assert(logStream != nullptr);
+    std::unique_lock<std::recursive_mutex> lockIt(*logStream->theLock);
+    try
+    {
+        logStream->inPostFunction = true;
+        (*logStream->postFunction)(logStream->ss.str());
+        logStream->ss.str(L"");
+    }
+    catch(...)
+    {
+        logStream->inPostFunction = false;
+        throw;
+    }
+    logStream->inPostFunction = false;
+}
+
+LogStream &getDebugLog(TLS &tls)
+{
+    static std::recursive_mutex theLock;
+    static std::function<void(std::wstring)> postFunction = defaultDebugLogPostFunction;
+    struct TheLogStreamTag
+    {
+    };
+    thread_local_variable<std::unique_ptr<LogStream>, TheLogStreamTag> theLogStream(tls);
+    if(theLogStream.get() == nullptr)
+        theLogStream.get().reset(new LogStream(&theLock, &postFunction));
+    return *theLogStream.get();
+}
+
 }
 }

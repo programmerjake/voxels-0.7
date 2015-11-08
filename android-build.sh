@@ -40,7 +40,7 @@ case "$OSTYPE" in
     linux*)
         if [[ -n "`which nproc`" ]]; then
             NCPUS="`nproc`"
-        fi  
+        fi
         ;;
     *);;
 esac
@@ -85,7 +85,7 @@ EOF
     done
     cat >> "$BUILD_PATH/jni/$LIB_NAME/Android.mk" <<EOF
         )
-        
+
 LOCAL_CPP_FEATURES := rtti exceptions
 
 LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES
@@ -194,7 +194,7 @@ cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
             </intent-filter>
         </activity>
     </application>
-    
+
     <!-- OpenGL ES 1.1 -->
     <uses-feature android:glEsVersion="0x00010001" />
 
@@ -202,13 +202,13 @@ cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
     <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="16" />
 
     <!-- Allow writing to external storage -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> 
-</manifest> 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+</manifest>
 EOF
 cat > "$BUILD_PATH/jni/Application.mk" <<'EOF'
 APP_STL := gnustl_shared
 
-APP_ABI := armeabi-v7a
+APP_ABI := armeabi-v7a armeabi x86
 EOF
 cat > "$BUILD_PATH/jni/src/Android.mk" <<'EOF'
 LOCAL_PATH := $(call my-dir)
@@ -243,12 +243,12 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
         $(wildcard $(LOCAL_PATH)/src/*/*/*/*/*/*.cpp) \
         $(wildcard $(LOCAL_PATH)/src/*/*/*/*/*/*.c) \
         )
-        
+
 LOCAL_CPP_FEATURES := rtti exceptions
 
 LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DDEBUG_VERSION
 
-LOCAL_CPPFLAGS += -std=c++11
+LOCAL_CPPFLAGS += -std=c++11 -Dthread_local=thread_local_error
 
 LOCAL_SHARED_LIBRARIES := SDL2
 

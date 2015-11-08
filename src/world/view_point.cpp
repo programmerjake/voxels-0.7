@@ -198,7 +198,11 @@ void ViewPoint::finishedRenderingSubchunk(PositionI subchunkBase, std::unique_lo
 
 bool ViewPoint::generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIterator sbi, WorldLightingProperties wlp)
 {
-    static thread_local BlockLightingCache lightingCache;
+    struct LightingCacheTag
+    {
+    };
+    thread_local_variable<BlockLightingCache, LightingCacheTag> lightingCacheTLS(lock_manager.tls);
+    BlockLightingCache &lightingCache = lightingCacheTLS.get();
     BlockChunkSubchunk &subchunk = sbi.getSubchunk();
     if(subchunk.generatingCachedMeshes.exchange(true))
         return false;
@@ -264,7 +268,11 @@ float getSubchunkDistance(VectorI subchunkBase, VectorF playerPosition)
 
 bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp, PositionF playerPosition)
 {
-    static thread_local BlockLightingCache lightingCache;
+    struct LightingCacheTag
+    {
+    };
+    thread_local_variable<BlockLightingCache, LightingCacheTag> lightingCacheTLS(lock_manager.tls);
+    BlockLightingCache &lightingCache = lightingCacheTLS.get();
     PositionI chunkPosition = cbi.position();
     std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->getChunkVariables().cachedMeshesLock);
     if(meshes)
@@ -615,7 +623,11 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
     std::size_t renderedTranslucentTriangles = entityMeshes[RenderLayer::Translucent].size();
     if(meshes)
         renderedTranslucentTriangles += meshes->meshes[RenderLayer::Translucent].size();
-    static thread_local std::vector<std::pair<const Triangle *, float>> triangleIndirectArray;
+    struct TriangleIndirectArrayTag
+    {
+    };
+    thread_local_variable<std::vector<std::pair<const Triangle *, float>>, TriangleIndirectArrayTag> triangleIndirectArrayTLS(lock_manager.tls);
+    std::vector<std::pair<const Triangle *, float>> &triangleIndirectArray = triangleIndirectArrayTLS.get();
     triangleIndirectArray.clear();
     triangleIndirectArray.reserve(renderedTranslucentTriangles);
     VectorF cameraPosition = cameraToWorld.apply(VectorF(0));
@@ -638,7 +650,11 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
     {
         return std::get<1>(a) > std::get<1>(b);
     });
-    static thread_local Mesh translucentMesh;
+    struct TranslucentMeshTag
+    {
+    };
+    thread_local_variable<Mesh, TranslucentMeshTag> translucentMeshTLS(lock_manager.tls);
+    Mesh &translucentMesh = translucentMeshTLS.get();
     translucentMesh.clear();
     translucentMesh.triangles.reserve(renderedTranslucentTriangles);
     for(std::pair<const Triangle *, float> tri : triangleIndirectArray)

@@ -24,6 +24,7 @@
 #include "util/lock.h"
 #include "util/iterator.h"
 #include "util/tls.h"
+#include <thread>
 
 namespace programmerjake
 {
@@ -39,15 +40,10 @@ struct WorldLockManager final
     {
         T *the_lock;
 #ifndef NDEBUG
-        static const char *fast_tid()
-        {
-            static thread_local const char v = 0;
-            return &v;
-        }
-        const char *my_tid = fast_tid();
+        std::thread::id my_tid = std::this_thread::get_id();
         void verify_tid() const
         {
-            assert(my_tid == fast_tid());
+            assert(my_tid == std::this_thread::get_id());
         }
 #else
         void verify_tid() const

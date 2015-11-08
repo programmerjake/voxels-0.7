@@ -33,7 +33,7 @@
 #ifdef _MSC_VER
 #define USE_BUILTIN_TLS
 #endif
-#else
+#elif !defined(__ANDROID__)
 #define USE_BUILTIN_TLS
 #endif
 
@@ -57,11 +57,7 @@ class TLS final
     void operator delete[](void *) = delete;
     void operator delete[](void *, std::size_t) = delete;
 private:
-    static TLS *&getTlsSlowHelper()
-    {
-        static thread_local TLS *retval = nullptr;
-        return retval;
-    }
+    static TLS *&getTlsSlowHelper();
 public:
 #ifdef USE_BUILTIN_TLS
     static TLS &getSlow()

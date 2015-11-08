@@ -182,7 +182,7 @@ private:
         if(retval.empty)
         {
             retval.empty = false;
-            static thread_local BlocksGenerateArray blocks;
+            BlocksGenerateArray blocks;
             generateFn(pos, blocks, retval.groundHeights);
             for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
             {
@@ -308,19 +308,29 @@ private:
                              WorldLockManager &lock_manager, World &world,
                              RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
-        static thread_local std::shared_ptr<BiomesCache> pBiomesCache = nullptr;
-        static thread_local std::shared_ptr<GroundChunksCache> pGroundCache = nullptr;
-        static thread_local World::SeedType seed = 0;
-        if(seed != world.getWorldGeneratorSeed())
-            pBiomesCache = nullptr;
-        if(pBiomesCache == nullptr)
+        struct PBiomesCacheTag
         {
-            pBiomesCache = std::make_shared<BiomesCache>();
-            pGroundCache = std::make_shared<GroundChunksCache>();
+        };
+        thread_local_variable<std::shared_ptr<BiomesCache>, PBiomesCacheTag> pBiomesCache(lock_manager.tls, nullptr);
+        struct PGroundCacheTag
+        {
+        };
+        thread_local_variable<std::shared_ptr<GroundChunksCache>, PGroundCacheTag> pGroundCache(lock_manager.tls, nullptr);
+        struct SeedTag
+        {
+        };
+        thread_local_variable<World::SeedType, SeedTag> seed(lock_manager.tls, 0);
+        if(seed.get() != world.getWorldGeneratorSeed())
+            pBiomesCache.get() = nullptr;
+        if(pBiomesCache.get() == nullptr)
+        {
+            pBiomesCache.get() = std::make_shared<BiomesCache>();
+            pGroundCache.get() = std::make_shared<GroundChunksCache>();
+            seed.get() = world.getWorldGeneratorSeed();
         }
-        pBiomesCache->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
+        pBiomesCache.get()->fillWorldChunk(world, chunkBasePosition, lock_manager, randomSource);
         checkForAbort(abortFlag);
-        pGroundCache->getChunk(chunkBasePosition, blocks, groundHeights, [&](PositionI chunkBasePosition, BlocksGenerateArray &blocks,
+        pGroundCache.get()->getChunk(chunkBasePosition, blocks, groundHeights, [&](PositionI chunkBasePosition, BlocksGenerateArray &blocks,
                              checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &groundHeights)
         {
             generateGroundChunkH(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
@@ -330,8 +340,8 @@ private:
                                  WorldLockManager &lock_manager, World &world,
                                  RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
-        static thread_local BlocksGenerateArray blocks;
-        static thread_local checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        BlocksGenerateArray blocks;
+        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         std::vector<std::shared_ptr<const DecoratorInstance>> retval;
         std::uint32_t decoratorGenerateNumber = descriptor->getInitialDecoratorGenerateNumber() + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
@@ -394,13 +404,22 @@ private:
 protected:
     virtual void generate(PositionI chunkBasePosition, BlocksGenerateArray &blocks, World &world, WorldLockManager &lock_manager, RandomSource &randomSource, const std::atomic_bool *abortFlag) const override
     {
-        static thread_local std::shared_ptr<DecoratorCache> pDecoratorCache = nullptr;
-        static thread_local World::SeedType lastSeed = 0;
-        if(lastSeed != world.getWorldGeneratorSeed())
-            pDecoratorCache = nullptr;
-        if(pDecoratorCache == nullptr)
-            pDecoratorCache = std::make_shared<DecoratorCache>();
-        DecoratorCache &decoratorCache = *pDecoratorCache;
+        struct PDecoratorCacheTag
+        {
+        };
+        thread_local_variable<std::shared_ptr<DecoratorCache>, PDecoratorCacheTag> pDecoratorCache(lock_manager.tls, nullptr);
+        struct LastSeedTag
+        {
+        };
+        thread_local_variable<World::SeedType, LastSeedTag> lastSeed(lock_manager.tls, 0);
+        if(lastSeed.get() != world.getWorldGeneratorSeed())
+            pDecoratorCache.get() = nullptr;
+        if(pDecoratorCache.get() == nullptr)
+        {
+            pDecoratorCache.get() = std::make_shared<DecoratorCache>();
+            lastSeed.get() = world.getWorldGeneratorSeed();
+        }
+        DecoratorCache &decoratorCache = *pDecoratorCache.get();
         checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
         generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         for(DecoratorDescriptorPointer descriptor : DecoratorDescriptors)
@@ -1804,8 +1823,8 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         ignore_unused_variable_warning(player);
     }
     std::uint64_t chunkCount = stream::read<std::uint64_t>(reader);
-    static thread_local BlocksGenerateArray blocks;
-    static thread_local checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
+    BlocksGenerateArray blocks;
+    checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
     checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI, float, BlockUpdateKind>>, BlockChunk::subchunkCountZ>, BlockChunk::subchunkCountY>, BlockChunk::subchunkCountX> blockUpdates;
     for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
     {
@@ -2016,8 +2035,8 @@ FIXME_MESSAGE(finish fixing chunk unloader thread)
 #error fix
                 ignore_unused_variable_warning(entity);
             }
-            static thread_local BlocksGenerateArray blocks;
-            static thread_local checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
+            BlocksGenerateArray blocks;
+            checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> biomes;
             for(std::size_t x = 0; x < BlockChunk::chunkSizeX; x++)
             {
                 for(std::size_t z = 0; z < BlockChunk::chunkSizeZ; z++)

@@ -20,12 +20,57 @@
  */
 #include "util/tls.h"
 #include "util/logging.h"
+#include <cassert>
+#ifdef __ANDROID__
+#include <pthread.h>
+#endif // __ANDROID__
 
 namespace programmerjake
 {
 namespace voxels
 {
-#ifndef USE_BUILTIN_TLS
+#ifdef USE_BUILTIN_TLS
+TLS *&TLS::getTlsSlowHelper()
+{
+    static thread_local TLS *retval = nullptr;
+    return retval;
+}
+#else
+TLS *&TLS::getTlsSlowHelper()
+{
+#ifndef __ANDROID__
+    static thread_local TLS *retval = nullptr;
+    return retval;
+#else
+    static pthread_key_t tls_key = 0;
+    static pthread_once_t tls_key_once = PTHREAD_ONCE_INIT;
+    pthread_once(&tls_key_once, []()
+    {
+        if(0 != pthread_key_create(&tls_key, [](void *keyIn)
+        {
+            TLS **key = static_cast<TLS **>(keyIn);
+            delete key;
+        }))
+        {
+            assert(!"can't make TLS key");
+            throw std::runtime_error("can't make TLS key");
+        }
+    });
+    TLS **key = static_cast<TLS **>(pthread_getspecific(tls_key));
+    if(!key)
+    {
+        key = new TLS *(nullptr);
+        if(0 != pthread_setspecific(tls_key, static_cast<void *>(key)))
+        {
+            delete key;
+            assert(!"pthread_setspecific failed");
+            throw std::runtime_error("pthread_setspecific failed");
+        }
+    }
+    return *key;
+#endif
+}
+
 std::atomic_size_t TLS::next_variable_position(0);
 const std::size_t TLS::tls_memory_size = 1 << 22;
 
@@ -58,8 +103,13 @@ namespace
 {
 TLS &makeForgottenTLS()
 {
-    TLS retval;
+#ifdef __ANDROID__
+    assert(!"forgot to make TLS instance in thread");
+    throw std::runtime_error("forgot to make TLS instance in thread");
+#else
+    static thread_local TLS retval;
     return retval;
+#endif
 }
 }
 
@@ -68,7 +118,7 @@ TLS &TLS::getSlow()
     TLS *&ptls = getTlsSlowHelper();
     if(ptls == nullptr)
     {
-        ptls = makeForgottenTLS();
+        ptls = &makeForgottenTLS();
         getDebugLog() << "\n\nTLS::getSlow() : WARNING : forgot to make TLS instance in thread\n\n" << post;
     }
     return *ptls;

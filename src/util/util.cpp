@@ -29,8 +29,6 @@ namespace programmerjake
 {
 namespace voxels
 {
-thread_local char fast_thread_id_helper_variable;
-
 #if 0 // testing balanced_tree
 #include "util/balanced_tree.h"
 namespace

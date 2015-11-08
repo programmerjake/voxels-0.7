@@ -122,8 +122,7 @@ inline CutMesh cut(const Mesh &mesh, VectorF planeNormal, float planeD)
 
 inline Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD)
 {
-    static thread_local std::vector<Triangle> triangles;
-    triangles = std::move(mesh.triangles);
+    std::vector<Triangle> triangles = std::move(mesh.triangles);
     mesh.triangles.clear();
     mesh.triangles.reserve(triangles.size());
     for(Triangle tri : triangles)
@@ -139,8 +138,7 @@ inline Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD)
 
 inline Mesh cutAndGetBack(Mesh mesh, VectorF planeNormal, float planeD)
 {
-    static thread_local std::vector<Triangle> triangles;
-    triangles = std::move(mesh.triangles);
+    std::vector<Triangle> triangles = std::move(mesh.triangles);
     mesh.triangles.clear();
     mesh.triangles.reserve(triangles.size());
     for(Triangle tri : triangles)

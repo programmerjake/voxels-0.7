@@ -30,27 +30,27 @@
 #include <cassert>
 #include <functional>
 #include "util/string_cast.h"
+#include "util/tls.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-struct post_t
-{
-    friend void operator <<(std::wostream &os, post_t);
-};
-
-class LogStream : public std::wostringstream
+struct post_t;
+class LogStream final
 {
     LogStream(const LogStream &) = delete;
     LogStream &operator =(const LogStream &) = delete;
 private:
     std::function<void(std::wstring)> *const postFunction;
     bool inPostFunction = false;
+    std::wostringstream ss;
 public:
     std::recursive_mutex *const theLock;
     LogStream(std::recursive_mutex *theLock, std::function<void(std::wstring)> *postFunction)
-        : postFunction(postFunction), theLock(theLock)
+        : postFunction(postFunction),
+          ss(),
+          theLock(theLock)
     {
     }
     void setPostFunction(std::function<void(std::wstring)> newPostFunction)
@@ -69,45 +69,29 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(*theLock);
         return inPostFunction;
     }
-    friend void operator <<(std::wostream &os, post_t);
+    template <typename T>
+    friend LogStream &operator <<(LogStream &os, T &&v)
+    {
+        os.ss << std::forward<T>(v);
+        return os;
+    }
+    friend void operator <<(LogStream &os, post_t);
 };
 
-inline void operator <<(std::wostream &os, post_t)
+struct post_t
 {
-    LogStream *logStream = dynamic_cast<LogStream *>(&os);
-    assert(logStream != nullptr);
-    std::unique_lock<std::recursive_mutex> lockIt(*logStream->theLock);
-    try
-    {
-        logStream->inPostFunction = true;
-        (*logStream->postFunction)(logStream->str());
-        logStream->str(L"");
-    }
-    catch(...)
-    {
-        logStream->inPostFunction = false;
-        throw;
-    }
-    logStream->inPostFunction = false;
-}
+    friend void operator <<(LogStream &os, post_t);
+};
 
 void defaultDebugLogPostFunction(std::wstring str);
 
-inline LogStream &getDebugLog()
-{
-    static std::recursive_mutex theLock;
-    static std::function<void(std::wstring)> postFunction = defaultDebugLogPostFunction;
-    static thread_local std::unique_ptr<LogStream> theLogStream;
-    if(theLogStream == nullptr)
-        theLogStream.reset(new LogStream(&theLock, &postFunction));
-    return *theLogStream;
-}
+LogStream &getDebugLog(TLS &tls = TLS::getSlow());
 
 constexpr post_t post{};
 
 struct postnl_t
 {
-    friend void operator <<(std::wostream &os, postnl_t)
+    friend void operator <<(LogStream &os, postnl_t)
     {
         os << L"\n" << post;
     }
@@ -117,7 +101,7 @@ constexpr postnl_t postnl{};
 
 struct postr_t
 {
-    friend void operator <<(std::wostream &os, postr_t)
+    friend void operator <<(LogStream &os, postr_t)
     {
         os << L"\r" << post;
     }

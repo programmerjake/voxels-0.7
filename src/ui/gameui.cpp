@@ -31,6 +31,7 @@
 #include "platform/thread_name.h"
 #include "util/tls.h"
 #include "ui/button.h"
+#include <memory>
 
 namespace programmerjake
 {
@@ -47,8 +48,15 @@ Mesh makeSelectionMesh()
 }
 Mesh getSelectionMesh()
 {
-    static thread_local Mesh mesh = makeSelectionMesh();
-    return mesh;
+    struct MeshTag
+    {
+    };
+    thread_local_variable<std::unique_ptr<Mesh>, MeshTag> mesh(TLS::getSlow());
+    if(!mesh.get())
+    {
+        mesh.get().reset(new Mesh(makeSelectionMesh()));
+    }
+    return *mesh.get();
 }
 std::vector<Mesh> makeDestructionMeshes()
 {
@@ -69,7 +77,15 @@ std::vector<Mesh> makeDestructionMeshes()
 }
 Mesh getDestructionMesh(float progress)
 {
-    static thread_local std::vector<Mesh> meshes = makeDestructionMeshes();
+    struct PMeshesTag
+    {
+    };
+    thread_local_variable<std::unique_ptr<std::vector<Mesh>>, PMeshesTag> pMeshes(TLS::getSlow());
+    if(!pMeshes.get())
+    {
+        pMeshes.get().reset(new std::vector<Mesh>(makeDestructionMeshes()));
+    }
+    std::vector<Mesh> &meshes = *pMeshes.get();
     int index = ifloor(progress * (int)(meshes.size() - 1));
     index = limit<int>(index, 0, meshes.size() - 1);
     return meshes[index];
@@ -346,7 +362,11 @@ void GameUi::addWorldUi()
         virtual void move(double deltaTime) override
         {
             std::shared_ptr<Player> player = gameUi->playerW.lock();
-            static thread_local std::deque<double> samples;
+            struct SamplesTag
+            {
+            };
+            thread_local_variable<std::deque<double>, SamplesTag> samplesTLS(TLS::getSlow());
+            std::deque<double> &samples = samplesTLS.get();
             samples.push_back(deltaTime);
             double totalSampleTime = 0;
             double minDeltaTime = deltaTime, maxDeltaTime = deltaTime;

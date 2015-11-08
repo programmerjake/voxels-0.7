@@ -3185,9 +3185,15 @@ int callMyMain(int argc, char **argv);
 
 extern "C" int main(int argc, char *argv[])
 {
-    programmerjake::voxels::runPlatformSetup();
-    programmerjake::voxels::global_instance_maker_init_list::init_all();
-    return programmerjake::voxels::callMyMain(argc, argv);
+    int retval;
+    {
+        programmerjake::voxels::runPlatformSetup();
+        programmerjake::voxels::TLS tls;
+        programmerjake::voxels::global_instance_maker_init_list::init_all();
+        retval = programmerjake::voxels::callMyMain(argc, argv);
+    }
+    std::exit(retval);
+    return 0;
 }
 
 #ifdef main
@@ -3202,7 +3208,6 @@ namespace
 {
 int callMyMain(int argc, char **argv)
 {
-    TLS tls;
     std::vector<std::wstring> args;
     args.reserve(argc);
     for(int i = 0; i < argc; i++)

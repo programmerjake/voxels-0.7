@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cstring>
+#include <sstream>
 #if _WIN64 || _WIN32
 FIXME_MESSAGE(finish stack trace code for windows)
 #elif __ANDROID__
@@ -53,8 +54,9 @@ void StackTrace::addressesToSymbols()
 }
 void StackTrace::dump()
 {
-    dump(getDebugLog());
-    getDebugLog() << postnl;
+    std::wostringstream ss;
+    dump(ss);
+    getDebugLog() << ss.str() << postnl;
 }
 void StackTrace::dump(std::wostream &os)
 {

@@ -157,8 +157,11 @@ private:
     };
     static variables_t &get_variables()
     {
-        static thread_local variables_t retval;
-        return retval;
+        struct retvalTag
+        {
+        };
+        thread_local_variable<variables_t, retvalTag> retval(TLS::getSlow());
+        return retval.get();
     }
     static void handleError(const char *what, std::size_t lock_level, const void *theLock);
 public:

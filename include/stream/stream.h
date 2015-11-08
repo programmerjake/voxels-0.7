@@ -1223,16 +1223,16 @@ class BufferedReader final : public Reader
     circularDeque<std::uint8_t, BufferSize + 1> buffer;
     void readChunk()
     {
-        const std::size_t staticBufferSize = 4096;
-        static thread_local std::uint8_t staticBuffer[staticBufferSize];
+        const std::size_t localBufferSize = 4096;
+        std::uint8_t localBuffer[localBufferSize];
         for(;;)
         {
             if(buffer.size() >= buffer.capacity())
                 return;
             std::size_t readChunkSize = buffer.capacity() - buffer.size();
-            if(readChunkSize > staticBufferSize)
-                readChunkSize = staticBufferSize;
-            std::uint8_t *data = &staticBuffer[0];
+            if(readChunkSize > localBufferSize)
+                readChunkSize = localBufferSize;
+            std::uint8_t *data = &localBuffer[0];
             readChunkSize = readAvailableBytes(data, readChunkSize);
             if(readChunkSize == 0)
                 return;

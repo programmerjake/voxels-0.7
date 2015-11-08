@@ -202,13 +202,6 @@ public:
         finalizeFn();
     }
 };
-
-typedef std::intptr_t fast_thread_id_t;
-extern thread_local char fast_thread_id_helper_variable;
-static inline fast_thread_id_t get_fast_thread_id()
-{
-    return (fast_thread_id_t)&fast_thread_id_helper_variable;
-}
 }
 }
 

@@ -146,7 +146,11 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             };
             checked_array<HashNode *, bigHashPrime> overallHashTable;
             overallHashTable.fill(nullptr);
-            static thread_local HashNode * freeListHead = nullptr;
+            struct FreeListHeadTag
+            {
+            };
+            thread_local_variable<HashNode *, FreeListHeadTag> freeListHeadTLS(lock_manager.tls, nullptr);
+            HashNode *& freeListHead = freeListHeadTLS.get();
             std::vector<std::shared_ptr<PhysicsObject>> collideObjectsList;
             collideObjectsList.reserve(objects.size());
             for(auto i = objects.begin(); i != objects.end();)
