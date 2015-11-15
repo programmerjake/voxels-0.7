@@ -33,3 +33,4 @@ Release
 !libeay*.*
 !ssleay*.*
 build
+.settings
