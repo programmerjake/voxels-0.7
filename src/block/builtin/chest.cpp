@@ -50,7 +50,7 @@ protected:
     virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount) override
     {
         Blocks::builtin::Chest::ChestData::ItemsType *items = &chestData->items;
-        unsigned retval;
+        unsigned retval = 0;
         bool found = false;
         for(auto &i : items->itemStacks)
         {
