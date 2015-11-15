@@ -839,6 +839,7 @@ public:
         if(!canSleepInBed())
             return false;
         advanceTimeOfDay(dayDurationInSeconds - timeOfDayInSeconds);
+        return true;
     }
     VectorF getSunPosition()
     {

@@ -207,6 +207,7 @@ bool ViewPoint::generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIter
     if(subchunk.generatingCachedMeshes.exchange(true))
         return false;
     sbi.updateLock(lock_manager);
+    auto invalidateCount = subchunk.invalidateCount;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes = makeCachedMesh(&cachedSubchunkMeshCount);
     for(std::int32_t bx = 0; bx < BlockChunk::subchunkSizeXYZ; bx++)
     {
@@ -238,10 +239,15 @@ bool ViewPoint::generateSubchunkMeshes(WorldLockManager &lock_manager, BlockIter
             }
         }
     }
+    sbi.updateLock(lock_manager);
+    subchunk.cachedMeshesInvalidateCount = invalidateCount;
     subchunk.cachedMeshes = subchunkMeshes;
     subchunk.generatingCachedMeshes = false;
     sbi.chunk->getChunkVariables().cachedMeshesUpToDate = false;
-    return true;
+    if(invalidateCount == subchunk.invalidateCount)
+        return true;
+    subchunk.cachedMeshesInvalidated = true; // requeue
+    return false;
 }
 
 namespace
@@ -268,11 +274,6 @@ float getSubchunkDistance(VectorI subchunkBase, VectorF playerPosition)
 
 bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer>> meshes, WorldLockManager &lock_manager, BlockIterator cbi, WorldLightingProperties wlp, PositionF playerPosition)
 {
-    struct LightingCacheTag
-    {
-    };
-    thread_local_variable<BlockLightingCache, LightingCacheTag> lightingCacheTLS(lock_manager.tls);
-    BlockLightingCache &lightingCache = lightingCacheTLS.get();
     PositionI chunkPosition = cbi.position();
     std::unique_lock<std::mutex> cachedChunkMeshesLock(cbi.chunk->getChunkVariables().cachedMeshesLock);
     if(meshes)
@@ -689,7 +690,7 @@ void ViewPoint::render(Renderer &renderer, Matrix worldToCamera, WorldLockManage
         renderer << transform(worldToCamera, entityMeshes[rl]);
         renderedTriangles += entityMeshes[rl].size();
     }
-    getDebugLog() << L"rendered " << renderedTriangles << L"/" << renderedTranslucentTriangles << L" triangles." << postr;
+    //getDebugLog() << L"rendered " << renderedTriangles << L"/" << renderedTranslucentTriangles << L" triangles." << postr;
 }
 }
 }

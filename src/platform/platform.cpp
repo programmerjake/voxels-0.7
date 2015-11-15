@@ -205,8 +205,12 @@ static wstring getExecutablePath();
 
 static void initfn();
 
-static wstring getResourceFileName(wstring resource)
+static wstring getResourceFileName(wstring resource, bool useFallbackPath)
 {
+    if(useFallbackPath)
+    {
+        return wstring(L"res/" + resource);
+    }
     initfn();
     return wstring(ResourcePrefix) + resource;
 }
@@ -254,8 +258,16 @@ static initializer initializer1([]()
 shared_ptr<stream::Reader> getResourceReader(wstring resource)
 {
     startSDL();
-    string fname = string_cast<std::string>(getResourceFileName(resource));
-    return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
+    string fname = string_cast<std::string>(getResourceFileName(resource, false));
+    try
+    {
+        return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
+    }
+    catch(RWOpsException &e)
+    {
+        fname = string_cast<std::string>(getResourceFileName(resource, true));
+        return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
+    }
 }
 static int platformSetup()
 {
@@ -319,8 +331,12 @@ static wstring * pResourcePrefix = nullptr;
 static wstring getExecutablePath();
 static void calcResourcePrefix();
 
-static wstring getResourceFileName(wstring resource)
+static wstring getResourceFileName(wstring resource, bool useFallbackPath)
 {
+    if(useFallbackPath)
+    {
+        return wstring(L"res/") + resource;
+    }
     calcResourcePrefix();
     return *pResourcePrefix + resource;
 }
@@ -353,14 +369,15 @@ static void calcResourcePrefix()
 shared_ptr<stream::Reader> getResourceReader(wstring resource)
 {
     startSDL();
-    string fname = string_cast<string>(getResourceFileName(resource));
+    string fname = string_cast<string>(getResourceFileName(resource, false));
     try
     {
         return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
     }
     catch(RWOpsException & e)
     {
-        throw RWOpsException("can't open resource : " + string_cast<string>(resource));
+        fname = string_cast<string>(getResourceFileName(resource, true));
+        return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
     }
 }
 static int platformSetup()
@@ -414,6 +431,7 @@ static SDL_GLContext glcontext = nullptr;
 static atomic_bool runningGraphics(false), runningSDL(false), runningAudio(false);
 static atomic_int SDLUseCount(0);
 static atomic_bool addedAtExits(false);
+#if 0
 static std::mutex renderThreadLock;
 static std::condition_variable renderThreadCond;
 static std::thread renderThread;
@@ -584,6 +602,7 @@ static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadSt
     }
     renderThreadFnQueue.push_back(status.makeRenderThreadFunction(fn));
 }
+#endif
 
 static int globalSetup()
 {
@@ -2992,6 +3011,7 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
     const unsigned startFileNumber = fileNumber;
     const unsigned fileNumberMod = 100000;
     fileNumber %= fileNumberMod;
+    std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> retval;
     for(;;)
     {
         std::ostringstream ss;
@@ -3038,8 +3058,10 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
             throw;
         }
         unlink(ss.str().c_str()); // removes directory entry; posix keeps file around until file isn't open by anything
-        return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+        retval = std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+        break;
     }
+    return retval;
 }
 }
 }
@@ -3151,16 +3173,7 @@ void platformPostLogMessage(std::wstring msg)
         if(currentLine[currentLine.size() - 1] == L'\r')
         {
             currentLine.erase(currentLine.size() - 1);
-            currentLine += L"\x1b[K\r";
-        }
-        else if(currentLine[currentLine.size() - 1] == L'\n')
-        {
-            currentLine.erase(currentLine.size() - 1);
-            currentLine += L"\x1b[K\n";
-        }
-        else
-        {
-            currentLine += L"\x1b[K";
+            currentLine += L"\n";
         }
         std::cout << string_cast<std::string>(currentLine);
     }

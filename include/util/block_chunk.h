@@ -578,6 +578,7 @@ struct BlockChunkSubchunk final
     std::atomic_bool cachedMeshesInvalidated;
     WrappedEntity::SubchunkListType entityList;
     BlockChunkInvalidateCountType invalidateCount = 0;
+    BlockChunkInvalidateCountType cachedMeshesInvalidateCount = 0;
     linked_map<PositionI, char> particleGeneratingSet; /// holds positions of blocks in this subchunk that generate particles
     void addParticleGeneratingBlock(PositionI position) /// must be locked first
     {

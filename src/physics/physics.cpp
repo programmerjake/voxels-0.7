@@ -28,8 +28,10 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
     //getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
     std::unique_lock<generic_lock_wrapper> lockIt(theLock);
-    float stepDuration = 1 / 60.0f;
+    float stepDuration = 1 / 120.0f;
     std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
+    if(stepCount < 1)
+        stepCount = 1;
     constexpr float searchEps = 0.1f;
     std::vector<std::shared_ptr<PhysicsObject>> objects;
     objects.reserve(this->objects.size());
