@@ -340,8 +340,21 @@ private:
                                  WorldLockManager &lock_manager, World &world,
                                  RandomSource &randomSource, const std::atomic_bool *abortFlag) const
     {
-        BlocksGenerateArray blocks;
-        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        struct PBlocksTag
+        {
+        };
+        thread_local_variable<std::unique_ptr<BlocksGenerateArray>, PBlocksTag> pBlocks(lock_manager.tls);
+        if(!pBlocks.get())
+            pBlocks.get().reset(new BlocksGenerateArray);
+        BlocksGenerateArray &blocks = *pBlocks.get();
+        typedef checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> GroundHeightsType;
+        struct PGroundHeightsTag
+        {
+        };
+        thread_local_variable<std::unique_ptr<GroundHeightsType>, PGroundHeightsTag> pGroundHeights(lock_manager.tls);
+        if(!pGroundHeights.get())
+            pGroundHeights.get().reset(new GroundHeightsType);
+        GroundHeightsType &groundHeights = *pGroundHeights.get();
         generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         std::vector<std::shared_ptr<const DecoratorInstance>> retval;
         std::uint32_t decoratorGenerateNumber = descriptor->getInitialDecoratorGenerateNumber() + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
@@ -420,7 +433,14 @@ protected:
             lastSeed.get() = world.getWorldGeneratorSeed();
         }
         DecoratorCache &decoratorCache = *pDecoratorCache.get();
-        checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> groundHeights;
+        typedef checked_array<checked_array<int, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> GroundHeightsType;
+        struct PGroundHeightsTag
+        {
+        };
+        thread_local_variable<std::unique_ptr<GroundHeightsType>, PGroundHeightsTag> pGroundHeights(lock_manager.tls);
+        if(!pGroundHeights.get())
+            pGroundHeights.get().reset(new GroundHeightsType);
+        GroundHeightsType &groundHeights = *pGroundHeights.get();
         generateGroundChunk(blocks, groundHeights, chunkBasePosition, lock_manager, world, randomSource, abortFlag);
         for(DecoratorDescriptorPointer descriptor : DecoratorDescriptors)
         {

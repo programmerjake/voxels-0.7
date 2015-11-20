@@ -90,6 +90,10 @@
 #define SDL_HINT_SIMULATE_INPUT_EVENTS "SDL_SIMULATE_INPUT_EVENTS"
 #endif // SDL_HINT_SIMULATE_INPUT_EVENTS
 
+#ifndef SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH
+#define SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH "SDL_ANDROID_SEPARATE_MOUSE_AND_TOUCH"
+#endif // SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH
+
 using namespace std;
 
 namespace programmerjake
@@ -639,6 +643,7 @@ static void startSDL()
     }
     SDL_SetHint(SDL_HINT_MAC_CTRL_CLICK_EMULATE_RIGHT_CLICK, "1");
     SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
+    SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
     processorCount = SDL_GetCPUCount();
 }
 
@@ -1279,6 +1284,9 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         }
         case SDL_MOUSEMOTION:
         {
+#ifdef __ANDROID__
+            break;
+#else
             if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
                 break;
             if(touchSimulationState)
@@ -1297,9 +1305,13 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 break;
             }
             return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x, (float)SDLEvent.motion.y, (float)SDLEvent.motion.xrel, (float)SDLEvent.motion.yrel);
+#endif
         }
         case SDL_MOUSEWHEEL:
         {
+#ifdef __ANDROID__
+            break;
+#else
             if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
                 break;
             if(touchSimulationState)
@@ -1311,9 +1323,13 @@ static std::shared_ptr<PlatformEvent> makeEvent()
             }
 #endif
             return std::make_shared<MouseScrollEvent>(SDLEvent.wheel.x, SDLEvent.wheel.y);
+#endif
         }
         case SDL_MOUSEBUTTONDOWN:
         {
+#ifdef __ANDROID__
+            break;
+#else
             if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
@@ -1363,9 +1379,13 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 break;
             }
             return std::make_shared<MouseDownEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+#endif
         }
         case SDL_MOUSEBUTTONUP:
         {
+#ifdef __ANDROID__
+            break;
+#else
             if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
                 break;
             MouseButton button = translateButton(SDLEvent.button.button);
@@ -1397,6 +1417,7 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 break;
             }
             return std::make_shared<MouseUpEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+#endif
         }
         case SDL_FINGERMOTION:
             if(touchSimulationState)
@@ -2420,6 +2441,22 @@ void getOpenGLBuffersExtension()
         fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferDataARB");
         fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferARB");
         fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
+        if(!fnGLBindBuffer ||
+            !fnGLDeleteBuffers ||
+            !fnGLGenBuffers ||
+            !fnGLBufferData ||
+            !fnGLMapBuffer ||
+            !fnGLUnmapBuffer)
+        {
+            getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
+            haveOpenGLBuffers = false;
+            fnGLBindBuffer = nullptr;
+            fnGLDeleteBuffers = nullptr;
+            fnGLGenBuffers = nullptr;
+            fnGLBufferData = nullptr;
+            fnGLMapBuffer = nullptr;
+            fnGLUnmapBuffer = nullptr;
+        }
     }
     else
     {
@@ -2449,6 +2486,23 @@ void getOpenGLBuffersExtension()
                 fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
                 fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBuffer");
                 fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBuffer");
+                haveOpenGLBuffers = true;
+                if(!fnGLBindBuffer ||
+                    !fnGLDeleteBuffers ||
+                    !fnGLGenBuffers ||
+                    !fnGLBufferData ||
+                    !fnGLMapBuffer ||
+                    !fnGLUnmapBuffer)
+                {
+                    getDebugLog() << L"couln't load OpenGL buffers functions" << postnl;
+                    haveOpenGLBuffers = false;
+                    fnGLBindBuffer = nullptr;
+                    fnGLDeleteBuffers = nullptr;
+                    fnGLGenBuffers = nullptr;
+                    fnGLBufferData = nullptr;
+                    fnGLMapBuffer = nullptr;
+                    fnGLUnmapBuffer = nullptr;
+                }
             }
         }
     }
@@ -2465,6 +2519,30 @@ void getOpenGLBuffersExtension()
         fnGlRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageEXT");
         fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferEXT");
         fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
+        if(!fnGlGenFramebuffersEXT ||
+            !fnGlDeleteFramebuffersEXT ||
+            !fnGlGenRenderbuffersEXT ||
+            !fnGlDeleteRenderbuffersEXT ||
+            !fnGlBindFramebufferEXT ||
+            !fnGlBindRenderbufferEXT ||
+            !fnGlFramebufferTexture2DEXT ||
+            !fnGlRenderbufferStorageEXT ||
+            !fnGlFramebufferRenderbufferEXT ||
+            !fnGlCheckFramebufferStatusEXT)
+        {
+            getDebugLog() << L"couln't load OpenGL framebuffers extension" << postnl;
+            haveOpenGLFramebuffers = false;
+            fnGlGenFramebuffersEXT = nullptr;
+            fnGlDeleteFramebuffersEXT = nullptr;
+            fnGlGenRenderbuffersEXT = nullptr;
+            fnGlDeleteRenderbuffersEXT = nullptr;
+            fnGlBindFramebufferEXT = nullptr;
+            fnGlBindRenderbufferEXT = nullptr;
+            fnGlFramebufferTexture2DEXT = nullptr;
+            fnGlRenderbufferStorageEXT = nullptr;
+            fnGlFramebufferRenderbufferEXT = nullptr;
+            fnGlCheckFramebufferStatusEXT = nullptr;
+        }
     }
     haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two") ? true : false;
 }

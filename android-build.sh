@@ -19,6 +19,17 @@
 #
 #
 
+if [[ "$*" != "--release" && "$*" != "" ]]; then
+    echo "usage: $0 [--release]"
+    exit
+fi
+
+DEBUG_VERSION=1
+
+if [[ "$*" == "--release" ]]; then
+    DEBUG_VERSION=0
+fi
+
 PROJECT_PATH="`dirname "$0"`"
 pushd "$PROJECT_PATH" > /dev/null
 PROJECT_PATH="`pwd`"
@@ -174,7 +185,7 @@ EOF
 cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="cf.programmerjake.voxels"
+      package="programmerjake.voxels"
       android:versionCode="1"
       android:versionName="0.7.4.2"
       android:installLocation="auto">
@@ -183,6 +194,13 @@ cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
                  android:icon="@drawable/ic_launcher"
                  android:allowBackup="true"
                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+EOF
+if ((DEBUG_VERSION)); then
+    cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
+                 android:debuggable="true"
+EOF
+fi
+cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
                  android:hardwareAccelerated="true" >
         <activity android:name="MyActivity"
                   android:label="@string/app_name"
@@ -199,7 +217,17 @@ cat > "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
     <uses-feature android:glEsVersion="0x00010001" />
 
     <!-- Android 4.1.1 -->
+EOF
+if ((DEBUG_VERSION)); then
+    cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
+    <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="16" />
+EOF
+else
+    cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
     <uses-sdk android:minSdkVersion="10" android:targetSdkVersion="16" />
+EOF
+fi
+cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
 
     <!-- Allow writing to external storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -260,9 +288,9 @@ LOCAL_LDLIBS += -lz -lGLESv1_CM
 
 include $(BUILD_SHARED_LIBRARY)
 EOF
-mkdir -p "$BUILD_PATH/src/cf/programmerjake/voxels"
-cat > "$BUILD_PATH/src/cf/programmerjake/voxels/MyActivity.java" <<'EOF'
-package cf.programmerjake.voxels;
+mkdir -p "$BUILD_PATH/src/programmerjake/voxels"
+cat > "$BUILD_PATH/src/programmerjake/voxels/MyActivity.java" <<'EOF'
+package programmerjake.voxels;
 import org.libsdl.app.SDLActivity;
 
 public class MyActivity extends SDLActivity {
@@ -283,5 +311,10 @@ mkdir -p "$BUILD_PATH/assets"
 ln -sT "$RESOURCES_PATH" "$BUILD_PATH/assets/res" 
 android update project --path "$BUILD_PATH" --target android-16
 pushd "$BUILD_PATH" > /dev/null
-ndk-build -j"$NCPUS" && ant debug
+if ((DEBUG_VERSION)); then
+    ndk-build -j"$NCPUS" && ant debug
+else
+    ndk-build -j"$NCPUS" && ant debug
+    printf "\x1b[;31;1mImportant: sign and zip-align the resulting package!\x1b[m\n"
+fi
 popd > /dev/null
