@@ -30,7 +30,7 @@ IndentCaseLabels: false
 IndentWidth: 4
 IndentWrappedFunctionNames: true
 KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 1
+MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
 PointerAlignment: Right
 SpaceBeforeAssignmentOperators: true
