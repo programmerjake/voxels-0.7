@@ -237,6 +237,11 @@ cat > "$BUILD_PATH/jni/Application.mk" <<'EOF'
 APP_STL := gnustl_shared
 
 APP_ABI := armeabi-v7a armeabi x86
+
+ifeq ($(APP_OPTIM),debug)
+  APP_CFLAGS += -Og
+endif
+
 EOF
 cat > "$BUILD_PATH/jni/src/Android.mk" <<'EOF'
 LOCAL_PATH := $(call my-dir)
