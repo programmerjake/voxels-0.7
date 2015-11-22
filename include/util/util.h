@@ -26,6 +26,7 @@
 #include <cwchar>
 #include <string>
 #include <cassert>
+#include <utility>
 
 namespace programmerjake
 {
@@ -202,6 +203,12 @@ public:
         finalizeFn();
     }
 };
+
+template <typename T, typename ...Args>
+void construct_object(T &object, Args &&...args)
+{
+    ::new(static_cast<void *>(std::addressof(object))) T(std::forward<Args>(args)...);
+}
 }
 }
 
