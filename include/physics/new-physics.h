@@ -22,8 +22,10 @@
 #define PHYSICS_PHYSICS_H_INCLUDED
 
 #include "physics/properties.h"
+#include "physics/collision.h"
 #include "util/enum_traits.h"
 #include "stream/stream.h"
+#include "util/position.h"
 #include <cstdint>
 #include <cmath>
 #include <memory>
@@ -34,7 +36,6 @@ namespace voxels
 {
 namespace physics
 {
-
 enum class ShapeTag : std::uint8_t
 {
     Empty,
@@ -60,7 +61,8 @@ class Object final
 {
     friend class World;
     Object(const Object &rt) = delete;
-    Object &operator =(const Object &rt) = delete;
+    Object &operator=(const Object &rt) = delete;
+
 private:
     union ShapeType
     {
@@ -69,12 +71,10 @@ private:
         ShapeType()
         {
         }
-        ShapeType(BoxShape box)
-            : box(box)
+        ShapeType(BoxShape box) : box(box)
         {
         }
-        ShapeType(CylinderShape cylinder)
-            : cylinder(cylinder)
+        ShapeType(CylinderShape cylinder) : cylinder(cylinder)
         {
         }
         ~ShapeType()
@@ -90,10 +90,12 @@ private:
     VectorF velocity;
     VectorF appliedForces;
     float lastTime;
-    World * const world;
+    World *const world;
+    bool isSupported;
     struct PrivateAccessTag final
     {
     };
+
 public:
     Properties getProperties() const;
     void setProperties(Properties properties);
@@ -111,8 +113,12 @@ public:
             break;
         }
     }
-    Object(PrivateAccessTag, World *world, ShapeTag tag, PositionF position,
-        VectorF velocity, Properties properties)
+    Object(PrivateAccessTag,
+           World *world,
+           ShapeTag tag,
+           PositionF position,
+           VectorF velocity,
+           Properties properties)
         : tag(tag),
           shape(),
           properties(properties),
@@ -122,7 +128,8 @@ public:
           velocity(velocity),
           appliedForces(0),
           lastTime(0),
-          world(world)
+          world(world),
+          isSupported(false)
     {
         switch(tag)
         {
@@ -136,14 +143,22 @@ public:
             break;
         }
     }
-    static std::shared_ptr<Object> makeEmpty(World &world, PositionF position,
-        VectorF velocity, Properties properties);
-    static std::shared_ptr<Object> makeBox(World &world, PositionF position,
-        VectorF velocity, VectorF extents, Properties properties);
+    static std::shared_ptr<Object> makeEmpty(World &world,
+                                             PositionF position,
+                                             VectorF velocity,
+                                             Properties properties);
+    static std::shared_ptr<Object> makeBox(
+        World &world, PositionF position, VectorF velocity, VectorF extents, Properties properties);
     static std::shared_ptr<Object> makeCylinder(World &world,
-        PositionF position, VectorF velocity, Properties properties);
+                                                PositionF position,
+                                                VectorF velocity,
+                                                Properties properties);
+    BoundingBox getBoundingBox(float maxTime, PrivateAccessTag);
+    Collision getNextCollision(const Object &other, float maxTime, PrivateAccessTag);
 };
-
+class World final
+{
+};
 }
 }
 }

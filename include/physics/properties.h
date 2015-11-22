@@ -30,32 +30,29 @@ namespace voxels
 {
 namespace physics
 {
-
 struct Properties final
 {
     typedef std::uint32_t CollisionMaskType;
     static constexpr CollisionMaskType blockCollisionMask = 1 << 0;
     static constexpr CollisionMaskType itemCollisionMask = 1 << 1;
     static constexpr CollisionMaskType playerCollisionMask = 1 << 2;
-    static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF
-        & ~itemCollisionMask;
+    static constexpr CollisionMaskType defaultCollisionMask = 0xFFFFFF & ~itemCollisionMask;
     float coefficientOfStaticFriction;
     float coefficientOfKineticFriction;
     float coefficientOfRestitution;
     float dragFactor;
-    CollisionMaskType myCollisionMask; // for checking when this object is colliding with other objects
-    CollisionMaskType othersCollisionMask; // for checking when other objects are colliding with this object
+    CollisionMaskType
+        myCollisionMask; // for checking when this object is colliding with other objects
+    CollisionMaskType
+        othersCollisionMask; // for checking when other objects are colliding with this object
     VectorF gravity;
     struct WrappedCoefficientOfStaticFriction final
     {
         float coefficientOfStaticFriction;
     };
-    friend constexpr WrappedCoefficientOfStaticFriction makeCoefficientOfStaticFriction(
-        float value)
+    friend constexpr WrappedCoefficientOfStaticFriction makeCoefficientOfStaticFriction(float value)
     {
-        return WrappedCoefficientOfStaticFriction
-        {
-            value };
+        return WrappedCoefficientOfStaticFriction{value};
     }
     struct WrappedCoefficientOfKineticFriction final
     {
@@ -64,20 +61,15 @@ struct Properties final
     friend constexpr WrappedCoefficientOfKineticFriction makeCoefficientOfKineticFriction(
         float value)
     {
-        return WrappedCoefficientOfKineticFriction
-        {
-            value };
+        return WrappedCoefficientOfKineticFriction{value};
     }
     struct WrappedCoefficientOfRestitution final
     {
         float coefficientOfRestitution;
     };
-    friend constexpr WrappedCoefficientOfRestitution makeCoefficientOfRestitution(
-        float value)
+    friend constexpr WrappedCoefficientOfRestitution makeCoefficientOfRestitution(float value)
     {
-        return WrappedCoefficientOfRestitution
-        {
-            value };
+        return WrappedCoefficientOfRestitution{value};
     }
     struct WrappedDragFactor final
     {
@@ -85,31 +77,23 @@ struct Properties final
     };
     friend constexpr WrappedDragFactor makeDragFactor(float value)
     {
-        return WrappedDragFactor
-        {
-            value };
+        return WrappedDragFactor{value};
     }
     struct WrappedMyCollisionMask final
     {
         CollisionMaskType myCollisionMask;
     };
-    friend constexpr WrappedMyCollisionMask makeMyCollisionMask(
-        CollisionMaskType value)
+    friend constexpr WrappedMyCollisionMask makeMyCollisionMask(CollisionMaskType value)
     {
-        return WrappedMyCollisionMask
-        {
-            value };
+        return WrappedMyCollisionMask{value};
     }
     struct WrappedOthersCollisionMask final
     {
         CollisionMaskType othersCollisionMask;
     };
-    friend constexpr WrappedOthersCollisionMask makeOthersCollisionMask(
-        CollisionMaskType value)
+    friend constexpr WrappedOthersCollisionMask makeOthersCollisionMask(CollisionMaskType value)
     {
-        return WrappedOthersCollisionMask
-        {
-            value };
+        return WrappedOthersCollisionMask{value};
     }
     struct WrappedGravity final
     {
@@ -129,19 +113,21 @@ struct Properties final
           gravity(defaultGravityVector)
     {
     }
+
 private:
     struct ConstructTag final
     {
     };
-    template<typename ...Args>
-    Properties(ConstructTag, Args ...) = delete;
-    constexpr Properties(ConstructTag, Properties source)
-        : Properties(source)
+    template <typename... Args>
+    Properties(ConstructTag, Args...) = delete;
+    constexpr Properties(ConstructTag, Properties source) : Properties(source)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedCoefficientOfStaticFriction arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag,
+                         Properties source,
+                         WrappedCoefficientOfStaticFriction arg,
+                         Args... args)
         : coefficientOfStaticFriction(arg.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -151,9 +137,11 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedCoefficientOfKineticFriction arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag,
+                         Properties source,
+                         WrappedCoefficientOfKineticFriction arg,
+                         Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(arg.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -163,9 +151,11 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedCoefficientOfRestitution arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag,
+                         Properties source,
+                         WrappedCoefficientOfRestitution arg,
+                         Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(arg.coefficientOfRestitution),
@@ -175,9 +165,8 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedDragFactor arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag, Properties source, WrappedDragFactor arg, Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -187,9 +176,8 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedMyCollisionMask arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag, Properties source, WrappedMyCollisionMask arg, Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -199,9 +187,11 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedOthersCollisionMask arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag,
+                         Properties source,
+                         WrappedOthersCollisionMask arg,
+                         Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -211,9 +201,8 @@ private:
           gravity(source.gravity)
     {
     }
-    template<typename ...Args>
-    constexpr Properties(ConstructTag, Properties source,
-        WrappedGravity arg, Args ...args)
+    template <typename... Args>
+    constexpr Properties(ConstructTag, Properties source, WrappedGravity arg, Args... args)
         : coefficientOfStaticFriction(source.coefficientOfStaticFriction),
           coefficientOfKineticFriction(source.coefficientOfKineticFriction),
           coefficientOfRestitution(source.coefficientOfRestitution),
@@ -223,28 +212,26 @@ private:
           gravity(arg.gravity)
     {
     }
+
 public:
-    template<typename ...Args>
-    explicit constexpr Properties(Args ...args)
+    template <typename... Args>
+    explicit constexpr Properties(Args... args)
         : Properties(ConstructTag(), Properties(), args...)
     {
     }
-    static Properties read(stream::Reader & reader)
+    static Properties read(stream::Reader &reader)
     {
         Properties retval;
-        retval.coefficientOfStaticFriction = stream::read_limited<float32_t>(
-            reader, 0, 1e5);
-        retval.coefficientOfKineticFriction = stream::read_limited<float32_t>(
-            reader, 0, 1e5);
-        retval.coefficientOfRestitution = stream::read_limited<float32_t>(
-            reader, 0, 1);
+        retval.coefficientOfStaticFriction = stream::read_limited<float32_t>(reader, 0, 1e5);
+        retval.coefficientOfKineticFriction = stream::read_limited<float32_t>(reader, 0, 1e5);
+        retval.coefficientOfRestitution = stream::read_limited<float32_t>(reader, 0, 1);
         retval.dragFactor = stream::read_limited<float32_t>(reader, 0, 1e5);
         retval.myCollisionMask = stream::read<CollisionMaskType>(reader);
         retval.othersCollisionMask = stream::read<CollisionMaskType>(reader);
         retval.gravity = stream::read<VectorF>(reader);
         return retval;
     }
-    void write(stream::Writer & writer) const
+    void write(stream::Writer &writer) const
     {
         stream::write<float32_t>(writer, coefficientOfStaticFriction);
         stream::write<float32_t>(writer, coefficientOfKineticFriction);
@@ -259,7 +246,6 @@ public:
         return (myCollisionMask & r.othersCollisionMask) != 0;
     }
 };
-
 }
 }
 }
