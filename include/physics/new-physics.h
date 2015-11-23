@@ -26,9 +26,15 @@
 #include "util/enum_traits.h"
 #include "stream/stream.h"
 #include "util/position.h"
+#include "util/block_chunk.h"
+#include "util/lock.h"
 #include <cstdint>
 #include <cmath>
 #include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <vector>
 
 namespace programmerjake
 {
@@ -38,10 +44,10 @@ namespace physics
 {
 enum class ShapeTag : std::uint8_t
 {
-    Empty,
+    Point,
     Box,
     Cylinder,
-    DEFINE_ENUM_LIMITS(Empty, Cylinder)
+    DEFINE_ENUM_LIMITS(Point, Cylinder)
 };
 
 struct BoxShape final
@@ -55,7 +61,36 @@ struct CylinderShape final
     float height;
 };
 
-class World;
+class Object;
+
+class World final : public std::enable_shared_from_this<World>
+{
+    World(const World &rt) = delete;
+    World &operator=(const World &rt) = delete;
+
+private:
+    struct PrivateAccessTag final
+    {
+    };
+
+public:
+    BlockChunkMap chunks;
+    BlockIterator getBlockIterator(PositionI pos, TLS &tls)
+    {
+        return BlockIterator(&chunks, pos, tls);
+    }
+    World(PrivateAccessTag);
+    ~World();
+    static std::shared_ptr<World> make()
+    {
+        return std::make_shared<World>(PrivateAccessTag());
+    }
+    Object *make(PrivateAccessTag,
+                 ShapeTag tag,
+                 PositionF position,
+                 VectorF velocity,
+                 Properties properties);
+};
 
 class Object final
 {
@@ -81,7 +116,7 @@ private:
         {
         }
     };
-    ShapeTag tag;
+    const ShapeTag tag;
     ShapeType shape;
     Properties properties;
     PositionF newPosition;
@@ -92,57 +127,18 @@ private:
     float lastTime;
     World *const world;
     bool isSupported;
-    struct PrivateAccessTag final
-    {
-    };
+    typedef World::PrivateAccessTag PrivateAccessTag;
 
 public:
     Properties getProperties() const;
     void setProperties(Properties properties);
-    ~Object()
-    {
-        switch(tag)
-        {
-        case ShapeTag::Empty:
-            break;
-        case ShapeTag::Box:
-            shape.box.~BoxShape();
-            break;
-        case ShapeTag::Cylinder:
-            shape.cylinder.~CylinderShape();
-            break;
-        }
-    }
+    ~Object();
     Object(PrivateAccessTag,
            World *world,
            ShapeTag tag,
            PositionF position,
            VectorF velocity,
-           Properties properties)
-        : tag(tag),
-          shape(),
-          properties(properties),
-          newPosition(position),
-          position(position),
-          newVelocity(velocity),
-          velocity(velocity),
-          appliedForces(0),
-          lastTime(0),
-          world(world),
-          isSupported(false)
-    {
-        switch(tag)
-        {
-        case ShapeTag::Empty:
-            break;
-        case ShapeTag::Box:
-            construct_object(shape.box);
-            break;
-        case ShapeTag::Cylinder:
-            construct_object(shape.cylinder);
-            break;
-        }
-    }
+           Properties properties);
     static std::shared_ptr<Object> makeEmpty(World &world,
                                              PositionF position,
                                              VectorF velocity,
@@ -154,10 +150,11 @@ public:
                                                 VectorF velocity,
                                                 Properties properties);
     BoundingBox getBoundingBox(float maxTime, PrivateAccessTag);
+    bool isPoint() const
+    {
+        return tag == ShapeTag::Point;
+    }
     Collision getNextCollision(const Object &other, float maxTime, PrivateAccessTag);
-};
-class World final
-{
 };
 }
 }
