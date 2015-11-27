@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include "stream/stream.h"
+#include "util/vector.h"
 
 namespace programmerjake
 {
@@ -101,7 +102,7 @@ struct Properties final
     };
     friend constexpr WrappedGravity makeGravity(VectorF value)
     {
-        return WrappedGravity(value);
+        return WrappedGravity{value};
     }
     explicit constexpr Properties()
         : coefficientOfStaticFriction(0.9f),

@@ -27,50 +27,74 @@ namespace voxels
 {
 namespace physics
 {
-Object::Object(PrivateAccessTag,
-               World *world,
-               ShapeTag tag,
-               PositionF position,
-               VectorF velocity,
-               Properties properties)
-    : tag(tag),
-      shape(),
-      properties(properties),
-      newPosition(position),
-      position(position),
-      newVelocity(velocity),
-      velocity(velocity),
-      appliedForces(0),
-      lastTime(0),
-      world(world),
-      isSupported(false)
+void World::stepTime(double deltaTime, WorldLockManager &lock_manager)
 {
-    switch(tag)
-    {
-    case ShapeTag::Point:
-        break;
-    case ShapeTag::Box:
-        construct_object(shape.box);
-        break;
-    case ShapeTag::Cylinder:
-        construct_object(shape.cylinder);
-        break;
-    }
+    lock_manager.clear();
+    auto lockedStepTimeLock = make_unique_lock(stepTimeLock);
+    readPublicData();
+    broadPhaseCollisionDetection(lock_manager);
+    narrowPhaseCollisionDetection(lock_manager);
+    setupConstraints(lock_manager);
+    solveConstraints(lock_manager);
+    integratePositions(deltaTime, lock_manager);
+    updatePublicData(deltaTime, lock_manager);
 }
 
-Object::~Object()
+void World::addToWorld(ObjectImp object)
 {
-    switch(tag)
-    {
-    case ShapeTag::Point:
-        break;
-    case ShapeTag::Box:
-        shape.box.~BoxShape();
-        break;
-    case ShapeTag::Cylinder:
-        shape.cylinder.~CylinderShape();
-        break;
-    }
+    auto lockIt = make_unique_lock(publicState.lock);
+    publicState.newObjectsQueue.push_back(std::move(object));
+}
+
+void World::readPublicData()
+{
+
+    for(auto iter = )
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::readPublicData is not implemented");
+}
+
+void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::broadPhaseCollisionDetection is not implemented");
+}
+
+void World::narrowPhaseCollisionDetection(WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::narrowPhaseCollisionDetection is not implemented");
+}
+
+void World::setupConstraints(WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::setupConstraints is not implemented");
+}
+
+void World::solveConstraints(WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::solveConstraints is not implemented");
+}
+
+void World::integratePositions(double deltaTime, WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::integratePositions is not implemented");
+}
+
+void World::updatePublicData(double deltaTime, WorldLockManager &lock_manager)
+{
+    // TODO: finish
+    assert(false);
+    throw std::runtime_error("World::updatePublicData is not implemented");
 }
 }
 }

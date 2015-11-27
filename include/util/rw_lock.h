@@ -18,266 +18,139 @@
  * MA 02110-1301, USA.
  *
  */
+/* rw_lock struct is derived from boost thread shared_mutex
+ *
+ * (C) Copyright 2006-8 Anthony Williams
+ * (C) Copyright 2012 Vicente J. Botet Escriba
+ *
+ * Distributed under the Boost Software License, Version 1.0. (See
+ * accompanying file LICENSE_1_0.txt or copy at
+ * http://www.boost.org/LICENSE_1_0.txt)
+ *
+ */
 #ifndef RW_LOCK_H_INCLUDED
 #define RW_LOCK_H_INCLUDED
 
-#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <cassert>
-#include <utility>
-#include "util/cpu_relax.h"
-#if __cplusplus > 201103L // c++14 or later
-#include <shared_mutex>
-#endif
 
 namespace programmerjake
 {
 namespace voxels
 {
-template <bool isSpinLockV = false>
-struct rw_lock_implementation;
-
-template <>
-struct rw_lock_implementation<false>
+struct rw_lock final
 {
-    static constexpr bool is_spinlock = false;
 private:
-#if __cplusplus > 201103L // c++14 or later
-    std::shared_timed_mutex lock;
-public:
-    void reader_lock()
-    {
-        lock.lock_shared();
-    }
-    bool reader_try_lock()
-    {
-        return lock.try_lock_shared();
-    }
-    void reader_unlock()
-    {
-        return lock.unlock_shared();
-    }
-    void writer_lock()
-    {
-        return lock.lock();
-    }
-    bool writer_try_lock()
-    {
-        return lock.try_lock();
-    }
-    void writer_unlock()
-    {
-        return lock.unlock();
-    }
-#else
     std::mutex stateLock;
-    std::condition_variable stateCond;
-    std::size_t writerWaitingCount = 0;
-    std::size_t readerWaitingCount = 0;
-    static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
-    std::size_t readerCount = 0;
+    std::condition_variable sharedCond;
+    std::condition_variable exclusiveCond;
+    std::condition_variable upgradeCond;
+    std::size_t sharedCount = 0;
+    bool exclusive = false;
+    bool upgrade = false;
+    bool exclusiveWaitingBlocked = false;
+    void assertFree() const
+    {
+        assert(!exclusive);
+        assert(!upgrade);
+        assert(sharedCount == 0);
+    }
+    void assertLocked() const
+    {
+        assert(exclusive);
+        assert(sharedCount == 0);
+        assert(!upgrade);
+    }
+    void assertLockShared() const
+    {
+        assert(!exclusive);
+        assert(sharedCount > 0);
+    }
+    void assertLockUpgraded() const
+    {
+        assert(!exclusive);
+        assert(upgrade);
+        assert(sharedCount > 0);
+    }
+    void assertLockNotUpgraded() const
+    {
+        assert(!upgrade);
+    }
+    bool canLock() const
+    {
+        return sharedCount == 0 && !exclusive;
+    }
+    void exclusiveBlocked(bool blocked)
+    {
+        exclusiveWaitingBlocked = blocked;
+    }
+    void lock()
+    {
+        exclusive = true;
+    }
+    void unlock()
+    {
+        exclusive = false;
+        exclusiveWaitingBlocked = false;
+    }
+#error finish
 public:
     void reader_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
-        if(writerWaitingCount > 0 || readerCount == readerCountForWriterLocked)
-        {
-            readerWaitingCount++;
-            while(writerWaitingCount > 0 || readerCount == readerCountForWriterLocked)
-            {
-                stateCond.wait(lockIt);
-            }
-            readerWaitingCount--;
-        }
-        readerCount++;
+#error finish
     }
     bool reader_try_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock, std::try_to_lock);
-        if(!lockIt.owns_lock())
-            return false;
-        if(writerWaitingCount > 0 || readerCount == readerCountForWriterLocked)
-        {
-            return false;
-        }
-        readerCount++;
-        return true;
+#error finish
     }
     void reader_unlock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
-        assert(readerCount != readerCountForWriterLocked && readerCount > 0);
-        readerCount--;
-        if(readerCount == 0 && writerWaitingCount > 0)
-            stateCond.notify_all();
+#error finish
+    }
+    void upgradable_reader_lock()
+    {
+#error finish
+    }
+    bool upgradable_reader_try_lock()
+    {
+#error finish
+    }
+    void upgradable_reader_unlock()
+    {
+#error finish
+    }
+    void upgradable_reader_upgrade()
+    {
+#error finish
+    }
+    void upgradable_reader_downgrade()
+    {
+#error finish
+    }
+    bool upgradable_reader_try_upgrade()
+    {
+#error finish
     }
     void writer_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
-        if(readerCount != 0)
-        {
-            writerWaitingCount++;
-            while(readerCount != 0)
-            {
-                stateCond.wait(lockIt);
-            }
-            writerWaitingCount--;
-        }
-        readerCount = readerCountForWriterLocked;
+#error finish
     }
     bool writer_try_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock, std::try_to_lock);
-        if(!lockIt.owns_lock())
-            return false;
-        if(readerCount != 0)
-            return false;
-        readerCount = readerCountForWriterLocked;
-        return true;
+#error finish
     }
     void writer_unlock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
-        assert(readerCount == readerCountForWriterLocked);
-        readerCount = 0;
-        if(readerWaitingCount > 0 || writerWaitingCount > 0)
-            stateCond.notify_all();
+#error finish
     }
-#endif
-    class reader_view final
+    void writer_downgrade_to_upgradable()
     {
-        friend struct rw_lock_implementation;
-    private:
-        rw_lock_implementation &theLock;
-        reader_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
-        {
-        }
-    public:
-        void lock()
-        {
-            theLock.reader_lock();
-        }
-        bool try_lock()
-        {
-            return theLock.reader_try_lock();
-        }
-        void unlock()
-        {
-            theLock.reader_unlock();
-        }
-    };
-    class writer_view final
-    {
-        friend struct rw_lock_implementation;
-    private:
-        rw_lock_implementation &theLock;
-        writer_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
-        {
-        }
-    public:
-        void lock()
-        {
-            theLock.writer_lock();
-        }
-        bool try_lock()
-        {
-            return theLock.writer_try_lock();
-        }
-        void unlock()
-        {
-            theLock.writer_unlock();
-        }
-    };
-    reader_view reader()
-    {
-        return reader_view(*this);
+#error finish
     }
-    writer_view writer()
+    void writer_downgrade_to_reader()
     {
-        return writer_view(*this);
-    }
-};
-
-template <>
-struct [[deprecated("untested")]] rw_lock_implementation<true>
-{
-    static constexpr bool is_spinlock = true;
-private:
-    static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
-    std::atomic_size_t readerCount; // if a writer has this locked then readerCount == readerCountForWriterLocked
-    std::atomic_size_t writerCount; // number of writers waiting + the writer that owns this lock
-public:
-    constexpr rw_lock_implementation()
-        : readerCount(0), writerCount(0)
-    {
-    }
-    void reader_lock()
-    {
-        std::size_t value = readerCount.load(std::memory_order_relaxed);
-        while(value == readerCountForWriterLocked || writerCount.load(std::memory_order_relaxed) > 0)
-        {
-            cpu_relax();
-            value = readerCount.load(std::memory_order_relaxed);
-        }
-        while(value == readerCountForWriterLocked)
-        {
-            cpu_relax();
-            value = readerCount.load(std::memory_order_relaxed);
-        }
-        while(!readerCount.compare_exchange_weak(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
-        {
-            cpu_relax();
-            while(value == readerCountForWriterLocked)
-            {
-                cpu_relax();
-                value = readerCount.load(std::memory_order_relaxed);
-            }
-        }
-    }
-    bool reader_try_lock()
-    {
-        std::size_t value = readerCount.load(std::memory_order_relaxed);
-        if(value == readerCountForWriterLocked || writerCount.load(std::memory_order_relaxed) > 0)
-        {
-            return false;
-        }
-        if(!readerCount.compare_exchange_strong(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
-        {
-            return false;
-        }
-        return true;
-    }
-    void reader_unlock()
-    {
-        readerCount.fetch_sub(1, std::memory_order_release);
-    }
-    void writer_lock()
-    {
-        writerCount.fetch_add(1, std::memory_order_relaxed);
-        std::size_t value = 0;
-        while(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
-        {
-            cpu_relax();
-            value = 0;
-        }
-    }
-    bool writer_try_lock()
-    {
-        std::size_t value = 0;
-        if(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
-        {
-            return false;
-        }
-        writerCount.fetch_add(1, std::memory_order_relaxed);
-        return true;
-    }
-    void writer_unlock()
-    {
-        writerCount.fetch_sub(1, std::memory_order_relaxed);
-        readerCount.store(0, std::memory_order_release);
+#error finish
     }
     class reader_view final
     {
@@ -334,14 +207,7 @@ public:
         return writer_view(*this);
     }
 };
-
-typedef rw_lock_implementation<true> rw_spinlock [[deprecated("untested")]];
-typedef rw_lock_implementation<false> rw_lock;
-#if 1 // change when spinlock is checked
 typedef rw_lock rw_fast_lock;
-#else
-typedef rw_spinlock rw_fast_lock;
-#endif
 
 template <typename T>
 class reader_lock final

@@ -35,6 +35,12 @@ namespace programmerjake
 {
 namespace voxels
 {
+template <typename T, typename ...Args>
+std::unique_lock<T> make_unique_lock(T &lock, Args &&...args)
+{
+    return std::unique_lock<T>(lock, std::forward<Args>(args)...);
+}
+
 template <typename T>
 void lock_all(T begin, T end)
 {
