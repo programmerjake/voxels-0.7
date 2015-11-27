@@ -267,6 +267,8 @@ private:
         PositionF position;
         VectorF velocity;
         bool isSupported;
+        bool motor;
+        VectorF motorVelocity;
         std::weak_ptr<Object> object;
         bool empty() const
         {
@@ -284,6 +286,8 @@ private:
               position(position),
               velocity(velocity),
               isSupported(isSupported),
+              motor(false),
+              motorVelocity(0),
               object(object)
         {
         }
@@ -293,15 +297,45 @@ private:
               position(VectorF(0), Dimension::Overworld),
               velocity(0.0f),
               isSupported(false),
+              motor(false),
+              motorVelocity(0),
               object()
         {
         }
     };
 
+    struct SortingObjectForBroadPhase final
+    {
+        BoundingBox boundingBox;
+        float sortingIntervalStart = 0;
+        float sortingIntervalEnd = 0;
+        std::size_t objectIndex;
+        Properties::CollisionMaskType myCollisionMask;
+        Properties::CollisionMaskType othersCollisionMask;
+        Dimension dimension;
+        SortingObjectForBroadPhase(BoundingBox boundingBox,
+                      std::size_t objectIndex,
+                      Properties::CollisionMaskType myCollisionMask,
+                      Properties::CollisionMaskType othersCollisionMask,
+                      Dimension dimension)
+            : boundingBox(boundingBox),
+              objectIndex(objectIndex),
+              myCollisionMask(myCollisionMask),
+              othersCollisionMask(othersCollisionMask),
+              dimension(dimension)
+        {
+        }
+        SortingObjectForBroadPhase()
+            : boundingBox(), objectIndex(), myCollisionMask(0), othersCollisionMask(0), dimension()
+        {
+        }
+    };
+
+    std::mutex stepTimeLock;
     std::vector<ObjectImp> objects;
     std::vector<ObjectImp> lastObjectsArray;
-    rw_lock objectsSizeLock;
-    std::mutex stepTimeLock;
+    std::vector<SortingObjectForBroadPhase> sortedObjectsForBroadPhase;
+    std::vector<std::pair<std::size_t, std::size_t>> collidingPairsFromBroadPhase;
     struct PublicState final
     {
         typedef std::mutex LockType;
@@ -344,7 +378,7 @@ class Object final
     friend class World;
 
 private:
-    static constexpr int objectMutexLog2Count = 8;
+    static constexpr int objectMutexLog2Count = 4;
     static constexpr std::size_t objectMutexCount = 1 << objectMutexLog2Count;
     static constexpr std::size_t objectMutexModCountMask = objectMutexCount - 1;
     const std::size_t objectMutexIndex;
@@ -353,42 +387,124 @@ private:
         static std::mutex mutexes[objectMutexCount];
         return mutexes[objectMutexIndex];
     }
+    struct ObjectMutexIterator final
+    {
+        std::size_t index;
+        ObjectMutexIterator(std::size_t index = objectMutexCount)
+            : index(index)
+        {
+        }
+        std::mutex &operator *() const
+        {
+            return getObjectMutex(index);
+        }
+        std::mutex *operator ->() const
+        {
+            return &getObjectMutex(index);
+        }
+        ObjectMutexIterator &operator ++()
+        {
+            index++;
+            return *this;
+        }
+        ObjectMutexIterator operator ++(int)
+        {
+            return ObjectMutexIterator(index++);
+        }
+        bool operator ==(const ObjectMutexIterator &rt) const
+        {
+            return index == rt.index;
+        }
+        bool operator !=(const ObjectMutexIterator &rt) const
+        {
+            return index != rt.index;
+        }
+    };
+    struct AllMutexesLock final
+    {
+        void lock()
+        {
+            lock_all(ObjectMutexIterator(0), ObjectMutexIterator());
+        }
+        bool try_lock()
+        {
+            return try_lock_all(ObjectMutexIterator(0), ObjectMutexIterator());
+        }
+        void unlock()
+        {
+            for(std::size_t i = 0; i < objectMutexCount; i++)
+                getObjectMutex(i).unlock();
+        }
+    };
     static std::size_t newObjectMutexIndex()
     {
         static std::atomic_size_t nextObjectMutexIndex(0);
         return nextObjectMutexIndex++ & objectMutexModCountMask;
     }
+    std::mutex &getMutex() const
+    {
+        return getObjectMutex(objectMutexIndex);
+    }
     Properties properties;
     PositionF position;
     VectorF velocity;
     bool supported;
+    bool motor;
+    VectorF motorVelocity;
     typedef World::PrivateAccessTag PrivateAccessTag;
 
 public:
     Properties getProperties() const
     {
-        auto lockIt = make_unique_lock(getObjectMutex(objectMutexIndex));
+        auto lockIt = make_unique_lock(getMutex());
         return properties;
     }
     void setProperties(Properties properties)
     {
-        auto lockIt = make_unique_lock(getObjectMutex(objectMutexIndex));
+        auto lockIt = make_unique_lock(getMutex());
         this->properties = properties;
     }
     PositionF getPosition() const
     {
-        auto lockIt = make_unique_lock(getObjectMutex(objectMutexIndex));
+        auto lockIt = make_unique_lock(getMutex());
         return position;
     }
     VectorF getVelocity() const
     {
-        auto lockIt = make_unique_lock(getObjectMutex(objectMutexIndex));
+        auto lockIt = make_unique_lock(getMutex());
         return velocity;
     }
     bool isSupported() const
     {
-        auto lockIt = make_unique_lock(getObjectMutex(objectMutexIndex));
+        auto lockIt = make_unique_lock(getMutex());
         return supported;
+    }
+    bool hasMotor() const
+    {
+        auto lockIt = make_unique_lock(getMutex());
+        return motor;
+    }
+    VectorF getMotorVelocity() const
+    {
+        auto lockIt = make_unique_lock(getMutex());
+        return motorVelocity;
+    }
+    std::pair<VectorF, bool> getMotor() const
+    {
+        auto lockIt = make_unique_lock(getMutex());
+        return std::pair<VectorF, bool>(motorVelocity, motor);
+    }
+    void setMotorVelocity(VectorF motorVelocity)
+    {
+        auto lockIt = make_unique_lock(getMutex());
+        this->motorVelocity = motorVelocity;
+        motor = true;
+    }
+    void removeMotor()
+    {
+        auto lockIt = make_unique_lock(getMutex());
+        this->motorVelocity = VectorF(0);
+        motor = false;
     }
     Object(PrivateAccessTag privateAccessTag,
            PositionF position,
@@ -398,7 +514,9 @@ public:
           properties(properties),
           position(position),
           velocity(velocity),
-          supported(false)
+          supported(false),
+          motor(false),
+          motorVelocity(0)
     {
     }
     static std::shared_ptr<Object> makePoint(World &world,

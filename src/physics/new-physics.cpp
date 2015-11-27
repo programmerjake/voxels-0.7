@@ -20,6 +20,7 @@
  */
 
 #include "physics/new-physics.h"
+#include <algorithm>
 
 namespace programmerjake
 {
@@ -32,11 +33,11 @@ void World::stepTime(double deltaTime, WorldLockManager &lock_manager)
     lock_manager.clear();
     auto lockedStepTimeLock = make_unique_lock(stepTimeLock);
     readPublicData();
+    integratePositions(deltaTime, lock_manager);
     broadPhaseCollisionDetection(lock_manager);
     narrowPhaseCollisionDetection(lock_manager);
     setupConstraints(lock_manager);
     solveConstraints(lock_manager);
-    integratePositions(deltaTime, lock_manager);
     updatePublicData(deltaTime, lock_manager);
 }
 
@@ -48,15 +49,84 @@ void World::addToWorld(ObjectImp object)
 
 void World::readPublicData()
 {
-
-    for(auto iter = )
-    // TODO: finish
-    assert(false);
-    throw std::runtime_error("World::readPublicData is not implemented");
+    lastObjectsArray.swap(objects);
+    objects.clear();
+    objects.reserve(lastObjectsArray.size());
+    Object::AllMutexesLock publicObjectsLock;
+    std::unique_lock<Object::AllMutexesLock> lockedPublicObjects(publicObjectsLock);
+    for(ObjectImp &object : lastObjectsArray)
+    {
+        std::shared_ptr<Object> publicObject = object.object.lock();
+        if(!publicObject)
+            continue;
+        object.properties = publicObject->properties;
+        object.motor = publicObject->motor;
+        object.motorVelocity = publicObject->motorVelocity;
+        objects.push_back(std::move(object));
+    }
+    lockedPublicObjects.unlock();
+    lastObjectsArray.clear();
 }
 
 void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
 {
+    sortedObjectsForBroadPhase.clear();
+    sortedObjectsForBroadPhase.reserve(objects.size());
+    collidingPairsFromBroadPhase.clear();
+    collidingPairsFromBroadPhase.reserve(objects.size() * 12); // likely maximum
+    BoundingBox totalBoundingBox(VectorF(0), VectorF(0));
+    for(std::size_t i = 0; i < objects.size(); i++)
+    {
+        BoundingBox boundingBox = objects[i].getBoundingBox();
+        if(i == 0)
+            totalBoundingBox = boundingBox;
+        else
+            totalBoundingBox |= boundingBox;
+        sortedObjectsForBroadPhase.emplace_back(objects[i].getBoundingBox(), i);
+    }
+    VectorF totalExtent = totalBoundingBox.extent();
+    if(totalExtent.x > totalExtent.y && totalExtent.x > totalExtent.z)
+    {
+        for(SortingObjectForBroadPhase &object : sortedObjectsForBroadPhase)
+        {
+            object.sortingIntervalStart = object.boundingBox.minCorner.x;
+            object.sortingIntervalEnd = object.boundingBox.maxCorner.x;
+        }
+    }
+    else if(totalExtent.y > totalExtent.z)
+    {
+        for(SortingObjectForBroadPhase &object : sortedObjectsForBroadPhase)
+        {
+            object.sortingIntervalStart = object.boundingBox.minCorner.y;
+            object.sortingIntervalEnd = object.boundingBox.maxCorner.y;
+        }
+    }
+    else
+    {
+        for(SortingObjectForBroadPhase &object : sortedObjectsForBroadPhase)
+        {
+            object.sortingIntervalStart = object.boundingBox.minCorner.z;
+            object.sortingIntervalEnd = object.boundingBox.maxCorner.z;
+        }
+    }
+    std::stable_sort(sortedObjectsForBroadPhase.begin(),
+                     sortedObjectsForBroadPhase.end(),
+                     [](const SortingObjectForBroadPhase &a, const SortingObjectForBroadPhase &b)
+                     {
+                         return a.sortingIntervalStart < b.sortingIntervalStart;
+                     });
+    for(std::size_t i = 0; i < sortedObjectsForBroadPhase.size(); i++)
+    {
+        SortingObjectForBroadPhase objectI = sortedObjectsForBroadPhase[i];
+        for(std::size_t j = i + 1; j < sortedObjectsForBroadPhase.size(); j++)
+        {
+            SortingObjectForBroadPhase objectJ = sortedObjectsForBroadPhase[j];
+            if(objectJ.sortingIntervalStart > objectI.sortingIntervalEnd)
+                break;
+            //TODO: finish adding objects to collidingPairsFromBroadPhase if they actually collide
+        }
+    }
+    sortedObjectsForBroadPhase.clear();
     // TODO: finish
     assert(false);
     throw std::runtime_error("World::broadPhaseCollisionDetection is not implemented");

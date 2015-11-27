@@ -35,9 +35,32 @@ struct BoundingBox final
     VectorF minCorner;
     VectorF maxCorner;
     constexpr BoundingBox(VectorF minCorner, VectorF maxCorner)
-        : minCorner(minCorner),
-          maxCorner(maxCorner)
+        : minCorner(minCorner), maxCorner(maxCorner)
     {
+    }
+    BoundingBox() : minCorner(), maxCorner()
+    {
+    }
+    constexpr BoundingBox operator|(const BoundingBox &rt) const
+    {
+        return BoundingBox(elementwiseMin(minCorner, rt.minCorner),
+                           elementwiseMax(maxCorner, rt.maxCorner));
+    }
+    BoundingBox &operator|=(const BoundingBox &rt)
+    {
+        minCorner = elementwiseMin(minCorner, rt.minCorner);
+        maxCorner = elementwiseMax(maxCorner, rt.maxCorner);
+        return *this;
+    }
+    constexpr VectorF extent() const
+    {
+        return maxCorner - minCorner;
+    }
+    constexpr bool overlaps(const BoundingBox &other) const
+    {
+        return minCorner.x <= other.maxCorner.x && minCorner.y <= other.maxCorner.y
+               && minCorner.z <= other.maxCorner.z && other.minCorner.x <= maxCorner.x
+               && other.minCorner.y <= maxCorner.y && other.minCorner.z <= maxCorner.z;
     }
 };
 }
