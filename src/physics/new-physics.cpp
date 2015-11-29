@@ -84,7 +84,8 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
             totalBoundingBox = boundingBox;
         else
             totalBoundingBox |= boundingBox;
-        sortedObjectsForBroadPhase.push_back(SortingObjectForBroadPhase(objects[i].getBoundingBox(), i));
+        sortedObjectsForBroadPhase.push_back(
+            SortingObjectForBroadPhase(objects[i].getBoundingBox(), i, myCollisionMask, othersCollisionMask, objects[i].position.d));
     }
     collidingPairsFromBroadPhase.clear();
     collidingPairsFromBroadPhase.reserve(sortedObjectsForBroadPhase.size() * 12); // likely maximum
@@ -129,7 +130,8 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
                 break;
             if(objectI.dimension != objectJ.dimension)
                 continue;
-            if((objectI.myCollisionMask & objectJ.othersCollisionMask) == 0 && (objectI.othersCollisionMask & objectJ.myCollisionMask) == 0)
+            if((objectI.myCollisionMask & objectJ.othersCollisionMask) == 0
+               && (objectI.othersCollisionMask & objectJ.myCollisionMask) == 0)
                 continue;
             if(objectI.boundingBox.overlaps(objectJ.boundingBox))
                 collidingPairsFromBroadPhase.emplace_back(objectI.objectIndex, objectJ.objectIndex);
@@ -171,6 +173,133 @@ void World::updatePublicData(double deltaTime, WorldLockManager &lock_manager)
     // TODO: finish
     assert(false);
     throw std::runtime_error("World::updatePublicData is not implemented");
+}
+
+Collision World::collideBoxBox(const ObjectImp &me,
+                               const ObjectImp &other,
+                               std::size_t myObjectIndex,
+                               std::size_t otherObjectIndex)
+{
+    const BoxShape &myShape = me.shape.getBox();
+    const BoxShape &otherShape = other.shape.getBox();
+    if(me.position.d != other.position.d)
+        return Collision();
+    VectorF myMinCorner = me.position - myShape.extents * 0.5f;
+    VectorF myMaxCorner = me.position + myShape.extents * 0.5f;
+    VectorF otherMinCorner = other.position - otherShape.extents * 0.5f;
+    VectorF otherMaxCorner = other.position + otherShape.extents * 0.5f;
+    VectorI axisSign = VectorI(1);
+    VectorF axisPenetration = otherMaxCorner - myMinCorner;
+    VectorF myCollisionCorner = myMaxCorner;
+    if(me.position.x < other.position.x)
+    {
+        axisSign.x = -1;
+        axisPenetration.x = myMaxCorner.x - otherMinCorner.x;
+        myCollisionCorner.x = myMinCorner.x;
+    }
+    if(me.position.y < other.position.y)
+    {
+        axisSign.y = -1;
+        axisPenetration.y = myMaxCorner.y - otherMinCorner.y;
+        myCollisionCorner.y = myMinCorner.y;
+    }
+    if(me.position.z < other.position.z)
+    {
+        axisSign.z = -1;
+        axisPenetration.z = myMaxCorner.z - otherMinCorner.z;
+        myCollisionCorner.z = myMinCorner.z;
+    }
+    if(axisPenetration.x <= 0 && axisPenetration.y <= 0 && axisPenetration.z <= 0)
+    {
+        ContactPoint contactPoint;
+        VectorF collisionPoint = myCollisionCorner - axisSign * axisPenetration * 0.5f;
+        if(axisPenetration.x < axisPenetration.y && axisPenetration.x < axisPenetration.z)
+        {
+            contactPoint =
+                ContactPoint(collisionPoint, VectorF(-axisSign.x, 0, 0), axisPenetration.x);
+        }
+        else if(axisPenetration.y < axisPenetration.z)
+        {
+            contactPoint =
+                ContactPoint(collisionPoint, VectorF(0, -axisSign.y, 0), axisPenetration.y);
+        }
+        else
+        {
+            contactPoint =
+                ContactPoint(collisionPoint, VectorF(0, 0, -axisSign.z), axisPenetration.z);
+        }
+        return Collision(contactPoint, myObjectIndex, otherObjectIndex);
+    }
+    return Collision();
+}
+
+Collision World::collideBoxCylinder(const ObjectImp &me,
+                                    const ObjectImp &other,
+                                    std::size_t myObjectIndex,
+                                    std::size_t otherObjectIndex)
+{
+    const BoxShape &myShape = me.shape.getBox();
+    const CylinderShape &otherShape = other.shape.getCylinder();
+    if(me.position.d != other.position.d)
+        return Collision();
+}
+
+Collision World::collideCylinderBox(const ObjectImp &me,
+                                    const ObjectImp &other,
+                                    std::size_t myObjectIndex,
+                                    std::size_t otherObjectIndex)
+{
+    return collideBoxCylinder(other, me, myObjectIndex, otherObjectIndex).reversed();
+}
+
+Collision World::collideCylinderCylinder(const ObjectImp &me,
+                                         const ObjectImp &other,
+                                         std::size_t myObjectIndex,
+                                         std::size_t otherObjectIndex)
+{
+    const CylinderShape &myShape = me.shape.getCylinder();
+    const CylinderShape &otherShape = other.shape.getCylinder();
+    if(me.position.d != other.position.d)
+        return Collision();
+}
+
+Collision World::collide(const ObjectImp &me,
+                         const ObjectImp &other,
+                         std::size_t myObjectIndex,
+                         std::size_t otherObjectIndex)
+{
+    switch(me.shape.getTag())
+    {
+    case ShapeTag::None:
+        return Collision();
+    case ShapeTag::Box:
+    {
+        switch(other.shape.getTag())
+        {
+        case ShapeTag::None:
+            return Collision();
+        case ShapeTag::Box:
+            return collideBoxBox(me, other, myObjectIndex, otherObjectIndex);
+        case ShapeTag::Cylinder:
+            return collideBoxCylinder(me, other, myObjectIndex, otherObjectIndex);
+        }
+        break;
+    }
+    case ShapeTag::Cylinder:
+    {
+        switch(other.shape.getTag())
+        {
+        case ShapeTag::None:
+            return Collision();
+        case ShapeTag::Box:
+            return collideCylinderBox(me, other, myObjectIndex, otherObjectIndex);
+        case ShapeTag::Cylinder:
+            return collideCylinderCylinder(me, other, myObjectIndex, otherObjectIndex);
+        }
+        break;
+    }
+    }
+    UNREACHABLE();
 }
 }
 }

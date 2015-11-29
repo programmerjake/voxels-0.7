@@ -206,12 +206,12 @@ struct VectorF
 
     friend constexpr VectorF operator+(const VectorF &l, const VectorI &r)
     {
-        return l + ( VectorF )r;
+        return l + static_cast<VectorF>(r);
     }
 
     friend constexpr VectorF operator+(const VectorI &l, const VectorF &r)
     {
-        return ( VectorF )l + r;
+        return static_cast<VectorF>(l) + r;
     }
 
     constexpr const VectorF operator-(const VectorF &r) const
@@ -221,12 +221,12 @@ struct VectorF
 
     friend constexpr VectorF operator-(const VectorF &l, const VectorI &r)
     {
-        return l - ( VectorF )r;
+        return l - static_cast<VectorF>(r);
     }
 
     friend constexpr VectorF operator-(const VectorI &l, const VectorF &r)
     {
-        return ( VectorF )l - r;
+        return static_cast<VectorF>(l) - r;
     }
 
     constexpr const VectorF operator*(const VectorF &r) const
@@ -236,12 +236,12 @@ struct VectorF
 
     friend constexpr VectorF operator*(const VectorF &l, const VectorI &r)
     {
-        return l * ( VectorF )r;
+        return l * static_cast<VectorF>(r);
     }
 
     friend constexpr VectorF operator*(const VectorI &l, const VectorF &r)
     {
-        return ( VectorF )l * r;
+        return static_cast<VectorF>(l) * r;
     }
 
     constexpr const VectorF operator/(const VectorF &r) const

@@ -183,6 +183,11 @@ private:
             assert(isBox());
             return data.box;
         }
+        CylinderShape getCylinder() const
+        {
+            assert(isCylinder());
+            return data.cylinder;
+        }
         Shape() : tag(ShapeTag::None), data()
         {
         }
@@ -291,10 +296,10 @@ private:
         Properties::CollisionMaskType othersCollisionMask;
         Dimension dimension;
         SortingObjectForBroadPhase(BoundingBox boundingBox,
-                      std::size_t objectIndex,
-                      Properties::CollisionMaskType myCollisionMask,
-                      Properties::CollisionMaskType othersCollisionMask,
-                      Dimension dimension)
+                                   std::size_t objectIndex,
+                                   Properties::CollisionMaskType myCollisionMask,
+                                   Properties::CollisionMaskType othersCollisionMask,
+                                   Dimension dimension)
             : boundingBox(boundingBox),
               objectIndex(objectIndex),
               myCollisionMask(myCollisionMask),
@@ -329,6 +334,11 @@ private:
     void solveConstraints(WorldLockManager &lock_manager);
     void integratePositions(double deltaTime, WorldLockManager &lock_manager);
     void updatePublicData(double deltaTime, WorldLockManager &lock_manager);
+    static Collision collideBoxBox(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
+    static Collision collideBoxCylinder(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
+    static Collision collideCylinderBox(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
+    static Collision collideCylinderCylinder(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
+    static Collision collide(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
 
 public:
     BlockChunkMap chunks;
@@ -367,32 +377,31 @@ private:
     struct ObjectMutexIterator final
     {
         std::size_t index;
-        ObjectMutexIterator(std::size_t index = objectMutexCount)
-            : index(index)
+        ObjectMutexIterator(std::size_t index = objectMutexCount) : index(index)
         {
         }
-        std::mutex &operator *() const
+        std::mutex &operator*() const
         {
             return getObjectMutex(index);
         }
-        std::mutex *operator ->() const
+        std::mutex *operator->() const
         {
             return &getObjectMutex(index);
         }
-        ObjectMutexIterator &operator ++()
+        ObjectMutexIterator &operator++()
         {
             index++;
             return *this;
         }
-        ObjectMutexIterator operator ++(int)
+        ObjectMutexIterator operator++(int)
         {
             return ObjectMutexIterator(index++);
         }
-        bool operator ==(const ObjectMutexIterator &rt) const
+        bool operator==(const ObjectMutexIterator &rt) const
         {
             return index == rt.index;
         }
-        bool operator !=(const ObjectMutexIterator &rt) const
+        bool operator!=(const ObjectMutexIterator &rt) const
         {
             return index != rt.index;
         }
@@ -503,8 +512,7 @@ public:
     {
         std::shared_ptr<Object> retval =
             std::make_shared<Object>(PrivateAccessTag(), position, velocity, properties);
-        world.addToWorld(World::ObjectImp(
-            World::Shape(), properties, position, velocity, retval));
+        world.addToWorld(World::ObjectImp(World::Shape(), properties, position, velocity, retval));
         return retval;
     }
     static std::shared_ptr<Object> makeBox(
