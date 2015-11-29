@@ -72,18 +72,22 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
 {
     sortedObjectsForBroadPhase.clear();
     sortedObjectsForBroadPhase.reserve(objects.size());
-    collidingPairsFromBroadPhase.clear();
-    collidingPairsFromBroadPhase.reserve(objects.size() * 12); // likely maximum
     BoundingBox totalBoundingBox(VectorF(0), VectorF(0));
     for(std::size_t i = 0; i < objects.size(); i++)
     {
+        auto myCollisionMask = objects[i].properties.myCollisionMask;
+        auto othersCollisionMask = objects[i].properties.othersCollisionMask;
+        if(objects[i].shape.empty() || (myCollisionMask == 0 && othersCollisionMask == 0))
+            continue;
         BoundingBox boundingBox = objects[i].getBoundingBox();
         if(i == 0)
             totalBoundingBox = boundingBox;
         else
             totalBoundingBox |= boundingBox;
-        sortedObjectsForBroadPhase.emplace_back(objects[i].getBoundingBox(), i);
+        sortedObjectsForBroadPhase.push_back(SortingObjectForBroadPhase(objects[i].getBoundingBox(), i));
     }
+    collidingPairsFromBroadPhase.clear();
+    collidingPairsFromBroadPhase.reserve(sortedObjectsForBroadPhase.size() * 12); // likely maximum
     VectorF totalExtent = totalBoundingBox.extent();
     if(totalExtent.x > totalExtent.y && totalExtent.x > totalExtent.z)
     {
@@ -123,13 +127,15 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
             SortingObjectForBroadPhase objectJ = sortedObjectsForBroadPhase[j];
             if(objectJ.sortingIntervalStart > objectI.sortingIntervalEnd)
                 break;
-            //TODO: finish adding objects to collidingPairsFromBroadPhase if they actually collide
+            if(objectI.dimension != objectJ.dimension)
+                continue;
+            if((objectI.myCollisionMask & objectJ.othersCollisionMask) == 0 && (objectI.othersCollisionMask & objectJ.myCollisionMask) == 0)
+                continue;
+            if(objectI.boundingBox.overlaps(objectJ.boundingBox))
+                collidingPairsFromBroadPhase.emplace_back(objectI.objectIndex, objectJ.objectIndex);
         }
     }
     sortedObjectsForBroadPhase.clear();
-    // TODO: finish
-    assert(false);
-    throw std::runtime_error("World::broadPhaseCollisionDetection is not implemented");
 }
 
 void World::narrowPhaseCollisionDetection(WorldLockManager &lock_manager)

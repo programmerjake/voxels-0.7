@@ -84,14 +84,9 @@ private:
     enum class ShapeTag : std::uint8_t
     {
         None,
-        Point,
         Box,
         Cylinder,
         DEFINE_ENUM_LIMITS(None, Cylinder)
-    };
-
-    struct PointShape final
-    {
     };
 
     struct NoShape final
@@ -122,7 +117,6 @@ private:
         union Data
         {
             NoShape noShape;
-            PointShape point;
             BoxShape box;
             CylinderShape cylinder;
             Data() : noShape()
@@ -136,9 +130,6 @@ private:
             switch(tag)
             {
             case ShapeTag::None:
-                break;
-            case ShapeTag::Point:
-                construct_object(data.point, rt.data.point);
                 break;
             case ShapeTag::Box:
                 construct_object(data.box, rt.data.box);
@@ -154,9 +145,6 @@ private:
             switch(tag)
             {
             case ShapeTag::None:
-                break;
-            case ShapeTag::Point:
-                construct_object(data.point, std::move(rt.data.point));
                 break;
             case ShapeTag::Box:
                 construct_object(data.box, std::move(rt.data.box));
@@ -186,10 +174,6 @@ private:
         {
             return isShape<ShapeTag::Box>();
         }
-        bool isPoint() const
-        {
-            return isShape<ShapeTag::Point>();
-        }
         bool isCylinder() const
         {
             return isShape<ShapeTag::Cylinder>();
@@ -201,10 +185,6 @@ private:
         }
         Shape() : tag(ShapeTag::None), data()
         {
-        }
-        explicit Shape(PointShape point) : tag(ShapeTag::Point), data()
-        {
-            construct_object(data.point, std::move(point));
         }
         explicit Shape(BoxShape box) : tag(ShapeTag::Box), data()
         {
@@ -219,9 +199,6 @@ private:
             switch(tag)
             {
             case ShapeTag::None:
-                break;
-            case ShapeTag::Point:
-                data.point.~PointShape();
                 break;
             case ShapeTag::Box:
                 data.box.~BoxShape();
@@ -527,7 +504,7 @@ public:
         std::shared_ptr<Object> retval =
             std::make_shared<Object>(PrivateAccessTag(), position, velocity, properties);
         world.addToWorld(World::ObjectImp(
-            World::Shape(World::PointShape()), properties, position, velocity, retval));
+            World::Shape(), properties, position, velocity, retval));
         return retval;
     }
     static std::shared_ptr<Object> makeBox(
