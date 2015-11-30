@@ -95,8 +95,8 @@ private:
 
     struct BoxShape final
     {
-        VectorF extents;
-        explicit BoxShape(VectorF extents) : extents(extents)
+        VectorF size;
+        explicit BoxShape(VectorF size) : size(size)
         {
         }
     };
@@ -334,6 +334,7 @@ private:
     void solveConstraints(WorldLockManager &lock_manager);
     void integratePositions(double deltaTime, WorldLockManager &lock_manager);
     void updatePublicData(double deltaTime, WorldLockManager &lock_manager);
+    // collide* functions don't check collision masks
     static Collision collideBoxBox(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
     static Collision collideBoxCylinder(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
     static Collision collideCylinderBox(const ObjectImp &me, const ObjectImp &other, std::size_t myObjectIndex, std::size_t otherObjectIndex);
@@ -516,12 +517,12 @@ public:
         return retval;
     }
     static std::shared_ptr<Object> makeBox(
-        World &world, PositionF position, VectorF velocity, VectorF extents, Properties properties)
+        World &world, PositionF position, VectorF velocity, VectorF size, Properties properties)
     {
         std::shared_ptr<Object> retval =
             std::make_shared<Object>(PrivateAccessTag(), position, velocity, properties);
         world.addToWorld(World::ObjectImp(
-            World::Shape(World::BoxShape(extents)), properties, position, velocity, retval));
+            World::Shape(World::BoxShape(size)), properties, position, velocity, retval));
         return retval;
     }
     static std::shared_ptr<Object> makeCylinder(World &world,

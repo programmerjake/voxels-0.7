@@ -28,6 +28,28 @@ namespace voxels
 {
 namespace physics
 {
+BoundingBox World::ObjectImp::getBoundingBox() const
+{
+    switch(shape.getTag())
+    {
+    case ShapeTag::None:
+        return BoundingBox(position, position);
+    case ShapeTag::Box:
+    {
+        BoxShape boxShape = shape.getBox();
+        return BoundingBox(position - 0.5f * boxShape.size, position + 0.5f * boxShape.size);
+    }
+    case ShapeTag::Cylinder:
+    {
+        CylinderShape cylinderShape = shape.getCylinder();
+        VectorF size =
+            VectorF(cylinderShape.diameter, cylinderShape.height, cylinderShape.diameter);
+        return BoundingBox(position - 0.5f * size, position + 0.5f * size);
+    }
+    }
+    UNREACHABLE();
+}
+
 void World::stepTime(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
@@ -84,8 +106,11 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
             totalBoundingBox = boundingBox;
         else
             totalBoundingBox |= boundingBox;
-        sortedObjectsForBroadPhase.push_back(
-            SortingObjectForBroadPhase(objects[i].getBoundingBox(), i, myCollisionMask, othersCollisionMask, objects[i].position.d));
+        sortedObjectsForBroadPhase.push_back(SortingObjectForBroadPhase(objects[i].getBoundingBox(),
+                                                                        i,
+                                                                        myCollisionMask,
+                                                                        othersCollisionMask,
+                                                                        objects[i].position.d));
     }
     collidingPairsFromBroadPhase.clear();
     collidingPairsFromBroadPhase.reserve(sortedObjectsForBroadPhase.size() * 12); // likely maximum
@@ -180,14 +205,14 @@ Collision World::collideBoxBox(const ObjectImp &me,
                                std::size_t myObjectIndex,
                                std::size_t otherObjectIndex)
 {
-    const BoxShape &myShape = me.shape.getBox();
-    const BoxShape &otherShape = other.shape.getBox();
+    BoxShape myShape = me.shape.getBox();
+    BoxShape otherShape = other.shape.getBox();
     if(me.position.d != other.position.d)
         return Collision();
-    VectorF myMinCorner = me.position - myShape.extents * 0.5f;
-    VectorF myMaxCorner = me.position + myShape.extents * 0.5f;
-    VectorF otherMinCorner = other.position - otherShape.extents * 0.5f;
-    VectorF otherMaxCorner = other.position + otherShape.extents * 0.5f;
+    VectorF myMinCorner = me.position - myShape.size * 0.5f;
+    VectorF myMaxCorner = me.position + myShape.size * 0.5f;
+    VectorF otherMinCorner = other.position - otherShape.size * 0.5f;
+    VectorF otherMaxCorner = other.position + otherShape.size * 0.5f;
     VectorI axisSign = VectorI(1);
     VectorF axisPenetration = otherMaxCorner - myMinCorner;
     VectorF myCollisionCorner = myMaxCorner;
@@ -209,7 +234,7 @@ Collision World::collideBoxBox(const ObjectImp &me,
         axisPenetration.z = myMaxCorner.z - otherMinCorner.z;
         myCollisionCorner.z = myMinCorner.z;
     }
-    if(axisPenetration.x <= 0 && axisPenetration.y <= 0 && axisPenetration.z <= 0)
+    if(axisPenetration.x > 0 && axisPenetration.y > 0 && axisPenetration.z > 0)
     {
         ContactPoint contactPoint;
         VectorF collisionPoint = myCollisionCorner - axisSign * axisPenetration * 0.5f;
@@ -238,10 +263,92 @@ Collision World::collideBoxCylinder(const ObjectImp &me,
                                     std::size_t myObjectIndex,
                                     std::size_t otherObjectIndex)
 {
-    const BoxShape &myShape = me.shape.getBox();
-    const CylinderShape &otherShape = other.shape.getCylinder();
+    BoxShape myShape = me.shape.getBox();
+    CylinderShape otherShape = other.shape.getCylinder();
     if(me.position.d != other.position.d)
         return Collision();
+    VectorF myMinCorner = me.position - myShape.size * 0.5f;
+    VectorF myMaxCorner = me.position + myShape.size * 0.5f;
+    float otherBottom = other.position.y - 0.5f * otherShape.height;
+    float otherTop = other.position.y + 0.5f * otherShape.height;
+    float otherRadius = otherShape.diameter * 0.5f;
+    int yAxisSign = 1;
+    float yPenetration = otherTop - myMinCorner.y;
+    VectorF collisionPoint = other.position;
+    collisionPoint.y = otherTop;
+    if(me.position.y < other.position.y)
+    {
+        yPenetration = myMaxCorner.y - otherBottom;
+        yAxisSign = -1;
+        collisionPoint.y = otherBottom;
+    }
+    if(yPenetration <= 0)
+        return Collision();
+    VectorF displacementXZ(0);
+    if(other.position.x < myMinCorner.x)
+    {
+        displacementXZ.x = other.position.x - myMinCorner.x;
+        collisionPoint.x = myMinCorner.x;
+    }
+    else if(other.position.x > myMaxCorner.x)
+    {
+        displacementXZ.x = other.position.x - myMaxCorner.x;
+        collisionPoint.x = myMaxCorner.x;
+    }
+    if(other.position.z < myMinCorner.z)
+    {
+        displacementXZ.z = other.position.z - myMinCorner.z;
+        collisionPoint.z = myMinCorner.z;
+    }
+    else if(other.position.z > myMaxCorner.z)
+    {
+        displacementXZ.z = other.position.z - myMaxCorner.z;
+        collisionPoint.z = myMaxCorner.z;
+    }
+    float radialPenetration = otherRadius - abs(displacementXZ);
+    if(radialPenetration <= 0)
+        return Collision();
+    if(yPenetration > radialPenetration)
+    {
+        VectorF normal = displacementXZ;
+        if(normal == VectorF(0))
+        {
+            VectorI axisSign(1);
+            VectorF axisPenetration(other.position - myMinCorner);
+            VectorF myCollisionCorner = myMaxCorner;
+            if(me.position.x < other.position.x)
+            {
+                axisSign.x = -1;
+                axisPenetration.x = myMaxCorner.x - other.position.x;
+                myCollisionCorner.x = myMinCorner.x;
+            }
+            if(me.position.z < other.position.z)
+            {
+                axisSign.z = -1;
+                axisPenetration.z = myMaxCorner.z - other.position.z;
+                myCollisionCorner.z = myMinCorner.z;
+            }
+            ContactPoint contactPoint;
+            VectorF collisionPoint = myCollisionCorner - axisSign * axisPenetration * 0.5f;
+            collisionPoint.y = me.position.y;
+            if(axisPenetration.x < axisPenetration.z)
+            {
+                contactPoint = ContactPoint(
+                    collisionPoint, VectorF(-axisSign.x, 0, 0), axisPenetration.x + otherRadius);
+            }
+            else
+            {
+                contactPoint = ContactPoint(
+                    collisionPoint, VectorF(0, 0, -axisSign.z), axisPenetration.z + otherRadius);
+            }
+            return Collision(contactPoint, myObjectIndex, otherObjectIndex);
+        }
+        normal = normalize(normal);
+        ContactPoint contactPoint(collisionPoint, normal, radialPenetration);
+        return Collision(contactPoint, myObjectIndex, otherObjectIndex);
+    }
+    ContactPoint contactPoint(collisionPoint, VectorF(0, -yAxisSign, 0), yPenetration);
+    return Collision(contactPoint, myObjectIndex, otherObjectIndex);
 }
 
 Collision World::collideCylinderBox(const ObjectImp &me,
@@ -257,10 +364,45 @@ Collision World::collideCylinderCylinder(const ObjectImp &me,
                                          std::size_t myObjectIndex,
                                          std::size_t otherObjectIndex)
 {
-    const CylinderShape &myShape = me.shape.getCylinder();
-    const CylinderShape &otherShape = other.shape.getCylinder();
+    CylinderShape myShape = me.shape.getCylinder();
+    CylinderShape otherShape = other.shape.getCylinder();
     if(me.position.d != other.position.d)
         return Collision();
+    float myBottom = me.position.y - 0.5f * myShape.height;
+    float myTop = me.position.y + 0.5f * myShape.height;
+    float myRadius = myShape.diameter * 0.5f;
+    float otherBottom = other.position.y - 0.5f * otherShape.height;
+    float otherTop = other.position.y + 0.5f * otherShape.height;
+    float otherRadius = otherShape.diameter * 0.5f;
+    int yAxisSign = 1;
+    float yPenetration = otherTop - myBottom;
+    VectorF collisionPoint = other.position;
+    collisionPoint.y = otherTop;
+    if(me.position.y < other.position.y)
+    {
+        yPenetration = myTop - otherBottom;
+        yAxisSign = -1;
+        collisionPoint.y = otherBottom;
+    }
+    if(yPenetration <= 0)
+        return Collision();
+    VectorF displacementXZ = other.position - me.position;
+    displacementXZ.y = 0;
+    float radialPenetration = myRadius + otherRadius - abs(displacementXZ);
+    if(radialPenetration <= 0)
+        return Collision();
+    if(yPenetration > radialPenetration)
+    {
+        VectorF normal = displacementXZ;
+        if(normal != VectorF(0))
+        {
+            normal = normalize(normal);
+            ContactPoint contactPoint(collisionPoint, normal, radialPenetration);
+            return Collision(contactPoint, myObjectIndex, otherObjectIndex);
+        }
+    }
+    ContactPoint contactPoint(collisionPoint, VectorF(0, -yAxisSign, 0), yPenetration);
+    return Collision(contactPoint, myObjectIndex, otherObjectIndex);
 }
 
 Collision World::collide(const ObjectImp &me,
