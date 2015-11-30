@@ -167,9 +167,25 @@ void World::broadPhaseCollisionDetection(WorldLockManager &lock_manager)
 
 void World::narrowPhaseCollisionDetection(WorldLockManager &lock_manager)
 {
-    // TODO: finish
-    assert(false);
-    throw std::runtime_error("World::narrowPhaseCollisionDetection is not implemented");
+    collisions.clear();
+    collisions.reserve(2 * collidingPairsFromBroadPhase.size());
+    for(std::pair<std::size_t, std::size_t> collidingPair : collidingPairsFromBroadPhase)
+    {
+        std::size_t objectAIndex = std::get<0>(collidingPair);
+        std::size_t objectBIndex = std::get<1>(collidingPair);
+        const ObjectImp &objectA = objects[objectAIndex];
+        const ObjectImp &objectB = objects[objectBIndex];
+        if((objectA.properties.myCollisionMask & objectB.properties.othersCollisionMask) == 0 && (objectA.properties.othersCollisionMask & objectB.properties.myCollisionMask) == 0)
+            continue;
+        Collision collision = collide(objectA, objectB, objectAIndex, objectBIndex);
+        if(collision.empty())
+            continue;
+        if((objectA.properties.myCollisionMask & objectB.properties.othersCollisionMask) != 0)
+            collisions.push_back(collision);
+        if((objectB.properties.myCollisionMask & objectA.properties.othersCollisionMask) != 0)
+            collisions.push_back(collision.reversed());
+    }
+    collidingPairsFromBroadPhase.clear();
 }
 
 void World::setupConstraints(WorldLockManager &lock_manager)

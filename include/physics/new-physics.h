@@ -318,6 +318,7 @@ private:
     std::vector<ObjectImp> lastObjectsArray;
     std::vector<SortingObjectForBroadPhase> sortedObjectsForBroadPhase;
     std::vector<std::pair<std::size_t, std::size_t>> collidingPairsFromBroadPhase;
+    std::vector<Collision> collisions;
     struct PublicState final
     {
         typedef std::mutex LockType;
