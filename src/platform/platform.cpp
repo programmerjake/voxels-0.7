@@ -63,12 +63,15 @@
 #include <SDL2/SDL_main.h>
 #endif // _MSC_VER
 #ifdef __IPHONEOS__
+#define GRAPHICS_OPENGL_ES
 #include <OpenGLES/ES1/gl.h>
 #include <OpenGLES/ES1/glext.h>
 #elif defined(__ANDROID__)
+#define GRAPHICS_OPENGL_ES
 #include <GLES/gl.h>
 #include <GLES/glext.h>
 #else
+#define GRAPHICS_OPENGL
 #include <GL/gl.h>
 #endif
 #if (defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
@@ -1688,7 +1691,7 @@ VectorF Display::transform3DToTouch(VectorF pos)
 float Display::getTouchControlSize()
 {
     // don't have code to implement getting display size in inches
-    return 0.25f;
+    return 0.3f;
 }
 
 namespace
@@ -1851,12 +1854,14 @@ void setupRenderLayers()
                 continue;
             glGenTextures(1, &renderLayerTexture[rl]);
             glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
-#if defined(__ANDROID__)
+#ifdef GRAPHICS_OPENGL_ES
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#else
+#elif defined(GRAPHICS_OPENGL)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+#else
+#error invalid graphics
 #endif
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -2432,6 +2437,7 @@ void finishDrawingRenderLayers()
 
 void getOpenGLBuffersExtension()
 {
+#ifdef GRAPHICS_OPENGL
     haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
     if(haveOpenGLBuffers)
     {
@@ -2545,6 +2551,75 @@ void getOpenGLBuffersExtension()
         }
     }
     haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two") ? true : false;
+#elif defined(GRAPHICS_OPENGL_ES)
+    haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_OES_mapbuffer") ? true : false;
+    if(haveOpenGLBuffers)
+    {
+        fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
+        fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
+        fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
+        fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+        fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferOES");
+        fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferOES");
+        if(!fnGLBindBuffer ||
+            !fnGLDeleteBuffers ||
+            !fnGLGenBuffers ||
+            !fnGLBufferData ||
+            !fnGLMapBuffer ||
+            !fnGLUnmapBuffer)
+        {
+            getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
+            haveOpenGLBuffers = false;
+            fnGLBindBuffer = nullptr;
+            fnGLDeleteBuffers = nullptr;
+            fnGLGenBuffers = nullptr;
+            fnGLBufferData = nullptr;
+            fnGLMapBuffer = nullptr;
+            fnGLUnmapBuffer = nullptr;
+        }
+    }
+    haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_OES_framebuffer_object") ? true : false;
+    if(haveOpenGLFramebuffers)
+    {
+        fnGlGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersOES");
+        fnGlDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersOES");
+        fnGlGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersOES");
+        fnGlDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersOES");
+        fnGlBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferOES");
+        fnGlBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferOES");
+        fnGlFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DOES");
+        fnGlRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageOES");
+        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferOES");
+        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusOES");
+        if(!fnGlGenFramebuffersEXT ||
+            !fnGlDeleteFramebuffersEXT ||
+            !fnGlGenRenderbuffersEXT ||
+            !fnGlDeleteRenderbuffersEXT ||
+            !fnGlBindFramebufferEXT ||
+            !fnGlBindRenderbufferEXT ||
+            !fnGlFramebufferTexture2DEXT ||
+            !fnGlRenderbufferStorageEXT ||
+            !fnGlFramebufferRenderbufferEXT ||
+            !fnGlCheckFramebufferStatusEXT)
+        {
+            getDebugLog() << L"couln't load OpenGL framebuffers extension" << postnl;
+            haveOpenGLFramebuffers = false;
+            fnGlGenFramebuffersEXT = nullptr;
+            fnGlDeleteFramebuffersEXT = nullptr;
+            fnGlGenRenderbuffersEXT = nullptr;
+            fnGlDeleteRenderbuffersEXT = nullptr;
+            fnGlBindFramebufferEXT = nullptr;
+            fnGlBindRenderbufferEXT = nullptr;
+            fnGlFramebufferTexture2DEXT = nullptr;
+            fnGlRenderbufferStorageEXT = nullptr;
+            fnGlFramebufferRenderbufferEXT = nullptr;
+            fnGlCheckFramebufferStatusEXT = nullptr;
+        }
+    }
+    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("GL_OES_texture_npot") ? true : false;
+#else
+#error invalid graphics
+#endif
 }
 
 struct FreeBuffer final
