@@ -20,6 +20,7 @@
  */
 
 #include "physics/new-physics.h"
+#include "util/lock.h"
 #include <algorithm>
 
 namespace programmerjake

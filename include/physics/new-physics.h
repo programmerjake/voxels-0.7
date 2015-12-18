@@ -19,7 +19,7 @@
  *
  */
 /*
- * Some of the algorithms and structures are from Bullet
+ * Some of the algorithms and structures are from Bullet.
  * Bullet license (zlib):
  *
  * Bullet Continuous Collision Detection and Physics Library
