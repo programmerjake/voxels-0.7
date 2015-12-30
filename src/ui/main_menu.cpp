@@ -79,8 +79,8 @@ std::shared_ptr<Element> MainMenu::setupMainMenu()
             {
                 stream::MemoryWriter writer;
                 gameUi->world->write(writer, gameUi->lock_manager);
-                stream::FileWriter fwriter(fileName);
-                fwriter.writeBytes(writer.getBuffer().data(), writer.getBuffer().size());
+                auto pfwriter = createOrWriteUserSpecificFile(fileName);
+                pfwriter->writeBytes(writer.getBuffer().data(), writer.getBuffer().size());
             }
             catch(stream::IOException &e)
             {
