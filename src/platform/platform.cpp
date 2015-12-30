@@ -407,6 +407,33 @@ namespace voxels
 {
 namespace
 {
+char *getPreferencesPath()
+{
+    startSDL();
+    return SDL_GetPrefPath("programmerjake", "voxels");
+}
+
+std::wstring makeUserSpecificFilePath(std::wstring name)
+{
+    static char *preferencesPath = getPreferencesPath();
+    if(!preferencesPath)
+        return name;
+    return string_cast<std::wstring>(preferencesPath) + name;
+}
+}
+
+std::shared_ptr<stream::Reader> readUserSpecificFile(std::wstring name)
+{
+    return std::make_shared<stream::FileReader>(makeUserSpecificFilePath(name));
+}
+
+std::shared_ptr<stream::Writer> createOrWriteUserSpecificFile(std::wstring name)
+{
+    return std::make_shared<stream::FileWriter>(makeUserSpecificFilePath(name));
+}
+
+namespace
+{
     atomic_bool simulatingTouchInput(false);
     struct TouchSimulationTouch final
     {

@@ -45,6 +45,8 @@ struct EventHandler;
 const float defaultFPS = 60;
 
 std::shared_ptr<stream::Reader> getResourceReader(std::wstring resource);
+std::shared_ptr<stream::Reader> readUserSpecificFile(std::wstring name);
+std::shared_ptr<stream::Writer> createOrWriteUserSpecificFile(std::wstring name);
 
 /** returns reader/writer pair
  @note Writer::flush should be called after writing before attempting to read

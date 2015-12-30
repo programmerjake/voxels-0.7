@@ -950,8 +950,8 @@ void GameUi::loadWorld(std::wstring fileName)
         TLS tls;
         try
         {
-            stream::FileReader reader(fileName);
-            generatedWorld = World::read(reader);
+            auto preader = readUserSpecificFile(fileName);
+            generatedWorld = World::read(*preader);
         }
         catch(stream::IOException &e)
         {
