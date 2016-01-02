@@ -42,545 +42,559 @@ namespace Scripting
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
-    struct Data : public std::enable_shared_from_this<Data>
+struct Data : public std::enable_shared_from_this<Data>
+{
+    GCC_PRAGMA(diagnostic pop)
+    enum class Type : std::uint8_t
     {
-GCC_PRAGMA(diagnostic pop)
-        enum class Type : std::uint8_t
-        {
-            Boolean,
-            Integer,
-            Float,
-            Vector,
-            Matrix,
-            List,
-            Object,
-            String,
-            DEFINE_ENUM_LIMITS(Boolean, String)
-        };
-        virtual Type type() const = 0;
-        virtual ~Data()
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const = 0;
-        virtual void write(stream::Writer &writer) const = 0;
-        static std::shared_ptr<Data> read(stream::Reader &reader);
-        virtual std::wstring toString() const = 0;
-        explicit operator std::wstring() const
-        {
-            return toString();
-        }
-        std::wstring typeString() const
-        {
-            switch(type())
-            {
-            case Type::Integer:
-                return L"integer";
-            case Type::Float:
-                return L"float";
-            case Type::Vector:
-                return L"vector";
-            case Type::Matrix:
-                return L"matrix";
-            case Type::List:
-                return L"list";
-            case Type::Object:
-                return L"object";
-            case Type::String:
-                return L"string";
-            case Type::Boolean:
-                return L"boolean";
-            }
-            UNREACHABLE();
-            return L"unknown";
-        }
+        Boolean,
+        Integer,
+        Float,
+        Vector,
+        Matrix,
+        List,
+        Object,
+        String,
+        DEFINE_ENUM_LIMITS(Boolean, String)
     };
-    struct DataBoolean final : public Data
+    virtual Type type() const = 0;
+    virtual ~Data()
     {
-        virtual Type type() const override
-        {
-            return Type::Boolean;
-        }
-        bool value;
-        DataBoolean(bool value = false)
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataBoolean(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            stream::write<bool>(writer, value);
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataBoolean> read(stream::Reader &reader)
-        {
-            return std::make_shared<DataBoolean>(stream::read<bool>(reader));
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            if(value)
-            {
-                return L"true";
-            }
-            return L"false";
-        }
-    };
-    struct DataInteger final : public Data
+    }
+    virtual std::shared_ptr<Data> dup() const = 0;
+    virtual void write(stream::Writer &writer) const = 0;
+    static std::shared_ptr<Data> read(stream::Reader &reader);
+    virtual std::wstring toString() const = 0;
+    explicit operator std::wstring() const
     {
-        virtual Type type() const override
-        {
-            return Type::Integer;
-        }
-        std::int32_t value;
-        DataInteger(std::int32_t value = 0)
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataInteger(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            stream::write<std::int32_t>(writer, value);
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataInteger> read(stream::Reader &reader)
-        {
-            return std::make_shared<DataInteger>(stream::read<std::int32_t>(reader));
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            std::wostringstream os;
-            os << value;
-            return os.str();
-        }
-    };
-    struct DataFloat final : public Data
+        return toString();
+    }
+    std::wstring typeString() const
     {
-        virtual Type type() const override
+        switch(type())
         {
-            return Type::Float;
+        case Type::Integer:
+            return L"integer";
+        case Type::Float:
+            return L"float";
+        case Type::Vector:
+            return L"vector";
+        case Type::Matrix:
+            return L"matrix";
+        case Type::List:
+            return L"list";
+        case Type::Object:
+            return L"object";
+        case Type::String:
+            return L"string";
+        case Type::Boolean:
+            return L"boolean";
         }
-        float value;
-        DataFloat(float value = 0)
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataFloat(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            writer.writeF32(value);
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataFloat> read(stream::Reader &reader)
-        {
-            return std::make_shared<DataFloat>(reader.readFiniteF32());
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            std::wostringstream os;
-            os << value << L"f";
-            return os.str();
-        }
-    };
-    struct DataVector final : public Data
+        UNREACHABLE();
+        return L"unknown";
+    }
+};
+struct DataBoolean final : public Data
+{
+    virtual Type type() const override
     {
-        virtual Type type() const override
+        return Type::Boolean;
+    }
+    bool value;
+    DataBoolean(bool value = false) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataBoolean(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        stream::write<bool>(writer, value);
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataBoolean> read(stream::Reader &reader)
+    {
+        return std::make_shared<DataBoolean>(stream::read<bool>(reader));
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        if(value)
         {
-            return Type::Vector;
+            return L"true";
         }
+        return L"false";
+    }
+};
+struct DataInteger final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::Integer;
+    }
+    std::int32_t value;
+    DataInteger(std::int32_t value = 0) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataInteger(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        stream::write<std::int32_t>(writer, value);
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataInteger> read(stream::Reader &reader)
+    {
+        return std::make_shared<DataInteger>(stream::read<std::int32_t>(reader));
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        std::wostringstream os;
+        os << value;
+        return os.str();
+    }
+};
+struct DataFloat final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::Float;
+    }
+    float value;
+    DataFloat(float value = 0) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataFloat(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        writer.writeF32(value);
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataFloat> read(stream::Reader &reader)
+    {
+        return std::make_shared<DataFloat>(reader.readFiniteF32());
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        std::wostringstream os;
+        os << value << L"f";
+        return os.str();
+    }
+};
+struct DataVector final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::Vector;
+    }
+    VectorF value;
+    DataVector(VectorF value = VectorF(0)) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataVector(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        writer.writeF32(value.x);
+        writer.writeF32(value.y);
+        writer.writeF32(value.z);
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataVector> read(stream::Reader &reader)
+    {
         VectorF value;
-        DataVector(VectorF value = VectorF(0))
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataVector(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            writer.writeF32(value.x);
-            writer.writeF32(value.y);
-            writer.writeF32(value.z);
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataVector> read(stream::Reader &reader)
-        {
-            VectorF value;
-            value.x = reader.readFiniteF32();
-            value.y = reader.readFiniteF32();
-            value.z = reader.readFiniteF32();
-            return std::make_shared<DataVector>(value);
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            std::wostringstream os;
-            os << L"<" << value.x << L", " << value.y << L", " << value.z << L">";
-            return os.str();
-        }
-    };
-    struct DataMatrix final : public Data
+        value.x = reader.readFiniteF32();
+        value.y = reader.readFiniteF32();
+        value.z = reader.readFiniteF32();
+        return std::make_shared<DataVector>(value);
+    }
+
+public:
+    virtual std::wstring toString() const override
     {
-        virtual Type type() const override
-        {
-            return Type::Matrix;
-        }
+        std::wostringstream os;
+        os << L"<" << value.x << L", " << value.y << L", " << value.z << L">";
+        return os.str();
+    }
+};
+struct DataMatrix final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::Matrix;
+    }
+    Matrix value;
+    DataMatrix(Matrix value = Matrix::identity()) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataMatrix(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        for(int x = 0; x < 4; x++)
+            for(int y = 0; y < 3; y++)
+            {
+                writer.writeF32(value.get(x, y));
+            }
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataMatrix> read(stream::Reader &reader)
+    {
         Matrix value;
-        DataMatrix(Matrix value = Matrix::identity())
-            : value(value)
+        for(int x = 0; x < 4; x++)
+            for(int y = 0; y < 3; y++)
+            {
+                value.set(x, y, reader.readFiniteF32());
+            }
+        return std::make_shared<DataMatrix>(value);
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        std::wostringstream os;
+        for(int y = 0; y < 4; y++)
         {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataMatrix(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
+            const wchar_t *str = L"|";
             for(int x = 0; x < 4; x++)
-                for(int y = 0; y < 3; y++)
-                {
-                    writer.writeF32(value.get(x, y));
-                }
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataMatrix> read(stream::Reader &reader)
-        {
-            Matrix value;
-            for(int x = 0; x < 4; x++)
-                for(int y = 0; y < 3; y++)
-                {
-                    value.set(x, y, reader.readFiniteF32());
-                }
-            return std::make_shared<DataMatrix>(value);
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            std::wostringstream os;
-            for(int y = 0; y < 4; y++)
             {
-                const wchar_t *str = L"|";
-                for(int x = 0; x < 4; x++)
-                {
-                    os << str << value.get(x, y);
-                    str = L" ";
-                }
-                os << L"|\n";
+                os << str << value.get(x, y);
+                str = L" ";
             }
-            return os.str();
+            os << L"|\n";
         }
-    };
-    struct DataList final : public Data
+        return os.str();
+    }
+};
+struct DataList final : public Data
+{
+    virtual Type type() const override
     {
-        virtual Type type() const override
-        {
-            return Type::List;
-        }
-        std::vector<std::shared_ptr<Data>> value;
-        DataList(const std::vector<std::shared_ptr<Data>> &value = std::vector<std::shared_ptr<Data>>())
-            : value(value)
-        {
-        }
-        DataList(std::vector<std::shared_ptr<Data>>  &&value)
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            auto retval = std::shared_ptr<DataList>(new DataList);
-            retval->value.reserve(value.size());
-            for(std::shared_ptr<Data> e : value)
-            {
-                retval->value.push_back(e->dup());
-            }
-            return std::static_pointer_cast<Data>(retval);
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            assert((std::uint32_t)value.size() == value.size() && value.size() != (std::uint32_t) - 1);
-            writer.writeU32((std::uint32_t)value.size());
-            for(std::shared_ptr<Data> v : value)
-            {
-                assert(v);
-                v->write(writer);
-            }
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataList> read(stream::Reader &reader)
-        {
-            std::shared_ptr<DataList> retval = std::make_shared<DataList>();
-            std::size_t length = reader.readLimitedU32(0, (std::uint32_t)-2);
-            retval->value.reserve(length);
-            for(size_t i = 0; i < length; i++)
-            {
-                retval->value.push_back(Data::read(reader));
-            }
-            return retval;
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            if(value.size() == 0)
-            {
-                return L"[]";
-            }
-            std::wostringstream os;
-            const wchar_t * str = L"[";
-            for(std::shared_ptr<Data> e : value)
-            {
-                os << str << (std::wstring)*e;
-                str = L", ";
-            }
-            os << L"]";
-            return os.str();
-        }
-    };
-    struct DataObject final : public Data
+        return Type::List;
+    }
+    std::vector<std::shared_ptr<Data>> value;
+    DataList(const std::vector<std::shared_ptr<Data>> &value = std::vector<std::shared_ptr<Data>>())
+        : value(value)
     {
-        virtual Type type() const override
-        {
-            return Type::Object;
-        }
-        std::unordered_map<std::wstring, std::shared_ptr<Data>> value;
-        DataObject(const std::unordered_map<std::wstring, std::shared_ptr<Data>> &value = std::unordered_map<std::wstring, std::shared_ptr<Data>>())
-            : value(value)
-        {
-        }
-        DataObject(std::unordered_map<std::wstring, std::shared_ptr<Data>>  &&value)
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            auto retval = std::shared_ptr<DataObject>(new DataObject);
-            for(std::pair<std::wstring, std::shared_ptr<Data>> e : value)
-            {
-                retval->value.insert(make_pair(std::get<0>(e), std::get<1>(e)->dup()));
-            }
-            return std::static_pointer_cast<Data>(retval);
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            assert((std::uint32_t)value.size() == value.size() && value.size() != (std::uint32_t) - 1);
-            writer.writeU32((std::uint32_t)value.size());
-            for(std::pair<std::wstring, std::shared_ptr<Data>> v : value)
-            {
-                assert(std::get<1>(v));
-                writer.writeString(std::get<0>(v));
-                (std::get<1>(v))->write(writer);
-            }
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataObject> read(stream::Reader &reader)
-        {
-            std::shared_ptr<DataObject> retval = std::make_shared<DataObject>();
-            std::size_t length = reader.readLimitedU32(0, (std::uint32_t) - 2);
-            for(std::size_t i = 0; i < length; i++)
-            {
-                std::wstring name = reader.readString();
-                retval->value[name] = Data::read(reader);
-            }
-            return retval;
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            if(value.size() == 0)
-            {
-                return L"{}";
-            }
-            std::wostringstream os;
-            const wchar_t * str = L"{";
-            for(std::pair<std::wstring, std::shared_ptr<Data>> e : value)
-            {
-                os << str << L"\"" << std::get<0>(e) << L"\" = " << (std::wstring)*std::get<1>(e);
-                str = L", ";
-            }
-            os << L"}";
-            return os.str();
-        }
-    };
-    struct DataString final : public Data
+    }
+    DataList(std::vector<std::shared_ptr<Data>> &&value) : value(value)
     {
-        virtual Type type() const override
-        {
-            return Type::String;
-        }
-        std::wstring value;
-        DataString(std::wstring value = L"")
-            : value(value)
-        {
-        }
-        virtual std::shared_ptr<Data> dup() const override
-        {
-            return std::shared_ptr<Data>(new DataString(value));
-        }
-        virtual void write(stream::Writer &writer) const override
-        {
-            stream::write<Type>(writer, type());
-            writer.writeString(value);
-        }
-        friend struct Data;
-    private:
-        static std::shared_ptr<DataString> read(stream::Reader &reader)
-        {
-            return std::make_shared<DataString>(reader.readString());
-        }
-    public:
-        virtual std::wstring toString() const override
-        {
-            return value;
-        }
-    };
-    struct ScriptException final : public std::runtime_error
+    }
+    virtual std::shared_ptr<Data> dup() const override
     {
-        std::shared_ptr<Data> data;
-        ScriptException(std::shared_ptr<Data> data)
-            : std::runtime_error(string_cast<std::string>((std::wstring)*data)), data(data)
+        auto retval = std::shared_ptr<DataList>(new DataList);
+        retval->value.reserve(value.size());
+        for(std::shared_ptr<Data> e : value)
         {
+            retval->value.push_back(e->dup());
         }
-        ScriptException(std::wstring str)
-            : ScriptException(std::static_pointer_cast<Data>(std::make_shared<DataString>(str)))
+        return std::static_pointer_cast<Data>(retval);
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        assert(static_cast<std::uint32_t>(value.size()) == value.size()
+               && value.size() != static_cast<std::uint32_t>(-1));
+        writer.writeU32(static_cast<std::uint32_t>(value.size()));
+        for(std::shared_ptr<Data> v : value)
         {
+            assert(v);
+            v->write(writer);
         }
-    };
-    struct State;
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataList> read(stream::Reader &reader)
+    {
+        std::shared_ptr<DataList> retval = std::make_shared<DataList>();
+        std::size_t length = reader.readLimitedU32(0, static_cast<std::uint32_t>(-2));
+        retval->value.reserve(length);
+        for(size_t i = 0; i < length; i++)
+        {
+            retval->value.push_back(Data::read(reader));
+        }
+        return retval;
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        if(value.size() == 0)
+        {
+            return L"[]";
+        }
+        std::wostringstream os;
+        const wchar_t *str = L"[";
+        for(std::shared_ptr<Data> e : value)
+        {
+            os << str << static_cast<std::wstring>(*e);
+            str = L", ";
+        }
+        os << L"]";
+        return os.str();
+    }
+};
+struct DataObject final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::Object;
+    }
+    std::unordered_map<std::wstring, std::shared_ptr<Data>> value;
+    DataObject(const std::unordered_map<std::wstring, std::shared_ptr<Data>> &value =
+                   std::unordered_map<std::wstring, std::shared_ptr<Data>>())
+        : value(value)
+    {
+    }
+    DataObject(std::unordered_map<std::wstring, std::shared_ptr<Data>> &&value) : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        auto retval = std::shared_ptr<DataObject>(new DataObject);
+        for(std::pair<std::wstring, std::shared_ptr<Data>> e : value)
+        {
+            retval->value.insert(make_pair(std::get<0>(e), std::get<1>(e)->dup()));
+        }
+        return std::static_pointer_cast<Data>(retval);
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        assert(static_cast<std::uint32_t>(value.size()) == value.size()
+               && value.size() != static_cast<std::uint32_t>(-1));
+        writer.writeU32(static_cast<std::uint32_t>(value.size()));
+        for(std::pair<std::wstring, std::shared_ptr<Data>> v : value)
+        {
+            assert(std::get<1>(v));
+            writer.writeString(std::get<0>(v));
+            (std::get<1>(v))->write(writer);
+        }
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataObject> read(stream::Reader &reader)
+    {
+        std::shared_ptr<DataObject> retval = std::make_shared<DataObject>();
+        std::size_t length = reader.readLimitedU32(0, static_cast<std::uint32_t>(-2));
+        for(std::size_t i = 0; i < length; i++)
+        {
+            std::wstring name = reader.readString();
+            retval->value[name] = Data::read(reader);
+        }
+        return retval;
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        if(value.size() == 0)
+        {
+            return L"{}";
+        }
+        std::wostringstream os;
+        const wchar_t *str = L"{";
+        for(std::pair<std::wstring, std::shared_ptr<Data>> e : value)
+        {
+            os << str << L"\"" << std::get<0>(e) << L"\" = "
+               << static_cast<std::wstring>(*std::get<1>(e));
+            str = L", ";
+        }
+        os << L"}";
+        return os.str();
+    }
+};
+struct DataString final : public Data
+{
+    virtual Type type() const override
+    {
+        return Type::String;
+    }
+    std::wstring value;
+    DataString(std::wstring value = L"") : value(value)
+    {
+    }
+    virtual std::shared_ptr<Data> dup() const override
+    {
+        return std::shared_ptr<Data>(new DataString(value));
+    }
+    virtual void write(stream::Writer &writer) const override
+    {
+        stream::write<Type>(writer, type());
+        writer.writeString(value);
+    }
+    friend struct Data;
+
+private:
+    static std::shared_ptr<DataString> read(stream::Reader &reader)
+    {
+        return std::make_shared<DataString>(reader.readString());
+    }
+
+public:
+    virtual std::wstring toString() const override
+    {
+        return value;
+    }
+};
+struct ScriptException final : public std::runtime_error
+{
+    std::shared_ptr<Data> data;
+    ScriptException(std::shared_ptr<Data> data)
+        : std::runtime_error(string_cast<std::string>(static_cast<std::wstring>(*data))), data(data)
+    {
+    }
+    ScriptException(std::wstring str)
+        : ScriptException(std::static_pointer_cast<Data>(std::make_shared<DataString>(str)))
+    {
+    }
+};
+struct State;
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
-    struct Node : public std::enable_shared_from_this<Node>
+struct Node : public std::enable_shared_from_this<Node>
+{
+    GCC_PRAGMA(diagnostic pop)
+    enum class Type : std::uint16_t
     {
-GCC_PRAGMA(diagnostic pop)
-        enum class Type : std::uint16_t
-        {
-            Const,
-            CastToString,
-            CastToInteger,
-            CastToFloat,
-            CastToVector,
-            CastToMatrix,
-            CastToList,
-            CastToObject,
-            CastToBoolean,
-            LoadGlobals,
-            ReadIndex,
-            AssignIndex,
-            Add,
-            Sub,
-            Mul,
-            Div,
-            Mod,
-            Pow,
-            And,
-            Or,
-            Xor,
-            Concat,
-            Dot,
-            Cross,
-            Equal,
-            NotEqual,
-            LessThan,
-            GreaterThan,
-            LessEqual,
-            GreaterEqual,
-            Not,
-            Neg,
-            Abs,
-            Sin,
-            Cos,
-            Tan,
-            ATan,
-            ASin,
-            ACos,
-            Exp,
-            Log,
-            Sqrt,
-            ATan2,
-            Conditional,
-            MakeRotate,
-            MakeRotateX,
-            MakeRotateY,
-            MakeRotateZ,
-            MakeScale,
-            MakeTranslate,
-            Block,
-            ListLiteral,
-            NewObject,
-            DoWhile,
-            RemoveTranslate,
-            Invert,
-            Ceil,
-            Floor,
-            For,
-            DEFINE_ENUM_LIMITS(Const, For)
-        };
+        Const,
+        CastToString,
+        CastToInteger,
+        CastToFloat,
+        CastToVector,
+        CastToMatrix,
+        CastToList,
+        CastToObject,
+        CastToBoolean,
+        LoadGlobals,
+        ReadIndex,
+        AssignIndex,
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        Pow,
+        And,
+        Or,
+        Xor,
+        Concat,
+        Dot,
+        Cross,
+        Equal,
+        NotEqual,
+        LessThan,
+        GreaterThan,
+        LessEqual,
+        GreaterEqual,
+        Not,
+        Neg,
+        Abs,
+        Sin,
+        Cos,
+        Tan,
+        ATan,
+        ASin,
+        ACos,
+        Exp,
+        Log,
+        Sqrt,
+        ATan2,
+        Conditional,
+        MakeRotate,
+        MakeRotateX,
+        MakeRotateY,
+        MakeRotateZ,
+        MakeScale,
+        MakeTranslate,
+        Block,
+        ListLiteral,
+        NewObject,
+        DoWhile,
+        RemoveTranslate,
+        Invert,
+        Ceil,
+        Floor,
+        For,
+        DEFINE_ENUM_LIMITS(Const, For)
+    };
 
-        virtual ~Node()
-        {
-        }
-        virtual Type type() const = 0;
-        virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth = 0) const = 0;
-        virtual void write(stream::Writer &writer) const = 0;
-        static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount);
-    protected:
-        static void checkStackDepth(unsigned stackDepth)
-        {
-            if(stackDepth > 1000)
-            {
-                throw ScriptException(L"stack depth limit exceeded");
-            }
-        }
-    };
-    struct State final
+    virtual ~Node()
     {
-        std::shared_ptr<DataObject> variables;
-        unsigned loopCount = 0;
-        void onLoop()
+    }
+    virtual Type type() const = 0;
+    virtual std::shared_ptr<Data> evaluate(State &state, unsigned stackDepth = 0) const = 0;
+    virtual void write(stream::Writer &writer) const = 0;
+    static std::shared_ptr<Node> read(stream::Reader &reader, std::uint32_t nodeCount);
+
+protected:
+    static void checkStackDepth(unsigned stackDepth)
+    {
+        if(stackDepth > 1000)
         {
-            if(++loopCount >= 100000)
-                throw ScriptException(L"too many loops");
+            throw ScriptException(L"stack depth limit exceeded");
         }
-        const std::vector<std::shared_ptr<Node>> &nodes;
-        State(const std::vector<std::shared_ptr<Node>> &nodes)
-            : variables(std::make_shared<DataObject>()), nodes(nodes)
-        {
-        }
-    };
+    }
+};
+struct State final
+{
+    std::shared_ptr<DataObject> variables;
+    unsigned loopCount = 0;
+    void onLoop()
+    {
+        if(++loopCount >= 100000)
+            throw ScriptException(L"too many loops");
+    }
+    const std::vector<std::shared_ptr<Node>> &nodes;
+    State(const std::vector<std::shared_ptr<Node>> &nodes)
+        : variables(std::make_shared<DataObject>()), nodes(nodes)
+    {
+    }
+};
 }
 
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class Script final : public std::enable_shared_from_this<Script>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
 public:
     std::vector<std::shared_ptr<Scripting::Node>> nodes;
-    std::shared_ptr<Scripting::Data> evaluate(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    std::shared_ptr<Scripting::Data> evaluate(std::shared_ptr<Scripting::DataObject> inputObject =
+                                                  std::make_shared<Scripting::DataObject>()) const
     {
         Scripting::State state(nodes);
         if(inputObject == nullptr)
@@ -588,7 +602,8 @@ public:
         state.variables->value[L"io"] = inputObject;
         return nodes.back()->evaluate(state);
     }
-    Matrix evaluateAsMatrix(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    Matrix evaluateAsMatrix(std::shared_ptr<Scripting::DataObject> inputObject =
+                                std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::Matrix)
@@ -597,7 +612,8 @@ public:
         }
         return std::dynamic_pointer_cast<Scripting::DataMatrix>(retval)->value;
     }
-    VectorF evaluateAsVector(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    VectorF evaluateAsVector(std::shared_ptr<Scripting::DataObject> inputObject =
+                                 std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::Vector)
@@ -606,7 +622,8 @@ public:
         }
         return std::dynamic_pointer_cast<Scripting::DataVector>(retval)->value;
     }
-    std::int32_t evaluateAsInteger(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    std::int32_t evaluateAsInteger(std::shared_ptr<Scripting::DataObject> inputObject =
+                                       std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::Integer)
@@ -615,7 +632,8 @@ public:
         }
         return std::dynamic_pointer_cast<Scripting::DataInteger>(retval)->value;
     }
-    float evaluateAsFloat(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    float evaluateAsFloat(std::shared_ptr<Scripting::DataObject> inputObject =
+                              std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::Float)
@@ -624,7 +642,8 @@ public:
         }
         return std::dynamic_pointer_cast<Scripting::DataFloat>(retval)->value;
     }
-    std::wstring evaluateAsString(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    std::wstring evaluateAsString(std::shared_ptr<Scripting::DataObject> inputObject =
+                                      std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::String)
@@ -633,7 +652,8 @@ public:
         }
         return std::dynamic_pointer_cast<Scripting::DataString>(retval)->value;
     }
-    bool evaluateAsBoolean(std::shared_ptr<Scripting::DataObject> inputObject = std::make_shared<Scripting::DataObject>()) const
+    bool evaluateAsBoolean(std::shared_ptr<Scripting::DataObject> inputObject =
+                               std::make_shared<Scripting::DataObject>()) const
     {
         std::shared_ptr<Scripting::Data> retval = evaluate(inputObject);
         if(retval->type() != Scripting::Data::Type::Boolean)
@@ -690,7 +710,14 @@ inline std::shared_ptr<Scripting::Data> Scripting::Data::read(stream::Reader &re
     return nullptr;
 }
 
-inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_ptr<Script> script, VectorF position, VectorF velocity, float age, std::shared_ptr<Scripting::DataObject> ioObject = std::make_shared<Scripting::DataObject>())
+inline void runEntityPartScript(
+    Mesh &dest,
+    const Mesh &partMesh,
+    std::shared_ptr<Script> script,
+    VectorF position,
+    VectorF velocity,
+    float age,
+    std::shared_ptr<Scripting::DataObject> ioObject = std::make_shared<Scripting::DataObject>())
 {
     try
     {
@@ -698,7 +725,8 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
         ioObject->value[L"position"] = std::make_shared<Scripting::DataVector>(position);
         ioObject->value[L"velocity"] = std::make_shared<Scripting::DataVector>(velocity);
         ioObject->value[L"doDraw"] = std::make_shared<Scripting::DataBoolean>(true);
-        ioObject->value[L"transform"] = std::make_shared<Scripting::DataMatrix>(Matrix::translate(position));
+        ioObject->value[L"transform"] =
+            std::make_shared<Scripting::DataMatrix>(Matrix::translate(position));
         ioObject->value[L"colorR"] = std::make_shared<Scripting::DataFloat>(1.0f);
         ioObject->value[L"colorG"] = std::make_shared<Scripting::DataFloat>(1.0f);
         ioObject->value[L"colorB"] = std::make_shared<Scripting::DataFloat>(1.0f);
@@ -742,9 +770,10 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
         if(colorA < 0 || colorA > 1)
             throw Scripting::ScriptException(L"io.colorA is not a valid value");
         if(doDraw)
-            dest.append(colorize(RGBAF(colorR, colorG, colorB, colorA), transform(tform, partMesh)));
+            dest.append(
+                colorize(RGBAF(colorR, colorG, colorB, colorA), transform(tform, partMesh)));
     }
-    catch(Scripting::ScriptException & e)
+    catch(Scripting::ScriptException &e)
     {
         getDebugLog() << L"scripting error : " << string_cast<std::wstring>(e.what()) << postnl;
     }
@@ -753,4 +782,3 @@ inline void runEntityPartScript(Mesh &dest, const Mesh &partMesh, std::shared_pt
 }
 
 #endif // SCRIPT_H_INCLUDED
-

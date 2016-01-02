@@ -96,7 +96,7 @@ public:
         : index(NullIndex)
     {
     }
-    static constexpr std::uint16_t NullIndex = ~(std::uint16_t)0;
+    static constexpr std::uint16_t NullIndex = ~static_cast<std::uint16_t>(0);
     constexpr BlockDescriptorIndex(std::nullptr_t)
         : index(NullIndex)
     {
@@ -415,7 +415,7 @@ struct PackedBlock final
     }
     explicit operator Block() const
     {
-        return Block(descriptor.get(), (Lighting)lighting, data);
+        return Block(descriptor.get(), static_cast<Lighting>(lighting), data);
     }
 };
 
@@ -448,9 +448,9 @@ namespace std
 template <>
 struct hash<programmerjake::voxels::BlockDescriptorIndex>
 {
-    size_t operator()(const programmerjake::voxels::BlockDescriptorIndex v) const
+    std::size_t operator()(const programmerjake::voxels::BlockDescriptorIndex v) const
     {
-        return (std::size_t)v.index;
+        return static_cast<std::size_t>(v.index);
     }
 };
 template <typename T>

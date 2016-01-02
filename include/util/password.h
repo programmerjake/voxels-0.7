@@ -38,17 +38,17 @@ namespace Password
 struct Salt final
 {
     checked_array<std::uint8_t, 4 * 4> value;
+
 private:
     struct do_not_generate_tag final
     {
     };
-    Salt(do_not_generate_tag)
-        : value()
+    Salt(do_not_generate_tag) : value()
     {
     }
+
 public:
-    Salt()
-        : value()
+    Salt() : value()
     {
         std::random_device rd;
         std::size_t bitsLeft = 0;
@@ -60,14 +60,14 @@ public:
                 v = std::uniform_int_distribution<std::uint32_t>()(rd);
                 bitsLeft = 32;
             }
-            byte = (std::uint8_t)(v & 0xFF);
+            byte = static_cast<std::uint8_t>(v & 0xFF);
             v >>= 8;
             bitsLeft -= 8;
         }
     }
     std::string asByteString() const
     {
-        return std::string((const char *)&value[0], value.size());
+        return std::string(reinterpret_cast<const char *>(&value[0]), value.size());
     }
     std::string asHexString() const
     {
@@ -77,7 +77,7 @@ public:
         for(std::uint8_t byte : value)
         {
             ss.width(2);
-            ss << (unsigned)byte;
+            ss << static_cast<unsigned>(byte);
         }
         return ss.str();
     }
@@ -101,21 +101,21 @@ struct HashedPassword final
     std::string hash;
     std::uint32_t iterationCount;
     HashedPassword(Salt salt, std::string hash, std::uint32_t iterationCount)
-        : salt(salt),
-        hash(hash),
-        iterationCount(iterationCount)
+        : salt(salt), hash(hash), iterationCount(iterationCount)
     {
     }
-    HashedPassword(std::wstring password, std::chrono::microseconds hashForDuration = std::chrono::microseconds(100000))
+    HashedPassword(std::wstring password,
+                   std::chrono::microseconds hashForDuration = std::chrono::microseconds(100000))
         : salt(), // create a new salt
-        hash(),
-        iterationCount()
+          hash(),
+          iterationCount()
     {
         std::string passwordInUtf8 = string_cast<std::string>(std::move(password));
         std::string saltByteString = salt.asByteString();
         std::string h = sha256HashString(saltByteString + passwordInUtf8 + saltByteString);
         auto startTime = std::chrono::steady_clock::now();
-        for(iterationCount = 0; iterationCount < std::numeric_limits<std::uint32_t>::max(); iterationCount++)
+        for(iterationCount = 0; iterationCount < std::numeric_limits<std::uint32_t>::max();
+            iterationCount++)
         {
             if(iterationCount % 256 == 0)
             {
@@ -148,7 +148,8 @@ struct HashedPassword final
     static HashedPassword read(stream::Reader &reader)
     {
         Salt salt = stream::read<Salt>(reader);
-        std::string hash = string_cast<std::string>((std::wstring)stream::read<std::wstring>(reader));
+        std::string hash =
+            string_cast<std::string>(static_cast<std::wstring>(stream::read<std::wstring>(reader)));
         std::uint32_t iterationCount = stream::read<std::uint32_t>(reader);
         return HashedPassword(salt, hash, iterationCount);
     }

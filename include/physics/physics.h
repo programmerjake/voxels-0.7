@@ -466,7 +466,7 @@ private:
     {
         std::size_t operator()(const CollisionEvent & ce) const
         {
-            return std::hash<double>()(ce.collisionTime) + (std::size_t)ce.aTag + (std::size_t)ce.bTag;
+            return std::hash<double>()(ce.collisionTime) + static_cast<std::size_t>(ce.aTag) + static_cast<std::size_t>(ce.bTag);
         }
     };
     struct CollisionEventCompare final
@@ -745,7 +745,7 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
     VectorF lExtents = extents;
     VectorF rExtents = rt.extents;
     VectorF extentsSum = lExtents + rExtents;
-    VectorF deltaPosition = (VectorF)lPosition - (VectorF)rPosition;
+    VectorF deltaPosition = static_cast<VectorF>(lPosition) - static_cast<VectorF>(rPosition);
     if(std::abs(deltaPosition.x) > PhysicsWorld::distanceEPS + extentsSum.x)
         return false;
     if(std::abs(deltaPosition.y) > PhysicsWorld::distanceEPS + extentsSum.y)
@@ -767,16 +767,16 @@ inline bool PhysicsObject::collides(const PhysicsObject & rt) const
         VectorF boxExtents;
         if(isBox())
         {
-            cylinderCenter = (VectorF)rPosition;
+            cylinderCenter = static_cast<VectorF>(rPosition);
             cylinderRadius = rt.extents.x;
-            boxCenter = (VectorF)lPosition;
+            boxCenter = static_cast<VectorF>(lPosition);
             boxExtents = extents;
         }
         else
         {
-            cylinderCenter = (VectorF)lPosition;
+            cylinderCenter = static_cast<VectorF>(lPosition);
             cylinderRadius = extents.x;
-            boxCenter = (VectorF)rPosition;
+            boxCenter = static_cast<VectorF>(rPosition);
             boxExtents = rt.extents;
         }
         cylinderCenter.y = 0;
@@ -1010,16 +1010,16 @@ inline bool PhysicsObject::isSupportedBy(const PhysicsObject & rt) const
                     VectorF boxExtents;
                     if(isBox())
                     {
-                        cylinderCenter = (VectorF)bPosition;
+                        cylinderCenter = static_cast<VectorF>(bPosition);
                         cylinderRadius = rt.extents.x;
-                        boxCenter = (VectorF)aPosition;
+                        boxCenter = static_cast<VectorF>(aPosition);
                         boxExtents = extents;
                     }
                     else
                     {
-                        cylinderCenter = (VectorF)aPosition;
+                        cylinderCenter = static_cast<VectorF>(aPosition);
                         cylinderRadius = extents.x;
-                        boxCenter = (VectorF)bPosition;
+                        boxCenter = static_cast<VectorF>(bPosition);
                         boxExtents = rt.extents;
                     }
                     cylinderCenter.y = 0;

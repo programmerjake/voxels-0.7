@@ -227,13 +227,13 @@ public:
     }
     void moveTo(VectorI pos, TLS &tls)
     {
-        moveBy(pos - (VectorI)position(), tls);
+        moveBy(pos - static_cast<VectorI>(position()), tls);
     }
     void moveTo(PositionI pos, TLS &tls)
     {
         if(pos.d == currentBasePosition.d)
         {
-            moveTo((VectorI)pos, tls);
+            moveTo(static_cast<VectorI>(pos), tls);
         }
         else
         {

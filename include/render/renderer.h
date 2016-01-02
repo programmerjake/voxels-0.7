@@ -59,11 +59,11 @@ public:
     }
     Renderer & operator <<(ColorizedMesh m)
     {
-        return *this << (Mesh)m;
+        return *this << static_cast<Mesh>(m);
     }
     Renderer & operator <<(ColorizedTransformedMesh m)
     {
-        return *this << (Mesh)m;
+        return *this << static_cast<Mesh>(m);
     }
     Renderer & operator <<(TransformedMeshRef m)
     {
@@ -72,11 +72,11 @@ public:
     }
     Renderer & operator <<(ColorizedMeshRef m)
     {
-        return *this << (Mesh)m;
+        return *this << static_cast<Mesh>(m);
     }
     Renderer & operator <<(ColorizedTransformedMeshRef m)
     {
-        return *this << (Mesh)m;
+        return *this << static_cast<Mesh>(m);
     }
     Renderer & operator <<(TransformedMeshRRef &&m)
     {
@@ -85,11 +85,11 @@ public:
     }
     Renderer & operator <<(ColorizedMeshRRef &&m)
     {
-        return *this << (Mesh)std::move(m);
+        return *this << static_cast<Mesh>(std::move(m));
     }
     Renderer & operator <<(ColorizedTransformedMeshRRef &&m)
     {
-        return *this << (Mesh)std::move(m);
+        return *this << static_cast<Mesh>(std::move(m));
     }
     Renderer & operator <<(std::shared_ptr<Mesh> m)
     {

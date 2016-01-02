@@ -38,7 +38,7 @@ namespace voxels
 class DecoratorDescriptor;
 typedef const DecoratorDescriptor *DecoratorDescriptorPointer;
 typedef std::size_t DecoratorDescriptorIndex;
-static constexpr DecoratorDescriptorIndex DecoratorDescriptorIndexNone = ~(DecoratorDescriptorIndex)0;
+static constexpr DecoratorDescriptorIndex DecoratorDescriptorIndexNone = ~static_cast<DecoratorDescriptorIndex>(0);
 class DecoratorDescriptors_t final
 {
     friend class DecoratorDescriptor;

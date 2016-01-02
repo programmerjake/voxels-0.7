@@ -42,7 +42,7 @@ struct TextureDescriptor
     }
     operator bool() const
     {
-        return (bool)image;
+        return static_cast<bool>(image);
     }
     bool operator !() const
     {

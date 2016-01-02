@@ -64,12 +64,12 @@ GCC_PRAGMA(diagnostic pop)
         }
     public:
         iterator()
-            : container(nullptr)
+            : container(nullptr), index()
         {
         }
         iterator &operator +=(difference_type n)
         {
-            if(-n > (difference_type)index)
+            if(-n > static_cast<difference_type>(index))
             {
                 n = n % arraySize + arraySize;
             }
@@ -239,7 +239,7 @@ GCC_PRAGMA(diagnostic pop)
         }
     public:
         const_iterator()
-            : container(nullptr)
+            : container(nullptr), index()
         {
         }
         const_iterator(const iterator &v)
@@ -248,7 +248,7 @@ GCC_PRAGMA(diagnostic pop)
         }
         const_iterator &operator +=(difference_type n)
         {
-            if(-n > (difference_type)index)
+            if(-n > static_cast<difference_type>(index))
             {
                 n = n % arraySize + arraySize;
             }
@@ -284,24 +284,24 @@ GCC_PRAGMA(diagnostic pop)
             assert(container == r.container && container != nullptr);
             difference_type loc = index + arraySize - container->frontIndex;
 
-            if((std::size_t)loc >= arraySize)
+            if(static_cast<std::size_t>(loc) >= arraySize)
             {
                 loc -= arraySize;
             }
 
-            if((std::size_t)loc >= arraySize)
+            if(static_cast<std::size_t>(loc) >= arraySize)
             {
                 loc -= arraySize;
             }
 
             difference_type rloc = r.index + arraySize - container->frontIndex;
 
-            if((std::size_t)rloc >= arraySize)
+            if(static_cast<std::size_t>(rloc) >= arraySize)
             {
                 rloc -= arraySize;
             }
 
-            if((std::size_t)rloc >= arraySize)
+            if(static_cast<std::size_t>(rloc) >= arraySize)
             {
                 rloc -= arraySize;
             }

@@ -384,7 +384,7 @@ struct Mesh
         triangles.reserve(triangleCount);
         for(std::uint32_t i = 0; i < triangleCount; i++)
         {
-            triangles.push_back((Triangle)stream::read<Triangle>(reader));
+            triangles.push_back(static_cast<Triangle>(stream::read<Triangle>(reader)));
         }
         Image image = stream::read<Image>(reader);
         return Mesh(triangles, image);

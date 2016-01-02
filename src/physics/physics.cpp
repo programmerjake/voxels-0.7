@@ -26,10 +26,12 @@ namespace voxels
 {
 void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
 {
-    //getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime - currentTime) << postnl;
+    // getDebugLog() << L"objects.size(): " << objects.size() << L" Run Duration: " << (stopTime -
+    // currentTime) << postnl;
     std::unique_lock<generic_lock_wrapper> lockIt(theLock);
     float stepDuration = 1 / 30.0f;
-    std::size_t stepCount = (std::size_t)std::ceil((stopTime - currentTime) / stepDuration - 0.1f);
+    std::size_t stepCount =
+        static_cast<std::size_t>(std::ceil((stopTime - currentTime) / stepDuration - 0.1f));
     if(stepCount < 1)
         stepCount = 1;
     constexpr float searchEps = 0.1f;
@@ -61,11 +63,16 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             std::vector<std::pair<float, std::shared_ptr<PhysicsObject>>> temporaryObjectsVector;
             temporaryObjectsVector.resize(objectsVector.size());
             for(std::size_t i = 0; i < temporaryObjectsVector.size(); i++)
-                temporaryObjectsVector[i] = std::make_pair(objectsVector[i]->getPosition().y - objectsVector[i]->getExtents().y, objectsVector[i]);
-            std::sort(temporaryObjectsVector.begin(), temporaryObjectsVector.end(), [](std::pair<float, std::shared_ptr<PhysicsObject>> a, std::pair<float, std::shared_ptr<PhysicsObject>> b)
-            {
-                return std::get<0>(a) < std::get<0>(b);
-            });
+                temporaryObjectsVector[i] = std::make_pair(
+                    objectsVector[i]->getPosition().y - objectsVector[i]->getExtents().y,
+                    objectsVector[i]);
+            std::sort(temporaryObjectsVector.begin(),
+                      temporaryObjectsVector.end(),
+                      [](std::pair<float, std::shared_ptr<PhysicsObject>> a,
+                         std::pair<float, std::shared_ptr<PhysicsObject>> b)
+                      {
+                          return std::get<0>(a) < std::get<0>(b);
+                      });
             for(std::size_t i = 0; i < temporaryObjectsVector.size(); i++)
                 objectsVector[i] = std::get<1>(temporaryObjectsVector[i]);
             for(auto i = objectsVector.begin(); i != objectsVector.end(); i++)
@@ -97,14 +104,18 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 int minZ = ifloor(fMin.z);
                 int maxZ = iceil(fMax.z);
                 std::shared_ptr<PhysicsObject> objectB;
-                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
-                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX(lock_manager.tls))
+                BlockIterator bix =
+                    getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                for(int xPosition = minX; xPosition <= maxX;
+                    xPosition++, bix.moveTowardPX(lock_manager.tls))
                 {
                     BlockIterator bixy = bix;
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY(lock_manager.tls))
+                    for(int yPosition = minY; yPosition <= maxY;
+                        yPosition++, bixy.moveTowardPY(lock_manager.tls))
                     {
                         BlockIterator bi = bixy;
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ(lock_manager.tls))
+                        for(int zPosition = minZ; zPosition <= maxZ;
+                            zPosition++, bi.moveTowardPZ(lock_manager.tls))
                         {
                             setObjectToBlock(objectB, bi, lock_manager);
                             bool supported = objectA->isSupportedBy(*objectB);
@@ -132,17 +143,12 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             struct HashNode final
             {
                 HashNode(const HashNode &) = delete;
-                HashNode &operator =(const HashNode &) = delete;
+                HashNode &operator=(const HashNode &) = delete;
                 ObjectCounter<PhysicsWorld, 1> objectCounter;
-                HashNode * hashNext;
+                HashNode *hashNext;
                 int x, z;
                 std::shared_ptr<PhysicsObject> object;
-                HashNode()
-                    : objectCounter(),
-                    hashNext(),
-                    x(),
-                    z(),
-                    object()
+                HashNode() : objectCounter(), hashNext(), x(), z(), object()
                 {
                 }
             };
@@ -151,8 +157,9 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             struct FreeListHeadTag
             {
             };
-            thread_local_variable<HashNode *, FreeListHeadTag> freeListHeadTLS(lock_manager.tls, nullptr);
-            HashNode *& freeListHead = freeListHeadTLS.get();
+            thread_local_variable<HashNode *, FreeListHeadTag> freeListHeadTLS(lock_manager.tls,
+                                                                               nullptr);
+            HashNode *&freeListHead = freeListHeadTLS.get();
             std::vector<std::shared_ptr<PhysicsObject>> collideObjectsList;
             collideObjectsList.reserve(objects.size());
             for(auto i = objects.begin(); i != objects.end();)
@@ -181,7 +188,9 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 float fMaxZ = position.z + extents.z;
                 int minZ = ifloor(fMinZ * zScaleFactor);
                 int maxZ = iceil(fMaxZ * zScaleFactor);
-                if((std::size_t)(maxZ - minZ) * (std::size_t)(maxX * minX) > (std::size_t)(xScaleFactor + 1) * (std::size_t)(zScaleFactor + 1))
+                if(static_cast<std::size_t>(maxZ - minZ) * static_cast<std::size_t>(maxX * minX)
+                   > static_cast<std::size_t>(xScaleFactor + 1)
+                         * static_cast<std::size_t>(zScaleFactor + 1))
                 {
                     collideObjectsList.push_back(o);
                 }
@@ -191,12 +200,13 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                     {
                         for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
                         {
-                            HashNode * node = freeListHead;
+                            HashNode *node = freeListHead;
                             if(node != nullptr)
                                 freeListHead = freeListHead->hashNext;
                             else
                                 node = new HashNode;
-                            std::size_t hash = (std::size_t)(xPosition * 8191 + zPosition) % bigHashPrime;
+                            std::size_t hash =
+                                static_cast<std::size_t>(xPosition * 8191 + zPosition) % bigHashPrime;
                             node->hashNext = overallHashTable.at(hash);
                             node->x = xPosition;
                             node->z = zPosition;
@@ -230,16 +240,18 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 {
                     for(int zPosition = minZ; zPosition <= maxZ; zPosition++)
                     {
-                        std::size_t hash = (std::size_t)(xPosition * 8191 + zPosition);
+                        std::size_t hash = static_cast<std::size_t>(xPosition * 8191 + zPosition);
                         hash %= bigHashPrime;
-                        HashNode * node = overallHashTable.at(hash);
+                        HashNode *node = overallHashTable.at(hash);
                         while(node != nullptr)
                         {
                             if(node->x == xPosition && node->z == zPosition) // found one
                             {
-                                std::size_t perObjectHash = std::hash<std::shared_ptr<PhysicsObject>>()(node->object) % smallHashPrime;
-                                HashNode ** pnode = &perObjectHashTable.at(perObjectHash);
-                                HashNode * node2 = *pnode;
+                                std::size_t perObjectHash =
+                                    std::hash<std::shared_ptr<PhysicsObject>>()(node->object)
+                                    % smallHashPrime;
+                                HashNode **pnode = &perObjectHashTable.at(perObjectHash);
+                                HashNode *node2 = *pnode;
                                 bool found = false;
                                 while(node2 != nullptr)
                                 {
@@ -269,11 +281,11 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                         }
                     }
                 }
-                for(HashNode * node : perObjectHashTable)
+                for(HashNode *node : perObjectHashTable)
                 {
                     while(node != nullptr)
                     {
-                        HashNode * nextNode = node->hashNext;
+                        HashNode *nextNode = node->hashNext;
                         node->hashNext = freeListHead;
                         freeListHead = node;
                         node = nextNode;
@@ -285,7 +297,8 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                     if(objectA != objectB && objectA->collides(*objectB))
                     {
                         anyCollisions = true;
-                        std::shared_ptr<PhysicsCollisionHandler> collisionHandler = objectA->getCollisionHandler();
+                        std::shared_ptr<PhysicsCollisionHandler> collisionHandler =
+                            objectA->getCollisionHandler();
                         if(collisionHandler != nullptr)
                         {
                             lockIt.unlock();
@@ -293,7 +306,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                             lockIt.lock();
                         }
                         objectA->adjustPosition(*objectB);
-                        //debugLog << "collision" << std::endl;
+                        // debugLog << "collision" << std::endl;
                     }
                 }
                 lockIt.unlock();
@@ -308,14 +321,18 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 std::shared_ptr<PhysicsObject> objectB;
                 std::shared_ptr<PhysicsObject> objectBForEffectRegion;
                 BlockEffects newBlockEffects(nullptr);
-                BlockIterator bix = getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
-                for(int xPosition = minX; xPosition <= maxX; xPosition++, bix.moveTowardPX(lock_manager.tls))
+                BlockIterator bix =
+                    getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                for(int xPosition = minX; xPosition <= maxX;
+                    xPosition++, bix.moveTowardPX(lock_manager.tls))
                 {
                     BlockIterator bixy = bix;
-                    for(int yPosition = minY; yPosition <= maxY; yPosition++, bixy.moveTowardPY(lock_manager.tls))
+                    for(int yPosition = minY; yPosition <= maxY;
+                        yPosition++, bixy.moveTowardPY(lock_manager.tls))
                     {
                         BlockIterator bi = bixy;
-                        for(int zPosition = minZ; zPosition <= maxZ; zPosition++, bi.moveTowardPZ(lock_manager.tls))
+                        for(int zPosition = minZ; zPosition <= maxZ;
+                            zPosition++, bi.moveTowardPZ(lock_manager.tls))
                         {
                             Block b = bi.get(lock_manager);
                             setObjectToBlock(objectB, bi, lock_manager);
@@ -328,7 +345,8 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                             if(objectA->collides(*objectB))
                             {
                                 anyCollisions = true;
-                                std::shared_ptr<PhysicsCollisionHandler> collisionHandler = objectA->getCollisionHandler();
+                                std::shared_ptr<PhysicsCollisionHandler> collisionHandler =
+                                    objectA->getCollisionHandler();
                                 if(collisionHandler != nullptr)
                                 {
                                     lockIt.unlock();
@@ -346,15 +364,16 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 {
                     for(PhysicsConstraint constraint : *objectA->constraints)
                     {
-                        constraint(objectA->position[getNewVariableSetIndex()], objectA->velocity[getNewVariableSetIndex()]);
+                        constraint(objectA->position[getNewVariableSetIndex()],
+                                   objectA->velocity[getNewVariableSetIndex()]);
                     }
                 }
             }
-            for(HashNode * node : overallHashTable)
+            for(HashNode *node : overallHashTable)
             {
                 while(node != nullptr)
                 {
-                    HashNode * nextNode = node->hashNext;
+                    HashNode *nextNode = node->hashNext;
                     node->hashNext = freeListHead;
                     freeListHead = node;
                     node = nextNode;

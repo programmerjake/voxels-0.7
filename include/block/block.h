@@ -213,7 +213,7 @@ public:
             }
 
             bool drewAny = false;
-            Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+            Matrix tform = Matrix::translate(static_cast<VectorF>(blockIterator.position()));
             Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
             Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
             blockMesh.clear();

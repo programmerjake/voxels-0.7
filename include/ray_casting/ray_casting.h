@@ -45,13 +45,13 @@ typedef std::uint32_t BlockCollisionMask;
 constexpr BlockCollisionMask BlockCollisionMaskGround = 1 << 0;
 constexpr BlockCollisionMask BlockCollisionMaskFluid = 1 << 1;
 constexpr BlockCollisionMask BlockCollisionMaskDefault = ~BlockCollisionMaskFluid;
-constexpr BlockCollisionMask BlockCollisionMaskEverything = ~(BlockCollisionMask)0;
+constexpr BlockCollisionMask BlockCollisionMaskEverything = ~static_cast<BlockCollisionMask>(0);
 inline BlockCollisionMask allocateBlockCollisionMask()
 {
     static std::atomic_int nextBit(2);
     int bit = nextBit++;
     assert(bit < 32);
-    return (BlockCollisionMask)1 << bit;
+    return static_cast<BlockCollisionMask>(1) << bit;
 }
 
 struct Ray final

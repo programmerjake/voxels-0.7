@@ -38,83 +38,82 @@ struct VectorF;
 struct VectorI
 {
     std::int32_t x, y, z;
-    constexpr VectorI(std::int32_t x, std::int32_t y, std::int32_t z)
-        : x(x), y(y), z(z)
-    {
-    }
-public:
-    constexpr VectorI(std::int32_t v = 0)
-        : x(v), y(v), z(v)
+    constexpr VectorI(std::int32_t x, std::int32_t y, std::int32_t z) : x(x), y(y), z(z)
     {
     }
 
-    constexpr const VectorI operator -() const
+public:
+    constexpr VectorI(std::int32_t v = 0) : x(v), y(v), z(v)
+    {
+    }
+
+    constexpr const VectorI operator-() const
     {
         return VectorI(-x, -y, -z);
     }
 
-    constexpr const VectorI & operator +() const
+    constexpr const VectorI &operator+() const
     {
         return *this;
     }
 
-    constexpr const VectorI operator +(const VectorI & r) const
+    constexpr const VectorI operator+(const VectorI &r) const
     {
         return VectorI(x + r.x, y + r.y, z + r.z);
     }
 
-    constexpr const VectorI operator -(const VectorI & r) const
+    constexpr const VectorI operator-(const VectorI &r) const
     {
         return VectorI(x - r.x, y - r.y, z - r.z);
     }
 
-    constexpr const VectorI operator *(const VectorI & r) const
+    constexpr const VectorI operator*(const VectorI &r) const
     {
         return VectorI(x * r.x, y * r.y, z * r.z);
     }
 
-    constexpr const VectorI operator *(std::int32_t r) const
+    constexpr const VectorI operator*(std::int32_t r) const
     {
         return VectorI(x * r, y * r, z * r);
     }
 
-    friend constexpr VectorI operator *(std::int32_t a, const VectorI & b)
+    friend constexpr VectorI operator*(std::int32_t a, const VectorI &b)
     {
         return VectorI(a * b.x, a * b.y, a * b.z);
     }
 
-    constexpr bool operator ==(const VectorI & r) const
+    constexpr bool operator==(const VectorI &r) const
     {
         return x == r.x && y == r.y && z == r.z;
     }
 
-    constexpr bool operator !=(const VectorI & r) const
+    constexpr bool operator!=(const VectorI &r) const
     {
         return x != r.x || y != r.y || z != r.z;
     }
 
-    const VectorI & operator +=(const VectorI & r)
+    const VectorI &operator+=(const VectorI &r)
     {
         x += r.x;
         y += r.y;
         z += r.z;
         return *this;
     }
-    const VectorI & operator -=(const VectorI & r)
+    const VectorI &operator-=(const VectorI &r)
     {
         x -= r.x;
         y -= r.y;
         z -= r.z;
         return *this;
     }
-    const VectorI & operator *=(const VectorI & r)
+    const VectorI &operator*=(const VectorI &r)
     {
         x *= r.x;
         y *= r.y;
         z *= r.z;
         return *this;
     }
-    const VectorI & operator *=(std::int32_t r)
+    const VectorI &operator*=(std::int32_t r)
     {
         x *= r;
         y *= r;
@@ -122,32 +121,32 @@ public:
         return *this;
     }
 
-    friend constexpr std::int32_t dot(const VectorI & a, const VectorI & b)
+    friend constexpr std::int32_t dot(const VectorI &a, const VectorI &b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    friend constexpr std::int32_t absSquared(const VectorI & v)
+    friend constexpr std::int32_t absSquared(const VectorI &v)
     {
         return dot(v, v);
     }
 
-    friend float abs(const VectorI & v)
+    friend float abs(const VectorI &v)
     {
         return std::sqrt(static_cast<float>(absSquared(v)));
     }
 
-    friend constexpr VectorI cross(const VectorI & a, const VectorI & b)
+    friend constexpr VectorI cross(const VectorI &a, const VectorI &b)
     {
         return VectorI(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
-    friend std::ostream & operator <<(std::ostream & os, const VectorI & v)
+    friend std::ostream &operator<<(std::ostream &os, const VectorI &v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
 
-    friend std::wostream & operator <<(std::wostream & os, const VectorI & v)
+    friend std::wostream &operator<<(std::wostream &os, const VectorI &v)
     {
         return os << L"<" << v.x << L", " << v.y << L", " << v.z << L">";
     }
@@ -172,17 +171,15 @@ struct VectorF
 {
     float x, y, z;
 
-    constexpr VectorF(float x, float y, float z)
-        : x(x), y(y), z(z)
+    constexpr VectorF(float x, float y, float z) : x(x), y(y), z(z)
     {
     }
 
-    constexpr VectorF(float v = 0)
-        : x(v), y(v), z(v)
+    constexpr VectorF(float v = 0) : x(v), y(v), z(v)
     {
     }
 
-    constexpr VectorF(const VectorI & v)
+    constexpr VectorF(const VectorI &v)
         : x(static_cast<float>(v.x)), y(static_cast<float>(v.y)), z(static_cast<float>(v.z))
     {
     }
@@ -192,127 +189,127 @@ struct VectorF
         return VectorI(ifloor(x), ifloor(y), ifloor(z));
     }
 
-    constexpr const VectorF operator -() const
+    constexpr const VectorF operator-() const
     {
         return VectorF(-x, -y, -z);
     }
 
-    constexpr const VectorF & operator +() const
+    constexpr const VectorF &operator+() const
     {
         return *this;
     }
 
-    constexpr const VectorF operator +(const VectorF & r) const
+    constexpr const VectorF operator+(const VectorF &r) const
     {
         return VectorF(x + r.x, y + r.y, z + r.z);
     }
 
-    friend constexpr VectorF operator +(const VectorF & l, const VectorI & r)
+    friend constexpr VectorF operator+(const VectorF &l, const VectorI &r)
     {
-        return l + (VectorF)r;
+        return l + static_cast<VectorF>(r);
     }
 
-    friend constexpr VectorF operator +(const VectorI & l, const VectorF & r)
+    friend constexpr VectorF operator+(const VectorI &l, const VectorF &r)
     {
-        return (VectorF)l + r;
+        return static_cast<VectorF>(l) + r;
     }
 
-    constexpr const VectorF operator -(const VectorF & r) const
+    constexpr const VectorF operator-(const VectorF &r) const
     {
         return VectorF(x - r.x, y - r.y, z - r.z);
     }
 
-    friend constexpr VectorF operator -(const VectorF & l, const VectorI & r)
+    friend constexpr VectorF operator-(const VectorF &l, const VectorI &r)
     {
-        return l - (VectorF)r;
+        return l - static_cast<VectorF>(r);
     }
 
-    friend constexpr VectorF operator -(const VectorI & l, const VectorF & r)
+    friend constexpr VectorF operator-(const VectorI &l, const VectorF &r)
     {
-        return (VectorF)l - r;
+        return static_cast<VectorF>(l) - r;
     }
 
-    constexpr const VectorF operator *(const VectorF & r) const
+    constexpr const VectorF operator*(const VectorF &r) const
     {
         return VectorF(x * r.x, y * r.y, z * r.z);
     }
 
-    friend constexpr VectorF operator *(const VectorF & l, const VectorI & r)
+    friend constexpr VectorF operator*(const VectorF &l, const VectorI &r)
     {
-        return l * (VectorF)r;
+        return l * static_cast<VectorF>(r);
     }
 
-    friend constexpr VectorF operator *(const VectorI & l, const VectorF & r)
+    friend constexpr VectorF operator*(const VectorI &l, const VectorF &r)
     {
-        return (VectorF)l * r;
+        return static_cast<VectorF>(l) * r;
     }
 
-    constexpr const VectorF operator /(const VectorF & r) const
+    constexpr const VectorF operator/(const VectorF &r) const
     {
         return VectorF(x / r.x, y / r.y, z / r.z);
     }
 
-    constexpr const VectorF operator *(float r) const
+    constexpr const VectorF operator*(float r) const
     {
         return VectorF(x * r, y * r, z * r);
     }
 
-    friend constexpr VectorF operator *(float a, const VectorF & b)
+    friend constexpr VectorF operator*(float a, const VectorF &b)
     {
         return VectorF(a * b.x, a * b.y, a * b.z);
     }
 
-    constexpr const VectorF operator /(float r) const
+    constexpr const VectorF operator/(float r) const
     {
         return VectorF(x / r, y / r, z / r);
     }
 
-    constexpr bool operator ==(const VectorF & r) const
+    constexpr bool operator==(const VectorF &r) const
     {
         return x == r.x && y == r.y && z == r.z;
     }
 
-    constexpr bool operator !=(const VectorF & r) const
+    constexpr bool operator!=(const VectorF &r) const
     {
         return x != r.x || y != r.y || z != r.z;
     }
 
-    const VectorF & operator +=(const VectorF & r)
+    const VectorF &operator+=(const VectorF &r)
     {
         x += r.x;
         y += r.y;
         z += r.z;
         return *this;
     }
-    const VectorF & operator -=(const VectorF & r)
+    const VectorF &operator-=(const VectorF &r)
     {
         x -= r.x;
         y -= r.y;
         z -= r.z;
         return *this;
     }
-    const VectorF & operator *=(const VectorF & r)
+    const VectorF &operator*=(const VectorF &r)
     {
         x *= r.x;
         y *= r.y;
         z *= r.z;
         return *this;
     }
-    const VectorF & operator /=(const VectorF & r)
+    const VectorF &operator/=(const VectorF &r)
     {
         x /= r.x;
         y /= r.y;
         z /= r.z;
         return *this;
     }
-    const VectorF & operator *=(float r)
+    const VectorF &operator*=(float r)
     {
         x *= r;
         y *= r;
         z *= r;
         return *this;
     }
-    const VectorF & operator /=(float r)
+    const VectorF &operator/=(float r)
     {
         x /= r;
         y /= r;
@@ -320,27 +317,27 @@ struct VectorF
         return *this;
     }
 
-    friend constexpr float dot(const VectorF & a, const VectorF & b)
+    friend constexpr float dot(const VectorF &a, const VectorF &b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    friend constexpr float dot(const VectorI & a, const VectorF & b)
+    friend constexpr float dot(const VectorI &a, const VectorF &b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    friend constexpr float dot(const VectorF & a, const VectorI & b)
+    friend constexpr float dot(const VectorF &a, const VectorI &b)
     {
         return a.x * b.x + a.y * b.y + a.z * b.z;
     }
 
-    friend constexpr float absSquared(const VectorF & v)
+    friend constexpr float absSquared(const VectorF &v)
     {
         return dot(v, v);
     }
 
-    friend float abs(const VectorF & v)
+    friend float abs(const VectorF &v)
     {
         return std::sqrt(absSquared(v));
     }
@@ -350,8 +347,8 @@ private:
     {
         return v == 0 ? 1 : v;
     }
-public:
 
+public:
     friend VectorF normalizeNoThrow(VectorF v)
     {
         return v / normalizeNoThrowHelper(abs(v));
@@ -400,13 +397,13 @@ public:
         return abs(*this);
     }
 
-    friend constexpr VectorF cross(const VectorF & a, const VectorF & b)
+    friend constexpr VectorF cross(const VectorF &a, const VectorF &b)
     {
         return VectorF(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
     }
 
-    template<typename RE>
-    static VectorF random(RE & re)
+    template <typename RE>
+    static VectorF random(RE &re)
     {
         VectorF retval;
         do
@@ -414,17 +411,16 @@ public:
             retval.x = std::uniform_real_distribution<float>(-1, 1)(re);
             retval.y = std::uniform_real_distribution<float>(-1, 1)(re);
             retval.z = std::uniform_real_distribution<float>(-1, 1)(re);
-        }
-        while(absSquared(retval) > 1 || absSquared(retval) < eps);
+        } while(absSquared(retval) > 1 || absSquared(retval) < eps);
         return retval;
     }
 
-    friend std::ostream & operator <<(std::ostream & os, const VectorF & v)
+    friend std::ostream &operator<<(std::ostream &os, const VectorF &v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
 
-    friend std::wostream & operator <<(std::wostream & os, const VectorF & v)
+    friend std::wostream &operator<<(std::wostream &os, const VectorF &v)
     {
         return os << "<" << v.x << ", " << v.y << ", " << v.z << ">";
     }
@@ -445,34 +441,34 @@ public:
     }
 };
 
-constexpr inline bool operator ==(const VectorF & a, const VectorI & b)
+constexpr inline bool operator==(const VectorF &a, const VectorI &b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
-constexpr inline bool operator ==(const VectorI & a, const VectorF & b)
+constexpr inline bool operator==(const VectorI &a, const VectorF &b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
-constexpr inline bool operator !=(const VectorF & a, const VectorI & b)
+constexpr inline bool operator!=(const VectorF &a, const VectorI &b)
 {
     return a.x != b.x || a.y != b.y || a.z != b.z;
 }
 
-constexpr inline bool operator !=(const VectorI & a, const VectorF & b)
+constexpr inline bool operator!=(const VectorI &a, const VectorF &b)
 {
     return a.x != b.x || a.y != b.y || a.z != b.z;
 }
 
-inline VectorF normalize(const VectorI & v)
+inline VectorF normalize(const VectorI &v)
 {
-    return normalize((VectorF)v);
+    return normalize(static_cast<VectorF>(v));
 }
 
-inline VectorF normalizeNoThrow(const VectorI & v)
+inline VectorF normalizeNoThrow(const VectorI &v)
 {
-    return normalizeNoThrow((VectorF)v);
+    return normalizeNoThrow(static_cast<VectorF>(v));
 }
 
 constexpr VectorF defaultGravityVector = VectorF(0, -9.8, 0);

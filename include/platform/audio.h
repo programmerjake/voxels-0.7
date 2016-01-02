@@ -54,7 +54,7 @@ class AudioDecoder
     AudioDecoder(const AudioDecoder &) = delete;
     const AudioDecoder & operator =(const AudioDecoder &) = delete;
 public:
-    static constexpr std::uint64_t Unknown = ~(std::uint64_t)0;
+    static constexpr std::uint64_t Unknown = ~static_cast<std::uint64_t>(0);
     AudioDecoder()
     {
     }
@@ -69,7 +69,7 @@ public:
         std::uint64_t count = numSamples();
         if(count == Unknown)
             return -1;
-        return (double)count / samplesPerSecond();
+        return static_cast<double>(count) / samplesPerSecond();
     }
     virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) = 0; // returns number of samples decoded
     virtual bool isHighLatencySource() const = 0;
@@ -158,13 +158,13 @@ public:
             sampleCount = std::min(numSamples() - position, sampleCount);
         if(sampleCount == 0 || buffer.size() == 0)
             return sampleCount;
-        double rateConversionFactor = (double)decoder->samplesPerSecond() / sampleRate;
+        double rateConversionFactor = static_cast<double>(decoder->samplesPerSecond()) / sampleRate;
         std::uint64_t retval = 0;
         for(std::uint64_t i = 0; i < sampleCount; i++, position++, retval++)
         {
             double finalPosition = position * rateConversionFactor;
-            std::uint64_t startIndex = (std::uint64_t)floor(finalPosition);
-            float t = (float)(finalPosition - startIndex);
+            std::uint64_t startIndex = static_cast<std::uint64_t>(floor(finalPosition));
+            float t = static_cast<float>(finalPosition - startIndex);
             startIndex *= channels;
             std::uint64_t endIndex = startIndex + channels;
             assert(startIndex >= bufferStartPosition);
@@ -189,14 +189,14 @@ public:
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = ((1 - t) * buffer[j + (std::size_t)(startIndex - bufferStartPosition)] + t * buffer[j + (std::size_t)(endIndex - bufferStartPosition)]);
+                    *data++ = ((1 - t) * buffer[j + static_cast<std::size_t>(startIndex - bufferStartPosition)] + t * buffer[j + (std::size_t)(endIndex - bufferStartPosition)]);
                 }
             }
             else
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = buffer[j + (std::size_t)(startIndex - bufferStartPosition)];
+                    *data++ = buffer[j + static_cast<std::size_t>(startIndex - bufferStartPosition)];
                 }
             }
         }

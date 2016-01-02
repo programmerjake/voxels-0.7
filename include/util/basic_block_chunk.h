@@ -49,10 +49,10 @@ struct BasicBlockChunk
     static constexpr std::size_t chunkShiftY = ChunkShiftYV;
     static constexpr std::size_t chunkShiftZ = ChunkShiftZV;
     static constexpr std::size_t subchunkShiftXYZ = SubchunkShiftXYZV;
-    static constexpr std::int32_t chunkSizeX = (std::int32_t)1 << chunkShiftX;
-    static constexpr std::int32_t chunkSizeY = (std::int32_t)1 << chunkShiftY;
-    static constexpr std::int32_t chunkSizeZ = (std::int32_t)1 << chunkShiftZ;
-    static constexpr std::int32_t subchunkSizeXYZ = (std::int32_t)1 << subchunkShiftXYZ;
+    static constexpr std::int32_t chunkSizeX = static_cast<std::int32_t>(1) << chunkShiftX;
+    static constexpr std::int32_t chunkSizeY = static_cast<std::int32_t>(1) << chunkShiftY;
+    static constexpr std::int32_t chunkSizeZ = static_cast<std::int32_t>(1) << chunkShiftZ;
+    static constexpr std::int32_t subchunkSizeXYZ = static_cast<std::int32_t>(1) << subchunkShiftXYZ;
     static constexpr std::int32_t subchunkCountX = chunkSizeX / subchunkSizeXYZ;
     static constexpr std::int32_t subchunkCountY = chunkSizeY / subchunkSizeXYZ;
     static constexpr std::int32_t subchunkCountZ = chunkSizeZ / subchunkSizeXYZ;
@@ -867,7 +867,7 @@ public:
     }
     iterator find(PositionI key)
     {
-        std::size_t current_hash = (std::size_t)the_hasher(key) % bucket_count;
+        std::size_t current_hash = static_cast<std::size_t>(the_hasher(key)) % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
@@ -881,7 +881,7 @@ public:
     }
     std::pair<iterator, bool> create(PositionI key)
     {
-        std::size_t key_hash = (std::size_t)the_hasher(key);
+        std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         std::size_t current_hash = key_hash % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -901,7 +901,7 @@ public:
     }
     const_iterator find(PositionI key) const
     {
-        std::size_t current_hash = (std::size_t)the_hasher(key) % bucket_count;
+        std::size_t current_hash = static_cast<std::size_t>(the_hasher(key)) % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
@@ -915,7 +915,7 @@ public:
     }
     value_type &operator [](PositionI key)
     {
-        std::size_t key_hash = (std::size_t)the_hasher(key);
+        std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         std::size_t current_hash = key_hash % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -933,7 +933,7 @@ public:
     }
     value_type &at(PositionI key)
     {
-        std::size_t key_hash = (std::size_t)the_hasher(key);
+        std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         std::size_t current_hash = key_hash % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -947,7 +947,7 @@ public:
     }
     const value_type &at(PositionI key) const
     {
-        std::size_t key_hash = (std::size_t)the_hasher(key);
+        std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         std::size_t current_hash = key_hash % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -961,7 +961,7 @@ public:
     }
     std::size_t erase(PositionI key)
     {
-        std::size_t current_hash = (std::size_t)the_hasher(key) % bucket_count;
+        std::size_t current_hash = static_cast<std::size_t>(the_hasher(key)) % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it((*bucket_locks)[current_hash]);
         Node **pnode = &buckets[current_hash];
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
@@ -1009,7 +1009,7 @@ public:
     }
     std::unique_lock<std::recursive_mutex> bucket_lock(PositionI key)
     {
-        std::size_t current_hash = (std::size_t)the_hasher(key) % bucket_count;
+        std::size_t current_hash = static_cast<std::size_t>(the_hasher(key)) % bucket_count;
         return std::unique_lock<std::recursive_mutex>((*bucket_locks)[current_hash]);
     }
     class node_ptr final
@@ -1130,7 +1130,7 @@ public:
         }
         Node *pnode = retval.node.get();
         PositionI key = pnode->value.basePosition;
-        std::size_t key_hash = (std::size_t)the_hasher(key);
+        std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         pnode->cachedHash = key_hash;
         std::size_t current_hash = key_hash % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
@@ -1177,7 +1177,7 @@ public:
     }
     node_ptr extract(PositionI key)
     {
-        std::size_t current_hash = (std::size_t)the_hasher(key) % bucket_count;
+        std::size_t current_hash = static_cast<std::size_t>(the_hasher(key)) % bucket_count;
         std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
         Node **pnode = &buckets[current_hash];
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)

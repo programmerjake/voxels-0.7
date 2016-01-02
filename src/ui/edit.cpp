@@ -301,7 +301,7 @@ void Edit::move(double deltaTime)
     {
         double additionalPhase = deltaTime / cursorBlinkPeriod;
         additionalPhase -= std::floor(additionalPhase);
-        cursorBlinkPhase += (float)additionalPhase;
+        cursorBlinkPhase += static_cast<float>(additionalPhase);
         cursorBlinkPhase -= std::floor(cursorBlinkPhase);
         if(std::isnan(cursorBlinkPhase) || !std::isfinite(cursorBlinkPhase))
             cursorBlinkPhase = 0.0f;
@@ -329,7 +329,7 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     bool cursorOn = hasFocus && (cursorBlinkPhase < 0.5f);
     std::wstring filteredText = text.get();
     if(filterTextFunction)
-        filteredText = filterTextFunction((std::wstring)std::move(filteredText));
+        filteredText = filterTextFunction(static_cast<std::wstring>(std::move(filteredText)));
     std::size_t currentCursorPosition = cursorPosition;
     if(currentCursorPosition > filteredText.size())
         currentCursorPosition = filteredText.size();
@@ -354,7 +354,7 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     float adjustedCursorWidth = cursorWidth;
     float underlineHeight = 0.05f;
     float scale = controlHeight * textHeightFraction / textHeight;
-    float pixelWidth = (Display::scaleX() * 2.0f) / (float)Display::width() / scale;
+    float pixelWidth = (Display::scaleX() * 2.0f) / static_cast<float>(Display::width()) / scale;
     if(adjustedCursorWidth < pixelWidth)
         adjustedCursorWidth = pixelWidth;
     float cursorMinX = cursorX;
@@ -363,7 +363,7 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     float cursorMinY = cursorMidY - 0.5f * cursorHeight;
     float cursorMaxX = cursorMinX + adjustedCursorWidth;
     float cursorMaxY = cursorMidY + 0.5f * cursorHeight;
-    float pixelHeight = (Display::scaleY() * 2.0f) / (float)Display::height() / scale;
+    float pixelHeight = (Display::scaleY() * 2.0f) / static_cast<float>(Display::height()) / scale;
     if(underlineHeight < pixelHeight)
         underlineHeight = pixelHeight;
     float underlineMinX = editStartX;

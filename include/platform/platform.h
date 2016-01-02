@@ -248,7 +248,7 @@ private:
 public:
     size_t operator ()(programmerjake::voxels::KeyboardKey v) const
     {
-        return hasher((int_type)v);
+        return hasher(static_cast<int_type>(v));
     }
 };
 
@@ -261,7 +261,7 @@ private:
 public:
     size_t operator ()(programmerjake::voxels::KeyboardModifiers v) const
     {
-        return hasher((int_type)v);
+        return hasher(static_cast<int_type>(v));
     }
 };
 
@@ -274,7 +274,7 @@ private:
 public:
     size_t operator ()(programmerjake::voxels::MouseButton v) const
     {
-        return hasher((int_type)v);
+        return hasher(static_cast<int_type>(v));
     }
 };
 }

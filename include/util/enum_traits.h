@@ -42,7 +42,7 @@ struct enum_iterator : public std::iterator<std::random_access_iterator_tag, con
 GCC_PRAGMA(diagnostic pop)
     T value;
     constexpr enum_iterator()
-        : value((T)0)
+        : value()
     {
     }
     constexpr enum_iterator(T value)
@@ -55,54 +55,54 @@ GCC_PRAGMA(diagnostic pop)
     }
     friend constexpr enum_iterator<T> operator +(std::ptrdiff_t a, enum_iterator b)
     {
-        return enum_iterator<T>((T)(a + (std::ptrdiff_t)b.value));
+        return enum_iterator<T>(static_cast<T>(a + static_cast<std::ptrdiff_t>(b.value)));
     }
     constexpr enum_iterator<T> operator +(std::ptrdiff_t b) const
     {
-        return enum_iterator<T>((T)((std::ptrdiff_t)value + b));
+        return enum_iterator<T>(static_cast<T>(static_cast<std::ptrdiff_t>(value) + b));
     }
     constexpr enum_iterator<T> operator -(std::ptrdiff_t b) const
     {
-        return enum_iterator<T>((T)((std::ptrdiff_t)value - b));
+        return enum_iterator<T>(static_cast<T>(static_cast<std::ptrdiff_t>(value) - b));
     }
     constexpr std::ptrdiff_t operator -(enum_iterator b) const
     {
-        return (std::ptrdiff_t)value - (std::ptrdiff_t)b.value;
+        return static_cast<std::ptrdiff_t>(value) - static_cast<std::ptrdiff_t>(b.value);
     }
     constexpr const T operator [](std::ptrdiff_t b) const
     {
-        return (T)((std::ptrdiff_t)value + b);
+        return static_cast<T>(static_cast<std::ptrdiff_t>(value) + b);
     }
     const enum_iterator & operator +=(std::ptrdiff_t b)
     {
-        value = (T)((std::ptrdiff_t)value + b);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + b);
         return *this;
     }
     const enum_iterator & operator -=(std::ptrdiff_t b)
     {
-        value = (T)((std::ptrdiff_t)value - b);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - b);
         return *this;
     }
     const enum_iterator & operator ++()
     {
-        value = (T)((std::ptrdiff_t)value + 1);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + 1);
         return *this;
     }
     const enum_iterator & operator --()
     {
-        value = (T)((std::ptrdiff_t)value - 1);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - 1);
         return *this;
     }
     enum_iterator operator ++(int)
     {
         T retval = value;
-        value = (T)((std::ptrdiff_t)value + 1);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + 1);
         return enum_iterator(retval);
     }
     enum_iterator operator --(int)
     {
         T retval = value;
-        value = (T)((std::ptrdiff_t)value - 1);
+        value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - 1);
         return enum_iterator(retval);
     }
     constexpr bool operator ==(enum_iterator b) const
@@ -171,7 +171,7 @@ GCC_PRAGMA(diagnostic pop)
     }
     constexpr std::ptrdiff_t operator -(enum_iterator b) const
     {
-        return (std::ptrdiff_t)value - (std::ptrdiff_t)b.value;
+        return static_cast<std::ptrdiff_t>(value) - static_cast<std::ptrdiff_t>(b.value);
     }
     constexpr const bool operator [](std::ptrdiff_t b) const
     {
@@ -307,7 +307,7 @@ struct enum_struct
     }
     explicit constexpr operator std::ptrdiff_t() const
     {
-        return (std::ptrdiff_t)value;
+        return static_cast<std::ptrdiff_t>(value);
     }
     constexpr bool operator ==(enum_struct rt) const
     {

@@ -50,10 +50,12 @@ class BiomeWeights;
 class BiomeDescriptors_t final
 {
     friend class BiomeDescriptor;
+
 private:
     static linked_map<std::wstring, BiomeDescriptorPointer> *pBiomeNameMap;
     static std::vector<BiomeDescriptorPointer> *pBiomeVector;
     static void addBiome(BiomeDescriptor *biome);
+
 public:
     std::size_t size() const
     {
@@ -92,18 +94,21 @@ public:
         BiomeDescriptorPointer biome = std::get<1>(*iter);
         return find(biome);
     }
-    BiomeDescriptorPointer operator [](BiomeIndex bi) const
+    BiomeDescriptorPointer operator[](BiomeIndex bi) const
     {
         return *find(bi);
     }
-    BiomeDescriptorPointer operator [](std::wstring name) const
+    BiomeDescriptorPointer operator[](std::wstring name) const
     {
         iterator iter = find(name);
         if(iter == end())
             return nullptr;
         return *iter;
     }
-    BiomeWeights getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const;
+    BiomeWeights getBiomeWeights(float temperature,
+                                 float humidity,
+                                 PositionI pos,
+                                 RandomSource &randomSource) const;
     void writeDescriptor(stream::Writer &writer, BiomeDescriptorPointer descriptor) const;
     BiomeDescriptorPointer readDescriptor(stream::Reader &reader) const;
 };
@@ -124,48 +129,53 @@ public:
 
 private:
     typedef std::vector<value_type> ElementsType;
+
 public:
     typedef typename ElementsType::iterator iterator;
     typedef typename ElementsType::const_iterator const_iterator;
     typedef typename ElementsType::size_type size_type;
     typedef typename ElementsType::difference_type difference_type;
+
 private:
     ElementsType elements;
     static std::size_t getIndex(BiomeDescriptorPointer biome)
     {
         if(biome == nullptr)
-            return ~(std::size_t)0;
+            return ~static_cast<std::size_t>(0);
         return getBiomeIndex(biome);
     }
+
 public:
-    BiomeMap()
-        : elements()
+    BiomeMap() : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
         {
-            elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<>());
+            elements.emplace_back(
+                std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<>());
         }
     }
-    BiomeMap(const BiomeMap &rt)
-        : elements()
+    BiomeMap(const BiomeMap &rt) : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
         {
-            elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<const T &>(rt.at(v)));
+            elements.emplace_back(std::piecewise_construct,
+                                  std::tuple<BiomeDescriptorPointer>(v),
+                                  std::tuple<const T &>(rt.at(v)));
         }
     }
-    BiomeMap(BiomeMap &&rt)
-        : elements()
+    BiomeMap(BiomeMap &&rt) : elements()
     {
         elements.reserve(BiomeDescriptors.size());
         for(BiomeDescriptorPointer v : BiomeDescriptors)
         {
-            elements.emplace_back(std::piecewise_construct, std::tuple<BiomeDescriptorPointer>(v), std::tuple<T &&>(std::move(rt.at(v))));
+            elements.emplace_back(std::piecewise_construct,
+                                  std::tuple<BiomeDescriptorPointer>(v),
+                                  std::tuple<T &&>(std::move(rt.at(v))));
         }
     }
-    BiomeMap &operator =(const BiomeMap &rt)
+    BiomeMap &operator=(const BiomeMap &rt)
     {
         assert(size() == rt.size());
         auto j = rt.begin();
@@ -175,7 +185,7 @@ public:
         }
         return *this;
     }
-    BiomeMap &operator =(BiomeMap &&rt)
+    BiomeMap &operator=(BiomeMap &&rt)
     {
         assert(size() == rt.size());
         auto j = rt.begin();
@@ -193,11 +203,11 @@ public:
     {
         return size() == 0;
     }
-    T &operator [](BiomeDescriptorPointer biome)
+    T &operator[](BiomeDescriptorPointer biome)
     {
         return std::get<1>(elements[getIndex(biome)]);
     }
-    const T &operator [](BiomeDescriptorPointer biome) const
+    const T &operator[](BiomeDescriptorPointer biome) const
     {
         return std::get<1>(elements[getIndex(biome)]);
     }
@@ -281,7 +291,7 @@ GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class BiomeWeights final : public BiomeMap<float>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
 public:
     void normalize()
     {
@@ -332,6 +342,7 @@ private:
     }
     ColorF grassColor = ColorF(), leavesColor = ColorF(), waterColor = ColorF();
     BiomeDescriptorPointer dominantBiome = nullptr;
+
 public:
     const BiomeWeights &getWeights() const
     {
@@ -354,8 +365,7 @@ public:
         return dominantBiome;
     }
     explicit BiomeProperties(BiomeWeights weights);
-    BiomeProperties()
-        : weights()
+    BiomeProperties() : weights()
     {
     }
     void swap(BiomeProperties &rt)
@@ -366,8 +376,8 @@ public:
     }
     BiomeProperties(const BiomeProperties &) = default;
     BiomeProperties(BiomeProperties &&) = default;
-    BiomeProperties &operator =(const BiomeProperties &) = default;
-    BiomeProperties &operator =(BiomeProperties &&) = default;
+    BiomeProperties &operator=(const BiomeProperties &) = default;
+    BiomeProperties &operator=(BiomeProperties &&) = default;
     void write(stream::Writer &writer) const
     {
         assert(good);

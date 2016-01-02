@@ -36,6 +36,7 @@ struct ColorI final
     std::uint8_t b, g, r, a;
     friend constexpr ColorI RGBAI(int r, int g, int b, int a);
     friend struct ColorF;
+
 private:
     constexpr ColorI(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
         : b(b), g(g), r(r), a(a)
@@ -48,8 +49,7 @@ private:
         {
             std::uint8_t b, g, r, a;
         };
-        constexpr ConvertWithUInt32(std::uint32_t v)
-            : v(v)
+        constexpr ConvertWithUInt32(std::uint32_t v) : v(v)
         {
         }
         constexpr ConvertWithUInt32(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a)
@@ -57,15 +57,17 @@ private:
         {
         }
     };
+
 public:
-    constexpr ColorI()
-        : b(0), g(0), r(0), a(0)
+    constexpr ColorI() : b(0), g(0), r(0), a(0)
     {
     }
     explicit constexpr ColorI(std::uint32_t v)
-        : b(ConvertWithUInt32(v).b), g(ConvertWithUInt32(v).g), r(ConvertWithUInt32(v).r), a(ConvertWithUInt32(v).a)
+        : b(ConvertWithUInt32(v).b),
+          g(ConvertWithUInt32(v).g),
+          r(ConvertWithUInt32(v).r),
+          a(ConvertWithUInt32(v).a)
     {
-
     }
     explicit constexpr operator std::uint32_t() const
     {
@@ -79,19 +81,22 @@ public:
         stream::write<std::uint8_t>(writer, r);
         stream::write<std::uint8_t>(writer, a);
     }
-    constexpr bool operator ==(const ColorI &rt) const
+    constexpr bool operator==(const ColorI &rt) const
     {
         return b == rt.b && g == rt.g && r == rt.r && a == rt.a;
     }
-    constexpr bool operator !=(const ColorI &rt) const
+    constexpr bool operator!=(const ColorI &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
 };
 
 constexpr ColorI RGBAI(int r, int g, int b, int a)
 {
-    return ColorI((std::uint8_t)limit<int>(r, 0, 0xFF), (std::uint8_t)limit<int>(g, 0, 0xFF), (std::uint8_t)limit<int>(b, 0, 0xFF), (std::uint8_t)limit<int>(a, 0, 0xFF));
+    return ColorI(static_cast<std::uint8_t>(limit<int>(r, 0, 0xFF)),
+                  static_cast<std::uint8_t>(limit<int>(g, 0, 0xFF)),
+                  static_cast<std::uint8_t>(limit<int>(b, 0, 0xFF)),
+                  static_cast<std::uint8_t>(limit<int>(a, 0, 0xFF)));
 }
 
 inline ColorI ColorI::read(stream::Reader &reader)
@@ -138,42 +143,47 @@ struct ColorF final
     friend constexpr ColorF RGBAF(float r, float g, float b, float a);
     float r, g, b, a; /// a is opacity -- 0 is transparent and 1 is opaque
 private:
-    constexpr ColorF(float r, float g, float b, float a)
-        : r(r), g(g), b(b), a(a)
+    constexpr ColorF(float r, float g, float b, float a) : r(r), g(g), b(b), a(a)
     {
     }
+
 public:
-    constexpr ColorF()
-        : r(0), g(0), b(0), a(0)
+    constexpr ColorF() : r(0), g(0), b(0), a(0)
     {
     }
     explicit constexpr ColorF(ColorI c)
-        : r((int)c.r * ((float)1 / 0xFF)), g((int)c.g * ((float)1 / 0xFF)), b((int)c.b * ((float)1 / 0xFF)), a((int)c.a * ((float)1 / 0xFF))
+        : r(static_cast<int>(c.r) * static_cast<float>(1.0 / 0xFF)),
+          g(static_cast<int>(c.g) * static_cast<float>(1.0 / 0xFF)),
+          b(static_cast<int>(c.b) * static_cast<float>(1.0 / 0xFF)),
+          a(static_cast<int>(c.a) * static_cast<float>(1.0 / 0xFF))
     {
     }
     explicit constexpr operator ColorI() const
     {
-        return ColorI((int)limit<float>(r * 0xFF, 0, 0xFF), (int)limit<float>(g * 0xFF, 0, 0xFF), (int)limit<float>(b * 0xFF, 0, 0xFF), (int)limit<float>(a * 0xFF, 0, 0xFF));
+        return ColorI(static_cast<int>(limit<float>(r * 0xFF, 0, 0xFF)),
+                      static_cast<int>(limit<float>(g * 0xFF, 0, 0xFF)),
+                      static_cast<int>(limit<float>(b * 0xFF, 0, 0xFF)),
+                      static_cast<int>(limit<float>(a * 0xFF, 0, 0xFF)));
     }
-    friend std::ostream & operator <<(std::ostream & os, const ColorF & c)
+    friend std::ostream &operator<<(std::ostream &os, const ColorF &c)
     {
         return os << "RGBA(" << c.r << ", " << c.g << ", " << c.b << ", " << c.a << ")";
     }
     static ColorF read(stream::Reader &reader)
     {
-        return (ColorF)(ColorI)stream::read<ColorI>(reader);
+        return static_cast<ColorF>(static_cast<ColorI>(stream::read<ColorI>(reader)));
     }
     void write(stream::Writer &writer) const
     {
-        stream::write<ColorI>(writer, (ColorI)*this);
+        stream::write<ColorI>(writer, static_cast<ColorI>(*this));
     }
-    constexpr bool operator ==(const ColorF &rt) const
+    constexpr bool operator==(const ColorF &rt) const
     {
         return r == rt.r && g == rt.g && b == rt.b && a == rt.a;
     }
-    constexpr bool operator !=(const ColorF &rt) const
+    constexpr bool operator!=(const ColorF &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
 };
 
@@ -219,7 +229,10 @@ constexpr ColorF colorize(ColorF color, ColorF v)
 
 constexpr ColorI colorize(ColorF color, ColorI v)
 {
-    return RGBAI((int)((int)v.r * color.r), (int)((int)v.g * color.g), (int)((int)v.b * color.b), (int)((int)v.a * color.a));
+    return RGBAI(static_cast<int>(static_cast<int>(v.r) * color.r),
+                 static_cast<int>(static_cast<int>(v.g) * color.g),
+                 static_cast<int>(static_cast<int>(v.b) * color.b),
+                 static_cast<int>(static_cast<int>(v.a) * color.a));
 }
 
 constexpr ColorF colorizeIdentity()
@@ -230,30 +243,28 @@ constexpr ColorF colorizeIdentity()
 template <>
 constexpr ColorF interpolate<ColorF>(const float t, const ColorF a, const ColorF b)
 {
-    return RGBAF(interpolate(t, a.r, b.r), interpolate(t, a.g, b.g), interpolate(t, a.b, b.b), interpolate(t, a.a, b.a));
+    return RGBAF(interpolate(t, a.r, b.r),
+                 interpolate(t, a.g, b.g),
+                 interpolate(t, a.b, b.b),
+                 interpolate(t, a.a, b.a));
 }
 
 inline ColorF HueF(float h)
 {
     h -= std::floor(h);
     h *= 6;
-    int index = (int)std::floor(h);
-    ColorF colors[6] =
-    {
-        RGBF(1, 0, 0),
-        RGBF(1, 1, 0),
-        RGBF(0, 1, 0),
-        RGBF(0, 1, 1),
-        RGBF(0, 0, 1),
-        RGBF(1, 0, 1)
-    };
-    return interpolate(h - index, colors[index], colors[index + 1 >= 6 ? index + 1 - 6 : index + 1]);
+    int index = static_cast<int>(std::floor(h));
+    ColorF colors[6] = {
+        RGBF(1, 0, 0), RGBF(1, 1, 0), RGBF(0, 1, 0), RGBF(0, 1, 1), RGBF(0, 0, 1), RGBF(1, 0, 1)};
+    return interpolate(
+        h - index, colors[index], colors[index + 1 >= 6 ? index + 1 - 6 : index + 1]);
 }
 
 inline ColorF HSLAF(float h, float s, float l, float a) /// hue saturation lightness
 {
     ColorF hs = interpolate(s, GrayscaleF(0.5), HueF(h));
-    ColorF hsl = (l < 0.5) ? interpolate(2 * l, GrayscaleF(0), hs) : interpolate(2 * l - 1, hs, GrayscaleF(1));
+    ColorF hsl = (l < 0.5) ? interpolate(2 * l, GrayscaleF(0), hs) :
+                             interpolate(2 * l - 1, hs, GrayscaleF(1));
     hsl.a = a;
     return hsl;
 }

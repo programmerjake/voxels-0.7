@@ -96,10 +96,10 @@ public:
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
-        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace(static_cast<VectorF>(blockIterator.position()), static_cast<VectorF>(blockIterator.position()) + VectorF(1));
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
-            collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+            collision = ray.getAABoxExitFace(static_cast<VectorF>(blockIterator.position()), static_cast<VectorF>(blockIterator.position()) + VectorF(1));
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
                 return RayCasting::Collision(world);
             std::get<1>(collision) = RayCasting::Ray::eps;

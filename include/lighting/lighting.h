@@ -83,10 +83,10 @@ struct Lighting final
 {
     typedef std::uint_fast8_t LightValueType;
     static constexpr int lightBitWidth = 4;
-    static constexpr LightValueType maxLight = ((LightValueType)1 << lightBitWidth) - 1;
+    static constexpr LightValueType maxLight = (static_cast<LightValueType>(1) << lightBitWidth) - 1;
     static constexpr float toFloat(LightValueType v)
     {
-        return (float)(int)v / (int)maxLight;
+        return static_cast<float>(static_cast<int>(v) / static_cast<int>(maxLight));
     }
     static constexpr LightValueType ensureInValidRange(LightValueType v)
     {

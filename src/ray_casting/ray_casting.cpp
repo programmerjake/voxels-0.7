@@ -35,8 +35,11 @@ constexpr float Ray::eps;
 
 namespace
 {
-void initRayBlockIteratorDimension(float rayDirection, float rayStartPosition, int currentPosition,
-                                   float &nextRayIntersectionT, float &rayIntersectionStepT,
+void initRayBlockIteratorDimension(float rayDirection,
+                                   float rayStartPosition,
+                                   int currentPosition,
+                                   float &nextRayIntersectionT,
+                                   float &rayIntersectionStepT,
                                    int &positionDelta)
 {
     if(rayDirection == 0)
@@ -59,32 +62,49 @@ void initRayBlockIteratorDimension(float rayDirection, float rayStartPosition, i
 }
 
 RayBlockIterator::RayBlockIterator(Ray ray)
-    : ray(ray), currentValue(Ray::eps, (PositionI)ray.startPosition), nextRayIntersectionTValues(0), rayIntersectionStepTValues(0), positionDeltaValues(0)
+    : ray(ray),
+      currentValue(Ray::eps, static_cast<PositionI>(ray.startPosition)),
+      nextRayIntersectionTValues(0),
+      rayIntersectionStepTValues(0),
+      positionDeltaValues(0)
 {
     PositionI &currentPosition = std::get<1>(currentValue);
-    initRayBlockIteratorDimension(ray.direction.x, ray.startPosition.x,
-                                  currentPosition.x, nextRayIntersectionTValues.x,
-                                  rayIntersectionStepTValues.x, positionDeltaValues.x);
-    initRayBlockIteratorDimension(ray.direction.y, ray.startPosition.y,
-                                  currentPosition.y, nextRayIntersectionTValues.y,
-                                  rayIntersectionStepTValues.y, positionDeltaValues.y);
-    initRayBlockIteratorDimension(ray.direction.z, ray.startPosition.z,
-                                  currentPosition.z, nextRayIntersectionTValues.z,
-                                  rayIntersectionStepTValues.z, positionDeltaValues.z);
-    //getDebugLog() << ray.startPosition << ray.direction << currentPosition << postnl;
+    initRayBlockIteratorDimension(ray.direction.x,
+                                  ray.startPosition.x,
+                                  currentPosition.x,
+                                  nextRayIntersectionTValues.x,
+                                  rayIntersectionStepTValues.x,
+                                  positionDeltaValues.x);
+    initRayBlockIteratorDimension(ray.direction.y,
+                                  ray.startPosition.y,
+                                  currentPosition.y,
+                                  nextRayIntersectionTValues.y,
+                                  rayIntersectionStepTValues.y,
+                                  positionDeltaValues.y);
+    initRayBlockIteratorDimension(ray.direction.z,
+                                  ray.startPosition.z,
+                                  currentPosition.z,
+                                  nextRayIntersectionTValues.z,
+                                  rayIntersectionStepTValues.z,
+                                  positionDeltaValues.z);
+    // getDebugLog() << ray.startPosition << ray.direction << currentPosition << postnl;
 }
 
-const RayBlockIterator &RayBlockIterator::operator ++()
+const RayBlockIterator &RayBlockIterator::operator++()
 {
     PositionI &currentPosition = std::get<1>(currentValue);
     float &t = std::get<0>(currentValue);
-    if(ray.direction.x != 0 && (ray.direction.y == 0 || nextRayIntersectionTValues.x < nextRayIntersectionTValues.y) && (ray.direction.z == 0 || nextRayIntersectionTValues.x < nextRayIntersectionTValues.z))
+    if(ray.direction.x != 0
+       && (ray.direction.y == 0 || nextRayIntersectionTValues.x < nextRayIntersectionTValues.y)
+       && (ray.direction.z == 0 || nextRayIntersectionTValues.x < nextRayIntersectionTValues.z))
     {
         t = nextRayIntersectionTValues.x;
         nextRayIntersectionTValues.x += rayIntersectionStepTValues.x;
         currentPosition.x += positionDeltaValues.x;
     }
-    else if(ray.direction.y != 0 && (ray.direction.z == 0 || nextRayIntersectionTValues.y < nextRayIntersectionTValues.z))
+    else if(ray.direction.y != 0
+            && (ray.direction.z == 0
+                || nextRayIntersectionTValues.y < nextRayIntersectionTValues.z))
     {
         t = nextRayIntersectionTValues.y;
         nextRayIntersectionTValues.y += rayIntersectionStepTValues.y;
@@ -96,7 +116,7 @@ const RayBlockIterator &RayBlockIterator::operator ++()
         nextRayIntersectionTValues.z += rayIntersectionStepTValues.z;
         currentPosition.z += positionDeltaValues.z;
     }
-    //getDebugLog() << currentPosition << postnl;
+    // getDebugLog() << currentPosition << postnl;
     return *this;
 }
 }

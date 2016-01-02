@@ -515,7 +515,7 @@ GCC_PRAGMA(diagnostic pop)
     iterator find(const key_type &key)
     {
         create_buckets();
-        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
+        size_type current_hash = static_cast<size_type>(the_hasher(key)) % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
@@ -531,7 +531,7 @@ GCC_PRAGMA(diagnostic pop)
     {
         const key_type &key = std::get<0>(kv_pair);
         create_buckets();
-        size_type key_hash = (size_type)the_hasher(key);
+        size_type key_hash = static_cast<size_type>(the_hasher(key));
         size_type current_hash = key_hash % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -564,7 +564,7 @@ GCC_PRAGMA(diagnostic pop)
     const_iterator find(const key_type &key) const
     {
         create_buckets();
-        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
+        size_type current_hash = static_cast<size_type>(the_hasher(key)) % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
@@ -579,7 +579,7 @@ GCC_PRAGMA(diagnostic pop)
     mapped_type &operator [](const key_type &key)
     {
         create_buckets();
-        size_type key_hash = (size_type)the_hasher(key);
+        size_type key_hash = static_cast<size_type>(the_hasher(key));
         size_type current_hash = key_hash % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -612,7 +612,7 @@ GCC_PRAGMA(diagnostic pop)
     mapped_type &at(const key_type &key)
     {
         create_buckets();
-        size_type key_hash = (size_type)the_hasher(key);
+        size_type key_hash = static_cast<size_type>(the_hasher(key));
         size_type current_hash = key_hash % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -628,7 +628,7 @@ GCC_PRAGMA(diagnostic pop)
     const mapped_type &at(const key_type &key) const
     {
         create_buckets();
-        size_type key_hash = (size_type)the_hasher(key);
+        size_type key_hash = static_cast<size_type>(the_hasher(key));
         size_type current_hash = key_hash % bucket_count_;
 
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
@@ -644,7 +644,7 @@ GCC_PRAGMA(diagnostic pop)
     size_type erase(const key_type &key)
     {
         create_buckets();
-        size_type current_hash = (size_type)the_hasher(key) % bucket_count_;
+        size_type current_hash = static_cast<size_type>(the_hasher(key)) % bucket_count_;
         Node **pnode = &buckets[current_hash];
 
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
@@ -681,7 +681,7 @@ GCC_PRAGMA(diagnostic pop)
     }
     iterator erase(const_iterator position)
     {
-        Node *node = (Node *)position.ptr;
+        Node *node = position.ptr;
 
         if(node == nullptr)
         {

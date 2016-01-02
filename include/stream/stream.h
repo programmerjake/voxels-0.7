@@ -45,7 +45,11 @@
 #include <cerrno>
 #ifdef DEBUG_STREAM
 #include <iostream>
-#define DUMP_V(fn, v) do {std::cerr << #fn << ": read " << v << std::endl;} while(false)
+#define DUMP_V(fn, v)                                    \
+    do                                                   \
+    {                                                    \
+        std::cerr << #fn << ": read " << v << std::endl; \
+    } while(false)
 #else
 #define DUMP_V(fn, v)
 #endif
@@ -59,27 +63,26 @@ typedef double float64_t;
 
 namespace stream
 {
-
 class IOException : public std::runtime_error
 {
 public:
-    explicit IOException(const std::string & msg)
-        : std::runtime_error(msg)
+    explicit IOException(const std::string &msg) : std::runtime_error(msg)
     {
     }
     explicit IOException(std::exception *e, bool deleteIt = true)
-        : std::runtime_error((dynamic_cast<IOException *>(e) == nullptr) ? std::string("IO Error : ") + e->what() : std::string(e->what()))
+        : std::runtime_error((dynamic_cast<IOException *>(e) == nullptr) ?
+                                 std::string("IO Error : ") + e->what() :
+                                 std::string(e->what()))
     {
         if(deleteIt)
             delete e;
     }
-    explicit IOException(std::exception & e, bool deleteIt = false)
-        : IOException(&e, deleteIt)
+    explicit IOException(std::exception &e, bool deleteIt = false) : IOException(&e, deleteIt)
     {
     }
     static void throwErrorFromErrno(std::string functionName)
     {
-MSVC_PRAGMA(warning(suppress : 4996))
+        MSVC_PRAGMA(warning(suppress : 4996))
         throw IOException(functionName + " failed: " + std::strerror(errno));
     }
 };
@@ -87,8 +90,7 @@ MSVC_PRAGMA(warning(suppress : 4996))
 class EOFException final : public IOException
 {
 public:
-    explicit EOFException()
-        : IOException("IO Error : reached end of file")
+    explicit EOFException() : IOException("IO Error : reached end of file")
     {
     }
 };
@@ -96,8 +98,7 @@ public:
 class NoStreamsLeftException final : public IOException
 {
 public:
-    explicit NoStreamsLeftException()
-        : IOException("IO Error : no streams left")
+    explicit NoStreamsLeftException() : IOException("IO Error : no streams left")
     {
     }
 };
@@ -105,8 +106,7 @@ public:
 class UTFDataFormatException final : public IOException
 {
 public:
-    explicit UTFDataFormatException()
-        : IOException("IO Error : invalid UTF data")
+    explicit UTFDataFormatException() : IOException("IO Error : invalid UTF data")
     {
     }
 };
@@ -114,8 +114,7 @@ public:
 class InvalidDataValueException final : public IOException
 {
 public:
-    explicit InvalidDataValueException(std::string msg)
-        : IOException(msg)
+    explicit InvalidDataValueException(std::string msg) : IOException(msg)
     {
     }
 };
@@ -123,8 +122,7 @@ public:
 class NonSeekableException final : public IOException
 {
 public:
-    NonSeekableException()
-        : IOException("IO Error : non-seekable stream")
+    NonSeekableException() : IOException("IO Error : non-seekable stream")
     {
     }
 };
@@ -132,8 +130,7 @@ public:
 class SeekOutOfRangeException final : public IOException
 {
 public:
-    SeekOutOfRangeException()
-        : IOException("IO Error : seek out-of-range")
+    SeekOutOfRangeException() : IOException("IO Error : seek out-of-range")
     {
     }
 };
@@ -141,7 +138,8 @@ public:
 class Stream
 {
     Stream(const Stream &) = delete;
-    Stream &operator =(const Stream &) = delete;
+    Stream &operator=(const Stream &) = delete;
+
 private:
     std::unordered_map<std::size_t, std::shared_ptr<void>> valueMap;
     static std::size_t allocateIndex()
@@ -155,12 +153,13 @@ private:
         static const std::size_t retval = allocateIndex();
         return retval;
     }
+
 protected:
-    Stream()
-        : valueMap()
+    Stream() : valueMap()
     {
     }
     virtual ~Stream() = default;
+
 public:
     template <typename T, typename TagType>
     std::shared_ptr<T> getAssociatedValue()
@@ -195,12 +194,13 @@ private:
         }
         return v;
     }
+
 public:
     Reader()
     {
     }
     Reader(const Reader &) = delete;
-    const Reader & operator =(const Reader &) = delete;
+    const Reader &operator=(const Reader &) = delete;
     virtual ~Reader()
     {
     }
@@ -348,47 +348,47 @@ public:
             std::uint32_t b1 = readU8();
             if(b1 == 0)
             {
-                return string_cast<std::wstring>(retval);
+                break;
             }
             else if((b1 & 0x80) == 0)
             {
-                retval += (char)b1;
+                retval += static_cast<char>(b1);
             }
             else if((b1 & 0xE0) == 0xC0)
             {
-                retval += (char)b1;
+                retval += static_cast<char>(b1);
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b2;
+                retval += static_cast<char>(b2);
             }
             else if((b1 & 0xF0) == 0xE0)
             {
-                retval += (char)b1;
+                retval += static_cast<char>(b1);
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b2;
+                retval += static_cast<char>(b2);
                 std::uint32_t b3 = readU8();
                 if((b3 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b3;
+                retval += static_cast<char>(b3);
             }
             else if((b1 & 0xF8) == 0xF0)
             {
-                retval += (char)b1;
+                retval += static_cast<char>(b1);
                 std::uint32_t b2 = readU8();
                 if((b2 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b2;
+                retval += static_cast<char>(b2);
                 std::uint32_t b3 = readU8();
                 if((b3 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b3;
+                retval += static_cast<char>(b3);
                 std::uint32_t b4 = readU8();
                 if((b4 & 0xC0) != 0x80)
                     throw UTFDataFormatException();
-                retval += (char)b4;
+                retval += static_cast<char>(b4);
                 std::uint32_t v = b4 & 0x3F;
                 v |= (b3 & 0x3F) << 6;
                 v |= (b2 & 0x3F) << 12;
@@ -399,6 +399,7 @@ public:
             else
                 throw UTFDataFormatException();
         }
+        return string_cast<std::wstring>(retval);
     }
     std::uint8_t readLimitedU8(std::uint8_t min, std::uint8_t max)
     {
@@ -467,7 +468,7 @@ public:
     {
     }
     Writer(const Writer &) = delete;
-    const Writer & operator =(const Writer &) = delete;
+    const Writer &operator=(const Writer &) = delete;
     virtual ~Writer()
     {
     }
@@ -479,7 +480,7 @@ public:
     {
         return true;
     }
-    virtual void writeBytes(const std::uint8_t * array, std::size_t count)
+    virtual void writeBytes(const std::uint8_t *array, std::size_t count)
     {
         for(size_t i = 0; i < count; i++)
             writeByte(array[i]);
@@ -494,8 +495,8 @@ public:
     }
     void writeU16(std::uint16_t v)
     {
-        writeU8((std::uint8_t)(v >> 8));
-        writeU8((std::uint8_t)(v & 0xFF));
+        writeU8(static_cast<std::uint8_t>(v >> 8));
+        writeU8(static_cast<std::uint8_t>(v & 0xFF));
     }
     void writeS16(std::int16_t v)
     {
@@ -503,8 +504,8 @@ public:
     }
     void writeU32(std::uint32_t v)
     {
-        writeU16((std::uint16_t)(v >> 16));
-        writeU16((std::uint16_t)(v & 0xFFFF));
+        writeU16(static_cast<std::uint16_t>(v >> 16));
+        writeU16(static_cast<std::uint16_t>(v & 0xFFFF));
     }
     void writeS32(std::int32_t v)
     {
@@ -512,8 +513,8 @@ public:
     }
     void writeU64(std::uint64_t v)
     {
-        writeU32((std::uint64_t)(v >> 32));
-        writeU32((std::uint64_t)(v & 0xFFFFFFFFU));
+        writeU32(static_cast<std::uint64_t>(v >> 32));
+        writeU32(static_cast<std::uint64_t>(v & 0xFFFFFFFFU));
     }
     void writeS64(std::int64_t v)
     {
@@ -576,13 +577,14 @@ template <typename ReturnType>
 struct read_base
 {
     read_base(const read_base &) = delete;
-    const read_base & operator =(const read_base &) = delete;
+    const read_base &operator=(const read_base &) = delete;
+
 protected:
     ReturnType value;
-    read_base(ReturnType && value)
-        : value(value)
+    read_base(ReturnType &&value) : value(value)
     {
     }
+
 public:
     operator ReturnType &&() &&
     {
@@ -596,7 +598,7 @@ struct read;
 template <typename T>
 struct is_value_changed
 {
-    constexpr bool operator ()(std::shared_ptr<const T>, Stream &) const
+    constexpr bool operator()(std::shared_ptr<const T>, Stream &) const
     {
         return false;
     }
@@ -613,16 +615,21 @@ struct rw_class_traits<T, typename std::enable_if<std::is_class<T>::value>::type
 {
 private:
     template <typename T2>
-    static decltype(T2::read(std::declval<Reader &>())) f(decltype(std::declval<T2 &>().write(std::declval<Writer &>())) *);
+    static decltype(T2::read(std::declval<Reader &>())) f(
+        decltype(std::declval<T2 &>().write(std::declval<Writer &>())) *);
     template <typename T2>
     static void f(...);
+
 public:
     typedef decltype(f<T>(nullptr)) value_type;
-    static constexpr bool has_rw = !std::is_same<void, value_type>::value && std::is_move_constructible<T>::value;
+    static constexpr bool has_rw =
+        !std::is_same<void, value_type>::value && std::is_move_constructible<T>::value;
 };
 
 template <typename T>
-struct rw_class_traits<T, typename std::enable_if<std::is_enum<T>::value || std::is_arithmetic<T>::value>::type>
+struct rw_class_traits<T,
+                       typename std::enable_if<std::is_enum<T>::value
+                                               || std::is_arithmetic<T>::value>::type>
 {
     static constexpr bool has_rw = true;
     typedef T value_type;
@@ -631,17 +638,18 @@ struct rw_class_traits<T, typename std::enable_if<std::is_enum<T>::value || std:
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
-struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type> : public read_base<typename rw_class_traits<T>::value_type>
+struct read<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type>
+    : public read_base<typename rw_class_traits<T>::value_type>
 {
-GCC_PRAGMA(diagnostic pop)
-    read(Reader &reader)
-        : read_base<typename rw_class_traits<T>::value_type>(T::read(reader))
+    GCC_PRAGMA(diagnostic pop)
+    read(Reader &reader) : read_base<typename rw_class_traits<T>::value_type>(T::read(reader))
     {
     }
 };
 
 template <typename T>
-struct write<T, typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type>
+struct write<T,
+             typename std::enable_if<std::is_class<T>::value && rw_class_traits<T>::has_rw>::type>
 {
     write(Writer &writer, T &value)
     {
@@ -663,11 +671,11 @@ struct read_finite;
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
-struct read_finite<T, typename std::enable_if<std::is_integral<T>::value>::type> : public stream::read<T>
+struct read_finite<T, typename std::enable_if<std::is_integral<T>::value>::type>
+    : public stream::read<T>
 {
-GCC_PRAGMA(diagnostic pop)
-    read_finite(Reader & reader)
-        : stream::read<T>(reader)
+    GCC_PRAGMA(diagnostic pop)
+    read_finite(Reader &reader) : stream::read<T>(reader)
     {
     }
 };
@@ -675,9 +683,10 @@ GCC_PRAGMA(diagnostic pop)
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
-inline typename rw_class_traits<T>::value_type read_checked(Reader & reader, std::function<bool(typename rw_class_traits<T>::value_type)> checkFn)
+inline typename rw_class_traits<T>::value_type read_checked(
+    Reader &reader, std::function<bool(typename rw_class_traits<T>::value_type)> checkFn)
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     typename rw_class_traits<T>::value_type retval = stream::read<T>(reader);
     if(!checkFn(retval))
     {
@@ -689,83 +698,79 @@ GCC_PRAGMA(diagnostic pop)
 template <typename T>
 struct read_limited;
 
-#define DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(typeName, functionSuffix) \
-template <> \
-struct read<typeName, void> : public read_base<typeName> \
-{ \
-    read(Reader & reader) \
-        : read_base<typeName>(reader.read ## functionSuffix()) \
-    { \
-    } \
-}; \
-template <> \
-struct read_limited<typeName> : public read_base<typeName> \
-{ \
-    read_limited(Reader & reader, typeName minV, typeName maxV) \
-        : read_base<typeName>(reader.readLimited ## functionSuffix(minV, maxV)) \
-    { \
-    } \
-}; \
-template <> \
-struct write<typeName, void> \
-{ \
-    write(Writer & writer, typeName value) \
-    { \
-        writer.write ## functionSuffix(value); \
-    } \
-};
+#define DEFINE_RW_FUNCTIONS_FOR_BASIC_INTEGER_TYPE(typeName, functionSuffix)      \
+    template <>                                                                   \
+    struct read<typeName, void> : public read_base<typeName>                      \
+    {                                                                             \
+        read(Reader &reader) : read_base<typeName>(reader.read##functionSuffix()) \
+        {                                                                         \
+        }                                                                         \
+    };                                                                            \
+    template <>                                                                   \
+    struct read_limited<typeName> : public read_base<typeName>                    \
+    {                                                                             \
+        read_limited(Reader &reader, typeName minV, typeName maxV)                \
+            : read_base<typeName>(reader.readLimited##functionSuffix(minV, maxV)) \
+        {                                                                         \
+        }                                                                         \
+    };                                                                            \
+    template <>                                                                   \
+    struct write<typeName, void>                                                  \
+    {                                                                             \
+        write(Writer &writer, typeName value)                                     \
+        {                                                                         \
+            writer.write##functionSuffix(value);                                  \
+        }                                                                         \
+    };
 
-#define DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(typeName, functionSuffix) \
-template <> \
-struct read<typeName, void> : public read_base<typeName> \
-{ \
-    read(Reader & reader) \
-        : read_base<typeName>(reader.read ## functionSuffix()) \
-    { \
-    } \
-}; \
-template <> \
-struct read_limited<typeName> : public read_base<typeName> \
-{ \
-    read_limited(Reader & reader, typeName minV, typeName maxV) \
-        : read_base<typeName>(reader.readLimited ## functionSuffix(minV, maxV)) \
-    { \
-    } \
-}; \
-template <> \
-struct read_finite<typeName, void> : public read_base<typeName>\
-{ \
-    read_finite(Reader &reader) \
-        : read_base<typeName>(reader.readFinite ## functionSuffix()) \
-    { \
-    } \
-}; \
-template <> \
-struct write<typeName, void> \
-{ \
-    write(Writer & writer, typeName value) \
-    { \
-        writer.write ## functionSuffix(value); \
-    } \
-};
+#define DEFINE_RW_FUNCTIONS_FOR_BASIC_FLOAT_TYPE(typeName, functionSuffix)                     \
+    template <>                                                                                \
+    struct read<typeName, void> : public read_base<typeName>                                   \
+    {                                                                                          \
+        read(Reader &reader) : read_base<typeName>(reader.read##functionSuffix())              \
+        {                                                                                      \
+        }                                                                                      \
+    };                                                                                         \
+    template <>                                                                                \
+    struct read_limited<typeName> : public read_base<typeName>                                 \
+    {                                                                                          \
+        read_limited(Reader &reader, typeName minV, typeName maxV)                             \
+            : read_base<typeName>(reader.readLimited##functionSuffix(minV, maxV))              \
+        {                                                                                      \
+        }                                                                                      \
+    };                                                                                         \
+    template <>                                                                                \
+    struct read_finite<typeName, void> : public read_base<typeName>                            \
+    {                                                                                          \
+        read_finite(Reader &reader) : read_base<typeName>(reader.readFinite##functionSuffix()) \
+        {                                                                                      \
+        }                                                                                      \
+    };                                                                                         \
+    template <>                                                                                \
+    struct write<typeName, void>                                                               \
+    {                                                                                          \
+        write(Writer &writer, typeName value)                                                  \
+        {                                                                                      \
+            writer.write##functionSuffix(value);                                               \
+        }                                                                                      \
+    };
 
-#define DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(typeName, functionSuffix) \
-template <> \
-struct read<typeName, void> : public read_base<typeName> \
-{ \
-    read(Reader & reader) \
-        : read_base<typeName>(reader.read ## functionSuffix()) \
-    { \
-    } \
-}; \
-template <> \
-struct write<typeName, void> \
-{ \
-    write(Writer & writer, typeName value) \
-    { \
-        writer.write ## functionSuffix(value); \
-    } \
-};
+#define DEFINE_RW_FUNCTIONS_FOR_BASIC_TYPE(typeName, functionSuffix)              \
+    template <>                                                                   \
+    struct read<typeName, void> : public read_base<typeName>                      \
+    {                                                                             \
+        read(Reader &reader) : read_base<typeName>(reader.read##functionSuffix()) \
+        {                                                                         \
+        }                                                                         \
+    };                                                                            \
+    template <>                                                                   \
+    struct write<typeName, void>                                                  \
+    {                                                                             \
+        write(Writer &writer, typeName value)                                     \
+        {                                                                         \
+            writer.write##functionSuffix(value);                                  \
+        }                                                                         \
+    };
 
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
@@ -792,9 +797,13 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read<T, typename std::enable_if<std::is_enum<T>::value>::type> : public read_base<T>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     read(Reader &reader)
-        : read_base<T>((T)(typename enum_traits<T>::rwtype)stream::read_limited<typename enum_traits<T>::rwtype>(reader, (typename enum_traits<T>::rwtype)enum_traits<T>::minimum, (typename enum_traits<T>::rwtype)enum_traits<T>::maximum))
+        : read_base<T>(static_cast<T>(static_cast<typename enum_traits<T>::rwtype>(
+              stream::read_limited<typename enum_traits<T>::rwtype>(
+                  reader,
+                  static_cast<typename enum_traits<T>::rwtype>(enum_traits<T>::minimum),
+                  static_cast<typename enum_traits<T>::rwtype>(enum_traits<T>::maximum)))))
     {
     }
 };
@@ -804,7 +813,8 @@ struct write<T, typename std::enable_if<std::is_enum<T>::value>::type>
 {
     write(Writer &writer, T value)
     {
-        stream::write<typename enum_traits<T>::rwtype>(writer, (typename enum_traits<T>::rwtype)value);
+        stream::write<typename enum_traits<T>::rwtype>(writer,
+            static_cast<typename enum_traits<T>::rwtype>(value));
     }
 };
 
@@ -813,9 +823,9 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct read_nonnull : public read_base<typename rw_class_traits<T>::value_type>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     read_nonnull(Reader &reader)
-        : read_base<typename rw_class_traits<T>::value_type>((std::shared_ptr<T>)read<T>(reader))
+        : read_base<typename rw_class_traits<T>::value_type>(static_cast<std::shared_ptr<T>>(read<T>(reader)))
     {
         if(this->value == nullptr)
             throw InvalidDataValueException("read null pointer in read_nonnull");
@@ -825,18 +835,18 @@ GCC_PRAGMA(diagnostic pop)
 class FileReader final : public Reader
 {
     FileReader(const FileReader &) = delete;
-    FileReader &operator =(const FileReader &) = delete;
+    FileReader &operator=(const FileReader &) = delete;
+
 private:
     FILE *const f;
     const bool closeFile;
+
 public:
     static FILE *openFile(std::wstring fileName, bool forWriteToo = false);
-    explicit FileReader(std::wstring fileName)
-        : f(openFile(std::move(fileName))), closeFile(true)
+    explicit FileReader(std::wstring fileName) : f(openFile(std::move(fileName))), closeFile(true)
     {
     }
-    explicit FileReader(FILE *f, bool closeFile = true)
-        : f(f), closeFile(closeFile)
+    explicit FileReader(FILE *f, bool closeFile = true) : f(f), closeFile(closeFile)
     {
         assert(f != nullptr);
     }
@@ -864,18 +874,18 @@ public:
 class FileWriter final : public Writer
 {
     FileWriter(const FileWriter &) = delete;
-    FileWriter &operator =(const FileWriter &) = delete;
+    FileWriter &operator=(const FileWriter &) = delete;
+
 private:
     FILE *const f;
     const bool closeFile;
+
 public:
     static FILE *openFile(std::wstring fileName, bool forReadToo = false);
-    explicit FileWriter(std::wstring fileName)
-        : f(openFile(std::move(fileName))), closeFile(true)
+    explicit FileWriter(std::wstring fileName) : f(openFile(std::move(fileName))), closeFile(true)
     {
     }
-    explicit FileWriter(FILE *f, bool closeFile = true)
-        : f(f), closeFile(closeFile)
+    explicit FileWriter(FILE *f, bool closeFile = true) : f(f), closeFile(closeFile)
     {
         assert(f != nullptr);
     }
@@ -905,6 +915,7 @@ private:
     std::shared_ptr<const std::uint8_t> mem;
     std::size_t offset;
     const std::size_t length;
+
 public:
     explicit MemoryReader(std::shared_ptr<const std::uint8_t> mem, std::size_t length)
         : mem(mem), offset(0), length(length)
@@ -917,18 +928,26 @@ public:
     explicit MemoryReader(const std::vector<std::uint8_t> &mem)
         : mem(), offset(0), length(mem.size())
     {
-        std::uint8_t * memory = new std::uint8_t[mem.size()];
+        std::uint8_t *memory = new std::uint8_t[mem.size()];
         for(std::size_t i = 0; i < mem.size(); i++)
             memory[i] = mem[i];
-        this->mem = std::shared_ptr<std::uint8_t>(memory, [](std::uint8_t * memory){delete []memory;});
+        this->mem = std::shared_ptr<std::uint8_t>(memory,
+                                                  [](std::uint8_t *memory)
+                                                  {
+                                                      delete[] memory;
+                                                  });
     }
     explicit MemoryReader(std::vector<std::uint8_t> &&mem)
         : MemoryReader(std::make_shared<std::vector<std::uint8_t>>(std::move(mem)))
     {
     }
     template <std::size_t length>
-    explicit MemoryReader(const std::uint8_t (&a)[length])
-        : MemoryReader(std::shared_ptr<const std::uint8_t>(&a[0], [](const std::uint8_t *){}), length)
+    explicit MemoryReader(const std::uint8_t(&a)[length])
+        : MemoryReader(std::shared_ptr<const std::uint8_t>(&a[0],
+                                                           [](const std::uint8_t *)
+                                                           {
+                                                           }),
+                       length)
     {
     }
     virtual bool dataAvailable() override
@@ -965,7 +984,8 @@ public:
             offset = static_cast<std::size_t>(o);
             break;
         case SeekPosition::Current:
-            if(static_cast<std::uint64_t>(o + offset) > length || static_cast<std::int64_t>(o + offset) < 0)
+            if(static_cast<std::uint64_t>(o + offset) > length
+               || static_cast<std::int64_t>(o + offset) < 0)
                 throw SeekOutOfRangeException();
             offset = static_cast<std::size_t>(offset + o);
             break;
@@ -992,13 +1012,12 @@ private:
             memory.resize(writeOffset + writeByteCount, static_cast<std::uint8_t>(0));
         }
     }
+
 public:
-    MemoryWriter()
-        : memory()
+    MemoryWriter() : memory()
     {
     }
-    explicit MemoryWriter(std::size_t expectedLength)
-        : memory()
+    explicit MemoryWriter(std::size_t expectedLength) : memory()
     {
         memory.reserve(expectedLength);
     }
@@ -1007,11 +1026,11 @@ public:
         expandBuffer(1);
         memory[writeOffset++] = v;
     }
-    const std::vector<std::uint8_t> & getBuffer() const &
+    const std::vector<std::uint8_t> &getBuffer() const &
     {
         return memory;
     }
-    std::vector<std::uint8_t> && getBuffer() &&
+    std::vector<std::uint8_t> &&getBuffer() &&
     {
         return std::move(memory);
     }
@@ -1061,17 +1080,19 @@ public:
 class StreamPipe final
 {
     StreamPipe(const StreamPipe &) = delete;
-    const StreamPipe & operator =(const StreamPipe &) = delete;
+    const StreamPipe &operator=(const StreamPipe &) = delete;
+
 private:
     std::shared_ptr<Reader> readerInternal;
     std::shared_ptr<Writer> writerInternal;
+
 public:
     StreamPipe();
-    Reader & reader()
+    Reader &reader()
     {
         return *readerInternal;
     }
-    Writer & writer()
+    Writer &writer()
     {
         return *writerInternal;
     }
@@ -1089,9 +1110,9 @@ class DumpingReader final : public Reader
 {
 private:
     Reader &reader;
+
 public:
-    DumpingReader(Reader& reader)
-        : reader(reader)
+    DumpingReader(Reader &reader) : reader(reader)
     {
     }
     virtual std::uint8_t readByte() override;
@@ -1107,15 +1128,15 @@ struct StreamRW
     {
     }
     StreamRW(const StreamRW &) = delete;
-    const StreamRW & operator =(const StreamRW &) = delete;
+    const StreamRW &operator=(const StreamRW &) = delete;
     virtual ~StreamRW()
     {
     }
-    Reader & reader()
+    Reader &reader()
     {
         return *preader();
     }
-    Writer & writer()
+    Writer &writer()
     {
         return *pwriter();
     }
@@ -1128,8 +1149,10 @@ class StreamRWWrapper final : public StreamRW
 private:
     std::shared_ptr<Reader> preaderInternal;
     std::shared_ptr<Writer> pwriterInternal;
+
 public:
-    StreamRWWrapper(std::shared_ptr<Reader> preaderInternal, std::shared_ptr<Writer> pwriterInternal)
+    StreamRWWrapper(std::shared_ptr<Reader> preaderInternal,
+                    std::shared_ptr<Writer> pwriterInternal)
         : preaderInternal(preaderInternal), pwriterInternal(pwriterInternal)
     {
     }
@@ -1150,12 +1173,14 @@ class StreamBidirectionalPipe final
 private:
     StreamPipe pipe1, pipe2;
     std::shared_ptr<StreamRW> port1Internal, port2Internal;
+
 public:
-    StreamBidirectionalPipe()
-        : pipe1(), pipe2(), port1Internal(), port2Internal()
+    StreamBidirectionalPipe() : pipe1(), pipe2(), port1Internal(), port2Internal()
     {
-        port1Internal = std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe1.preader(), pipe2.pwriter()));
-        port2Internal = std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe2.preader(), pipe1.pwriter()));
+        port1Internal =
+            std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe1.preader(), pipe2.pwriter()));
+        port2Internal =
+            std::shared_ptr<StreamRW>(new StreamRWWrapper(pipe2.preader(), pipe1.pwriter()));
     }
     std::shared_ptr<StreamRW> pport1()
     {
@@ -1165,11 +1190,11 @@ public:
     {
         return port2Internal;
     }
-    StreamRW & port1()
+    StreamRW &port1()
     {
         return *port1Internal;
     }
-    StreamRW & port2()
+    StreamRW &port2()
     {
         return *port2Internal;
     }
@@ -1181,7 +1206,7 @@ struct StreamServer
     {
     }
     StreamServer(const StreamServer &) = delete;
-    const StreamServer & operator =(const StreamServer &) = delete;
+    const StreamServer &operator=(const StreamServer &) = delete;
     virtual ~StreamServer()
     {
     }
@@ -1193,12 +1218,15 @@ class StreamServerWrapper final : public StreamServer
 private:
     std::list<std::shared_ptr<StreamRW>> streams;
     std::shared_ptr<StreamServer> nextServer;
+
 public:
-    StreamServerWrapper(std::list<std::shared_ptr<StreamRW>> streams, std::shared_ptr<StreamServer> nextServer = nullptr)
+    StreamServerWrapper(std::list<std::shared_ptr<StreamRW>> streams,
+                        std::shared_ptr<StreamServer> nextServer = nullptr)
         : streams(streams), nextServer(nextServer)
     {
     }
-    StreamServerWrapper(std::vector<std::shared_ptr<StreamRW>> streams, std::shared_ptr<StreamServer> nextServer = nullptr)
+    StreamServerWrapper(std::vector<std::shared_ptr<StreamRW>> streams,
+                        std::shared_ptr<StreamServer> nextServer = nullptr)
         : streams(streams.begin(), streams.end()), nextServer(nextServer)
     {
     }
@@ -1240,9 +1268,9 @@ class BufferedReader final : public Reader
                 buffer.push_back(*data++);
         }
     }
+
 public:
-    BufferedReader(std::shared_ptr<Reader> preader)
-        : preader(preader)
+    BufferedReader(std::shared_ptr<Reader> preader) : preader(preader)
     {
     }
     virtual bool dataAvailable() override
@@ -1268,15 +1296,16 @@ class BufferedWriter final : public Writer
     circularDeque<std::uint8_t, BufferSize + 1> buffer;
     void writeBuffer(bool writeAll)
     {
-        while(!buffer.empty() && (writeAll || buffer.size() >= buffer.capacity() || !pwriter->writeWaits()))
+        while(!buffer.empty()
+              && (writeAll || buffer.size() >= buffer.capacity() || !pwriter->writeWaits()))
         {
             pwriter->writeByte(buffer.front());
             buffer.pop_front();
         }
     }
+
 public:
-    BufferedWriter(std::shared_ptr<Writer> pwriter)
-        : pwriter(pwriter)
+    BufferedWriter(std::shared_ptr<Writer> pwriter) : pwriter(pwriter)
     {
     }
     virtual bool writeWaits() override
@@ -1295,7 +1324,6 @@ public:
         buffer.push_back(v);
     }
 };
-
 }
 }
 }

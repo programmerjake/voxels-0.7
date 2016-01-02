@@ -35,68 +35,103 @@ namespace Blocks
 {
 namespace builtin
 {
-
 class GenericTorch : public AttachedBlock
 {
 public:
     const float torchHeight, torchWidth;
-    static Mesh makeMesh(TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    static Mesh makeMesh(TextureDescriptor bottomTexture,
+                         TextureDescriptor sideTexture,
+                         TextureDescriptor topTexture,
+                         float torchHeight = 10.0f / 16.0f,
+                         float torchWidth = 2.0f / 16.0f)
     {
-        Mesh mesh = transform(Matrix::translate(-0.5f, 0, -0.5f).concat(Matrix::scale(torchWidth, torchHeight, torchWidth)),
-                              Generate::unitBox(TextureDescriptor(), TextureDescriptor(),
-                                                bottomTexture, topTexture,
-                                                TextureDescriptor(), TextureDescriptor()));
+        Mesh mesh = transform(Matrix::translate(-0.5f, 0, -0.5f)
+                                  .concat(Matrix::scale(torchWidth, torchHeight, torchWidth)),
+                              Generate::unitBox(TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                bottomTexture,
+                                                topTexture,
+                                                TextureDescriptor(),
+                                                TextureDescriptor()));
         mesh.append(transform(Matrix::translate(-0.5f * torchWidth, 0, -0.5f),
-                              Generate::unitBox(sideTexture, TextureDescriptor(),
-                                                TextureDescriptor(), TextureDescriptor(),
-                                                TextureDescriptor(), TextureDescriptor())));
+                              Generate::unitBox(sideTexture,
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor())));
         mesh.append(transform(Matrix::translate(-1.0f + 0.5f * torchWidth, 0, -0.5f),
-                              Generate::unitBox(TextureDescriptor(), sideTexture,
-                                                TextureDescriptor(), TextureDescriptor(),
-                                                TextureDescriptor(), TextureDescriptor())));
+                              Generate::unitBox(TextureDescriptor(),
+                                                sideTexture,
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor())));
         mesh.append(transform(Matrix::translate(-0.5f, 0, -0.5f * torchWidth),
-                              Generate::unitBox(TextureDescriptor(), TextureDescriptor(),
-                                                TextureDescriptor(), TextureDescriptor(),
-                                                sideTexture, TextureDescriptor())));
+                              Generate::unitBox(TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                sideTexture,
+                                                TextureDescriptor())));
         mesh.append(transform(Matrix::translate(-0.5f, 0, -1.0f + 0.5f * torchWidth),
-                              Generate::unitBox(TextureDescriptor(), TextureDescriptor(),
-                                                TextureDescriptor(), TextureDescriptor(),
-                                                TextureDescriptor(), sideTexture)));
+                              Generate::unitBox(TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                TextureDescriptor(),
+                                                sideTexture)));
         return std::move(mesh);
     }
-    static Matrix makeTorchBlockTransform(BlockFace attachedToFace, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    static Matrix makeTorchBlockTransform(BlockFace attachedToFace,
+                                          float torchHeight = 10.0f / 16.0f,
+                                          float torchWidth = 2.0f / 16.0f)
     {
         const double rotateAngle = 1.2 - M_PI / 2.0;
         switch(attachedToFace)
         {
         case BlockFace::NX:
-            return Matrix::rotateZ(rotateAngle).concat(Matrix::translate(0, 0.5f - 0.5f * torchHeight, 0.5f));
+            return Matrix::rotateZ(rotateAngle)
+                .concat(Matrix::translate(0, 0.5f - 0.5f * torchHeight, 0.5f));
         case BlockFace::PX:
-            return Matrix::rotateZ(-rotateAngle).concat(Matrix::translate(1, 0.5f - 0.5f * torchHeight, 0.5f));
+            return Matrix::rotateZ(-rotateAngle)
+                .concat(Matrix::translate(1, 0.5f - 0.5f * torchHeight, 0.5f));
         case BlockFace::PZ:
-            return Matrix::rotateX(rotateAngle).concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 1));
+            return Matrix::rotateX(rotateAngle)
+                .concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 1));
         case BlockFace::NZ:
-            return Matrix::rotateX(-rotateAngle).concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 0));
+            return Matrix::rotateX(-rotateAngle)
+                .concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 0));
         case BlockFace::PY:
             return Matrix::rotateX(M_PI).concat(Matrix::translate(0.5f, 1.0f, 0.5f));
         default: // NY
             return Matrix::translate(0.5f, 0, 0.5f);
         }
     }
-    static VectorF makeTorchHeadPosition(float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    static VectorF makeTorchHeadPosition(float torchHeight = 10.0f / 16.0f,
+                                         float torchWidth = 2.0f / 16.0f)
     {
         return VectorF(0, torchHeight, 0);
     }
-    static VectorF makeTorchBlockHeadPosition(BlockFace attachedToFace, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    static VectorF makeTorchBlockHeadPosition(BlockFace attachedToFace,
+                                              float torchHeight = 10.0f / 16.0f,
+                                              float torchWidth = 2.0f / 16.0f)
     {
-        return transform(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth), makeTorchHeadPosition(torchHeight, torchWidth));
+        return transform(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth),
+                         makeTorchHeadPosition(torchHeight, torchWidth));
     }
-    static Mesh makeBlockMesh(TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture, BlockFace attachedToFace, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
+    static Mesh makeBlockMesh(TextureDescriptor bottomTexture,
+                              TextureDescriptor sideTexture,
+                              TextureDescriptor topTexture,
+                              BlockFace attachedToFace,
+                              float torchHeight = 10.0f / 16.0f,
+                              float torchWidth = 2.0f / 16.0f)
     {
         Mesh mesh = makeMesh(bottomTexture, sideTexture, topTexture, torchHeight, torchWidth);
         Matrix tform = makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth);
         return transform(tform, std::move(mesh));
     }
+
 protected:
     static std::wstring makeNameWithBlockFace(std::wstring baseName, BlockFace attachedToFace)
     {
@@ -126,7 +161,9 @@ protected:
         return retval + L")";
     }
     const std::pair<VectorF, VectorF> rayCollisionBox;
-    static std::pair<VectorF, VectorF> makeRayCollisionBox(Matrix torchBlockTransform, float torchHeight, float torchWidth)
+    static std::pair<VectorF, VectorF> makeRayCollisionBox(Matrix torchBlockTransform,
+                                                           float torchHeight,
+                                                           float torchWidth)
     {
         float minX = -0.5f * torchWidth;
         float maxX = 0.5f * torchWidth;
@@ -134,8 +171,7 @@ protected:
         float maxZ = 0.5f * torchWidth;
         float minY = 0;
         float maxY = torchHeight;
-        checked_array<VectorF, 8> points =
-        {
+        checked_array<VectorF, 8> points = {
             VectorF(minX, minY, minZ),
             VectorF(minX, minY, maxZ),
             VectorF(minX, maxY, minZ),
@@ -169,51 +205,84 @@ protected:
         return retval;
     }
     const VectorF headPosition;
+
 public:
-    GenericTorch(std::wstring name,
-                 TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture,
-                 BlockFace attachedToFace, LightProperties lightProperties,
-                 RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskGround,
-                 float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
-        : AttachedBlock(name, attachedToFace, BlockShape(nullptr),
-                        lightProperties, blockRayCollisionMask, true,
-                        false, false,
-                        false, false,
-                        false, false,
-                        makeBlockMesh(bottomTexture, sideTexture, topTexture, attachedToFace, torchHeight, torchWidth),
-                        Mesh(), Mesh(),
-                        Mesh(), Mesh(),
-                        Mesh(), Mesh(),
-                        RenderLayer::Opaque),
-                        torchHeight(torchHeight), torchWidth(torchWidth),
-                        rayCollisionBox(makeRayCollisionBox(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth), torchHeight, torchWidth)),
-                        headPosition(makeTorchBlockHeadPosition(attachedToFace, torchHeight, torchWidth))
+    GenericTorch(
+        std::wstring name,
+        TextureDescriptor bottomTexture,
+        TextureDescriptor sideTexture,
+        TextureDescriptor topTexture,
+        BlockFace attachedToFace,
+        LightProperties lightProperties,
+        RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskGround,
+        float torchHeight = 10.0f / 16.0f,
+        float torchWidth = 2.0f / 16.0f)
+        : AttachedBlock(
+              name,
+              attachedToFace,
+              BlockShape(nullptr),
+              lightProperties,
+              blockRayCollisionMask,
+              true,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              makeBlockMesh(
+                  bottomTexture, sideTexture, topTexture, attachedToFace, torchHeight, torchWidth),
+              Mesh(),
+              Mesh(),
+              Mesh(),
+              Mesh(),
+              Mesh(),
+              Mesh(),
+              RenderLayer::Opaque),
+          torchHeight(torchHeight),
+          torchWidth(torchWidth),
+          rayCollisionBox(
+              makeRayCollisionBox(makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth),
+                                  torchHeight,
+                                  torchWidth)),
+          headPosition(makeTorchBlockHeadPosition(attachedToFace, torchHeight, torchWidth))
     {
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
+    virtual RayCasting::Collision getRayCollision(const Block &block,
+                                                  BlockIterator blockIterator,
+                                                  WorldLockManager &lock_manager,
+                                                  World &world,
+                                                  RayCasting::Ray ray) const override
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
         std::pair<VectorF, VectorF> rayCollisionBox = this->rayCollisionBox;
-        std::get<0>(rayCollisionBox) += (VectorF)blockIterator.position();
-        std::get<1>(rayCollisionBox) += (VectorF)blockIterator.position();
-        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
+        std::get<0>(rayCollisionBox) += static_cast<VectorF>(blockIterator.position());
+        std::get<1>(rayCollisionBox) += static_cast<VectorF>(blockIterator.position());
+        std::tuple<bool, float, BlockFace> collision =
+            ray.getAABoxEnterFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
         if(std::get<0>(collision))
-            collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+            collision =
+                ray.getAABoxEnterFace(static_cast<VectorF>(blockIterator.position()),
+                                      static_cast<VectorF>(blockIterator.position()) + VectorF(1));
         BlockFace boxHitFace = std::get<2>(collision);
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
-            collision = ray.getAABoxExitFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
+            collision =
+                ray.getAABoxExitFace(std::get<0>(rayCollisionBox), std::get<1>(rayCollisionBox));
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
                 return RayCasting::Collision(world);
             std::get<1>(collision) = RayCasting::Ray::eps;
-            return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
+            return RayCasting::Collision(
+                world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
         }
-        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(boxHitFace));
+        return RayCasting::Collision(
+            world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(boxHitFace));
     }
     virtual Matrix getSelectionBoxTransform(const Block &block) const override
     {
-        return Matrix::scale(std::get<1>(rayCollisionBox) - std::get<0>(rayCollisionBox)).concat(Matrix::translate(std::get<0>(rayCollisionBox)));
+        return Matrix::scale(std::get<1>(rayCollisionBox) - std::get<0>(rayCollisionBox))
+            .concat(Matrix::translate(std::get<0>(rayCollisionBox)));
     }
     virtual bool isReplaceableByFluid() const override
     {
@@ -223,7 +292,9 @@ public:
     {
         return false;
     }
-    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    virtual bool canAttachBlock(Block b,
+                                BlockFace attachingFace,
+                                Block attachingBlock) const override
     {
         return false;
     }
@@ -247,12 +318,13 @@ private:
     class TorchInstanceMaker final
     {
         TorchInstanceMaker(const TorchInstanceMaker &) = delete;
-        const TorchInstanceMaker &operator =(const TorchInstanceMaker &) = delete;
+        const TorchInstanceMaker &operator=(const TorchInstanceMaker &) = delete;
+
     private:
         enum_array<Torch *, BlockFace> torches;
+
     public:
-        TorchInstanceMaker()
-            : torches()
+        TorchInstanceMaker() : torches()
         {
             for(BlockFace bf : enum_traits<BlockFace>())
             {
@@ -271,13 +343,21 @@ private:
             return torches[bf];
         }
     };
+
 private:
     Torch(BlockFace attachedToFace)
-        : GenericTorch(makeNameWithBlockFace(L"builtin.torch", attachedToFace), TextureAtlas::TorchBottom.td(), TextureAtlas::TorchSide.td(), TextureAtlas::TorchTop.td(), attachedToFace, LightProperties(Lighting::makeArtificialLighting(14)))
+        : GenericTorch(makeNameWithBlockFace(L"builtin.torch", attachedToFace),
+                       TextureAtlas::TorchBottom.td(),
+                       TextureAtlas::TorchSide.td(),
+                       TextureAtlas::TorchTop.td(),
+                       attachedToFace,
+                       LightProperties(Lighting::makeArtificialLighting(14)))
     {
     }
+
 public:
-    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn) const override /// @return nullptr if block can't attach to attachedToFaceIn
+    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn)
+        const override /// @return nullptr if block can't attach to attachedToFaceIn
     {
         return global_instance_maker<TorchInstanceMaker>::getInstance()->get(attachedToFaceIn);
     }
@@ -289,17 +369,36 @@ public:
     {
         return pointer(attachedToFaceIn);
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual void onReplace(World &world,
+                           Block b,
+                           BlockIterator bi,
+                           WorldLockManager &lock_manager) const override;
+
 protected:
-    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+    virtual void onDisattach(World &world,
+                             const Block &block,
+                             BlockIterator blockIterator,
+                             WorldLockManager &lock_manager,
+                             BlockUpdateKind blockUpdateKind) const override;
+
 public:
     virtual bool generatesParticles() const override
     {
         return true;
     }
-    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const override;
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void generateParticles(World &world,
+                                   Block b,
+                                   BlockIterator bi,
+                                   WorldLockManager &lock_manager,
+                                   double currentTime,
+                                   double deltaTime) const override;
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -307,7 +406,6 @@ public:
         return nullptr;
     }
 };
-
 }
 }
 }

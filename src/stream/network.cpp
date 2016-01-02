@@ -140,7 +140,7 @@ void throwOpenSSLError(unsigned long errorCode)
 {
     std::string msg;
     msg.resize(0x100, '\0');
-    ERR_error_string_n(errorCode, &msg[0], (int)msg.size());
+    ERR_error_string_n(errorCode, &msg[0], static_cast<int>(msg.size()));
     std::size_t index = msg.find_first_of('\0');
     if(index != std::string::npos)
         msg.erase(index);
@@ -207,7 +207,7 @@ SSL_CTX *startOpenSSLLibAndClient()
             v = engine();
         }
     }
-    RAND_add((const void *)buf, sizeof(buf), addedEntropy);
+    RAND_add(static_cast<const void *>(buf), sizeof(buf), addedEntropy);
     const SSL_METHOD *sslMethods;
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     sslMethods = TLS_client_method();

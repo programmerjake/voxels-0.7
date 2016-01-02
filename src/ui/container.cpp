@@ -74,7 +74,7 @@ void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus
     float logMinZ = std::log(minZ), logMaxZ = std::log(maxZ);
     std::vector<float> depths(maxDepth + 2);
     for(std::size_t i = 0; i < depths.size(); i++)
-        depths[i] = std::exp(interpolate((float)i / (maxDepth + 1), logMaxZ, logMinZ));
+        depths[i] = std::exp(interpolate(static_cast<float>(i) / (maxDepth + 1), logMaxZ, logMinZ));
     for(const MyElementType &e : myElements)
     {
         float minZ = depths[e.depth + 1];

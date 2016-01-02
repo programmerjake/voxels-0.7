@@ -53,7 +53,7 @@ private:
         return std::get<1>(*iter);
     }
 protected:
-    static constexpr std::size_t npos = ~(std::size_t)0;
+    static constexpr std::size_t npos = ~static_cast<std::size_t>(0);
     std::shared_ptr<Element> operator [](std::size_t index)
     {
         return elements[index];

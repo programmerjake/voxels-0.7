@@ -46,6 +46,17 @@ BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlock
     indirectBlockChunk(indirectBlockChunk)
 {
     assert(indirectBlockChunk);
+    for(int x = 0; x < subchunkCountX; x++)
+    {
+        for(int y = 0; y < subchunkCountY; y++)
+        {
+            for(int z = 0; z < subchunkCountZ; z++)
+            {
+                BlockChunkSubchunk &subchunk = subchunks[x][y][z];
+                subchunk.lockImp.chunkSemaphore = indirectBlockChunk->chunkVariables.semaphore;
+            }
+        }
+    }
 }
 
 BlockChunk::~BlockChunk()

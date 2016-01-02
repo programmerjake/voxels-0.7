@@ -41,12 +41,12 @@ private:
     template <typename U>
     static std::intptr_t getCompareValue(const std::weak_ptr<U> &v)
     {
-        return (std::intptr_t)v.lock().get();
+        return reinterpret_cast<std::intptr_t>(v.lock().get());
     }
     template <typename U>
     static std::intptr_t getCompareValue(const std::shared_ptr<U> &v)
     {
-        return (std::intptr_t)v.get();
+        return reinterpret_cast<std::intptr_t>(v.get());
     }
 public:
     constexpr ordered_weak_ptr()
@@ -144,7 +144,7 @@ public:
     }
     std::size_t hash() const
     {
-        return (std::size_t)compareValue;
+        return static_cast<std::size_t>(compareValue);
     }
 };
 

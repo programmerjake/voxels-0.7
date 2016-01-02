@@ -74,7 +74,7 @@
 #define GRAPHICS_OPENGL
 #include <GL/gl.h>
 #endif
-#if (defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
+#if(defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
 #include <GL/glext.h>
 #else
 #ifndef APIENTRY
@@ -105,15 +105,15 @@ namespace voxels
 {
 double Display::realtimeTimer()
 {
-    return static_cast<double>(chrono::duration_cast<chrono::nanoseconds>(chrono::system_clock::now().time_since_epoch()).count()) * 1e-9;
+    return static_cast<double>(chrono::duration_cast<chrono::nanoseconds>(
+                                   chrono::system_clock::now().time_since_epoch()).count()) * 1e-9;
 }
 
 namespace
 {
 struct RWOpsException : public stream::IOException
 {
-    RWOpsException(string str)
-        : IOException(str)
+    RWOpsException(string str) : IOException(str)
     {
     }
 };
@@ -121,12 +121,13 @@ struct RWOpsException : public stream::IOException
 class RWOpsReader final : public stream::Reader
 {
     RWOpsReader(const RWOpsReader &) = delete;
-    RWOpsReader &operator =(const RWOpsReader &) = delete;
+    RWOpsReader &operator=(const RWOpsReader &) = delete;
+
 private:
-    SDL_RWops * rw;
+    SDL_RWops *rw;
+
 public:
-    RWOpsReader(SDL_RWops * rw)
-        : rw(rw)
+    RWOpsReader(SDL_RWops *rw) : rw(rw)
     {
         if(rw == nullptr)
             throw RWOpsException("invalid RWOps");
@@ -137,7 +138,7 @@ public:
         uint8_t retval;
         if(0 == SDL_RWread(rw, &retval, sizeof(retval), 1))
         {
-            const char * str = SDL_GetError();
+            const char *str = SDL_GetError();
             if(str[0]) // non-empty string : error
                 throw RWOpsException(str);
             throw stream::EOFException();
@@ -147,10 +148,11 @@ public:
     virtual std::size_t readBytes(std::uint8_t *array, std::size_t maxCount) override
     {
         SDL_ClearError(); // for error detection
-        std::size_t count = SDL_RWread(rw, static_cast<void *>(array), sizeof(std::uint8_t), maxCount);
+        std::size_t count =
+            SDL_RWread(rw, static_cast<void *>(array), sizeof(std::uint8_t), maxCount);
         if(0 == count)
         {
-            const char * str = SDL_GetError();
+            const char *str = SDL_GetError();
             if(str[0]) // non-empty string : error
                 throw RWOpsException(str);
         }
@@ -166,7 +168,8 @@ public:
             throw stream::NonSeekableException();
         std::int64_t retval = SDL_RWtell(rw);
         if(retval < 0)
-            throw stream::IOException(std::string("SDL_RWtell failed on seekable stream: ") + SDL_GetError());
+            throw stream::IOException(std::string("SDL_RWtell failed on seekable stream: ")
+                                      + SDL_GetError());
         return retval;
     }
     virtual void seek(std::int64_t offset, stream::SeekPosition seekPosition) override
@@ -189,13 +192,13 @@ public:
             UNREACHABLE();
         }
         if(SDL_RWseek(rw, offset, whence) < 0)
-            throw stream::IOException(std::string("SDL_RWseek failed on seekable stream: ") + SDL_GetError());
+            throw stream::IOException(std::string("SDL_RWseek failed on seekable stream: ")
+                                      + SDL_GetError());
     }
 };
 }
 
 static void startSDL();
-
 }
 }
 
@@ -207,7 +210,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-static wchar_t * ResourcePrefix = nullptr;
+static wchar_t *ResourcePrefix = nullptr;
 static wstring getExecutablePath();
 
 static void initfn();
@@ -258,9 +261,9 @@ static void initfn()
 }
 
 static initializer initializer1([]()
-{
-    initfn();
-});
+                                {
+                                    initfn();
+                                });
 
 shared_ptr<stream::Reader> getResourceReader(wstring resource)
 {
@@ -278,7 +281,7 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
 }
 static int platformSetup()
 {
-MSVC_PRAGMA(warning(suppress : 4996))
+    MSVC_PRAGMA(warning(suppress : 4996))
     if(getenv("SDL_AUDIODRIVER") == nullptr)
     {
         SetEnvironmentVariableA("SDL_AUDIODRIVER", "winmm");
@@ -305,7 +308,7 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
     {
         return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
     }
-    catch(RWOpsException & e)
+    catch(RWOpsException &e)
     {
         throw RWOpsException("can't open resource : " + string_cast<string>(resource));
     }
@@ -334,7 +337,7 @@ namespace programmerjake
 namespace voxels
 {
 static atomic_bool setResourcePrefix(false);
-static wstring * pResourcePrefix = nullptr;
+static wstring *pResourcePrefix = nullptr;
 static wstring getExecutablePath();
 static void calcResourcePrefix();
 
@@ -381,7 +384,7 @@ shared_ptr<stream::Reader> getResourceReader(wstring resource)
     {
         return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
     }
-    catch(RWOpsException & e)
+    catch(RWOpsException &e)
     {
         fname = string_cast<string>(getResourceFileName(resource, true));
         return make_shared<RWOpsReader>(SDL_RWFromFile(fname.c_str(), "rb"));
@@ -434,26 +437,24 @@ std::shared_ptr<stream::Writer> createOrWriteUserSpecificFile(std::wstring name)
 
 namespace
 {
-    atomic_bool simulatingTouchInput(false);
-    struct TouchSimulationTouch final
+atomic_bool simulatingTouchInput(false);
+struct TouchSimulationTouch final
+{
+    const int id;
+    float x, y;
+    TouchSimulationTouch(int id, float x, float y) : id(id), x(x), y(y)
     {
-        const int id;
-        float x, y;
-        TouchSimulationTouch(int id, float x, float y)
-            : id(id), x(x), y(y)
-        {
-        }
-    };
-    struct TouchSimulationState final
+    }
+};
+struct TouchSimulationState final
+{
+    std::unordered_map<int, TouchSimulationTouch> touches;
+    int draggingId = -1;
+    TouchSimulationState() : touches()
     {
-        std::unordered_map<int, TouchSimulationTouch> touches;
-        int draggingId = -1;
-        TouchSimulationState()
-            : touches()
-        {
-        }
-    };
-    std::shared_ptr<TouchSimulationState> touchSimulationState;
+    }
+};
+std::shared_ptr<TouchSimulationState> touchSimulationState;
 }
 
 static std::size_t processorCount = 1;
@@ -640,7 +641,7 @@ static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadSt
 
 static int globalSetup()
 {
-MSVC_PRAGMA(warning(suppress : 4996))
+    MSVC_PRAGMA(warning(suppress : 4996))
     if(getenv("SIMULATE_TOUCH") != nullptr) // enable touch simulation
     {
         touchSimulationState = std::make_shared<TouchSimulationState>();
@@ -709,7 +710,12 @@ void startAudio()
         desired.freq = 96000;
         desired.samples = 4096;
         desired.userdata = nullptr;
-        globalAudioDeviceID = SDL_OpenAudioDevice(nullptr, 0, &desired, &globalAudioSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE);
+        globalAudioDeviceID =
+            SDL_OpenAudioDevice(nullptr,
+                                0,
+                                &desired,
+                                &globalAudioSpec,
+                                SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE);
         if(globalAudioDeviceID == 0)
         {
             cerr << "error : can't open audio device : " << SDL_GetError() << endl;
@@ -810,7 +816,12 @@ void startGraphics()
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    window = SDL_CreateWindow("Voxels", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, xResInternal, yResInternal, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("Voxels",
+                              SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED,
+                              xResInternal,
+                              yResInternal,
+                              SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if(window == nullptr)
     {
         cerr << "error : can't create window : " << SDL_GetError();
@@ -859,11 +870,11 @@ struct FlipTimeLocker
 };
 
 initializer initializer3([]()
-{
-    lastFlipTime = Display::realtimeTimer();
-    const float fps = defaultFPS;
-    oldLastFlipTime = lastFlipTime - static_cast<double>(1) / fps;
-});
+                         {
+                             lastFlipTime = Display::realtimeTimer();
+                             const float fps = defaultFPS;
+                             oldLastFlipTime = lastFlipTime - static_cast<double>(1) / fps;
+                         });
 
 static volatile float averageFPSInternal = defaultFPS;
 
@@ -915,7 +926,7 @@ static void flipDisplay(float fps)
         oldLastFlipTime = lastFlipTime;
         lastFlipTime = curTime;
         averageFPSInternal *= 1 - FPSUpdateFactor;
-        averageFPSInternal += FPSUpdateFactor * (float)instantaneousFPS();
+        averageFPSInternal += FPSUpdateFactor * static_cast<float>(instantaneousFPS());
     }
     if(sleepTime > eps)
     {
@@ -925,7 +936,7 @@ static void flipDisplay(float fps)
             oldLastFlipTime = lastFlipTime;
             lastFlipTime = Display::realtimeTimer();
             averageFPSInternal *= 1 - FPSUpdateFactor;
-            averageFPSInternal += FPSUpdateFactor * (float)instantaneousFPS();
+            averageFPSInternal += FPSUpdateFactor * static_cast<float>(instantaneousFPS());
         }
     }
     SDL_GL_SwapWindow(window);
@@ -1246,9 +1257,10 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
     typedef pair<SDL_TouchID, SDL_FingerID> Id;
     struct hashId
     {
-        size_t operator ()(Id id) const
+        size_t operator()(Id id) const
         {
-            return std::hash<SDL_TouchID>()(std::get<0>(id)) + std::hash<SDL_FingerID>()(std::get<1>(id));
+            return std::hash<SDL_TouchID>()(std::get<0>(id))
+                   + std::hash<SDL_FingerID>()(std::get<1>(id));
         }
     };
     static shared_ptr<unordered_map<Id, int, hashId>> touchMap;
@@ -1301,14 +1313,16 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         case SDL_KEYDOWN:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            auto retval = std::make_shared<KeyDownEvent>(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod), keyState[key]);
+            auto retval = std::make_shared<KeyDownEvent>(
+                key, translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)), keyState[key]);
             keyState[key] = true;
             return retval;
         }
         case SDL_KEYUP:
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            auto retval = std::make_shared<KeyUpEvent>(key, translateModifiers((SDL_Keymod)SDLEvent.key.keysym.mod));
+            auto retval = std::make_shared<KeyUpEvent>(
+                key, translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)));
             keyState[key] = false;
             return retval;
         }
@@ -1325,16 +1339,25 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 {
                     float newX = (float)SDLEvent.motion.x / (float)xResInternal * 2 - 1;
                     float newY = (float)SDLEvent.motion.y / (float)yResInternal * 2 - 1;
-                    TouchSimulationTouch &touch = touchSimulationState->touches.at(touchSimulationState->draggingId);
+                    TouchSimulationTouch &touch =
+                        touchSimulationState->touches.at(touchSimulationState->draggingId);
                     float oldX = touch.x;
                     float oldY = touch.y;
                     touch.x = newX;
                     touch.y = newY;
-                    return std::make_shared<TouchMoveEvent>(newX, newY, newX - oldX, newY - oldY, touchSimulationState->draggingId, 0.5f);
+                    return std::make_shared<TouchMoveEvent>(newX,
+                                                            newY,
+                                                            newX - oldX,
+                                                            newY - oldY,
+                                                            touchSimulationState->draggingId,
+                                                            0.5f);
                 }
                 break;
             }
-            return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x, (float)SDLEvent.motion.y, (float)SDLEvent.motion.xrel, (float)SDLEvent.motion.yrel);
+            return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x,
+                                                    (float)SDLEvent.motion.y,
+                                                    (float)SDLEvent.motion.xrel,
+                                                    (float)SDLEvent.motion.yrel);
 #endif
         }
         case SDL_MOUSEWHEEL:
@@ -1370,28 +1393,38 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
                 if(touchSimulationState->draggingId >= 0)
                 {
-                    TouchSimulationTouch &touch = touchSimulationState->touches.at(touchSimulationState->draggingId);
+                    TouchSimulationTouch &touch =
+                        touchSimulationState->touches.at(touchSimulationState->draggingId);
                     float oldX = touch.x;
                     float oldY = touch.y;
                     touch.x = newX;
                     touch.y = newY;
-                    return std::make_shared<TouchMoveEvent>(newX, newY, newX - oldX, newY - oldY, touchSimulationState->draggingId, 0.5f);
+                    return std::make_shared<TouchMoveEvent>(newX,
+                                                            newY,
+                                                            newX - oldX,
+                                                            newY - oldY,
+                                                            touchSimulationState->draggingId,
+                                                            0.5f);
                 }
                 else
                 {
-                    for(auto i = touchSimulationState->touches.begin(); i != touchSimulationState->touches.end(); ++i)
+                    for(auto i = touchSimulationState->touches.begin();
+                        i != touchSimulationState->touches.end();
+                        ++i)
                     {
                         TouchSimulationTouch &touch = std::get<1>(*i);
                         float oldX = touch.x;
                         float oldY = touch.y;
                         float touchSizeX = 32.0f / (float)xResInternal;
                         float touchSizeY = 32.0f / (float)yResInternal;
-                        if(std::fabs(oldX - newX) > touchSizeX || std::fabs(oldY - newY) > touchSizeY)
+                        if(std::fabs(oldX - newX) > touchSizeX
+                           || std::fabs(oldY - newY) > touchSizeY)
                             continue;
                         touchSimulationState->draggingId = touch.id;
                         touch.x = newX;
                         touch.y = newY;
-                        return std::make_shared<TouchMoveEvent>(newX, newY, newX - oldX, newY - oldY, touch.id, 0.5f);
+                        return std::make_shared<TouchMoveEvent>(
+                            newX, newY, newX - oldX, newY - oldY, touch.id, 0.5f);
                     }
                     int newId = touchSimulationState->touches.size();
                     for(int i = 0; i < (int)touchSimulationState->touches.size(); i++)
@@ -1403,12 +1436,14 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                         }
                     }
                     touchSimulationState->draggingId = newId;
-                    touchSimulationState->touches.emplace(newId, TouchSimulationTouch(newId, newX, newY));
+                    touchSimulationState->touches.emplace(newId,
+                                                          TouchSimulationTouch(newId, newX, newY));
                     return std::make_shared<TouchDownEvent>(newX, newY, 0.0f, 0.0f, newId, 0.5f);
                 }
                 break;
             }
-            return std::make_shared<MouseDownEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+            return std::make_shared<MouseDownEvent>(
+                (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
 #endif
         }
         case SDL_MOUSEBUTTONUP:
@@ -1426,7 +1461,8 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                 float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
                 if(touchSimulationState->draggingId >= 0)
                 {
-                    TouchSimulationTouch &touch = touchSimulationState->touches.at(touchSimulationState->draggingId);
+                    TouchSimulationTouch &touch =
+                        touchSimulationState->touches.at(touchSimulationState->draggingId);
                     float oldX = touch.x;
                     float oldY = touch.y;
                     touch.x = newX;
@@ -1436,49 +1472,71 @@ static std::shared_ptr<PlatformEvent> makeEvent()
                     {
                         touchSimulationState->touches.erase(touchId);
                         touchSimulationState->draggingId = -1;
-                        return std::make_shared<TouchUpEvent>(newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
+                        return std::make_shared<TouchUpEvent>(
+                            newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
                     }
                     else if(buttonState == MouseButton_None)
                     {
                         touchSimulationState->draggingId = -1;
                     }
-                    return std::make_shared<TouchMoveEvent>(newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
+                    return std::make_shared<TouchMoveEvent>(
+                        newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
                 }
                 break;
             }
-            return std::make_shared<MouseUpEvent>((float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+            return std::make_shared<MouseUpEvent>(
+                (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
 #endif
         }
         case SDL_FINGERMOTION:
             if(touchSimulationState)
                 break;
-            return std::make_shared<TouchMoveEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchMoveEvent>(
+                SDLEvent.tfinger.x * 2 - 1,
+                SDLEvent.tfinger.y * 2 - 1,
+                SDLEvent.tfinger.dx * 2,
+                SDLEvent.tfinger.dy * 2,
+                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
+                SDLEvent.tfinger.pressure);
         case SDL_FINGERDOWN:
             if(touchSimulationState)
                 break;
-            return std::make_shared<TouchDownEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchDownEvent>(
+                SDLEvent.tfinger.x * 2 - 1,
+                SDLEvent.tfinger.y * 2 - 1,
+                SDLEvent.tfinger.dx * 2,
+                SDLEvent.tfinger.dy * 2,
+                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
+                SDLEvent.tfinger.pressure);
         case SDL_FINGERUP:
             if(touchSimulationState)
                 break;
-            return std::make_shared<TouchUpEvent>(SDLEvent.tfinger.x * 2 - 1, SDLEvent.tfinger.y * 2 - 1, SDLEvent.tfinger.dx * 2, SDLEvent.tfinger.dy * 2, translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true), SDLEvent.tfinger.pressure);
+            return std::make_shared<TouchUpEvent>(
+                SDLEvent.tfinger.x * 2 - 1,
+                SDLEvent.tfinger.y * 2 - 1,
+                SDLEvent.tfinger.dx * 2,
+                SDLEvent.tfinger.dy * 2,
+                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true),
+                SDLEvent.tfinger.pressure);
         case SDL_JOYAXISMOTION:
         case SDL_JOYBALLMOTION:
         case SDL_JOYHATMOTION:
         case SDL_JOYBUTTONDOWN:
         case SDL_JOYBUTTONUP:
-            //TODO (jacob#): handle joysticks
+            // TODO (jacob#): handle joysticks
             break;
         case SDL_WINDOWEVENT_RESIZED:
             break;
         case SDL_QUIT:
             return std::make_shared<QuitEvent>();
         case SDL_SYSWMEVENT:
-            //TODO (jacob#): handle SDL_SYSWMEVENT
+            // TODO (jacob#): handle SDL_SYSWMEVENT
             break;
         case SDL_TEXTEDITING:
         {
             std::string text = SDLEvent.edit.text;
-            return std::make_shared<TextEditEvent>(string_cast<std::wstring>(text), SDLEvent.edit.start, SDLEvent.edit.length);
+            return std::make_shared<TextEditEvent>(
+                string_cast<std::wstring>(text), SDLEvent.edit.start, SDLEvent.edit.length);
         }
         case SDL_TEXTINPUT:
         {
@@ -1564,8 +1622,7 @@ static void handleEvents(shared_ptr<EventHandler> eventHandler)
 
 void glLoadMatrix(Matrix mat)
 {
-    float matArray[16] =
-    {
+    float matArray[16] = {
         mat.x00,
         mat.x01,
         mat.x02,
@@ -1613,9 +1670,9 @@ static void updateTimer()
 }
 
 initializer initializer4([]()
-{
-    updateTimer();
-});
+                         {
+                             updateTimer();
+                         });
 
 void Display::flip(float fps)
 {
@@ -1689,7 +1746,9 @@ void Display::grabMouse(bool g)
 
 VectorF Display::transformMouseTo3D(float x, float y, float depth)
 {
-    return VectorF(depth * scaleX() * (2 * x / width() - 1), depth * scaleY() * (1 - 2 * y / height()), -depth);
+    return VectorF(depth * scaleX() * (2 * x / width() - 1),
+                   depth * scaleY() * (1 - 2 * y / height()),
+                   -depth);
 }
 
 VectorF Display::transformTouchTo3D(float x, float y, float depth)
@@ -1723,23 +1782,26 @@ float Display::getTouchControlSize()
 
 namespace
 {
-void renderInternal(const Mesh & m)
+void setArrayBufferBinding(GLuint buffer);
+
+void renderInternal(const Triangle *triangles, std::size_t triangleCount)
 {
-    if(m.size() == 0)
+    if(triangleCount == 0)
         return;
 #if 1
-    const char *array_start = (const char *)&m.triangles[0];
+    const char *array_start = reinterpret_cast<const char *>(triangles);
     glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
-    glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
+    glTexCoordPointer(
+        2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
     glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
 #else
     static vector<float> vertexArray, textureCoordArray, colorArray;
-    vertexArray.resize(m.triangles.size() * 3 * 3);
-    textureCoordArray.resize(m.triangles.size() * 3 * 2);
-    colorArray.resize(m.triangles.size() * 3 * 4);
-    for(size_t i = 0; i < m.triangles.size(); i++)
+    vertexArray.resize(triangleCount * 3 * 3);
+    textureCoordArray.resize(triangleCount * 3 * 2);
+    colorArray.resize(triangleCount * 3 * 4);
+    for(size_t i = 0; i < triangleCount; i++)
     {
-        Triangle tri = m.triangles[i];
+        Triangle tri = triangles[i];
         vertexArray[i * 3 * 3 + 0 * 3 + 0] = tri.p1.x;
         vertexArray[i * 3 * 3 + 0 * 3 + 1] = tri.p1.y;
         vertexArray[i * 3 * 3 + 0 * 3 + 2] = tri.p1.z;
@@ -1772,39 +1834,49 @@ void renderInternal(const Mesh & m)
     glTexCoordPointer(2, GL_FLOAT, 0, (const void *)&textureCoordArray[0]);
     glColorPointer(4, GL_FLOAT, 0, (const void *)&colorArray[0]);
 #endif
-    glDrawArrays(GL_TRIANGLES, 0, (GLint)m.triangles.size() * 3);
+    glDrawArrays(GL_TRIANGLES, 0, (GLint)triangleCount * 3);
 }
 
 #if defined(_MSC_VER) || defined(__ANDROID__)
 typedef std::ptrdiff_t GLsizeiptr;
 typedef std::ptrdiff_t GLintptr;
-typedef void (APIENTRYP PFNGLBINDBUFFERPROC) (GLenum target, GLuint buffer);
-typedef void (APIENTRYP PFNGLDELETEBUFFERSPROC) (GLsizei n, const GLuint *buffers);
-typedef void (APIENTRYP PFNGLGENBUFFERSPROC) (GLsizei n, GLuint *buffers);
-typedef void (APIENTRYP PFNGLBUFFERDATAPROC) (GLenum target, GLsizeiptr size, const void *data, GLenum usage);
-typedef void *(APIENTRYP PFNGLMAPBUFFERPROC) (GLenum target, GLenum access);
-typedef GLboolean (APIENTRYP PFNGLUNMAPBUFFERPROC) (GLenum target);
-typedef void (APIENTRYP PFNGLGENFRAMEBUFFERSEXTPROC) (GLsizei n, GLuint *framebuffers);
-typedef void (APIENTRYP PFNGLDELETEFRAMEBUFFERSEXTPROC) (GLsizei n, const GLuint *framebuffers);
-typedef void (APIENTRYP PFNGLGENRENDERBUFFERSEXTPROC) (GLsizei n, GLuint *renderbuffers);
-typedef void (APIENTRYP PFNGLDELETERENDERBUFFERSEXTPROC) (GLsizei n, const GLuint *renderbuffers);
-typedef void (APIENTRYP PFNGLBINDFRAMEBUFFEREXTPROC) (GLenum target, GLuint framebuffer);
-typedef void (APIENTRYP PFNGLBINDRENDERBUFFEREXTPROC) (GLenum target, GLuint renderbuffer);
-typedef void (APIENTRYP PFNGLFRAMEBUFFERTEXTURE2DEXTPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-typedef void (APIENTRYP PFNGLRENDERBUFFERSTORAGEEXTPROC) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
-typedef void (APIENTRYP PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
-typedef GLenum (APIENTRYP PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC) (GLenum target);
-#define GL_FRAMEBUFFER_EXT                0x8D40
-#define GL_RENDERBUFFER_EXT               0x8D41
-#define GL_COLOR_ATTACHMENT0_EXT          0x8CE0
-#define GL_DEPTH_COMPONENT16              0x81A5
-#define GL_DEPTH_COMPONENT24              0x81A6
-#define GL_DEPTH_COMPONENT32              0x81A7
-#define GL_DEPTH_ATTACHMENT_EXT           0x8D00
-#define GL_FRAMEBUFFER_COMPLETE_EXT       0x8CD5
-#define GL_ARRAY_BUFFER                   0x8892
-#define GL_DYNAMIC_DRAW                   0x88E8
-#define GL_WRITE_ONLY                     0x88B9
+typedef void(APIENTRYP PFNGLBINDBUFFERPROC)(GLenum target, GLuint buffer);
+typedef void(APIENTRYP PFNGLDELETEBUFFERSPROC)(GLsizei n, const GLuint *buffers);
+typedef void(APIENTRYP PFNGLGENBUFFERSPROC)(GLsizei n, GLuint *buffers);
+typedef void(APIENTRYP PFNGLBUFFERDATAPROC)(GLenum target,
+                                            GLsizeiptr size,
+                                            const void *data,
+                                            GLenum usage);
+typedef void *(APIENTRYP PFNGLMAPBUFFERPROC)(GLenum target, GLenum access);
+typedef GLboolean(APIENTRYP PFNGLUNMAPBUFFERPROC)(GLenum target);
+typedef void(APIENTRYP PFNGLGENFRAMEBUFFERSEXTPROC)(GLsizei n, GLuint *framebuffers);
+typedef void(APIENTRYP PFNGLDELETEFRAMEBUFFERSEXTPROC)(GLsizei n, const GLuint *framebuffers);
+typedef void(APIENTRYP PFNGLGENRENDERBUFFERSEXTPROC)(GLsizei n, GLuint *renderbuffers);
+typedef void(APIENTRYP PFNGLDELETERENDERBUFFERSEXTPROC)(GLsizei n, const GLuint *renderbuffers);
+typedef void(APIENTRYP PFNGLBINDFRAMEBUFFEREXTPROC)(GLenum target, GLuint framebuffer);
+typedef void(APIENTRYP PFNGLBINDRENDERBUFFEREXTPROC)(GLenum target, GLuint renderbuffer);
+typedef void(APIENTRYP PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)(
+    GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+typedef void(APIENTRYP PFNGLRENDERBUFFERSTORAGEEXTPROC)(GLenum target,
+                                                        GLenum internalformat,
+                                                        GLsizei width,
+                                                        GLsizei height);
+typedef void(APIENTRYP PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)(GLenum target,
+                                                            GLenum attachment,
+                                                            GLenum renderbuffertarget,
+                                                            GLuint renderbuffer);
+typedef GLenum(APIENTRYP PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)(GLenum target);
+#define GL_FRAMEBUFFER_EXT 0x8D40
+#define GL_RENDERBUFFER_EXT 0x8D41
+#define GL_COLOR_ATTACHMENT0_EXT 0x8CE0
+#define GL_DEPTH_COMPONENT16 0x81A5
+#define GL_DEPTH_COMPONENT24 0x81A6
+#define GL_DEPTH_COMPONENT32 0x81A7
+#define GL_DEPTH_ATTACHMENT_EXT 0x8D00
+#define GL_FRAMEBUFFER_COMPLETE_EXT 0x8CD5
+#define GL_ARRAY_BUFFER 0x8892
+#define GL_DYNAMIC_DRAW 0x88E8
+#define GL_WRITE_ONLY 0x88B9
 #endif // _MSC_VER
 
 PFNGLBINDBUFFERPROC fnGLBindBuffer = nullptr;
@@ -1813,7 +1885,8 @@ PFNGLGENBUFFERSPROC fnGLGenBuffers = nullptr;
 PFNGLBUFFERDATAPROC fnGLBufferData = nullptr;
 PFNGLMAPBUFFERPROC fnGLMapBuffer = nullptr;
 PFNGLUNMAPBUFFERPROC fnGLUnmapBuffer = nullptr;
-bool haveOpenGLBuffers = false;
+bool haveOpenGLBuffersWithoutMap = false;
+bool haveOpenGLBuffersWithMap = false;
 PFNGLGENFRAMEBUFFERSEXTPROC fnGlGenFramebuffersEXT = nullptr;
 PFNGLDELETEFRAMEBUFFERSEXTPROC fnGlDeleteFramebuffersEXT = nullptr;
 PFNGLGENRENDERBUFFERSEXTPROC fnGlGenRenderbuffersEXT = nullptr;
@@ -1892,17 +1965,33 @@ void setupRenderLayers()
 #endif
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, renderLayerTextureW, renderLayerTextureH, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            glTexImage2D(GL_TEXTURE_2D,
+                         0,
+                         GL_RGBA,
+                         renderLayerTextureW,
+                         renderLayerTextureH,
+                         0,
+                         GL_RGBA,
+                         GL_UNSIGNED_BYTE,
+                         nullptr);
             fnGlGenFramebuffersEXT(1, &renderLayerFramebuffer[rl]);
             fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, renderLayerFramebuffer[rl]);
-            fnGlFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, renderLayerTexture[rl], 0);
+            fnGlFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                                        GL_COLOR_ATTACHMENT0_EXT,
+                                        GL_TEXTURE_2D,
+                                        renderLayerTexture[rl],
+                                        0);
             fnGlGenRenderbuffersEXT(1, &renderLayerRenderbuffer[rl]);
             bool good = false;
             for(GLenum depthComponent : {GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT16})
             {
                 fnGlBindRenderbufferEXT(GL_RENDERBUFFER_EXT, renderLayerRenderbuffer[rl]);
-                fnGlRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, depthComponent, renderLayerTextureW, renderLayerTextureH);
-                fnGlFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, renderLayerRenderbuffer[rl]);
+                fnGlRenderbufferStorageEXT(
+                    GL_RENDERBUFFER_EXT, depthComponent, renderLayerTextureW, renderLayerTextureH);
+                fnGlFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                                               GL_DEPTH_ATTACHMENT_EXT,
+                                               GL_RENDERBUFFER_EXT,
+                                               renderLayerRenderbuffer[rl]);
                 if(fnGlCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE_EXT)
                 {
                     continue;
@@ -2065,329 +2154,1030 @@ void renderToRenderLayer(RenderLayer rl, F drawFn)
 Image makeTouchTexture()
 {
     const int XSize = 32, YSize = 32;
-    const ColorI pixels[XSize][YSize] =
-    {
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 89),
-            RGBAI(255, 255, 255, 156), RGBAI(255, 255, 255, 209), RGBAI(255, 255, 255, 235), RGBAI(253, 253, 253, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 235), RGBAI(255, 255, 255, 209), RGBAI(255, 255, 255, 156),
-            RGBAI(255, 255, 255, 89), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 160), RGBAI(255, 255, 255, 255), RGBAI(182, 182, 182, 255),
-            RGBAI(105, 105, 105, 255), RGBAI(39, 39, 39, 255), RGBAI(0, 0, 0, 255), RGBAI(255, 255, 255, 254),
-            RGBAI(0, 0, 0, 254), RGBAI(6, 6, 6, 255), RGBAI(39, 39, 39, 255), RGBAI(105, 105, 105, 255),
-            RGBAI(182, 182, 182, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 160), RGBAI(255, 255, 255, 21),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 142),
-            RGBAI(255, 255, 255, 255), RGBAI(127, 127, 127, 255), RGBAI(3, 3, 3, 255), RGBAI(0, 0, 0, 194),
-            RGBAI(0, 0, 0, 114), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 114),
-            RGBAI(0, 0, 0, 194), RGBAI(3, 3, 3, 255), RGBAI(127, 127, 127, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 142), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 1), RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 228), RGBAI(171, 171, 171, 255),
-            RGBAI(2, 2, 2, 255), RGBAI(0, 0, 0, 164), RGBAI(0, 0, 0, 20), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 20), RGBAI(0, 0, 0, 164), RGBAI(2, 2, 2, 255),
-            RGBAI(171, 171, 171, 255), RGBAI(255, 255, 255, 228), RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 1),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 1),
-            RGBAI(255, 255, 255, 37), RGBAI(255, 255, 255, 247), RGBAI(92, 92, 92, 255), RGBAI(0, 0, 0, 227),
-            RGBAI(0, 0, 0, 32), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 32),
-            RGBAI(0, 0, 0, 227), RGBAI(92, 92, 92, 255), RGBAI(255, 255, 255, 247), RGBAI(255, 255, 255, 37),
-            RGBAI(255, 255, 255, 1), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(255, 255, 255, 24),
-            RGBAI(255, 255, 255, 247), RGBAI(72, 72, 72, 255), RGBAI(0, 0, 0, 186), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 186), RGBAI(72, 72, 72, 255), RGBAI(255, 255, 255, 247),
-            RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 228),
-            RGBAI(92, 92, 92, 255), RGBAI(0, 0, 0, 186), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 186), RGBAI(92, 92, 92, 255),
-            RGBAI(255, 255, 255, 228), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 142), RGBAI(171, 171, 171, 255),
-            RGBAI(0, 0, 0, 227), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 227),
-            RGBAI(171, 171, 171, 255), RGBAI(255, 255, 255, 142), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(255, 255, 255, 0), RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 255), RGBAI(2, 2, 2, 255),
-            RGBAI(0, 0, 0, 32), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 32),
-            RGBAI(2, 2, 2, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 160), RGBAI(127, 127, 127, 255), RGBAI(0, 0, 0, 164),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 164), RGBAI(127, 127, 127, 255), RGBAI(255, 255, 255, 160), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255), RGBAI(3, 3, 3, 255), RGBAI(0, 0, 0, 20),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 20), RGBAI(3, 3, 3, 255), RGBAI(255, 255, 255, 255), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(255, 255, 255, 89), RGBAI(182, 182, 182, 255), RGBAI(0, 0, 0, 194), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 194), RGBAI(182, 182, 182, 255), RGBAI(255, 255, 255, 89)
-        },
-        {
-            RGBAI(255, 255, 255, 156), RGBAI(105, 105, 105, 255), RGBAI(0, 0, 0, 114), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 114), RGBAI(105, 105, 105, 255), RGBAI(255, 255, 255, 156)
-        },
-        {
-            RGBAI(255, 255, 255, 209), RGBAI(39, 39, 39, 255), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 46), RGBAI(39, 39, 39, 255), RGBAI(255, 255, 255, 209)
-        },
-        {
-            RGBAI(255, 255, 255, 235), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 255), RGBAI(255, 255, 255, 235)
-        },
-        {
-            RGBAI(253, 253, 253, 255), RGBAI(255, 255, 255, 254), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(252, 252, 252, 254),
-            RGBAI(255, 255, 255, 254), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 254), RGBAI(253, 253, 253, 255)
-        },
-        {
-            RGBAI(255, 255, 255, 255), RGBAI(0, 0, 0, 254), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(255, 255, 255, 254),
-            RGBAI(0, 0, 0, 254), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 254), RGBAI(255, 255, 255, 255)
-        },
-        {
-            RGBAI(255, 255, 255, 235), RGBAI(6, 6, 6, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(6, 6, 6, 255), RGBAI(255, 255, 255, 235)
-        },
-        {
-            RGBAI(255, 255, 255, 209), RGBAI(39, 39, 39, 255), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 46), RGBAI(39, 39, 39, 255), RGBAI(255, 255, 255, 209)
-        },
-        {
-            RGBAI(255, 255, 255, 156), RGBAI(105, 105, 105, 255), RGBAI(0, 0, 0, 114), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 114), RGBAI(105, 105, 105, 255), RGBAI(255, 255, 255, 156)
-        },
-        {
-            RGBAI(255, 255, 255, 89), RGBAI(182, 182, 182, 255), RGBAI(0, 0, 0, 194), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 194), RGBAI(182, 182, 182, 255), RGBAI(255, 255, 255, 89)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255), RGBAI(3, 3, 3, 255), RGBAI(0, 0, 0, 20),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 20), RGBAI(3, 3, 3, 255), RGBAI(255, 255, 255, 255), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 160), RGBAI(127, 127, 127, 255), RGBAI(0, 0, 0, 164),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 164), RGBAI(127, 127, 127, 255), RGBAI(255, 255, 255, 160), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(255, 255, 255, 0), RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 255), RGBAI(2, 2, 2, 255),
-            RGBAI(0, 0, 0, 32), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 32),
-            RGBAI(2, 2, 2, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 142), RGBAI(171, 171, 171, 255),
-            RGBAI(0, 0, 0, 227), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 227),
-            RGBAI(171, 171, 171, 255), RGBAI(255, 255, 255, 142), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 228),
-            RGBAI(92, 92, 92, 255), RGBAI(0, 0, 0, 186), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 186), RGBAI(92, 92, 92, 255),
-            RGBAI(255, 255, 255, 228), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(255, 255, 255, 24),
-            RGBAI(255, 255, 255, 247), RGBAI(72, 72, 72, 255), RGBAI(0, 0, 0, 186), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 186), RGBAI(72, 72, 72, 255), RGBAI(255, 255, 255, 247),
-            RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 1),
-            RGBAI(255, 255, 255, 37), RGBAI(255, 255, 255, 247), RGBAI(92, 92, 92, 255), RGBAI(0, 0, 0, 227),
-            RGBAI(0, 0, 0, 32), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 32),
-            RGBAI(0, 0, 0, 227), RGBAI(92, 92, 92, 255), RGBAI(255, 255, 255, 247), RGBAI(255, 255, 255, 37),
-            RGBAI(255, 255, 255, 1), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 1), RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 228), RGBAI(171, 171, 171, 255),
-            RGBAI(2, 2, 2, 255), RGBAI(0, 0, 0, 164), RGBAI(0, 0, 0, 20), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 20), RGBAI(0, 0, 0, 164), RGBAI(2, 2, 2, 255),
-            RGBAI(171, 171, 171, 255), RGBAI(255, 255, 255, 228), RGBAI(255, 255, 255, 24), RGBAI(255, 255, 255, 1),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 142),
-            RGBAI(255, 255, 255, 255), RGBAI(127, 127, 127, 255), RGBAI(3, 3, 3, 255), RGBAI(0, 0, 0, 194),
-            RGBAI(0, 0, 0, 114), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 255),
-            RGBAI(0, 0, 0, 255), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 46), RGBAI(0, 0, 0, 114),
-            RGBAI(0, 0, 0, 194), RGBAI(3, 3, 3, 255), RGBAI(127, 127, 127, 255), RGBAI(255, 255, 255, 255),
-            RGBAI(255, 255, 255, 142), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 21), RGBAI(255, 255, 255, 160), RGBAI(255, 255, 255, 255), RGBAI(182, 182, 182, 255),
-            RGBAI(105, 105, 105, 255), RGBAI(39, 39, 39, 255), RGBAI(0, 0, 0, 255), RGBAI(255, 255, 255, 254),
-            RGBAI(0, 0, 0, 254), RGBAI(6, 6, 6, 255), RGBAI(39, 39, 39, 255), RGBAI(105, 105, 105, 255),
-            RGBAI(182, 182, 182, 255), RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 160), RGBAI(255, 255, 255, 21),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        },
-        {
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(255, 255, 255, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 89),
-            RGBAI(255, 255, 255, 156), RGBAI(255, 255, 255, 209), RGBAI(255, 255, 255, 235), RGBAI(253, 253, 253, 255),
-            RGBAI(255, 255, 255, 255), RGBAI(255, 255, 255, 235), RGBAI(255, 255, 255, 209), RGBAI(255, 255, 255, 156),
-            RGBAI(255, 255, 255, 89), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(255, 255, 255, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0),
-            RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0), RGBAI(0, 0, 0, 0)
-        }
-    };
+    const ColorI pixels[XSize][YSize] = {{RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 89),
+                                          RGBAI(255, 255, 255, 156),
+                                          RGBAI(255, 255, 255, 209),
+                                          RGBAI(255, 255, 255, 235),
+                                          RGBAI(253, 253, 253, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 235),
+                                          RGBAI(255, 255, 255, 209),
+                                          RGBAI(255, 255, 255, 156),
+                                          RGBAI(255, 255, 255, 89),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(0, 0, 0, 254),
+                                          RGBAI(6, 6, 6, 255),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(255, 255, 255, 37),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(255, 255, 255, 37),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(72, 72, 72, 255),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(72, 72, 72, 255),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(255, 255, 255, 0),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(255, 255, 255, 89),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(255, 255, 255, 89)},
+                                         {RGBAI(255, 255, 255, 156),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(255, 255, 255, 156)},
+                                         {RGBAI(255, 255, 255, 209),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(255, 255, 255, 209)},
+                                         {RGBAI(255, 255, 255, 235),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(255, 255, 255, 235)},
+                                         {RGBAI(253, 253, 253, 255),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(252, 252, 252, 254),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(253, 253, 253, 255)},
+                                         {RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 254),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(0, 0, 0, 254),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 254),
+                                          RGBAI(255, 255, 255, 255)},
+                                         {RGBAI(255, 255, 255, 235),
+                                          RGBAI(6, 6, 6, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(6, 6, 6, 255),
+                                          RGBAI(255, 255, 255, 235)},
+                                         {RGBAI(255, 255, 255, 209),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(255, 255, 255, 209)},
+                                         {RGBAI(255, 255, 255, 156),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(255, 255, 255, 156)},
+                                         {RGBAI(255, 255, 255, 89),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(255, 255, 255, 89)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(255, 255, 255, 0),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(72, 72, 72, 255),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 186),
+                                          RGBAI(72, 72, 72, 255),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(255, 255, 255, 37),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 32),
+                                          RGBAI(0, 0, 0, 227),
+                                          RGBAI(92, 92, 92, 255),
+                                          RGBAI(255, 255, 255, 247),
+                                          RGBAI(255, 255, 255, 37),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 20),
+                                          RGBAI(0, 0, 0, 164),
+                                          RGBAI(2, 2, 2, 255),
+                                          RGBAI(171, 171, 171, 255),
+                                          RGBAI(255, 255, 255, 228),
+                                          RGBAI(255, 255, 255, 24),
+                                          RGBAI(255, 255, 255, 1),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 46),
+                                          RGBAI(0, 0, 0, 114),
+                                          RGBAI(0, 0, 0, 194),
+                                          RGBAI(3, 3, 3, 255),
+                                          RGBAI(127, 127, 127, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 142),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(0, 0, 0, 255),
+                                          RGBAI(255, 255, 255, 254),
+                                          RGBAI(0, 0, 0, 254),
+                                          RGBAI(6, 6, 6, 255),
+                                          RGBAI(39, 39, 39, 255),
+                                          RGBAI(105, 105, 105, 255),
+                                          RGBAI(182, 182, 182, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 160),
+                                          RGBAI(255, 255, 255, 21),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)},
+                                         {RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 89),
+                                          RGBAI(255, 255, 255, 156),
+                                          RGBAI(255, 255, 255, 209),
+                                          RGBAI(255, 255, 255, 235),
+                                          RGBAI(253, 253, 253, 255),
+                                          RGBAI(255, 255, 255, 255),
+                                          RGBAI(255, 255, 255, 235),
+                                          RGBAI(255, 255, 255, 209),
+                                          RGBAI(255, 255, 255, 156),
+                                          RGBAI(255, 255, 255, 89),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(255, 255, 255, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0),
+                                          RGBAI(0, 0, 0, 0)}};
     Image retval(XSize, YSize);
     for(int y = 0; y < YSize; y++)
     {
@@ -2415,17 +3205,22 @@ void finishDrawingRenderLayers()
         float w = (float)texture.width() / (float)xResInternal;
         float h = (float)texture.height() / (float)yResInternal;
         Mesh touchMesh = Generate::quadrilateral(TextureDescriptor(texture),
-                                                VectorF(-w, -h, 0.0f), colorizeColor,
-                                                VectorF(w, -h, 0.0f), colorizeColor,
-                                                VectorF(w, h, 0.0f), colorizeColor,
-                                                VectorF(-w, h, 0.0f), colorizeColor);
+                                                 VectorF(-w, -h, 0.0f),
+                                                 colorizeColor,
+                                                 VectorF(w, -h, 0.0f),
+                                                 colorizeColor,
+                                                 VectorF(w, h, 0.0f),
+                                                 colorizeColor,
+                                                 VectorF(-w, h, 0.0f),
+                                                 colorizeColor);
         Mesh mesh;
         for(std::pair<const int, TouchSimulationTouch> &p : touchSimulationState->touches)
         {
             TouchSimulationTouch &touch = std::get<1>(p);
             mesh.append(transform(Matrix::translate(touch.x, -touch.y, -1.0f), touchMesh));
         }
-        Display::render(mesh, Matrix::scale(Display::scaleX(), Display::scaleY(), 1.0f), RenderLayer::Opaque);
+        Display::render(
+            mesh, Matrix::scale(Display::scaleX(), Display::scaleY(), 1.0f), RenderLayer::Opaque);
     }
     if(usingOpenGLFramebuffers)
     {
@@ -2435,25 +3230,35 @@ void finishDrawingRenderLayers()
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
         glLoadIdentity();
-#if defined(__ANDROID__)
+#if defined(GRAPHICS_OPENGL_ES)
         glOrthof
 #else
         glOrtho
 #endif
-        (-1, 1, -1, 1, -1, 1);
+            (-1, 1, -1, 1, -1, 1);
         fnGlBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+        setArrayBufferBinding(0);
         for(RenderLayer rl : enum_traits<RenderLayer>())
         {
             if(!renderLayerNeedsSeperateRenderTarget(rl))
                 continue;
             glBindTexture(GL_TEXTURE_2D, renderLayerTexture[rl]);
             ColorF colorizeColor = GrayscaleAF(1, 1);
-            Mesh mesh = Generate::quadrilateral(TextureDescriptor(Image(), 0, (float)xResInternal / renderLayerTextureW, 0, (float)yResInternal / renderLayerTextureH),
-                                                VectorF(-1, -1, 0), colorizeColor,
-                                                VectorF(1, -1, 0), colorizeColor,
-                                                VectorF(1, 1, 0), colorizeColor,
-                                                VectorF(-1, 1, 0), colorizeColor);
-            renderInternal(mesh);
+            Mesh mesh = Generate::quadrilateral(
+                TextureDescriptor(Image(),
+                                  0,
+                                  (float)xResInternal / renderLayerTextureW,
+                                  0,
+                                  (float)yResInternal / renderLayerTextureH),
+                VectorF(-1, -1, 0),
+                colorizeColor,
+                VectorF(1, -1, 0),
+                colorizeColor,
+                VectorF(1, 1, 0),
+                colorizeColor,
+                VectorF(-1, 1, 0),
+                colorizeColor);
+            renderInternal(mesh.triangles.data(), mesh.size());
         }
         glPopMatrix();
         glDepthMask(GL_TRUE);
@@ -2462,11 +3267,26 @@ void finishDrawingRenderLayers()
     }
 }
 
+void setArrayBufferBinding(GLuint buffer)
+{
+    static GLuint lastBuffer = 0;
+    if(haveOpenGLBuffersWithoutMap)
+    {
+        if(buffer != lastBuffer)
+        {
+            fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
+            lastBuffer = buffer;
+        }
+    }
+}
+
 void getOpenGLBuffersExtension()
 {
 #ifdef GRAPHICS_OPENGL
-    haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
-    if(haveOpenGLBuffers)
+    haveOpenGLBuffersWithoutMap =
+        SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
+    haveOpenGLBuffersWithMap = haveOpenGLBuffersWithoutMap;
+    if(haveOpenGLBuffersWithMap)
     {
         fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBufferARB");
         fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffersARB");
@@ -2474,15 +3294,12 @@ void getOpenGLBuffersExtension()
         fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferDataARB");
         fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferARB");
         fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
-        if(!fnGLBindBuffer ||
-            !fnGLDeleteBuffers ||
-            !fnGLGenBuffers ||
-            !fnGLBufferData ||
-            !fnGLMapBuffer ||
-            !fnGLUnmapBuffer)
+        if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
+           || !fnGLMapBuffer || !fnGLUnmapBuffer)
         {
-            getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
-            haveOpenGLBuffers = false;
+            getDebugLog() << L"couldn't load OpenGL buffers extension functions" << postnl;
+            haveOpenGLBuffersWithMap = false;
+            haveOpenGLBuffersWithoutMap = false;
             fnGLBindBuffer = nullptr;
             fnGLDeleteBuffers = nullptr;
             fnGLGenBuffers = nullptr;
@@ -2514,21 +3331,20 @@ void getOpenGLBuffersExtension()
             if(major > 1 || (major == 1 && minor >= 5))
             {
                 fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
-                fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
+                fnGLDeleteBuffers =
+                    (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
                 fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
                 fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
                 fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBuffer");
                 fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBuffer");
-                haveOpenGLBuffers = true;
-                if(!fnGLBindBuffer ||
-                    !fnGLDeleteBuffers ||
-                    !fnGLGenBuffers ||
-                    !fnGLBufferData ||
-                    !fnGLMapBuffer ||
-                    !fnGLUnmapBuffer)
+                haveOpenGLBuffersWithMap = true;
+                haveOpenGLBuffersWithoutMap = true;
+                if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
+                   || !fnGLMapBuffer || !fnGLUnmapBuffer)
                 {
                     getDebugLog() << L"couln't load OpenGL buffers functions" << postnl;
-                    haveOpenGLBuffers = false;
+                    haveOpenGLBuffersWithMap = false;
+                    haveOpenGLBuffersWithoutMap = false;
                     fnGLBindBuffer = nullptr;
                     fnGLDeleteBuffers = nullptr;
                     fnGLGenBuffers = nullptr;
@@ -2542,26 +3358,30 @@ void getOpenGLBuffersExtension()
     haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_EXT_framebuffer_object") ? true : false;
     if(haveOpenGLFramebuffers)
     {
-        fnGlGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersEXT");
-        fnGlDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersEXT");
-        fnGlGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersEXT");
-        fnGlDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersEXT");
-        fnGlBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferEXT");
-        fnGlBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferEXT");
-        fnGlFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DEXT");
-        fnGlRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageEXT");
-        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferEXT");
-        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
-        if(!fnGlGenFramebuffersEXT ||
-            !fnGlDeleteFramebuffersEXT ||
-            !fnGlGenRenderbuffersEXT ||
-            !fnGlDeleteRenderbuffersEXT ||
-            !fnGlBindFramebufferEXT ||
-            !fnGlBindRenderbufferEXT ||
-            !fnGlFramebufferTexture2DEXT ||
-            !fnGlRenderbufferStorageEXT ||
-            !fnGlFramebufferRenderbufferEXT ||
-            !fnGlCheckFramebufferStatusEXT)
+        fnGlGenFramebuffersEXT =
+            (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersEXT");
+        fnGlDeleteFramebuffersEXT =
+            (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersEXT");
+        fnGlGenRenderbuffersEXT =
+            (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersEXT");
+        fnGlDeleteRenderbuffersEXT =
+            (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersEXT");
+        fnGlBindFramebufferEXT =
+            (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferEXT");
+        fnGlBindRenderbufferEXT =
+            (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferEXT");
+        fnGlFramebufferTexture2DEXT =
+            (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DEXT");
+        fnGlRenderbufferStorageEXT =
+            (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageEXT");
+        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress(
+            "glFramebufferRenderbufferEXT");
+        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress(
+            "glCheckFramebufferStatusEXT");
+        if(!fnGlGenFramebuffersEXT || !fnGlDeleteFramebuffersEXT || !fnGlGenRenderbuffersEXT
+           || !fnGlDeleteRenderbuffersEXT || !fnGlBindFramebufferEXT || !fnGlBindRenderbufferEXT
+           || !fnGlFramebufferTexture2DEXT || !fnGlRenderbufferStorageEXT
+           || !fnGlFramebufferRenderbufferEXT || !fnGlCheckFramebufferStatusEXT)
         {
             getDebugLog() << L"couln't load OpenGL framebuffers extension" << postnl;
             haveOpenGLFramebuffers = false;
@@ -2577,30 +3397,35 @@ void getOpenGLBuffersExtension()
             fnGlCheckFramebufferStatusEXT = nullptr;
         }
     }
-    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two") ? true : false;
+    haveOpenGLArbitraryTextureSize =
+        SDL_GL_ExtensionSupported("ARB_texture_non_power_of_two") ? true : false;
 #elif defined(GRAPHICS_OPENGL_ES)
-    haveOpenGLBuffers = SDL_GL_ExtensionSupported("GL_OES_mapbuffer") ? true : false;
-    if(haveOpenGLBuffers)
+    haveOpenGLBuffersWithoutMap = true;
+    fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
+    fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
+    fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
+    fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+    haveOpenGLBuffersWithMap = SDL_GL_ExtensionSupported("GL_OES_mapbuffer") ? true : false;
+    if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData)
     {
-        fnGLBindBuffer = (PFNGLBINDBUFFERPROC)SDL_GL_GetProcAddress("glBindBuffer");
-        fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
-        fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
-        fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+        getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
+        haveOpenGLBuffersWithMap = false;
+        haveOpenGLBuffersWithoutMap = false;
+        fnGLBindBuffer = nullptr;
+        fnGLDeleteBuffers = nullptr;
+        fnGLGenBuffers = nullptr;
+        fnGLBufferData = nullptr;
+        fnGLMapBuffer = nullptr;
+        fnGLUnmapBuffer = nullptr;
+    }
+    else if(haveOpenGLBuffersWithMap)
+    {
         fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferOES");
         fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferOES");
-        if(!fnGLBindBuffer ||
-            !fnGLDeleteBuffers ||
-            !fnGLGenBuffers ||
-            !fnGLBufferData ||
-            !fnGLMapBuffer ||
-            !fnGLUnmapBuffer)
+        if(!fnGLMapBuffer || !fnGLUnmapBuffer)
         {
-            getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
-            haveOpenGLBuffers = false;
-            fnGLBindBuffer = nullptr;
-            fnGLDeleteBuffers = nullptr;
-            fnGLGenBuffers = nullptr;
-            fnGLBufferData = nullptr;
+            getDebugLog() << L"couln't load OpenGL map buffers extension functions" << postnl;
+            haveOpenGLBuffersWithMap = false;
             fnGLMapBuffer = nullptr;
             fnGLUnmapBuffer = nullptr;
         }
@@ -2608,26 +3433,30 @@ void getOpenGLBuffersExtension()
     haveOpenGLFramebuffers = SDL_GL_ExtensionSupported("GL_OES_framebuffer_object") ? true : false;
     if(haveOpenGLFramebuffers)
     {
-        fnGlGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersOES");
-        fnGlDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersOES");
-        fnGlGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersOES");
-        fnGlDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersOES");
-        fnGlBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferOES");
-        fnGlBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferOES");
-        fnGlFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DOES");
-        fnGlRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageOES");
-        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferOES");
-        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusOES");
-        if(!fnGlGenFramebuffersEXT ||
-            !fnGlDeleteFramebuffersEXT ||
-            !fnGlGenRenderbuffersEXT ||
-            !fnGlDeleteRenderbuffersEXT ||
-            !fnGlBindFramebufferEXT ||
-            !fnGlBindRenderbufferEXT ||
-            !fnGlFramebufferTexture2DEXT ||
-            !fnGlRenderbufferStorageEXT ||
-            !fnGlFramebufferRenderbufferEXT ||
-            !fnGlCheckFramebufferStatusEXT)
+        fnGlGenFramebuffersEXT =
+            (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersOES");
+        fnGlDeleteFramebuffersEXT =
+            (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersOES");
+        fnGlGenRenderbuffersEXT =
+            (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersOES");
+        fnGlDeleteRenderbuffersEXT =
+            (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersOES");
+        fnGlBindFramebufferEXT =
+            (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferOES");
+        fnGlBindRenderbufferEXT =
+            (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferOES");
+        fnGlFramebufferTexture2DEXT =
+            (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DOES");
+        fnGlRenderbufferStorageEXT =
+            (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageOES");
+        fnGlFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress(
+            "glFramebufferRenderbufferOES");
+        fnGlCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress(
+            "glCheckFramebufferStatusOES");
+        if(!fnGlGenFramebuffersEXT || !fnGlDeleteFramebuffersEXT || !fnGlGenRenderbuffersEXT
+           || !fnGlDeleteRenderbuffersEXT || !fnGlBindFramebufferEXT || !fnGlBindRenderbufferEXT
+           || !fnGlFramebufferTexture2DEXT || !fnGlRenderbufferStorageEXT
+           || !fnGlFramebufferRenderbufferEXT || !fnGlCheckFramebufferStatusEXT)
         {
             getDebugLog() << L"couln't load OpenGL framebuffers extension" << postnl;
             haveOpenGLFramebuffers = false;
@@ -2643,7 +3472,8 @@ void getOpenGLBuffersExtension()
             fnGlCheckFramebufferStatusEXT = nullptr;
         }
     }
-    haveOpenGLArbitraryTextureSize = SDL_GL_ExtensionSupported("GL_OES_texture_npot") ? true : false;
+    haveOpenGLArbitraryTextureSize =
+        SDL_GL_ExtensionSupported("GL_OES_texture_npot") ? true : false;
 #else
 #error invalid graphics
 #endif
@@ -2653,8 +3483,7 @@ struct FreeBuffer final
 {
     GLuint buffer;
     bool needUnmap;
-    FreeBuffer(GLuint buffer, bool needUnmap = false)
-        : buffer(buffer), needUnmap(needUnmap)
+    FreeBuffer(GLuint buffer, bool needUnmap = false) : buffer(buffer), needUnmap(needUnmap)
     {
     }
 };
@@ -2671,7 +3500,7 @@ static mutex &freeBuffersLock()
 }
 GLuint allocateBuffer()
 {
-    assert(haveOpenGLBuffers);
+    assert(haveOpenGLBuffersWithoutMap);
     freeBuffersLock().lock();
     if(freeBuffers().empty())
     {
@@ -2685,9 +3514,9 @@ GLuint allocateBuffer()
     freeBuffersLock().unlock();
     if(retval.needUnmap)
     {
-        fnGLBindBuffer(GL_ARRAY_BUFFER, retval.buffer);
+        assert(haveOpenGLBuffersWithMap);
+        setArrayBufferBinding(retval.buffer);
         fnGLUnmapBuffer(GL_ARRAY_BUFFER);
-        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     return retval.buffer;
 }
@@ -2712,18 +3541,17 @@ namespace
 struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
 {
     MeshBufferImpOpenGLBuffer(const MeshBufferImpOpenGLBuffer &) = delete;
-    MeshBufferImpOpenGLBuffer &operator =(const MeshBufferImpOpenGLBuffer &) = delete;
+    MeshBufferImpOpenGLBuffer &operator=(const MeshBufferImpOpenGLBuffer &) = delete;
     GLuint buffer;
     Image image;
     std::size_t allocatedTriangleCount, usedTriangleCount = 0;
     void *bufferMemory = nullptr;
     bool gotFinalSet = false;
     MeshBufferImpOpenGLBuffer(std::size_t triangleCount)
-        : buffer(allocateBuffer()),
-        image(),
-        allocatedTriangleCount(triangleCount)
+        : buffer(allocateBuffer()), image(), allocatedTriangleCount(triangleCount)
     {
-        fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
+        assert(haveOpenGLBuffersWithMap);
+        setArrayBufferBinding(buffer);
         fnGLBufferData(GL_ARRAY_BUFFER, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW);
         bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         if(bufferMemory == nullptr)
@@ -2731,7 +3559,20 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
             cerr << "error : can't map opengl buffer\n" << flush;
             abort();
         }
-        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+    MeshBufferImpOpenGLBuffer(const Mesh &mesh)
+        : buffer(allocateBuffer()),
+          image(mesh.image),
+          allocatedTriangleCount(mesh.size()),
+          bufferMemory(nullptr),
+          gotFinalSet(true)
+    {
+        assert(haveOpenGLBuffersWithoutMap);
+        setArrayBufferBinding(buffer);
+        fnGLBufferData(GL_ARRAY_BUFFER,
+                       sizeof(Triangle) * mesh.size(),
+                       mesh.triangles.data(),
+                       GL_DYNAMIC_DRAW);
     }
     virtual ~MeshBufferImpOpenGLBuffer()
     {
@@ -2744,24 +3585,33 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         image.bind();
         glMatrixMode(GL_MODELVIEW);
         glLoadMatrix(tform);
-        fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
+        setArrayBufferBinding(buffer);
         if(bufferMemory != nullptr)
         {
+            assert(haveOpenGLBuffersWithMap);
             fnGLUnmapBuffer(GL_ARRAY_BUFFER);
             bufferMemory = nullptr;
         }
         GLint vertexCount = usedTriangleCount * 3;
-        renderToRenderLayer(rl, [vertexCount]()
-        {
-            const char *array_start = (const char *)0;
-            glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
-            glTexCoordPointer(2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
-            glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
-            glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-        });
+        renderToRenderLayer(
+            rl,
+            [vertexCount]()
+            {
+                const char *array_start = (const char *)0;
+                glVertexPointer(
+                    3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
+                glTexCoordPointer(2,
+                                  GL_FLOAT,
+                                  Triangle_vertex_stride,
+                                  array_start + Triangle_texture_coord_start);
+                glColorPointer(
+                    4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
+                glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+            });
         glLoadIdentity();
         if(!gotFinalSet)
         {
+            assert(haveOpenGLBuffersWithMap);
             bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
             if(bufferMemory == nullptr)
             {
@@ -2769,7 +3619,6 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
                 abort();
             }
         }
-        fnGLBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     virtual bool set(const Mesh &mesh, bool isFinal) override
     {
@@ -2804,9 +3653,7 @@ struct MeshBufferImpFallback final : public MeshBufferImp
     bool gotFinalSet;
     Mesh mesh;
     MeshBufferImpFallback(std::size_t triangleCount)
-        : allocatedTriangleCount(triangleCount),
-        gotFinalSet(false),
-        mesh()
+        : allocatedTriangleCount(triangleCount), gotFinalSet(false), mesh()
     {
         mesh.triangles.reserve(triangleCount);
     }
@@ -2839,16 +3686,35 @@ struct MeshBufferImpFallback final : public MeshBufferImp
 };
 }
 
-void Display::render(const Mesh & m, Matrix tform, RenderLayer rl)
+void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
 {
+    static GLuint buffer = 0;
+    if(m.size() == 0)
+        return;
+    const Triangle *triangles = m.triangles.data();
+#if 0
+    if(haveOpenGLBuffersWithoutMap)
+    {
+        if(buffer == 0)
+            fnGLGenBuffers(1, &buffer);
+        setArrayBufferBinding(buffer);
+        fnGLBufferData(
+            GL_ARRAY_BUFFER, sizeof(Triangle) * m.size(), triangles, GL_DYNAMIC_DRAW);
+        triangles = nullptr;
+    }
+#else
+    FIXME_MESSAGE(disabled using buffer for all rendering)
+#endif
     m.image.bind();
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadMatrix(tform);
-    renderToRenderLayer(rl, [&m]()
-    {
-        renderInternal(m);
-    });
+    setArrayBufferBinding(buffer);
+    renderToRenderLayer(rl,
+                        [&m, triangles]()
+                        {
+                            renderInternal(triangles, m.triangles.size());
+                        });
     glPopMatrix();
 }
 
@@ -2889,12 +3755,17 @@ void Display::initFrame()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     const float minDistance = 5e-2f, maxDistance = 200.0f;
-#if defined(__ANDROID__)
+#if defined(GRAPHICS_OPENGL_ES)
     glFrustumf
 #else
     glFrustum
 #endif
-    (-minDistance * scaleX(), minDistance * scaleX(), -minDistance * scaleY(), minDistance * scaleY(), minDistance, maxDistance);
+        (-minDistance * scaleX(),
+         minDistance * scaleX(),
+         -minDistance * scaleY(),
+         minDistance * scaleY(),
+         minDistance,
+         maxDistance);
     glEnableClientState(GL_COLOR_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -2922,12 +3793,11 @@ std::size_t MeshBuffer::impCapacity(std::shared_ptr<MeshBufferImp> mesh)
     return mesh->capacity();
 }
 
-MeshBuffer::MeshBuffer(std::size_t triangleCount)
-    : imp(), tform(Matrix::identity())
+MeshBuffer::MeshBuffer(std::size_t triangleCount) : imp(), tform(Matrix::identity())
 {
     if(triangleCount == 0)
         imp = nullptr;
-    else if(haveOpenGLBuffers)
+    else if(haveOpenGLBuffersWithMap)
         imp = std::make_shared<MeshBufferImpOpenGLBuffer>(triangleCount);
     else
         imp = std::make_shared<MeshBufferImpFallback>(triangleCount);
@@ -3087,7 +3957,7 @@ namespace
 struct TemporaryFile final
 {
     TemporaryFile(const TemporaryFile &) = delete;
-    TemporaryFile &operator =(const TemporaryFile &) = delete;
+    TemporaryFile &operator=(const TemporaryFile &) = delete;
     stream::FileReader *fileReader = nullptr;
     stream::FileWriter *fileWriter = nullptr;
     const std::string deleteFileName;
@@ -3117,10 +3987,12 @@ struct TemporaryFile final
         delete fileWriter;
         std::remove(deleteFileName.c_str());
     }
-    static std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> getRW(std::shared_ptr<TemporaryFile> tempFile)
+    static std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> getRW(
+        std::shared_ptr<TemporaryFile> tempFile)
     {
-        return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(std::shared_ptr<stream::Reader>(tempFile, tempFile->fileReader),
-                                                                                           std::shared_ptr<stream::Writer>(tempFile, tempFile->fileWriter));
+        return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(
+            std::shared_ptr<stream::Reader>(tempFile, tempFile->fileReader),
+            std::shared_ptr<stream::Writer>(tempFile, tempFile->fileWriter));
     }
 };
 }
@@ -3130,7 +4002,6 @@ std::size_t getProcessorCount()
     startSDL();
     return processorCount;
 }
-
 }
 }
 
@@ -3152,7 +4023,8 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
         throw stream::IOException("GetTempFileNameA failed");
     }
     std::wstring fileName = string_cast<std::wstring>(std::string(fileNameBuffer));
-    std::shared_ptr<TemporaryFile> tempFile = std::make_shared<TemporaryFile>(nullptr, nullptr, fileName);
+    std::shared_ptr<TemporaryFile> tempFile =
+        std::make_shared<TemporaryFile>(nullptr, nullptr, fileName);
     return TemporaryFile::getRW(tempFile);
 }
 }
@@ -3167,15 +4039,21 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
     static std::atomic_size_t nextFileNumber(0);
     const char *internalStoragePath = SDL_AndroidGetInternalStoragePath();
     if(internalStoragePath == nullptr)
-        throw stream::IOException(std::string("SDL_AndroidGetInternalStoragePath failed: ") + SDL_GetError());
+        throw stream::IOException(std::string("SDL_AndroidGetInternalStoragePath failed: ")
+                                  + SDL_GetError());
 
     std::ostringstream ss;
     ss << internalStoragePath << "/tmp" << nextFileNumber++ << ".tmp";
     std::wstring fileName = string_cast<std::wstring>(ss.str());
-    std::shared_ptr<stream::Writer> writer = std::make_shared<stream::FileWriter>(fileName); // writer first to truncate; we don't need to keep file contents around because we are the only one using them
+    std::shared_ptr<stream::Writer> writer =
+        std::make_shared<stream::FileWriter>(fileName); // writer first to truncate; we don't need
+    // to keep file contents around because we
+    // are the only one using them
     std::shared_ptr<stream::Reader> reader = std::make_shared<stream::FileReader>(fileName);
-    remove(ss.str().c_str()); // removes directory entry; linux keeps file around until file isn't open by anything
-    return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+    remove(ss.str().c_str()); // removes directory entry; linux keeps file around until file isn't
+    // open by anything
+    return std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader,
+                                                                                       writer);
 }
 }
 }
@@ -3197,7 +4075,8 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
         std::ostringstream ss;
         ss << "/tmp/tmp" << fileNumber << ".tmp";
         std::wstring fileName = string_cast<std::wstring>(ss.str());
-        int writeFileDescriptor = open(ss.str().c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+        int writeFileDescriptor =
+            open(ss.str().c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
         if(writeFileDescriptor == -1)
         {
             if(errno != EEXIST)
@@ -3237,8 +4116,10 @@ std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>> crea
             unlink(ss.str().c_str());
             throw;
         }
-        unlink(ss.str().c_str()); // removes directory entry; posix keeps file around until file isn't open by anything
-        retval = std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(reader, writer);
+        unlink(ss.str().c_str()); // removes directory entry; posix keeps file around until file
+        // isn't open by anything
+        retval = std::pair<std::shared_ptr<stream::Reader>, std::shared_ptr<stream::Writer>>(
+            reader, writer);
         break;
     }
     return retval;

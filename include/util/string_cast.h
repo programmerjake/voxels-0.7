@@ -73,25 +73,25 @@ inline std::string string_cast<std::string>(std::wstring wstr)
         value &= 0x1FFFFFU;
         if(value <= 0x7FU)
         {
-            retval += (char)value;
+            retval += static_cast<char>(value);
         }
         else if(value <= 0x7FFU)
         {
-            retval += (char)((value >> 6) | 0xC0U);
-            retval += (char)((value & 0x3FU) | 0x80U);
+            retval += static_cast<char>((value >> 6) | 0xC0U);
+            retval += static_cast<char>((value & 0x3FU) | 0x80U);
         }
         else if(value <= 0xFFFFU)
         {
-            retval += (char)((value >> 12) | 0xE0U);
-            retval += (char)(((value >> 6) & 0x3FU) | 0x80U);
-            retval += (char)((value & 0x3FU) | 0x80U);
+            retval += static_cast<char>((value >> 12) | 0xE0U);
+            retval += static_cast<char>(((value >> 6) & 0x3FU) | 0x80U);
+            retval += static_cast<char>((value & 0x3FU) | 0x80U);
         }
         else
         {
-            retval += (char)((value >> 18) | 0xF0U);
-            retval += (char)(((value >> 12) & 0x3FU) | 0x80U);
-            retval += (char)(((value >> 6) & 0x3FU) | 0x80U);
-            retval += (char)((value & 0x3FU) | 0x80U);
+            retval += static_cast<char>((value >> 18) | 0xF0U);
+            retval += static_cast<char>(((value >> 12) & 0x3FU) | 0x80U);
+            retval += static_cast<char>(((value >> 6) & 0x3FU) | 0x80U);
+            retval += static_cast<char>((value & 0x3FU) | 0x80U);
         }
     }
     return retval;
