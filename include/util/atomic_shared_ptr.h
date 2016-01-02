@@ -227,7 +227,7 @@ public:
     }
     std::shared_ptr<T> load() const
     {
-        atomic_shared_ptr_mutex_holder mutex_holder(reinterpret_cast<void *>(this));
+        atomic_shared_ptr_mutex_holder mutex_holder(const_cast<void *>(reinterpret_cast<const void *>(this)));
         mutex_holder.lock();
         std::shared_ptr<T> retval = value;
         mutex_holder.unlock();
