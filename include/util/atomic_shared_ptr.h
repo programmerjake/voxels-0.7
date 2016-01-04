@@ -39,13 +39,15 @@ private:
     {
         char v[2];
     };
+#ifndef __CDT_PARSER__
     template <std::shared_ptr<T>(*)(const std::shared_ptr<T> *) = &std::atomic_load>
     static yes fn(const T *);
+#endif
     static no fn(...);
 
 public:
     static constexpr bool value =
-        sizeof(yes) == sizeof(decltype(fn(static_cast<const T *>(nullptr))));
+        sizeof(yes) == sizeof(fn(static_cast<const T *>(nullptr)));
 };
 #endif // DOXYGEN
 /** @brief replacement for <code>std::atomic<std::shared_ptr<T>></code>

@@ -266,17 +266,18 @@ struct BIOReader final : public Reader
                 array += readRetVal;
                 readByteCount += readRetVal;
                 if(maxCount == 0)
-                    return readByteCount;
+                    break;
                 continue;
             }
             else if(readRetVal == 0)
             {
-                return readByteCount;
+                break;
             }
             if(BIO_should_retry(bio.get()))
                 continue;
             throwOpenSSLError();
         }
+        return readByteCount;
     }
     virtual std::uint8_t readByte() override
     {

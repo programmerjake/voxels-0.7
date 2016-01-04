@@ -26,71 +26,29 @@
 #include <condition_variable>
 #include <cstdint>
 #include <type_traits>
+#include <atomic>
 
 namespace programmerjake
 {
 namespace voxels
 {
-
-template <typename CountType>
-class GenericSemaphore final
+class Semaphore final
 {
-    GenericSemaphore(const GenericSemaphore &) = delete;
-    GenericSemaphore &operator=(const GenericSemaphore &) = delete;
-
-public:
-    static_assert(std::is_integral<CountType>::value && std::is_signed<CountType>::value,
-                  "invalid CountType; must be a signed integer");
-    typedef CountType count_type;
+    Semaphore(const Semaphore &) = delete;
+    Semaphore &operator=(const Semaphore &) = delete;
 
 private:
-    count_type count;
+    std::atomic_size_t atomicCount;
     std::mutex stateLock;
     std::condition_variable stateCond;
 
 public:
-    explicit GenericSemaphore(count_type count = 0) : count(count), stateLock(), stateCond()
-    {
-    }
-    bool try_lock(count_type lockCount = 1)
-    {
-        assert(lockCount >= 0);
-        std::unique_lock<std::mutex> lockedState(stateLock, std::try_to_lock);
-        if(!lockedState.owns_lock())
-            return false;
-        if(count < lockCount)
-            return false;
-        count -= lockCount;
-        return true;
-    }
-    void lock(count_type lockCount = 1)
-    {
-        assert(lockCount >= 0);
-        std::unique_lock<std::mutex> lockedState(stateLock);
-        while(count < lockCount)
-        {
-            stateCond.wait(lockedState);
-        }
-        count -= lockCount;
-    }
-    void unlock(count_type unlockCount = 1)
-    {
-        assert(unlockCount >= 0);
-        std::unique_lock<std::mutex> lockedState(stateLock);
-        if(count <= 0)
-        {
-            count += unlockCount;
-            stateCond.notify_all();
-        }
-        else
-        {
-            count += unlockCount;
-        }
-    }
+    explicit Semaphore(std::size_t count);
+    std::size_t getCount();
+    bool try_lock(std::size_t lockCount = 1);
+    void lock(std::size_t lockCount = 1);
+    void unlock(std::size_t unlockCount = 1);
 };
-
-typedef GenericSemaphore<std::int_fast32_t> Semaphore;
-
 }
 }
 
