@@ -86,7 +86,7 @@ struct Lighting final
     static constexpr LightValueType maxLight = (static_cast<LightValueType>(1) << lightBitWidth) - 1;
     static constexpr float toFloat(LightValueType v)
     {
-        return static_cast<float>(static_cast<int>(v) / static_cast<int>(maxLight));
+        return static_cast<float>(static_cast<int>(v)) / static_cast<int>(maxLight);
     }
     static constexpr LightValueType ensureInValidRange(LightValueType v)
     {
