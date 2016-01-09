@@ -618,7 +618,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind,
 {
     std::shared_ptr<BlockChunk> chunk = bi.chunk;
     lock_manager.clear();
-    BlockChunkFullLock lockChunk(chunk->getChunkVariables().semaphore);
+    BlockChunkFullLock lockChunk(*chunk);
     auto lockIt = std::unique_lock<decltype(chunk->getChunkVariables().blockUpdateListLock)>(
         chunk->getChunkVariables().blockUpdateListLock);
     BlockUpdate *retval = nullptr;
@@ -683,7 +683,7 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi,
 {
     std::shared_ptr<BlockChunk> chunk = bi.chunk;
     lock_manager.clear();
-    BlockChunkFullLock lockChunk(chunk->getChunkVariables().semaphore);
+    BlockChunkFullLock lockChunk(*chunk);
     auto lockIt = std::unique_lock<decltype(chunk->getChunkVariables().blockUpdateListLock)>(
         chunk->getChunkVariables().blockUpdateListLock);
     float deltaTime = 0;

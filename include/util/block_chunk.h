@@ -49,6 +49,8 @@
 #include "util/util.h"
 #include "util/semaphore.h"
 
+//#define USE_SEMAPHORE_FOR_BLOCK_CHUNK
+
 namespace programmerjake
 {
 namespace voxels
@@ -379,7 +381,7 @@ public:
         BlockOptionalData::BlockChunkSubchunkSizeXYZ;
 
 private:
-    checked_array<BlockOptionalData *, (1 << 5)> table;
+    checked_array<BlockOptionalData *, (1 << 8)> table;
     static std::thread::id getThreadId(TLS &tls)
     {
         struct retval_tls_tag
@@ -556,12 +558,14 @@ struct BlockChunk;
 
 struct BlockChunkSubchunk final
 {
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
     class LockImp final
     {
         std::mutex lockImp;
         std::shared_ptr<Semaphore> chunkSemaphore;
         friend struct BlockChunk;
         friend struct BlockChunkSubchunk;
+
     public:
         LockImp(std::shared_ptr<Semaphore> chunkSemaphore)
             : lockImp(), chunkSemaphore(std::move(chunkSemaphore))
@@ -609,6 +613,9 @@ struct BlockChunkSubchunk final
             chunkSemaphore->unlock();
         }
     };
+#else
+    typedef std::mutex LockImp;
+#endif
     LockImp lockImp;
     generic_lock_wrapper lock;
     BlockOptionalDataHashTable blockOptionalData;
@@ -682,7 +689,11 @@ struct BlockChunkSubchunk final
         }
     }
     BlockChunkSubchunk(const BlockChunkSubchunk &rt)
-        : lockImp(rt.lockImp.chunkSemaphore),
+        : lockImp(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+              rt.lockImp.chunkSemaphore
+#endif
+              ),
           lock(lockImp),
           blockOptionalData(rt.blockOptionalData),
           blockKinds(rt.blockKinds),
@@ -696,8 +707,16 @@ struct BlockChunkSubchunk final
           particleGeneratingSet()
     {
     }
-    explicit BlockChunkSubchunk(std::shared_ptr<Semaphore> chunkSemaphore = nullptr)
-        : lockImp(std::move(chunkSemaphore)),
+    explicit BlockChunkSubchunk(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+        std::shared_ptr<Semaphore> chunkSemaphore = nullptr
+#endif
+        )
+        : lockImp(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+              std::move(chunkSemaphore)
+#endif
+                  ),
           lock(lockImp),
           blockOptionalData(),
           blockKinds(),
@@ -721,7 +740,9 @@ struct BlockChunkSubchunk final
 struct BlockChunkChunkVariables final
 {
     BlockChunkChunkVariables &operator=(const BlockChunkChunkVariables &) = delete;
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
     const std::shared_ptr<Semaphore> semaphore;
+#endif
     std::mutex cachedMeshesLock;
     std::shared_ptr<enum_array<Mesh, RenderLayer>> cachedMeshes;
     bool generatingCachedMeshes = false;
@@ -741,11 +762,26 @@ struct BlockChunkChunkVariables final
     {
         cachedMeshesUpToDate = false;
     }
-    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt) : BlockChunkChunkVariables(rt.semaphore)
+    BlockChunkChunkVariables(const BlockChunkChunkVariables &rt)
+        : BlockChunkChunkVariables(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+              rt.semaphore
+#endif
+              )
     {
     }
-    explicit BlockChunkChunkVariables(std::shared_ptr<Semaphore> semaphore)
-        : semaphore(std::move(semaphore)),
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+    explicit
+#endif
+        BlockChunkChunkVariables(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+            std::shared_ptr<Semaphore> semaphore
+#endif
+            )
+        :
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+          semaphore(std::move(semaphore)),
+#endif
           cachedMeshesLock(),
           cachedMeshes(nullptr),
           cachedMeshesCond(),
@@ -857,7 +893,12 @@ public:
           chunkLock(),
           accessedFlag(false),
           basePosition(basePosition),
-          chunkVariables(std::make_shared<Semaphore>(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY * BlockChunk::subchunkCountZ))
+          chunkVariables(
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
+              std::make_shared<Semaphore>(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY
+                                          * BlockChunk::subchunkCountZ)
+#endif
+                  )
     {
         chunk = std::shared_ptr<BlockChunk>(new BlockChunk(basePosition, this));
     }
@@ -934,22 +975,22 @@ typedef BasicBlockChunkRelativePositionIterator<BlockChunk> BlockChunkRelativePo
 
 class BlockChunkFullLock final
 {
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
     std::shared_ptr<Semaphore> semaphore;
+
 public:
-    explicit BlockChunkFullLock(std::shared_ptr<Semaphore> semaphore) : semaphore(std::move(semaphore))
+    explicit BlockChunkFullLock(BlockChunk &blockChunk)
+        : semaphore(blockChunk.getChunkVariables().semaphore)
     {
-        this->semaphore->lock(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY * BlockChunk::subchunkCountZ);
+        semaphore->lock(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY
+                        * BlockChunk::subchunkCountZ);
     }
     ~BlockChunkFullLock()
     {
-        this->semaphore->unlock(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY * BlockChunk::subchunkCountZ);
+        semaphore->unlock(BlockChunk::subchunkCountX * BlockChunk::subchunkCountY
+                          * BlockChunk::subchunkCountZ);
     }
-    BlockChunkFullLock(const BlockChunkFullLock &) = delete;
-    const BlockChunkFullLock operator=(const BlockChunkFullLock &) = delete;
-};
-
-class BlockChunkColumnLock final
-{
+#else
     BlockChunk &chunk;
     struct SubchunkLockIterator
     {
@@ -957,7 +998,7 @@ class BlockChunkColumnLock final
         BlockChunk *chunk;
         generic_lock_wrapper &operator*() const
         {
-            return chunk->subchunks[pos.x][0][pos.z].lock;
+            return chunk->subchunks[pos.x][pos.y][pos.z].lock;
         }
         generic_lock_wrapper *operator->() const
         {
@@ -978,6 +1019,11 @@ class BlockChunkColumnLock final
             {
                 pos.x = 0;
                 pos.z++;
+                if(pos.z >= BlockChunk::subchunkCountZ)
+                {
+                    pos.z = 0;
+                    pos.y++;
+                }
             }
             return *this;
         }
@@ -996,21 +1042,22 @@ class BlockChunkColumnLock final
     };
 
 public:
-    explicit BlockChunkColumnLock(BlockChunk &chunk) : chunk(chunk)
+    explicit BlockChunkFullLock(BlockChunk &chunk) : chunk(chunk)
     {
         SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk),
-            end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+            end(VectorI(0, BlockChunk::subchunkCountY, 0), &chunk);
         lock_all(begin, end);
     }
-    ~BlockChunkColumnLock()
+    ~BlockChunkFullLock()
     {
         SubchunkLockIterator begin(VectorI(0, 0, 0), &chunk),
-            end(VectorI(0, 0, BlockChunk::subchunkCountZ), &chunk);
+            end(VectorI(0, BlockChunk::subchunkCountY, 0), &chunk);
         for(auto i = begin; i != end; i++)
             i->unlock();
     }
-    BlockChunkColumnLock(const BlockChunkColumnLock &) = delete;
-    const BlockChunkColumnLock operator=(const BlockChunkColumnLock &) = delete;
+#endif
+    BlockChunkFullLock(const BlockChunkFullLock &) = delete;
+    const BlockChunkFullLock operator=(const BlockChunkFullLock &) = delete;
 };
 
 #if 0

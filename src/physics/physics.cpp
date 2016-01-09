@@ -56,7 +56,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             currentTime += stepDuration;
         lockIt.unlock();
         bool anyCollisions = true;
-        for(std::size_t i = 0; i < 10 && anyCollisions; i++)
+        for(std::size_t i = 0; i < 3 && anyCollisions; i++)
         {
             anyCollisions = false;
             std::vector<std::shared_ptr<PhysicsObject>> objectsVector(objects);

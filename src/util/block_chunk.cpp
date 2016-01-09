@@ -46,6 +46,7 @@ BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlock
     indirectBlockChunk(indirectBlockChunk)
 {
     assert(indirectBlockChunk);
+#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
     for(int x = 0; x < subchunkCountX; x++)
     {
         for(int y = 0; y < subchunkCountY; y++)
@@ -57,6 +58,7 @@ BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlock
             }
         }
     }
+#endif
 }
 
 BlockChunk::~BlockChunk()
