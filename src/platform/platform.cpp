@@ -1314,7 +1314,9 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         {
             KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
             auto retval = std::make_shared<KeyDownEvent>(
-                key, translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)), keyState[key]);
+                key,
+                translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)),
+                keyState[key]);
             keyState[key] = true;
             return retval;
         }
@@ -1847,6 +1849,10 @@ typedef void(APIENTRYP PFNGLBUFFERDATAPROC)(GLenum target,
                                             GLsizeiptr size,
                                             const void *data,
                                             GLenum usage);
+typedef void(APIENTRYP PFNGLBUFFERSUBDATAPROC)(GLenum target,
+                                               GLintptr offset,
+                                               GLsizeiptr size,
+                                               const void *data);
 typedef void *(APIENTRYP PFNGLMAPBUFFERPROC)(GLenum target, GLenum access);
 typedef GLboolean(APIENTRYP PFNGLUNMAPBUFFERPROC)(GLenum target);
 typedef void(APIENTRYP PFNGLGENFRAMEBUFFERSEXTPROC)(GLsizei n, GLuint *framebuffers);
@@ -1883,6 +1889,7 @@ PFNGLBINDBUFFERPROC fnGLBindBuffer = nullptr;
 PFNGLDELETEBUFFERSPROC fnGLDeleteBuffers = nullptr;
 PFNGLGENBUFFERSPROC fnGLGenBuffers = nullptr;
 PFNGLBUFFERDATAPROC fnGLBufferData = nullptr;
+PFNGLBUFFERSUBDATAPROC fnGLBufferSubData = nullptr;
 PFNGLMAPBUFFERPROC fnGLMapBuffer = nullptr;
 PFNGLUNMAPBUFFERPROC fnGLUnmapBuffer = nullptr;
 bool haveOpenGLBuffersWithoutMap = false;
@@ -3292,10 +3299,11 @@ void getOpenGLBuffersExtension()
         fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffersARB");
         fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffersARB");
         fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferDataARB");
+        fnGLBufferSubData = (PFNGLBUFFERSUBDATAPROC)SDL_GL_GetProcAddress("glBufferSubDataARB");
         fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBufferARB");
         fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBufferARB");
         if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
-           || !fnGLMapBuffer || !fnGLUnmapBuffer)
+           || !fnGLBufferSubData || !fnGLMapBuffer || !fnGLUnmapBuffer)
         {
             getDebugLog() << L"couldn't load OpenGL buffers extension functions" << postnl;
             haveOpenGLBuffersWithMap = false;
@@ -3304,6 +3312,7 @@ void getOpenGLBuffersExtension()
             fnGLDeleteBuffers = nullptr;
             fnGLGenBuffers = nullptr;
             fnGLBufferData = nullptr;
+            fnGLBufferSubData = nullptr;
             fnGLMapBuffer = nullptr;
             fnGLUnmapBuffer = nullptr;
         }
@@ -3335,12 +3344,14 @@ void getOpenGLBuffersExtension()
                     (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
                 fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
                 fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+                fnGLBufferSubData =
+                    (PFNGLBUFFERSUBDATAPROC)SDL_GL_GetProcAddress("glBufferSubData");
                 fnGLMapBuffer = (PFNGLMAPBUFFERPROC)SDL_GL_GetProcAddress("glMapBuffer");
                 fnGLUnmapBuffer = (PFNGLUNMAPBUFFERPROC)SDL_GL_GetProcAddress("glUnmapBuffer");
                 haveOpenGLBuffersWithMap = true;
                 haveOpenGLBuffersWithoutMap = true;
                 if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
-                   || !fnGLMapBuffer || !fnGLUnmapBuffer)
+                   || !fnGLBufferSubData || !fnGLMapBuffer || !fnGLUnmapBuffer)
                 {
                     getDebugLog() << L"couln't load OpenGL buffers functions" << postnl;
                     haveOpenGLBuffersWithMap = false;
@@ -3349,6 +3360,7 @@ void getOpenGLBuffersExtension()
                     fnGLDeleteBuffers = nullptr;
                     fnGLGenBuffers = nullptr;
                     fnGLBufferData = nullptr;
+                    fnGLBufferSubData = nullptr;
                     fnGLMapBuffer = nullptr;
                     fnGLUnmapBuffer = nullptr;
                 }
@@ -3405,8 +3417,10 @@ void getOpenGLBuffersExtension()
     fnGLDeleteBuffers = (PFNGLDELETEBUFFERSPROC)SDL_GL_GetProcAddress("glDeleteBuffers");
     fnGLGenBuffers = (PFNGLGENBUFFERSPROC)SDL_GL_GetProcAddress("glGenBuffers");
     fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
+    fnGLBufferSubData = (PFNGLBUFFERSUBDATAPROC)SDL_GL_GetProcAddress("glBufferSubData");
     haveOpenGLBuffersWithMap = SDL_GL_ExtensionSupported("GL_OES_mapbuffer") ? true : false;
-    if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData)
+    if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
+       || !fnGLBufferSubData)
     {
         getDebugLog() << L"couln't load OpenGL buffers extension functions" << postnl;
         haveOpenGLBuffersWithMap = false;
@@ -3415,6 +3429,7 @@ void getOpenGLBuffersExtension()
         fnGLDeleteBuffers = nullptr;
         fnGLGenBuffers = nullptr;
         fnGLBufferData = nullptr;
+        fnGLBufferSubData = nullptr;
         fnGLMapBuffer = nullptr;
         fnGLUnmapBuffer = nullptr;
     }
@@ -3688,28 +3703,50 @@ struct MeshBufferImpFallback final : public MeshBufferImp
 
 void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
 {
-    static GLuint buffer = 0;
     if(m.size() == 0)
         return;
     const Triangle *triangles = m.triangles.data();
-#if 0
+#if 1
     if(haveOpenGLBuffersWithoutMap)
     {
-        if(buffer == 0)
-            fnGLGenBuffers(1, &buffer);
-        setArrayBufferBinding(buffer);
-        fnGLBufferData(
-            GL_ARRAY_BUFFER, sizeof(Triangle) * m.size(), triangles, GL_DYNAMIC_DRAW);
+        const std::size_t bufferCount = 8;
+        static GLuint buffers[bufferCount];
+        static std::size_t bufferSizes[bufferCount];
+        static bool didGenerateBuffers = false;
+        static std::size_t currentBufferIndex = 0;
+        if(!didGenerateBuffers)
+        {
+            didGenerateBuffers = true;
+            fnGLGenBuffers(bufferCount, buffers);
+            for(std::size_t &bufferSize : bufferSizes)
+            {
+                bufferSize = 0;
+            }
+        }
+        setArrayBufferBinding(buffers[currentBufferIndex]);
+        if(bufferSizes[currentBufferIndex] < m.size())
+        {
+            bufferSizes[currentBufferIndex] *= 2;
+            if(bufferSizes[currentBufferIndex] < m.size())
+                bufferSizes[currentBufferIndex] = m.size();
+            fnGLBufferData(GL_ARRAY_BUFFER,
+                           sizeof(Triangle) * bufferSizes[currentBufferIndex],
+                           nullptr,
+                           GL_DYNAMIC_DRAW);
+        }
+        fnGLBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Triangle) * m.size(), triangles);
         triangles = nullptr;
+        currentBufferIndex++;
+        currentBufferIndex %= bufferCount;
     }
 #else
     FIXME_MESSAGE(disabled using buffer for all rendering)
+    setArrayBufferBinding(0);
 #endif
     m.image.bind();
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadMatrix(tform);
-    setArrayBufferBinding(buffer);
     renderToRenderLayer(rl,
                         [&m, triangles]()
                         {
