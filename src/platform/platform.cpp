@@ -3287,8 +3287,29 @@ void setArrayBufferBinding(GLuint buffer)
     }
 }
 
-void getOpenGLBuffersExtension()
+void getOpenGLExtensions()
 {
+    std::string supportedExtensionsString = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
+    const auto extensionDisplayPrefix = L"Extension: ";
+    bool wrotePrefix = false;
+    for(char ch : supportedExtensionsString)
+    {
+        if(ch == ' ')
+        {
+            getDebugLog() << postnl;
+            wrotePrefix = false;
+        }
+        else
+        {
+            if(!wrotePrefix)
+            {
+                getDebugLog() << extensionDisplayPrefix;
+                wrotePrefix = true;
+            }
+            getDebugLog() << (wchar_t)ch;
+        }
+    }
+    getDebugLog() << postnl;
 #ifdef GRAPHICS_OPENGL
     haveOpenGLBuffersWithoutMap =
         SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
@@ -3703,6 +3724,19 @@ struct MeshBufferImpFallback final : public MeshBufferImp
 
 void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
 {
+#if 0
+    getDebugLog() << L"Display::render(<size = " << m.size() << L">, ..., ";
+    switch(rl)
+    {
+    case RenderLayer::Opaque:
+        getDebugLog() << L"RenderLayer::Opaque";
+        break;
+    case RenderLayer::Translucent:
+        getDebugLog() << L"RenderLayer::Translucent";
+        break;
+    }
+    getDebugLog() << L")" << postnl;
+#endif
     if(m.size() == 0)
         return;
     const Triangle *triangles = m.triangles.data();
@@ -3738,6 +3772,10 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
         triangles = nullptr;
         currentBufferIndex++;
         currentBufferIndex %= bufferCount;
+    }
+    else
+    {
+        setArrayBufferBinding(0);
     }
 #else
     FIXME_MESSAGE(disabled using buffer for all rendering)
@@ -3869,7 +3907,7 @@ void Display::render(const MeshBuffer &m, RenderLayer rl)
 
 static void getExtensions()
 {
-    getOpenGLBuffersExtension();
+    getOpenGLExtensions();
 }
 
 static std::vector<std::uint32_t> *freeTextures = nullptr;

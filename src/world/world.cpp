@@ -21,7 +21,6 @@
 #include "world/world.h"
 #include "generate/random_world_generator.h"
 #include "world/view_point.h"
-#include <random>
 #include "block/builtin/air.h"
 #include "block/builtin/stone.h"
 #include "block/builtin/grass.h"
@@ -1489,6 +1488,7 @@ void World::moveEntitiesThreadFn(TLS &tls)
 {
     ThreadPauseGuard pauseGuard(*this);
     ThreadUsageMonitor usageMonitor(L"move entities", 0.5f);
+    auto lastUsageReportTime = std::chrono::steady_clock::now();
     while(!destructing)
     {
         std::unique_lock<std::mutex> lockStateLock(stateLock);
@@ -1506,7 +1506,14 @@ void World::moveEntitiesThreadFn(TLS &tls)
             break;
         double deltaTime = moveEntitiesDeltaTime;
         lockStateLock.unlock();
-        usageMonitor.dump(tls);
+        {
+            auto currentTime = std::chrono::steady_clock::now();
+            if(currentTime - lastUsageReportTime >= std::chrono::seconds(1))
+            {
+                usageMonitor.dump(tls);
+                lastUsageReportTime = currentTime;
+            }
+        }
         WorldLockManager lock_manager(tls);
         entityRunCount++;
         physicsWorld->stepTime(deltaTime, lock_manager);

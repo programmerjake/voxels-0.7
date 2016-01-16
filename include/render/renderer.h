@@ -24,6 +24,7 @@
 #include "render/mesh.h"
 #include "platform/platform.h"
 #include "util/util.h"
+#include <memory>
 
 namespace programmerjake
 {
@@ -41,82 +42,127 @@ struct start_overlay_t
 
 static constexpr start_overlay_t start_overlay{};
 
-class Renderer
+struct flush_renderer_t
 {
-    RenderLayer currentRenderLayer = RenderLayer::Opaque;
+};
+
+static constexpr flush_renderer_t flush_renderer{};
+
+class Renderer final
+{
+    Renderer(const Renderer &) = delete;
+    Renderer &operator=(const Renderer &) = delete;
+private:
+    struct Implementation;
     void render(const Mesh &m, Matrix tform);
+    void render(const MeshBuffer &m);
+    Renderer(std::shared_ptr<Implementation> implementation)
+        : currentRenderLayer(RenderLayer::Opaque), implementation(std::move(implementation))
+    {
+    }
+
+    RenderLayer currentRenderLayer;
+    std::shared_ptr<Implementation> implementation;
 public:
-    Renderer & operator <<(const Mesh &m)
+    Renderer(Renderer &&rt)
+        : currentRenderLayer(rt.currentRenderLayer), implementation(std::move(rt.implementation))
+    {
+    }
+    Renderer &operator=(Renderer &&rt)
+    {
+        swap(rt);
+        return *this;
+    }
+    ~Renderer()
+    {
+        flush();
+    }
+    void swap(Renderer &rt)
+    {
+        auto temp = currentRenderLayer;
+        currentRenderLayer = rt.currentRenderLayer;
+        rt.currentRenderLayer = temp;
+        implementation.swap(rt.implementation);
+    }
+    static Renderer make();
+    Renderer &operator<<(const Mesh &m)
     {
         render(m, Matrix::identity());
         return *this;
     }
-    Renderer & operator <<(TransformedMesh m)
+    Renderer &operator<<(TransformedMesh m)
     {
         assert(m.mesh != nullptr);
         render(*m.mesh, m.tform);
         return *this;
     }
-    Renderer & operator <<(ColorizedMesh m)
+    Renderer &operator<<(ColorizedMesh m)
     {
         return *this << static_cast<Mesh>(m);
     }
-    Renderer & operator <<(ColorizedTransformedMesh m)
+    Renderer &operator<<(ColorizedTransformedMesh m)
     {
         return *this << static_cast<Mesh>(m);
     }
-    Renderer & operator <<(TransformedMeshRef m)
+    Renderer &operator<<(TransformedMeshRef m)
     {
         render(m.mesh, m.tform);
         return *this;
     }
-    Renderer & operator <<(ColorizedMeshRef m)
+    Renderer &operator<<(ColorizedMeshRef m)
     {
         return *this << static_cast<Mesh>(m);
     }
-    Renderer & operator <<(ColorizedTransformedMeshRef m)
+    Renderer &operator<<(ColorizedTransformedMeshRef m)
     {
         return *this << static_cast<Mesh>(m);
     }
-    Renderer & operator <<(TransformedMeshRRef &&m)
+    Renderer &operator<<(TransformedMeshRRef &&m)
     {
         render(m.mesh, m.tform);
         return *this;
     }
-    Renderer & operator <<(ColorizedMeshRRef &&m)
+    Renderer &operator<<(ColorizedMeshRRef &&m)
     {
         return *this << static_cast<Mesh>(std::move(m));
     }
-    Renderer & operator <<(ColorizedTransformedMeshRRef &&m)
+    Renderer &operator<<(ColorizedTransformedMeshRRef &&m)
     {
         return *this << static_cast<Mesh>(std::move(m));
     }
-    Renderer & operator <<(std::shared_ptr<Mesh> m)
+    Renderer &operator<<(std::shared_ptr<Mesh> m)
     {
         assert(m != nullptr);
-        operator <<(*m);
+        operator<<(*m);
         return *this;
     }
-    Renderer & operator <<(reset_render_layer_t)
+    Renderer &operator<<(reset_render_layer_t)
     {
         currentRenderLayer = RenderLayer::Opaque;
         return *this;
     }
-    Renderer & operator <<(start_overlay_t)
+    Renderer &operator<<(start_overlay_t)
     {
+        flush();
         Display::initOverlay();
         return *this;
     }
-    Renderer & operator <<(RenderLayer rl)
+    Renderer &operator<<(RenderLayer rl)
     {
         currentRenderLayer = rl;
         return *this;
     }
-    Renderer & operator <<(const MeshBuffer &m)
+    Renderer &operator<<(const MeshBuffer &m)
     {
-        Display::render(m, currentRenderLayer);
+        render(m);
         return *this;
     }
+    Renderer &operator<<(flush_renderer_t)
+    {
+        flush();
+        return *this;
+    }
+    void flush();
 };
 }
 }

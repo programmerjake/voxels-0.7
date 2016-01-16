@@ -41,8 +41,7 @@ struct TransformedMesh
 {
     Matrix tform;
     std::shared_ptr<Mesh> mesh;
-    TransformedMesh(Matrix tform, std::shared_ptr<Mesh> mesh)
-        : tform(tform), mesh(mesh)
+    TransformedMesh(Matrix tform, std::shared_ptr<Mesh> mesh) : tform(tform), mesh(mesh)
     {
         assert(mesh != nullptr);
     }
@@ -53,8 +52,7 @@ struct ColorizedMesh
 {
     ColorF color;
     std::shared_ptr<Mesh> mesh;
-    ColorizedMesh(ColorF color, std::shared_ptr<Mesh> mesh)
-        : color(color), mesh(mesh)
+    ColorizedMesh(ColorF color, std::shared_ptr<Mesh> mesh) : color(color), mesh(mesh)
     {
         assert(mesh != nullptr);
     }
@@ -78,8 +76,7 @@ struct TransformedMeshRef
 {
     Matrix tform;
     const Mesh &mesh;
-    TransformedMeshRef(Matrix tform, const Mesh &mesh)
-        : tform(tform), mesh(mesh)
+    TransformedMeshRef(Matrix tform, const Mesh &mesh) : tform(tform), mesh(mesh)
     {
     }
     operator std::shared_ptr<Mesh>() const;
@@ -89,8 +86,7 @@ struct ColorizedMeshRef
 {
     ColorF color;
     const Mesh &mesh;
-    ColorizedMeshRef(ColorF color, const Mesh &mesh)
-        : color(color), mesh(mesh)
+    ColorizedMeshRef(ColorF color, const Mesh &mesh) : color(color), mesh(mesh)
     {
     }
     operator std::shared_ptr<Mesh>() const;
@@ -112,22 +108,20 @@ struct TransformedMeshRRef
 {
     Matrix tform;
     Mesh &mesh;
-    TransformedMeshRRef(Matrix tform, Mesh &&mesh)
-        : tform(tform), mesh(mesh)
+    TransformedMeshRRef(Matrix tform, Mesh &&mesh) : tform(tform), mesh(mesh)
     {
     }
-    operator std::shared_ptr<Mesh>() &&;
+    operator std::shared_ptr<Mesh>() && ;
 };
 
 struct ColorizedMeshRRef
 {
     ColorF color;
     Mesh &mesh;
-    ColorizedMeshRRef(ColorF color, Mesh &&mesh)
-        : color(color), mesh(mesh)
+    ColorizedMeshRRef(ColorF color, Mesh &&mesh) : color(color), mesh(mesh)
     {
     }
-    operator std::shared_ptr<Mesh>() &&;
+    operator std::shared_ptr<Mesh>() && ;
 };
 
 struct ColorizedTransformedMeshRRef
@@ -139,7 +133,7 @@ struct ColorizedTransformedMeshRRef
         : color(color), tform(tform), mesh(mesh)
     {
     }
-    operator std::shared_ptr<Mesh>() &&;
+    operator std::shared_ptr<Mesh>() && ;
 };
 
 struct Mesh
@@ -154,41 +148,45 @@ struct Mesh
         : triangles(std::move(triangles)), image(image)
     {
     }
-    explicit Mesh(std::shared_ptr<Mesh> rt)
-        : Mesh(*rt)
+    explicit Mesh(std::shared_ptr<Mesh> rt) : Mesh(*rt)
     {
     }
     Mesh(const Mesh &) = default;
     Mesh(Mesh &&) = default;
-    Mesh(const Mesh & rt, Matrix tform)
-        : triangles(), image(rt.image)
+    Mesh(const Mesh &rt, Matrix tform) : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&tform](const Triangle & t)->Triangle
-        {
-            return transform(tform, t);
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&tform](const Triangle &t) -> Triangle
+                       {
+                           return transform(tform, t);
+                       });
     }
-    Mesh(const Mesh & rt, ColorF color)
-        : triangles(), image(rt.image)
+    Mesh(const Mesh &rt, ColorF color) : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color](const Triangle & t)->Triangle
-        {
-            return colorize(color, t);
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&color](const Triangle &t) -> Triangle
+                       {
+                           return colorize(color, t);
+                       });
     }
-    Mesh(const Mesh & rt, ColorF color, Matrix tform)
-        : triangles(), image(rt.image)
+    Mesh(const Mesh &rt, ColorF color, Matrix tform) : triangles(), image(rt.image)
     {
         triangles.reserve(rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color, &tform](const Triangle & t)->Triangle
-        {
-            return colorize(color, transform(tform, t));
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&color, &tform](const Triangle &t) -> Triangle
+                       {
+                           return colorize(color, transform(tform, t));
+                       });
     }
-    Mesh(Mesh &&rt, Matrix tform)
-        : triangles(), image(std::move(rt.image))
+    Mesh(Mesh &&rt, Matrix tform) : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)
@@ -196,8 +194,7 @@ struct Mesh
             t = transform(tform, t);
         }
     }
-    Mesh(Mesh &&rt, ColorF color)
-        : triangles(), image(std::move(rt.image))
+    Mesh(Mesh &&rt, ColorF color) : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)
@@ -205,8 +202,7 @@ struct Mesh
             t = colorize(color, t);
         }
     }
-    Mesh(Mesh &&rt, ColorF color, Matrix tform)
-        : triangles(), image(std::move(rt.image))
+    Mesh(Mesh &&rt, ColorF color, Matrix tform) : triangles(), image(std::move(rt.image))
     {
         triangles = std::move(rt.triangles);
         for(Triangle &t : triangles)
@@ -214,119 +210,123 @@ struct Mesh
             t = colorize(color, transform(tform, t));
         }
     }
-    Mesh(TransformedMesh mesh)
-        : Mesh(*mesh.mesh, mesh.tform)
+    Mesh(TransformedMesh mesh) : Mesh(*mesh.mesh, mesh.tform)
     {
     }
-    Mesh(ColorizedMesh mesh)
-        : Mesh(*mesh.mesh, mesh.color)
+    Mesh(ColorizedMesh mesh) : Mesh(*mesh.mesh, mesh.color)
     {
     }
-    Mesh(ColorizedTransformedMesh mesh)
-        : Mesh(*mesh.mesh, mesh.color, mesh.tform)
+    Mesh(ColorizedTransformedMesh mesh) : Mesh(*mesh.mesh, mesh.color, mesh.tform)
     {
     }
-    Mesh(TransformedMeshRef mesh)
-        : Mesh(mesh.mesh, mesh.tform)
+    Mesh(TransformedMeshRef mesh) : Mesh(mesh.mesh, mesh.tform)
     {
     }
-    Mesh(ColorizedMeshRef mesh)
-        : Mesh(mesh.mesh, mesh.color)
+    Mesh(ColorizedMeshRef mesh) : Mesh(mesh.mesh, mesh.color)
     {
     }
-    Mesh(ColorizedTransformedMeshRef mesh)
-        : Mesh(mesh.mesh, mesh.color, mesh.tform)
+    Mesh(ColorizedTransformedMeshRef mesh) : Mesh(mesh.mesh, mesh.color, mesh.tform)
     {
     }
-    Mesh(TransformedMeshRRef &&mesh)
-        : Mesh(std::move(mesh.mesh), mesh.tform)
+    Mesh(TransformedMeshRRef &&mesh) : Mesh(std::move(mesh.mesh), mesh.tform)
     {
     }
-    Mesh(ColorizedMeshRRef &&mesh)
-        : Mesh(std::move(mesh.mesh), mesh.color)
+    Mesh(ColorizedMeshRRef &&mesh) : Mesh(std::move(mesh.mesh), mesh.color)
     {
     }
-    Mesh(ColorizedTransformedMeshRRef &&mesh)
-        : Mesh(std::move(mesh.mesh), mesh.color, mesh.tform)
+    Mesh(ColorizedTransformedMeshRRef &&mesh) : Mesh(std::move(mesh.mesh), mesh.color, mesh.tform)
     {
     }
-    Mesh &operator =(const Mesh &rt) = default;
-    Mesh &operator =(Mesh &&rt) = default;
-    Mesh &operator =(TransformedMesh mesh)
+    Mesh &operator=(const Mesh &rt) = default;
+    Mesh &operator=(Mesh &&rt) = default;
+    Mesh &operator=(TransformedMesh mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(ColorizedMesh mesh)
+    Mesh &operator=(ColorizedMesh mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(ColorizedTransformedMesh mesh)
+    Mesh &operator=(ColorizedTransformedMesh mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(TransformedMeshRef mesh)
+    Mesh &operator=(TransformedMeshRef mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(ColorizedMeshRef mesh)
+    Mesh &operator=(ColorizedMeshRef mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(ColorizedTransformedMeshRef mesh)
+    Mesh &operator=(ColorizedTransformedMeshRef mesh)
     {
         return *this = Mesh(mesh);
     }
-    Mesh &operator =(TransformedMeshRRef &&mesh)
+    Mesh &operator=(TransformedMeshRRef &&mesh)
     {
         return *this = Mesh(std::move(mesh));
     }
-    Mesh &operator =(ColorizedMeshRRef &&mesh)
+    Mesh &operator=(ColorizedMeshRRef &&mesh)
     {
         return *this = Mesh(std::move(mesh));
     }
-    Mesh &operator =(ColorizedTransformedMeshRRef &&mesh)
+    Mesh &operator=(ColorizedTransformedMeshRRef &&mesh)
     {
         return *this = Mesh(std::move(mesh));
     }
-    void append(const Mesh & rt)
+    bool isAppendable(const Mesh &rt) const
     {
-        assert(rt.image == nullptr || image == nullptr || image == rt.image);
+        return rt.image == nullptr || image == nullptr || image == rt.image;
+    }
+    void append(const Mesh &rt)
+    {
+        assert(isAppendable(rt));
         if(rt.image != nullptr)
             image = rt.image;
         triangles.insert(triangles.end(), rt.triangles.begin(), rt.triangles.end());
     }
-    void append(const Mesh & rt, Matrix tform)
+    void append(const Mesh &rt, Matrix tform)
     {
-        assert(rt.image == nullptr || image == nullptr || image == rt.image);
+        assert(isAppendable(rt));
         if(rt.image != nullptr)
             image = rt.image;
         triangles.reserve(triangles.size() + rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&tform](const Triangle & t)->Triangle
-        {
-            return transform(tform, t);
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&tform](const Triangle &t) -> Triangle
+                       {
+                           return transform(tform, t);
+                       });
     }
-    void append(const Mesh & rt, ColorF color)
+    void append(const Mesh &rt, ColorF color)
     {
-        assert(rt.image == nullptr || image == nullptr || image == rt.image);
+        assert(isAppendable(rt));
         if(rt.image != nullptr)
             image = rt.image;
         triangles.reserve(triangles.size() + rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color](const Triangle & t)->Triangle
-        {
-            return colorize(color, t);
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&color](const Triangle &t) -> Triangle
+                       {
+                           return colorize(color, t);
+                       });
     }
-    void append(const Mesh & rt, ColorF color, Matrix tform)
+    void append(const Mesh &rt, ColorF color, Matrix tform)
     {
-        assert(rt.image == nullptr || image == nullptr || image == rt.image);
+        assert(isAppendable(rt));
         if(rt.image != nullptr)
             image = rt.image;
         triangles.reserve(triangles.size() + rt.triangles.size());
-        std::transform(rt.triangles.begin(), rt.triangles.end(), back_inserter(triangles), [&color, &tform](const Triangle & t)->Triangle
-        {
-            return colorize(color, transform(tform, t));
-        });
+        std::transform(rt.triangles.begin(),
+                       rt.triangles.end(),
+                       back_inserter(triangles),
+                       [&color, &tform](const Triangle &t) -> Triangle
+                       {
+                           return colorize(color, transform(tform, t));
+                       });
     }
     void append(std::shared_ptr<Mesh> rt)
     {
@@ -400,7 +400,7 @@ struct Mesh
         }
         stream::write<Image>(writer, image);
     }
-    bool operator ==(const Mesh &rt) const
+    bool operator==(const Mesh &rt) const
     {
         if(image != rt.image)
             return false;
@@ -411,9 +411,9 @@ struct Mesh
                 return false;
         return true;
     }
-    bool operator !=(const Mesh &rt) const
+    bool operator!=(const Mesh &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
 };
 
@@ -523,7 +523,8 @@ inline ColorizedTransformedMeshRef transform(Matrix tform, const ColorizedTransf
 
 inline ColorizedTransformedMeshRRef transform(Matrix tform, ColorizedTransformedMeshRRef &&mesh)
 {
-    return ColorizedTransformedMeshRRef(mesh.color, transform(tform, mesh.tform), std::move(mesh.mesh));
+    return ColorizedTransformedMeshRRef(
+        mesh.color, transform(tform, mesh.tform), std::move(mesh.mesh));
 }
 
 inline ColorizedMeshRef colorize(ColorF color, const Mesh &mesh)
@@ -584,7 +585,8 @@ inline ColorizedTransformedMeshRef colorize(ColorF color, const ColorizedTransfo
 
 inline ColorizedTransformedMeshRRef colorize(ColorF color, ColorizedTransformedMeshRRef &&mesh)
 {
-    return ColorizedTransformedMeshRRef(colorize(color, mesh.color), mesh.tform, std::move(mesh.mesh));
+    return ColorizedTransformedMeshRRef(
+        colorize(color, mesh.color), mesh.tform, std::move(mesh.mesh));
 }
 }
 }

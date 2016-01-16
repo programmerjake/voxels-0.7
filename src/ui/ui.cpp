@@ -29,6 +29,7 @@ namespace ui
 {
 void Ui::clear(Renderer &renderer)
 {
+    renderer.flush();
     Display::clear(background);
 }
 
@@ -47,6 +48,7 @@ void Ui::run(Renderer &renderer)
         clear(renderer);
         layout();
         render(renderer, 1, 32, true);
+        renderer.flush();
         Display::flip(-1);
     }
     handleFinish();

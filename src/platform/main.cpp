@@ -39,7 +39,7 @@ int main(std::vector<std::wstring> args)
 {
     //globalRenderSettings.useFancyLeaves = true;
     startGraphics();
-    Renderer renderer;
+    Renderer renderer = Renderer::make();
     std::shared_ptr<ui::GameUi> theUi = std::make_shared<ui::GameUi>();
     theUi->run(renderer);
     theUi = nullptr;

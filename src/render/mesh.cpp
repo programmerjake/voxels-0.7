@@ -31,9 +31,112 @@ namespace programmerjake
 {
 namespace voxels
 {
-void programmerjake::voxels::Renderer::render(const Mesh & m, Matrix tform)
+struct Renderer::Implementation final
 {
-    Display::render(m, tform, currentRenderLayer);
+    Mesh buffer = Mesh();
+    RenderLayer bufferRenderLayer = RenderLayer();
+    Matrix bufferTransform = Matrix::identity();
+    bool isTransformIdentity = true;
+    static bool isBufferSizeBig(std::size_t bufferSize)
+    {
+        return bufferSize >= 5000;
+    }
+    static bool isBufferSizeSmall(std::size_t bufferSize)
+    {
+        return bufferSize < 50;
+    }
+    void flush()
+    {
+        if(buffer.size() != 0)
+        {
+            Display::render(buffer, bufferTransform, bufferRenderLayer);
+        }
+        buffer.clear();
+    }
+    void render(const Mesh &m, Matrix tform, RenderLayer rl)
+    {
+        if(m.size() == 0)
+            return;
+        if(buffer.size() != 0)
+        {
+            if(!buffer.isAppendable(m) || bufferRenderLayer != rl)
+            {
+                flush();
+            }
+            else if(isBufferSizeBig(buffer.size()))
+            {
+                if(isTransformIdentity && isBufferSizeSmall(m.size()))
+                {
+                    buffer.append(m, tform);
+                    flush();
+                    return;
+                }
+                else if(bufferTransform == tform && isBufferSizeSmall(m.size()))
+                {
+                    buffer.append(m);
+                    flush();
+                    return;
+                }
+                else
+                {
+                    flush();
+                }
+            }
+            else if(tform == bufferTransform)
+            {
+                buffer.append(m);
+                return;
+            }
+            else if(isTransformIdentity)
+            {
+                buffer.append(m, tform);
+                return;
+            }
+            else if(isBufferSizeSmall(buffer.size()))
+            {
+                buffer = Mesh(std::move(buffer), bufferTransform);
+                bufferTransform = Matrix::identity();
+                isTransformIdentity = true;
+                buffer.append(m, tform);
+                return;
+            }
+            else
+            {
+                flush();
+            }
+        }
+        assert(buffer.size() == 0);
+        if(isBufferSizeBig(m.size()))
+        {
+            Display::render(m, tform, rl);
+            return;
+        }
+        buffer.append(m);
+        bufferTransform = tform;
+        bufferRenderLayer = rl;
+        isTransformIdentity = (tform == Matrix::identity());
+    }
+};
+
+void Renderer::render(const Mesh &m, Matrix tform)
+{
+    implementation->render(m, tform, currentRenderLayer);
+}
+
+void Renderer::render(const MeshBuffer &m)
+{
+    implementation->flush();
+    Display::render(m, currentRenderLayer);
+}
+
+void Renderer::flush()
+{
+    implementation->flush();
+}
+
+Renderer Renderer::make()
+{
+    return Renderer(std::make_shared<Implementation>());
 }
 
 namespace Generate
@@ -72,7 +175,15 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     float faceMinY = scale * (maxY - fMaxY + 1);
     float faceMaxX = faceMinX + scale * (fMaxX - fMinX);
     float faceMaxY = faceMinY + scale * (fMaxY - fMinY);
-    Mesh retval = transform(Matrix::translate(faceMinX, faceMinY, -0.5f).concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)), unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), backTD, td));
+    Mesh retval =
+        transform(Matrix::translate(faceMinX, faceMinY, -0.5f)
+                      .concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)),
+                  unitBox(TextureDescriptor(),
+                          TextureDescriptor(),
+                          TextureDescriptor(),
+                          TextureDescriptor(),
+                          backTD,
+                          td));
     for(int iy = minY; iy <= maxY; iy++)
     {
         for(int ix = minX; ix <= maxX; ix++)
@@ -80,7 +191,9 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
             bool transparent = isPixelTransparent(image.getPixel(ix, iy));
             if(transparent)
                 continue;
-            bool transparentNIX = true, transparentPIX = true, transparentNIY = true, transparentPIY = true; // image transparent for negative and positive image coordinates
+            bool transparentNIX = true, transparentPIX = true, transparentNIY = true,
+                 transparentPIY =
+                     true; // image transparent for negative and positive image coordinates
             if(ix > minX)
                 transparentNIX = isPixelTransparent(image.getPixel(ix - 1, iy));
             if(ix < maxX)
@@ -101,8 +214,11 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
                 py = pixelTD;
             if(transparentPIY)
                 ny = pixelTD;
-            Matrix tform = Matrix::translate(static_cast<float>(ix - minX), static_cast<float>(maxY - iy), -0.5f).concat(Matrix::scale(scale, scale, thickness));
-            retval.append(transform(tform, unitBox(nx, px, ny, py, TextureDescriptor(), TextureDescriptor())));
+            Matrix tform = Matrix::translate(static_cast<float>(ix - minX),
+                                             static_cast<float>(maxY - iy),
+                                             -0.5f).concat(Matrix::scale(scale, scale, thickness));
+            retval.append(transform(
+                tform, unitBox(nx, px, ny, py, TextureDescriptor(), TextureDescriptor())));
         }
     }
     return std::move(retval);
@@ -135,16 +251,8 @@ Mesh itemDamage(float damageValue)
     const VectorF nxpy = VectorF(minX, maxY, 0);
     VectorF cxpy = VectorF(splitX, maxY, 0);
     const VectorF pxpy = VectorF(maxX, maxY, 0);
-    Mesh retval = quadrilateral(foregroundTexture,
-                             nxny, c,
-                             cxny, c,
-                             cxpy, c,
-                             nxpy, c);
-    retval.append(quadrilateral(backgroundTexture,
-                             cxny, c,
-                             pxny, c,
-                             pxpy, c,
-                             cxpy, c));
+    Mesh retval = quadrilateral(foregroundTexture, nxny, c, cxny, c, cxpy, c, nxpy, c);
+    retval.append(quadrilateral(backgroundTexture, cxny, c, pxny, c, pxpy, c, cxpy, c));
     return retval;
 }
 }
