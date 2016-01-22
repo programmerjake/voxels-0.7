@@ -128,7 +128,7 @@ int initTerminateHandler()
             setOrGetTerminationHandlerFn(handler, false);
             if(handler == nullptr)
             {
-                std::exit(82);
+                std::_Exit(82);
             }
             handler();
         }
