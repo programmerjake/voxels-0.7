@@ -34,6 +34,7 @@
 #include <tuple>
 #include "util/tls.h"
 #include "util/xorshiftplus.h"
+#include "util/util.h"
 
 namespace programmerjake
 {
@@ -237,7 +238,7 @@ private:
                                  RandomClass randomClass)
     {
 #if 1
-#warning finish
+        FIXME_MESSAGE(finish)
         static_assert(!std::is_same<T, T>::value, "finish implementing");
 #else
         assume(destSizes.x >= 0 && destSizes.y >= 0 && destSizes.z >= 0);
