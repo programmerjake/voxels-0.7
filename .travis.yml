@@ -1,0 +1,12 @@
+language: cpp
+compiler:
+- gcc
+env: 
+- TARGET=Debug
+- TARGET=Optimized
+- TARGET=Release
+before_install:
+- sudo apt-get update -qq
+- sudo apt-get install g++ -y
+sudo: required
+script: ./make-makefile.sh -t Optimized && make -j2
