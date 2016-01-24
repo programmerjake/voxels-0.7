@@ -48,15 +48,11 @@ struct constexpr_assert_failure final
     }
 };
 
-#ifdef NDEBUG
-#define constexpr_assert(v) ((void)0)
-#else
-#define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
-#endif
-
 #ifndef NDEBUG
 #define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
-#elif defined(__GNUC__) || defined(__GNUG__)
+#define assume(v) assert(v)
+#else
+#if defined(__GNUC__) || defined(__GNUG__)
 #define UNREACHABLE() __builtin_unreachable()
 #elif defined(__HP_cc) || defined(__HP_aCC)
 #warning UNREACHABLE() unsupported on Hewlett-Packard C/aC++
@@ -75,6 +71,15 @@ struct constexpr_assert_failure final
 #else
 #warning UNREACHABLE() unsupported on unknown compiler
 #define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#endif
+#define assume(v) do {if(v) (void)0; else UNREACHABLE();} while(0)
+#endif
+
+#ifdef NDEBUG
+#define constexpr_assert(v) ((void)0)
+#define assume ((v) ? (void)0 : (void))
+#else
+#define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
 #endif
 
 #if defined(__GNUC__) || defined(__GNUG__)
