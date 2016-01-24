@@ -301,6 +301,7 @@
 		<Unit filename="include/util/rc4_random_engine.h" />
 		<Unit filename="include/util/redstone_signal.h" />
 		<Unit filename="include/util/rw_lock.h" />
+		<Unit filename="include/util/semaphore.h" />
 		<Unit filename="include/util/solve.h" />
 		<Unit filename="include/util/spin_lock.h" />
 		<Unit filename="include/util/string_cast.h" />
@@ -308,12 +309,14 @@
 		<Unit filename="include/util/tls.h" />
 		<Unit filename="include/util/tool_level.h" />
 		<Unit filename="include/util/unlock_guard.h" />
+		<Unit filename="include/util/usage_monitor.h" />
 		<Unit filename="include/util/util.h" />
 		<Unit filename="include/util/vector.h" />
 		<Unit filename="include/util/wchar_bits.h" />
 		<Unit filename="include/util/wood_descriptor.h" />
 		<Unit filename="include/util/world_lock_manager.h" />
 		<Unit filename="include/util/wrapped_entity.h" />
+		<Unit filename="include/util/xorshiftplus.h" />
 		<Unit filename="include/vr/vr_callbacks.h" />
 		<Unit filename="include/world/view_point.h" />
 		<Unit filename="include/world/world.h" />
@@ -390,6 +393,7 @@
 		<Unit filename="src/util/lock.cpp" />
 		<Unit filename="src/util/logging.cpp" />
 		<Unit filename="src/util/matrix.cpp" />
+		<Unit filename="src/util/semaphore.cpp" />
 		<Unit filename="src/util/tls.cpp" />
 		<Unit filename="src/util/util.cpp" />
 		<Unit filename="src/util/vector.cpp" />

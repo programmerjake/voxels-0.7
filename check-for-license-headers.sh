@@ -19,40 +19,48 @@
 #
 #
 
-header_string="`printf "/*\n * Copyright (C) 2012-2016 Jacob R. Lifshay"`"
-IFS='
-'
-project_files="`cat voxels-0.7.cbp | grep '<Unit filename="' | sed '{s/.*filename="\([^"]*\)".*/\1/}'`"
-files="`find src include ! -type d`"
-for filename in $files; do
-    found_in_project=0
-    new_project_files=""
-    for project_filename in $project_files; do
-        if [ "$filename" = "$project_filename" ]; then
-            found_in_project=1
-        elif [ -z "$new_project_files" ]; then
-            new_project_files="$project_filename"
-        else
-            new_project_files="$new_project_files`echo; echo "$project_filename"`"
+test_project_file()
+{
+    local project_file="$1"
+    local header_string="`printf "/*\n * Copyright (C) 2012-2016 Jacob R. Lifshay"`"
+    local IFS="`printf "\na"`"
+    IFS="${IFS%a}"
+    local project_files="`cat $project_file | grep '<Unit filename="' | sed '{s/.*filename="\([^"]*\)".*/\1/}'`"
+    local files="`find src include ! -type d`"
+    local filename found_in_project new_project_files
+    for filename in $files; do
+        found_in_project=0
+        new_project_files=""
+        for project_filename in $project_files; do
+            if [ "$filename" = "$project_filename" ]; then
+                found_in_project=1
+            elif [ -z "$new_project_files" ]; then
+                new_project_files="$project_filename"
+            else
+                new_project_files="$new_project_files`echo; echo "$project_filename"`"
+            fi
+        done
+        project_files="$new_project_files"
+        if [ "$found_in_project" = 0 ]; then
+            echo "$filename: not in project"
+        fi
+        if [ "$filename" != "src/util/game_version.cpp" ]; then
+            if [ "`head -n 2 "$filename"`" != "$header_string" ]; then
+                echo "$filename:"
+                echo "`head -n 2 "$filename"`"
+                echo
+                echo vs.
+                echo
+                echo "$header_string"
+                echo
+            fi
         fi
     done
-    project_files="$new_project_files"
-    if [ "$found_in_project" = 0 ]; then
-        echo "$filename: not in project"
-    fi
-    if [ "$filename" != "src/util/game_version.cpp" ]; then
-        if [ "`head -n 2 "$filename"`" != "$header_string" ]; then
-            echo "$filename:"
-            echo "`head -n 2 "$filename"`"
-            echo
-            echo vs.
-            echo
-            echo "$header_string"
-            echo
-        fi
-    fi
-done
 
-for project_filename in $project_files; do
-    echo "$project_filename: not found"
-done
+    for project_filename in $project_files; do
+        echo "$project_filename: not found"
+    done
+}
+
+test_project_file voxels-0.7.cbp
+test_project_file voxels-0.7-win.cbp
