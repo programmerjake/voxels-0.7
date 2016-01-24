@@ -77,7 +77,6 @@ struct constexpr_assert_failure final
 
 #ifdef NDEBUG
 #define constexpr_assert(v) ((void)0)
-#define assume ((v) ? (void)0 : (void))
 #else
 #define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
 #endif
