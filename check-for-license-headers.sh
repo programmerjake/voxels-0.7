@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2012-2015 Jacob R. Lifshay
+# Copyright (C) 2012-2016 Jacob R. Lifshay
 # This file is part of Voxels.
 #
 # Voxels is free software; you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #
 #
 
-header_string="`printf "/*\n * Copyright (C) 2012-2015 Jacob R. Lifshay"`"
+header_string="`printf "/*\n * Copyright (C) 2012-2016 Jacob R. Lifshay"`"
 IFS='
 '
 project_files="`cat voxels-0.7.cbp | grep '<Unit filename="' | sed '{s/.*filename="\([^"]*\)".*/\1/}'`"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (C) 2012-2015 Jacob R. Lifshay
+# Copyright (C) 2012-2016 Jacob R. Lifshay
 # This file is part of Voxels.
 #
 # Voxels is free software; you can redistribute it and/or modify
@@ -202,7 +202,7 @@ output_executable_name="$output_executable_name$output_file_extension"
 exec 2>&1 > Makefile
 echo "# generated from $project_filename"
 cat <<'EOF'
-# Copyright (C) 2012-2015 Jacob R. Lifshay
+# Copyright (C) 2012-2016 Jacob R. Lifshay
 # This file is part of Voxels.
 #
 # Voxels is free software; you can redistribute it and/or modify

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2012-2015 Jacob R. Lifshay
+# Copyright (C) 2012-2016 Jacob R. Lifshay
 # This file is part of Voxels.
 #
 # Voxels is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@ g++-4.8 -std=c++11 -DCOMPILE_DUMP_VERSION -Iinclude/ src/util/game_version.cpp -
 cat > src/util/game_version.cpp << EOF
 // Automatically generated : don't modify
 /*
- * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * Copyright (C) 2012-2016 Jacob R. Lifshay
  * This file is part of Voxels.
  *
  * Voxels is free software; you can redistribute it and/or modify
