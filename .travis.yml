@@ -7,6 +7,7 @@ env:
 - TARGET=Release
 before_install:
 - sudo apt-get update -qq
-- sudo apt-get install g++ -y
+- sudo apt-get install libsdl2-dev zlib1g-dev libpng12-dev libvorbis-dev libcups2-dev libssl-dev
 sudo: required
-script: ./make-makefile.sh -t Optimized && make -j2
+dist: trusty
+script: ./make-makefile.sh -t $TARGET && make -j2
