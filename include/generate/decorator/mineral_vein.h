@@ -88,7 +88,7 @@ protected:
                 {
                     for(p.z = minP.z; p.z <= maxP.z; p.z++)
                     {
-                        float curSize = sizeF + std::uniform_real_distribution<float>(-0.5f, 0.5f)(rg);
+                        float curSize = sizeF + (std::generate_canonical<float, 1000>(rg) - 0.5f);
                         if(absSquared(p - position) < curSize * curSize)
                         {
                             if(++count >= blockCount)

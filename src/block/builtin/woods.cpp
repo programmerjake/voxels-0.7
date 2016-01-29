@@ -75,7 +75,7 @@ public:
                 for(int z = -leavesRadius; z <= leavesRadius; z++)
                 {
                     VectorI pos(x, y, z);
-                    float adjustedRadius = leavesRadius - std::uniform_real_distribution<float>(0, 0.5f)(rg);
+                    float adjustedRadius = leavesRadius - 0.5f * std::generate_canonical<float, 1000>(rg);
                     if(absSquared(pos - leavesCenter) < adjustedRadius * adjustedRadius)
                         retval.setBlock(pos, leaves);
                 }

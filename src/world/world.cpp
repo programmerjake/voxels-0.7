@@ -427,7 +427,7 @@ private:
                 }
                 generateCountF /= BlockChunk::chunkSizeX * BlockChunk::chunkSizeZ;
                 int generateCount =
-                    ifloor(std::uniform_real_distribution<float>(0, 1)(rg) + generateCountF);
+                    ifloor(std::generate_canonical<float, 1000>(rg) + generateCountF);
                 VectorI relativeColumnSurfacePosition =
                     columnBasePosition + VectorI(0, World::SeaLevel, 0) - chunkBasePosition;
                 while(relativeColumnSurfacePosition.y >= 0

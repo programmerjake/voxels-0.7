@@ -55,15 +55,10 @@ public:
     static constexpr RandomClass bedrockGeneratePositionStart =
         oreGeneratePositionStart + oreGeneratePositionSize;
     static constexpr RandomClass bedrockGeneratePositionSize = 1;
-
+    static constexpr std::size_t randomClassCount = bedrockGeneratePositionStart + bedrockGeneratePositionSize;
 private:
-    static RandomClass allocateRandomClasses(
-        std::size_t count) // don't use because it depends on initialization order
-    {
-        static std::atomic_size_t nextRandomClass(bedrockGeneratePositionStart
-                                                  + bedrockGeneratePositionSize);
-        return nextRandomClass.fetch_add(count, std::memory_order_relaxed);
-    }
+    typedef XorShift128Plus random_generator;
+#if 0
     struct RandomChunkKey
     {
         PositionI basePosition;
@@ -96,7 +91,6 @@ private:
                                     BlockChunk::chunkSizeZ>,
                       BlockChunk::chunkSizeX> values;
         const RandomChunkKey key;
-        typedef XorShift128Plus random_generator;
         static random_generator makeRandomGenerator(World::SeedType seed, RandomChunkKey key)
         {
             seed += (std::uint32_t)RandomChunkKeyHasher()(key);
@@ -160,6 +154,7 @@ public:
         : seed(seed), randomCache(), deleteChunkRandomEngine((std::uint32_t)seed)
     {
     }
+private:
     const RandomCacheChunk &getChunk(PositionI chunkBasePosition, RandomClass randomClass)
     {
         RandomChunkKey key(chunkBasePosition, randomClass);
@@ -186,25 +181,50 @@ public:
         }
         return std::get<1>(*iter);
     }
-    std::int32_t getValueI(PositionI position, RandomClass randomClass)
-    {
-        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass)
-            .getValueI(BlockChunk::getChunkRelativePosition((VectorI)position));
-    }
+public:
     std::uint32_t getValueU(PositionI position, RandomClass randomClass)
     {
         return getChunk(BlockChunk::getChunkBasePosition(position), randomClass)
             .getValueU(BlockChunk::getChunkRelativePosition((VectorI)position));
     }
+#else
+    static constexpr std::size_t RandomDataShift = 15;
+    static constexpr std::size_t RandomDataSize = 1 << RandomDataShift;
+    typedef checked_array<std::uint32_t, RandomDataSize> ValueArraysType;
+    std::unique_ptr<ValueArraysType> values;
+public:
+    RandomSource(World::SeedType seed)
+        : values(new ValueArraysType())
+    {
+        random_generator generator(seed);
+        for(std::uint32_t &value : *values)
+        {
+            value = static_cast<std::uint32_t>(generator());
+            value = (value >> 16) | (value << 16);
+            value ^= static_cast<std::uint32_t>(generator());
+        }
+    }
+    std::uint32_t getValueU(PositionI position, RandomClass randomClass) const
+    {
+        std::uint32_t hash = (std::uint32_t)std::hash<PositionI>()(position)
+               + (std::uint32_t)65537 * (std::uint32_t)randomClass;
+        return values->at(hash % RandomDataSize) ^ hash;
+    }
+#endif
+    std::int32_t getValueI(PositionI position, RandomClass randomClass)
+    {
+        return static_cast<std::int32_t>(getValueU(position, randomClass) & 0x7FFFFFFFUL);
+    }
     float getValueBalancedF(PositionI position, RandomClass randomClass)
     {
-        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass)
-            .getValueBalancedF(BlockChunk::getChunkRelativePosition((VectorI)position));
+        std::uint32_t v = getValueU(position, randomClass);
+        return (float)(std::int32_t)v
+               * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
     }
     float getValueCanonicalF(PositionI position, RandomClass randomClass)
     {
-        return getChunk(BlockChunk::getChunkBasePosition(position), randomClass)
-            .getValueCanonicalF(BlockChunk::getChunkRelativePosition((VectorI)position));
+        std::uint32_t v = getValueU(position, randomClass);
+        return (float)v * (-0.25f / (float)0x40000000UL);
     }
     float getValueBalancedF(PositionF position, RandomClass randomClass)
     {
@@ -226,50 +246,6 @@ public:
         float vnx = vnxny * nt.y + vnxpy * t.y;
         float vpx = vpxny * nt.y + vpxpy * t.y;
         return vnx * nt.x + vpx * t.x;
-    }
-
-private:
-    typedef float (RandomCacheChunk::*GetValueFn)(VectorI relativePosition) const;
-    template <typename T, GetValueFn getValueFn>
-    void getValuesImplementation(T &dest,
-                                 const VectorI destSizes,
-                                 PositionF startingPosition,
-                                 VectorF scale,
-                                 RandomClass randomClass)
-    {
-#if 1
-        FIXME_MESSAGE(finish)
-        static_assert(!std::is_same<T, T>::value, "finish implementing");
-#else
-        assume(destSizes.x >= 0 && destSizes.y >= 0 && destSizes.z >= 0);
-        if(destSizes.x == 0 || destSizes.y == 0 || destSizes.z == 0)
-            return;
-        VectorF targetTotalSize = scale * destSizes;
-        VectorF blockingSizeF =
-        VectorI blockingSize =
-#endif
-    }
-
-public:
-    template <typename T>
-    void getValuesBalancedF(T &dest,
-                            const VectorI destSizes,
-                            PositionF startingPosition,
-                            VectorF scale,
-                            RandomClass randomClass)
-    {
-        getValuesImplementation<T, static_cast<GetValueFn>(&RandomCacheChunk::getValueBalancedF)>(
-            dest, destSizes, startingPosition, scale, randomClass);
-    }
-    template <typename T>
-    void getValuesCanonicalF(T &dest,
-                            const VectorI destSizes,
-                            PositionF startingPosition,
-                            VectorF scale,
-                            RandomClass randomClass)
-    {
-        getValuesImplementation<T, static_cast<GetValueFn>(&RandomCacheChunk::getValueCanonicalF)>(
-            dest, destSizes, startingPosition, scale, randomClass);
     }
     float getValueCanonicalF(PositionF position, RandomClass randomClass)
     {
