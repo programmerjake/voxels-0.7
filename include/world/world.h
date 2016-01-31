@@ -539,7 +539,7 @@ public:
             }
         }
     }
-    template <typename T>
+    template <bool doInvalidate = true, typename T>
     void setBiomePropertiesRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBiomes, VectorI newBiomesOrigin)
     {
         minCorner.y = 0;
@@ -559,7 +559,8 @@ public:
             }
         }
         lightingStable = false;
-        invalidateBlockRange(biX, adjustedMinCorner, adjustedMaxCorner, lock_manager);
+        if(doInvalidate)
+            invalidateBlockRange(biX, adjustedMinCorner, adjustedMaxCorner, lock_manager);
     }
     /** @brief set a block range
      *

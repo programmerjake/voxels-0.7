@@ -145,7 +145,7 @@ public:
                         RandomSource &randomSource)
     {
         Chunk &c = getChunk(chunkBasePosition, randomSource);
-        world.setBiomePropertiesRange(chunkBasePosition,
+        world.setBiomePropertiesRange<false>(chunkBasePosition,
                                       chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1,
                                                                   BlockChunk::chunkSizeY - 1,
                                                                   BlockChunk::chunkSizeZ - 1),
@@ -196,8 +196,9 @@ private:
                 {
                     for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
                     {
-                        retval.blocks[dx][dy][dz] = ( PackedBlock )std::move(blocks[dx][dy][dz]);
-                        blocks[dx][dy][dz] = Block();
+                        retval.blocks[dx][dy][dz] =
+                            static_cast<PackedBlock>(std::move(blocks[dx][dy][dz]));
+                        // blocks[dx][dy][dz] = Block();
                     }
                 }
             }
@@ -228,7 +229,7 @@ public:
             {
                 for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
                 {
-                    blocks[dx][dy][dz] = ( Block )c.blocks[dx][dy][dz];
+                    blocks[dx][dy][dz] = static_cast<Block>(c.blocks[dx][dy][dz]);
                 }
             }
         }
@@ -404,7 +405,7 @@ private:
         std::vector<std::shared_ptr<const DecoratorInstance>> retval;
         std::uint32_t decoratorGenerateNumber =
             descriptor->getInitialDecoratorGenerateNumber()
-            + ( std::uint32_t )std::hash<PositionI>()(chunkBasePosition);
+            + (std::uint32_t)std::hash<PositionI>()(chunkBasePosition);
         std::minstd_rand rg(decoratorGenerateNumber);
         rg.discard(30);
         BlockIterator chunkBaseIterator =
@@ -1216,7 +1217,7 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk,
             WrappedEntity::ChunkListType::iterator nextSrcIter = srcChunkIter;
             ++nextSrcIter;
             BlockIterator destBi = cbi;
-            destBi.moveTo(( PositionI )position, lock_manager.tls);
+            destBi.moveTo((PositionI)position, lock_manager.tls);
             if(!destBi.tryUpdateLock(lock_manager))
             {
                 new_lock_manager.block_biome_lock.clear();
@@ -1402,7 +1403,7 @@ float World::getChunkGeneratePriority(
         PositionF posXZ = pos;
         posXZ.y = 0;
         float distSquared = boxDistanceSquared(chunkMinCornerXZ, chunkMaxCornerXZ, posXZ);
-        if(pos.d != bi.position().d || distSquared > 2.0f * ( float )viewDistance * viewDistance)
+        if(pos.d != bi.position().d || distSquared > 2.0f * (float)viewDistance * viewDistance)
             continue;
         if(!retvalSet || retval > distSquared)
         {
@@ -1451,7 +1452,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor,
                          std::shared_ptr<void> entityData)
 {
     assert(descriptor != nullptr);
-    BlockIterator bi = getBlockIteratorForWorldAddEntity(( PositionI )position, lock_manager.tls);
+    BlockIterator bi = getBlockIteratorForWorldAddEntity((PositionI)position, lock_manager.tls);
     lock_manager.block_biome_lock.clear();
     WrappedEntity *entity = new WrappedEntity(Entity(descriptor, nullptr, entityData));
     entity->entity.physicsObject =
@@ -1580,7 +1581,7 @@ void World::moveEntitiesThreadFn(TLS &tls)
                 entity.lastEntityRunCount = entityRunCount;
                 entity.verify();
                 BlockIterator destBi = cbi;
-                destBi.moveTo(( PositionI )entity.entity.physicsObject->getPosition(),
+                destBi.moveTo((PositionI)entity.entity.physicsObject->getPosition(),
                               lock_manager.tls);
                 entity.entity.descriptor->moveStep(entity.entity, *this, lock_manager, deltaTime);
                 if(entity.currentChunk == destBi.chunk.get()
@@ -1663,7 +1664,7 @@ RayCasting::Collision World::castRay(RayCasting::Ray ray,
                                      RayCasting::BlockCollisionMask blockRayCollisionMask,
                                      const Entity *ignoreEntity)
 {
-    PositionI startPosition = ( PositionI )ray.startPosition;
+    PositionI startPosition = (PositionI)ray.startPosition;
     BlockIterator bi = getBlockIterator(startPosition, lock_manager.tls);
     BlockChunkSubchunk *lastSubchunk = nullptr;
     RayCasting::Collision retval(*this);
@@ -1755,11 +1756,11 @@ void World::particleGeneratingThreadFn(TLS &tls)
         {
             PositionF centerPosition = std::get<0>(viewPointsVector[viewPointIndex]);
             float generateDistance = std::get<1>(viewPointsVector[viewPointIndex]);
-            BlockIterator gbi = getBlockIterator(( PositionI )centerPosition, lock_manager.tls);
+            BlockIterator gbi = getBlockIterator((PositionI)centerPosition, lock_manager.tls);
             PositionF minPositionF = centerPosition - VectorF(generateDistance);
             PositionF maxPositionF = centerPosition + VectorF(generateDistance);
-            PositionI minP = BlockChunk::getSubchunkBaseAbsolutePosition(( PositionI )minPositionF);
-            PositionI maxP = BlockChunk::getSubchunkBaseAbsolutePosition(( PositionI )maxPositionF);
+            PositionI minP = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)minPositionF);
+            PositionI maxP = BlockChunk::getSubchunkBaseAbsolutePosition((PositionI)maxPositionF);
             for(PositionI pos = minP; pos.x <= maxP.x; pos.x += BlockChunk::subchunkSizeXYZ)
             {
                 for(pos.y = minP.y; pos.y <= maxP.y; pos.y += BlockChunk::subchunkSizeXYZ)
@@ -1774,9 +1775,9 @@ void World::particleGeneratingThreadFn(TLS &tls)
                             PositionF minPositionF2 = centerPosition2 - VectorF(generateDistance2);
                             PositionF maxPositionF2 = centerPosition2 + VectorF(generateDistance2);
                             PositionI minP2 = BlockChunk::getSubchunkBaseAbsolutePosition(
-                                ( PositionI )minPositionF2);
+                                (PositionI)minPositionF2);
                             PositionI maxP2 = BlockChunk::getSubchunkBaseAbsolutePosition(
-                                ( PositionI )maxPositionF2);
+                                (PositionI)maxPositionF2);
                             if(pos.x >= minP2.x && pos.x <= maxP2.x && pos.y >= minP2.y
                                && pos.y <= maxP2.y
                                && pos.z >= minP2.z
@@ -2283,7 +2284,7 @@ bool World::isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosi
     for(std::shared_ptr<Player> player : lockedPlayers)
     {
         PositionI playerChunkBasePosition =
-            BlockChunk::getChunkBasePosition(( PositionI )player->getPosition());
+            BlockChunk::getChunkBasePosition((PositionI)player->getPosition());
         if(playerChunkBasePosition.d != chunkBasePosition.d)
             continue;
         VectorI displacement = playerChunkBasePosition - chunkBasePosition;
