@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2015 Jacob R. Lifshay
+ * Copyright (C) 2012-2016 Jacob R. Lifshay
  * This file is part of Voxels.
  *
  * Voxels is free software; you can redistribute it and/or modify
@@ -68,40 +68,68 @@ struct Matrix
         this->x[x][y] = value;
     }
 
-    checked_array<float, 4> &operator [](std::size_t index)
+    checked_array<float, 4> &operator[](std::size_t index)
     {
         return x[index];
     }
 
-    const checked_array<float, 4> &operator [](std::size_t index) const
+    const checked_array<float, 4> &operator[](std::size_t index) const
     {
         return x[index];
     }
 
     constexpr Matrix(float x00,
-           float x10,
-           float x20,
-           float x30,
-           float x01,
-           float x11,
-           float x21,
-           float x31,
-           float x02,
-           float x12,
-           float x22,
-           float x32,
-           float x03 = 0,
-           float x13 = 0,
-           float x23 = 0,
-           float x33 = 1)
-        : x00(x00), x01(x01), x02(x02), x03(x03), x10(x10), x11(x11), x12(x12), x13(x13), x20(x20),
-          x21(x21), x22(x22), x23(x23), x30(x30), x31(x31), x32(x32), x33(x33)
+                     float x10,
+                     float x20,
+                     float x30,
+                     float x01,
+                     float x11,
+                     float x21,
+                     float x31,
+                     float x02,
+                     float x12,
+                     float x22,
+                     float x32,
+                     float x03 = 0,
+                     float x13 = 0,
+                     float x23 = 0,
+                     float x33 = 1)
+        : x00(x00),
+          x01(x01),
+          x02(x02),
+          x03(x03),
+          x10(x10),
+          x11(x11),
+          x12(x12),
+          x13(x13),
+          x20(x20),
+          x21(x21),
+          x22(x22),
+          x23(x23),
+          x30(x30),
+          x31(x31),
+          x32(x32),
+          x33(x33)
     {
     }
 
     constexpr Matrix()
-        : x00(1), x01(0), x02(0), x03(0), x10(0), x11(1), x12(0), x13(0), x20(0), x21(0), x22(1), x23(0),
-          x30(0), x31(0), x32(0), x33(1)
+        : x00(1),
+          x01(0),
+          x02(0),
+          x03(0),
+          x10(0),
+          x11(1),
+          x12(0),
+          x13(0),
+          x20(0),
+          x21(0),
+          x22(1),
+          x23(0),
+          x30(0),
+          x31(0),
+          x32(0),
+          x33(1)
     {
     }
 
@@ -134,10 +162,18 @@ struct Matrix
         yy = axisv.y * axisv.y;
         yz = axisv.y * axisv.z;
         zz = axisv.z * axisv.z;
-        return Matrix(xx + (1 - xx) * c, xy * v - axisv.z * s, xz * v
-                      + axisv.y * s, 0, xy * v + axisv.z * s, yy + (1 - yy) * c, yz
-                      * v - axisv.x * s, 0, xz * v - axisv.y * s, yz * v + axisv.x
-                      * s, zz + (1 - zz) * c, 0);
+        return Matrix(xx + (1 - xx) * c,
+                      xy * v - axisv.z * s,
+                      xz * v + axisv.y * s,
+                      0,
+                      xy * v + axisv.z * s,
+                      yy + (1 - yy) * c,
+                      yz * v - axisv.x * s,
+                      0,
+                      xz * v - axisv.y * s,
+                      yz * v + axisv.x * s,
+                      zz + (1 - zz) * c,
+                      0);
     }
 
 
@@ -190,18 +226,7 @@ struct Matrix
      * @return the new translation matrix */
     constexpr static Matrix translate(VectorF position)
     {
-        return Matrix(1,
-                      0,
-                      0,
-                      position.x,
-                      0,
-                      1,
-                      0,
-                      position.y,
-                      0,
-                      0,
-                      1,
-                      position.z);
+        return Matrix(1, 0, 0, position.x, 0, 1, 0, position.y, 0, 0, 1, position.z);
     }
 
     /** creates a translation matrix
@@ -257,12 +282,14 @@ struct Matrix
     /** @return the determinant of this matrix */
     constexpr float determinant() const
     {
-        return x03 * x12 * x21 * x30 - x02 * x13 * x21 * x30 - x03 * x11 * x22 * x30 + x01 * x13 * x22 * x30
-               + x02 * x11 * x23 * x30 - x01 * x12 * x23 * x30 - x03 * x12 * x20 * x31 + x02 * x13 * x20 * x31 +
-               x03 * x10 * x22 * x31 - x00 * x13 * x22 * x31 - x02 * x10 * x23 * x31 + x00 * x12 * x23 * x31 + x03
-               * x11 * x20 * x32 - x01 * x13 * x20 * x32 - x03 * x10 * x21 * x32 + x00 * x13 * x21 * x32 + x01 *
-               x10 * x23 * x32 - x00 * x11 * x23 * x32 - x02 * x11 * x20 * x33 + x01 * x12 * x20 * x33 + x02 * x10
-               * x21 * x33 - x00 * x12 * x21 * x33 - x01 * x10 * x22 * x33 + x00 * x11 * x22 * x33;
+        return x03 * x12 * x21 * x30 - x02 * x13 * x21 * x30 - x03 * x11 * x22 * x30
+               + x01 * x13 * x22 * x30 + x02 * x11 * x23 * x30 - x01 * x12 * x23 * x30
+               - x03 * x12 * x20 * x31 + x02 * x13 * x20 * x31 + x03 * x10 * x22 * x31
+               - x00 * x13 * x22 * x31 - x02 * x10 * x23 * x31 + x00 * x12 * x23 * x31
+               + x03 * x11 * x20 * x32 - x01 * x13 * x20 * x32 - x03 * x10 * x21 * x32
+               + x00 * x13 * x21 * x32 + x01 * x10 * x23 * x32 - x00 * x11 * x23 * x32
+               - x02 * x11 * x20 * x33 + x01 * x12 * x20 * x33 + x02 * x10 * x21 * x33
+               - x00 * x12 * x21 * x33 - x01 * x10 * x22 * x33 + x00 * x11 * x22 * x33;
     }
 
     /** @return the inverse of this matrix. */
@@ -276,22 +303,38 @@ struct Matrix
         }
 
         float factor = 1.0f / det;
-        return Matrix((x11 * x22 * x33 - x12 * x21 * x33 - x11 * x23 * x32 + x13 * x21 * x32 + x12 * x23 * x31 - x13 * x22 * x31) * factor,
-                      (-x10 * x22 * x33 + x12 * x20 * x33 + x10 * x23 * x32 - x13 * x20 * x32 - x12 * x23 * x30 + x13 * x22 * x30) * factor,
-                      (x10 * x21 * x33 - x11 * x20 * x33 - x10 * x23 * x31 + x13 * x20 * x31 + x11 * x23 * x30 - x13 * x21 * x30) * factor,
-                      (-x10 * x21 * x32 + x11 * x20 * x32 + x10 * x22 * x31 - x12 * x20 * x31 - x11 * x22 * x30 + x12 * x21 * x30) * factor,
-                      (-x01 * x22 * x33 + x02 * x21 * x33 + x01 * x23 * x32 - x03 * x21 * x32 - x02 * x23 * x31 + x03 * x22 * x31) * factor,
-                      (x00 * x22 * x33 - x02 * x20 * x33 - x00 * x23 * x32 + x03 * x20 * x32 + x02 * x23 * x30 - x03 * x22 * x30) * factor,
-                      (-x00 * x21 * x33 + x01 * x20 * x33 + x00 * x23 * x31 - x03 * x20 * x31 - x01 * x23 * x30 + x03 * x21 * x30) * factor,
-                      (x00 * x21 * x32 - x01 * x20 * x32 - x00 * x22 * x31 + x02 * x20 * x31 + x01 * x22 * x30 - x02 * x21 * x30) * factor,
-                      (x01 * x12 * x33 - x02 * x11 * x33 - x01 * x13 * x32 + x03 * x11 * x32 + x02 * x13 * x31 - x03 * x12 * x31) * factor,
-                      (-x00 * x12 * x33 + x02 * x10 * x33 + x00 * x13 * x32 - x03 * x10 * x32 - x02 * x13 * x30 + x03 * x12 * x30) * factor,
-                      (x00 * x11 * x33 - x01 * x10 * x33 - x00 * x13 * x31 + x03 * x10 * x31 + x01 * x13 * x30 - x03 * x11 * x30) * factor,
-                      (-x00 * x11 * x32 + x01 * x10 * x32 + x00 * x12 * x31 - x02 * x10 * x31 - x01 * x12 * x30 + x02 * x11 * x30) * factor,
-                      (-x01 * x12 * x23 + x02 * x11 * x23 + x01 * x13 * x22 - x03 * x11 * x22 - x02 * x13 * x21 + x03 * x12 * x21) * factor,
-                      (x00 * x12 * x23 - x02 * x10 * x23 - x00 * x13 * x22 + x03 * x10 * x22 + x02 * x13 * x20 - x03 * x12 * x20) * factor,
-                      (-x00 * x11 * x23 + x01 * x10 * x23 + x00 * x13 * x21 - x03 * x10 * x21 - x01 * x13 * x20 + x03 * x11 * x20) * factor,
-                      (x00 * x11 * x22 - x01 * x10 * x22 - x00 * x12 * x21 + x02 * x10 * x21 + x01 * x12 * x20 - x02 * x11 * x20) * factor);
+        return factor * Matrix((x11 * x22 - x21 * x12) * x33 + (x31 * x12 - x11 * x32) * x23
+                                   + (x21 * x32 - x31 * x22) * x13,
+                               (x20 * x12 - x10 * x22) * x33 + (x10 * x32 - x30 * x12) * x23
+                                   + (x30 * x22 - x20 * x32) * x13,
+                               (x10 * x21 - x20 * x11) * x33 + (x30 * x11 - x10 * x31) * x23
+                                   + (x20 * x31 - x30 * x21) * x13,
+                               (x20 * x11 - x10 * x21) * x32 + (x10 * x31 - x30 * x11) * x22
+                                   + (x30 * x21 - x20 * x31) * x12,
+                               (x21 * x02 - x01 * x22) * x33 + (x01 * x32 - x31 * x02) * x23
+                                   + (x31 * x22 - x21 * x32) * x03,
+                               (x00 * x22 - x20 * x02) * x33 + (x30 * x02 - x00 * x32) * x23
+                                   + (x20 * x32 - x30 * x22) * x03,
+                               (x20 * x01 - x00 * x21) * x33 + (x00 * x31 - x30 * x01) * x23
+                                   + (x30 * x21 - x20 * x31) * x03,
+                               (x00 * x21 - x20 * x01) * x32 + (x30 * x01 - x00 * x31) * x22
+                                   + (x20 * x31 - x30 * x21) * x02,
+                               (x01 * x12 - x11 * x02) * x33 + (x31 * x02 - x01 * x32) * x13
+                                   + (x11 * x32 - x31 * x12) * x03,
+                               (x10 * x02 - x00 * x12) * x33 + (x00 * x32 - x30 * x02) * x13
+                                   + (x30 * x12 - x10 * x32) * x03,
+                               (x00 * x11 - x10 * x01) * x33 + (x30 * x01 - x00 * x31) * x13
+                                   + (x10 * x31 - x30 * x11) * x03,
+                               (x10 * x01 - x00 * x11) * x32 + (x00 * x31 - x30 * x01) * x12
+                                   + (x30 * x11 - x10 * x31) * x02,
+                               (x11 * x02 - x01 * x12) * x23 + (x01 * x22 - x21 * x02) * x13
+                                   + (x21 * x12 - x11 * x22) * x03,
+                               (x00 * x12 - x10 * x02) * x23 + (x20 * x02 - x00 * x22) * x13
+                                   + (x10 * x22 - x20 * x12) * x03,
+                               (x10 * x01 - x00 * x11) * x23 + (x00 * x21 - x20 * x01) * x13
+                                   + (x20 * x11 - x10 * x21) * x03,
+                               (x00 * x11 - x10 * x01) * x22 + (x20 * x01 - x00 * x21) * x12
+                                   + (x10 * x21 - x20 * x11) * x02);
     }
 
     /** @return the inverse of this matrix. */
@@ -302,45 +345,56 @@ struct Matrix
 
     friend Matrix transpose(const Matrix &m)
     {
-        return Matrix(m.x00, m.x01, m.x02, m.x03,
-                       m.x10, m.x11, m.x12, m.x13,
-                       m.x20, m.x21, m.x22, m.x23,
-                       m.x30, m.x31, m.x32, m.x33);
+        return Matrix(m.x00,
+                      m.x01,
+                      m.x02,
+                      m.x03,
+                      m.x10,
+                      m.x11,
+                      m.x12,
+                      m.x13,
+                      m.x20,
+                      m.x21,
+                      m.x22,
+                      m.x23,
+                      m.x30,
+                      m.x31,
+                      m.x32,
+                      m.x33);
     }
 
     constexpr Matrix concat(Matrix rt) const
     {
         return Matrix(/* x00*/ x00 * rt.x00 + x01 * rt.x10 + x02 * rt.x20 + x03 * rt.x30,
-                               /* x10*/ x10 * rt.x00 + x11 * rt.x10 + x12 * rt.x20 + x13 * rt.x30,
-                               /* x20*/ x20 * rt.x00 + x21 * rt.x10 + x22 * rt.x20 + x23 * rt.x30,
-                               /* x30*/ x30 * rt.x00 + x31 * rt.x10 + x32 * rt.x20 + x33 * rt.x30,
-                               /* x01*/ x00 * rt.x01 + x01 * rt.x11 + x02 * rt.x21 + x03 * rt.x31,
-                               /* x11*/ x10 * rt.x01 + x11 * rt.x11 + x12 * rt.x21 + x13 * rt.x31,
-                               /* x21*/ x20 * rt.x01 + x21 * rt.x11 + x22 * rt.x21 + x23 * rt.x31,
-                               /* x31*/ x30 * rt.x01 + x31 * rt.x11 + x32 * rt.x21 + x33 * rt.x31,
-                               /* x02*/ x00 * rt.x02 + x01 * rt.x12 + x02 * rt.x22 + x03 * rt.x32,
-                               /* x12*/ x10 * rt.x02 + x11 * rt.x12 + x12 * rt.x22 + x13 * rt.x32,
-                               /* x22*/ x20 * rt.x02 + x21 * rt.x12 + x22 * rt.x22 + x23 * rt.x32,
-                               /* x32*/ x30 * rt.x02 + x31 * rt.x12 + x32 * rt.x22 + x33 * rt.x32,
-                               /* x03*/ x00 * rt.x03 + x01 * rt.x13 + x02 * rt.x23 + x03 * rt.x33,
-                               /* x13*/ x10 * rt.x03 + x11 * rt.x13 + x12 * rt.x23 + x13 * rt.x33,
-                               /* x23*/ x20 * rt.x03 + x21 * rt.x13 + x22 * rt.x23 + x23 * rt.x33,
-                               /* x33*/ x30 * rt.x03 + x31 * rt.x13 + x32 * rt.x23 + x33 * rt.x33);
+                      /* x10*/ x10 * rt.x00 + x11 * rt.x10 + x12 * rt.x20 + x13 * rt.x30,
+                      /* x20*/ x20 * rt.x00 + x21 * rt.x10 + x22 * rt.x20 + x23 * rt.x30,
+                      /* x30*/ x30 * rt.x00 + x31 * rt.x10 + x32 * rt.x20 + x33 * rt.x30,
+                      /* x01*/ x00 * rt.x01 + x01 * rt.x11 + x02 * rt.x21 + x03 * rt.x31,
+                      /* x11*/ x10 * rt.x01 + x11 * rt.x11 + x12 * rt.x21 + x13 * rt.x31,
+                      /* x21*/ x20 * rt.x01 + x21 * rt.x11 + x22 * rt.x21 + x23 * rt.x31,
+                      /* x31*/ x30 * rt.x01 + x31 * rt.x11 + x32 * rt.x21 + x33 * rt.x31,
+                      /* x02*/ x00 * rt.x02 + x01 * rt.x12 + x02 * rt.x22 + x03 * rt.x32,
+                      /* x12*/ x10 * rt.x02 + x11 * rt.x12 + x12 * rt.x22 + x13 * rt.x32,
+                      /* x22*/ x20 * rt.x02 + x21 * rt.x12 + x22 * rt.x22 + x23 * rt.x32,
+                      /* x32*/ x30 * rt.x02 + x31 * rt.x12 + x32 * rt.x22 + x33 * rt.x32,
+                      /* x03*/ x00 * rt.x03 + x01 * rt.x13 + x02 * rt.x23 + x03 * rt.x33,
+                      /* x13*/ x10 * rt.x03 + x11 * rt.x13 + x12 * rt.x23 + x13 * rt.x33,
+                      /* x23*/ x20 * rt.x03 + x21 * rt.x13 + x22 * rt.x23 + x23 * rt.x33,
+                      /* x33*/ x30 * rt.x03 + x31 * rt.x13 + x32 * rt.x23 + x33 * rt.x33);
     }
 
     constexpr VectorF apply(VectorF v) const
     {
-        return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20
-                      + this->x30, v.x * this->x01 + v.y * this->x11 + v.z * this->x21
-                      + this->x31, v.x * this->x02 + v.y * this->x12 + v.z * this->x22
-                      + this->x32);
+        return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20 + this->x30,
+                       v.x * this->x01 + v.y * this->x11 + v.z * this->x21 + this->x31,
+                       v.x * this->x02 + v.y * this->x12 + v.z * this->x22 + this->x32);
     }
 
     constexpr VectorF applyNoTranslate(VectorF v) const
     {
-        return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20, v.x
-                                * this->x01 + v.y * this->x11 + v.z * this->x21, v.x * this->x02
-                                + v.y * this->x12 + v.z * this->x22);
+        return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20,
+                       v.x * this->x01 + v.y * this->x11 + v.z * this->x21,
+                       v.x * this->x02 + v.y * this->x12 + v.z * this->x22);
     }
 
     static Matrix thetaPhi(double theta, double phi)
@@ -367,10 +421,8 @@ struct Matrix
         float x31 = stream::read_finite<float32_t>(reader);
         float x32 = stream::read_finite<float32_t>(reader);
         float x33 = stream::read_finite<float32_t>(reader);
-        return Matrix(x00, x10, x20, x30,
-                       x01, x11, x21, x31,
-                       x02, x12, x22, x32,
-                       x03, x13, x23, x33);
+        return Matrix(
+            x00, x10, x20, x30, x01, x11, x21, x31, x02, x12, x22, x32, x03, x13, x23, x33);
     }
 
     void write(stream::Writer &writer) const
@@ -404,12 +456,12 @@ inline VectorF transformNormal(const Matrix &m, VectorF v)
     return normalizeNoThrow(transpose(inverse(m)).applyNoTranslate(v));
 }
 
-constexpr Matrix transform(const Matrix & a, const Matrix & b)
+constexpr Matrix transform(const Matrix &a, const Matrix &b)
 {
     return b.concat(a);
 }
 
-inline bool operator ==(const Matrix &a, const Matrix &b)
+inline bool operator==(const Matrix &a, const Matrix &b)
 {
     for(int y = 0; y < 4; y++)
     {
@@ -425,7 +477,7 @@ inline bool operator ==(const Matrix &a, const Matrix &b)
     return true;
 }
 
-inline bool operator !=(const Matrix &a, const Matrix &b)
+inline bool operator!=(const Matrix &a, const Matrix &b)
 {
     for(int y = 0; y < 4; y++)
     {
