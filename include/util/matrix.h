@@ -279,6 +279,46 @@ struct Matrix
         return Matrix(s, 0, 0, 0, 0, s, 0, 0, 0, 0, s, 0);
     }
 
+    static constexpr Matrix frustum(
+        float left, float right, float bottom, float top, float near, float far) noexcept
+    {
+        return Matrix(2 * near / (right - left),
+                      0,
+                      (right + left) / (right - left),
+                      0,
+                      0,
+                      2 * near / (top - bottom),
+                      (top + bottom) / (top - bottom),
+                      0,
+                      0,
+                      0,
+                      (far + near) / (near - far),
+                      2 * far * near / (near - far),
+                      0,
+                      0,
+                      -1,
+                      0);
+    }
+
+    static constexpr Matrix ortho(
+        float left, float right, float bottom, float top, float near, float far) noexcept
+    {
+        return Matrix(-2 / (left - right),
+                      0,
+                      0,
+                      (right + left) / (left - right),
+
+                      0,
+                      -2 / (bottom - top),
+                      0,
+                      (top + bottom) / (bottom - top),
+
+                      0,
+                      0,
+                      2 / (near - far),
+                      (far + near) / (near - far));
+    }
+
     /** @return the determinant of this matrix */
     constexpr float determinant() const
     {
@@ -303,38 +343,38 @@ struct Matrix
         }
 
         float factor = 1.0f / det;
-        return factor * Matrix((x11 * x22 - x21 * x12) * x33 + (x31 * x12 - x11 * x32) * x23
-                                   + (x21 * x32 - x31 * x22) * x13,
-                               (x20 * x12 - x10 * x22) * x33 + (x10 * x32 - x30 * x12) * x23
-                                   + (x30 * x22 - x20 * x32) * x13,
-                               (x10 * x21 - x20 * x11) * x33 + (x30 * x11 - x10 * x31) * x23
-                                   + (x20 * x31 - x30 * x21) * x13,
-                               (x20 * x11 - x10 * x21) * x32 + (x10 * x31 - x30 * x11) * x22
-                                   + (x30 * x21 - x20 * x31) * x12,
-                               (x21 * x02 - x01 * x22) * x33 + (x01 * x32 - x31 * x02) * x23
-                                   + (x31 * x22 - x21 * x32) * x03,
-                               (x00 * x22 - x20 * x02) * x33 + (x30 * x02 - x00 * x32) * x23
-                                   + (x20 * x32 - x30 * x22) * x03,
-                               (x20 * x01 - x00 * x21) * x33 + (x00 * x31 - x30 * x01) * x23
-                                   + (x30 * x21 - x20 * x31) * x03,
-                               (x00 * x21 - x20 * x01) * x32 + (x30 * x01 - x00 * x31) * x22
-                                   + (x20 * x31 - x30 * x21) * x02,
-                               (x01 * x12 - x11 * x02) * x33 + (x31 * x02 - x01 * x32) * x13
-                                   + (x11 * x32 - x31 * x12) * x03,
-                               (x10 * x02 - x00 * x12) * x33 + (x00 * x32 - x30 * x02) * x13
-                                   + (x30 * x12 - x10 * x32) * x03,
-                               (x00 * x11 - x10 * x01) * x33 + (x30 * x01 - x00 * x31) * x13
-                                   + (x10 * x31 - x30 * x11) * x03,
-                               (x10 * x01 - x00 * x11) * x32 + (x00 * x31 - x30 * x01) * x12
-                                   + (x30 * x11 - x10 * x31) * x02,
-                               (x11 * x02 - x01 * x12) * x23 + (x01 * x22 - x21 * x02) * x13
-                                   + (x21 * x12 - x11 * x22) * x03,
-                               (x00 * x12 - x10 * x02) * x23 + (x20 * x02 - x00 * x22) * x13
-                                   + (x10 * x22 - x20 * x12) * x03,
-                               (x10 * x01 - x00 * x11) * x23 + (x00 * x21 - x20 * x01) * x13
-                                   + (x20 * x11 - x10 * x21) * x03,
-                               (x00 * x11 - x10 * x01) * x22 + (x20 * x01 - x00 * x21) * x12
-                                   + (x10 * x21 - x20 * x11) * x02);
+        return Matrix(factor * ((x11 * x22 - x21 * x12) * x33 + (x31 * x12 - x11 * x32) * x23
+                                + (x21 * x32 - x31 * x22) * x13),
+                      factor * ((x20 * x12 - x10 * x22) * x33 + (x10 * x32 - x30 * x12) * x23
+                                + (x30 * x22 - x20 * x32) * x13),
+                      factor * ((x10 * x21 - x20 * x11) * x33 + (x30 * x11 - x10 * x31) * x23
+                                + (x20 * x31 - x30 * x21) * x13),
+                      factor * ((x20 * x11 - x10 * x21) * x32 + (x10 * x31 - x30 * x11) * x22
+                                + (x30 * x21 - x20 * x31) * x12),
+                      factor * ((x21 * x02 - x01 * x22) * x33 + (x01 * x32 - x31 * x02) * x23
+                                + (x31 * x22 - x21 * x32) * x03),
+                      factor * ((x00 * x22 - x20 * x02) * x33 + (x30 * x02 - x00 * x32) * x23
+                                + (x20 * x32 - x30 * x22) * x03),
+                      factor * ((x20 * x01 - x00 * x21) * x33 + (x00 * x31 - x30 * x01) * x23
+                                + (x30 * x21 - x20 * x31) * x03),
+                      factor * ((x00 * x21 - x20 * x01) * x32 + (x30 * x01 - x00 * x31) * x22
+                                + (x20 * x31 - x30 * x21) * x02),
+                      factor * ((x01 * x12 - x11 * x02) * x33 + (x31 * x02 - x01 * x32) * x13
+                                + (x11 * x32 - x31 * x12) * x03),
+                      factor * ((x10 * x02 - x00 * x12) * x33 + (x00 * x32 - x30 * x02) * x13
+                                + (x30 * x12 - x10 * x32) * x03),
+                      factor * ((x00 * x11 - x10 * x01) * x33 + (x30 * x01 - x00 * x31) * x13
+                                + (x10 * x31 - x30 * x11) * x03),
+                      factor * ((x10 * x01 - x00 * x11) * x32 + (x00 * x31 - x30 * x01) * x12
+                                + (x30 * x11 - x10 * x31) * x02),
+                      factor * ((x11 * x02 - x01 * x12) * x23 + (x01 * x22 - x21 * x02) * x13
+                                + (x21 * x12 - x11 * x22) * x03),
+                      factor * ((x00 * x12 - x10 * x02) * x23 + (x20 * x02 - x00 * x22) * x13
+                                + (x10 * x22 - x20 * x12) * x03),
+                      factor * ((x10 * x01 - x00 * x11) * x23 + (x00 * x21 - x20 * x01) * x13
+                                + (x20 * x11 - x10 * x21) * x03),
+                      factor * ((x00 * x11 - x10 * x01) * x22 + (x20 * x01 - x00 * x21) * x12
+                                + (x10 * x21 - x20 * x11) * x02));
     }
 
     /** @return the inverse of this matrix. */
@@ -383,11 +423,19 @@ struct Matrix
                       /* x33*/ x30 * rt.x03 + x31 * rt.x13 + x32 * rt.x23 + x33 * rt.x33);
     }
 
+private:
+    static constexpr VectorF applyHelper(VectorF retval, float divisor)
+    {
+        return divisor == 1 ? retval : retval / divisor;
+    }
+
+public:
     constexpr VectorF apply(VectorF v) const
     {
-        return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20 + this->x30,
-                       v.x * this->x01 + v.y * this->x11 + v.z * this->x21 + this->x31,
-                       v.x * this->x02 + v.y * this->x12 + v.z * this->x22 + this->x32);
+        return applyHelper(VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20 + this->x30,
+                                   v.x * this->x01 + v.y * this->x11 + v.z * this->x21 + this->x31,
+                                   v.x * this->x02 + v.y * this->x12 + v.z * this->x22 + this->x32),
+                           v.x * this->x03 + v.y * this->x13 + v.z * this->x23 + this->x33);
     }
 
     constexpr VectorF applyNoTranslate(VectorF v) const
@@ -395,12 +443,6 @@ struct Matrix
         return VectorF(v.x * this->x00 + v.y * this->x10 + v.z * this->x20,
                        v.x * this->x01 + v.y * this->x11 + v.z * this->x21,
                        v.x * this->x02 + v.y * this->x12 + v.z * this->x22);
-    }
-
-    static Matrix thetaPhi(double theta, double phi)
-    {
-        Matrix t = rotateX(-phi);
-        return rotateY(theta).concat(t);
     }
 
     static Matrix read(stream::Reader &reader)
