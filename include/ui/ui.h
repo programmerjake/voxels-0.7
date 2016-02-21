@@ -85,6 +85,8 @@ public:
     virtual void handleFinish()
     {
     }
+    virtual bool handlePause(PauseEvent &event) override;
+    virtual bool handleResume(ResumeEvent &event) override;
 protected:
     virtual void clear(Renderer &renderer);
 };

@@ -760,8 +760,7 @@ void endGraphics()
 {
     if(runningGraphics.exchange(false))
     {
-        SDL_GL_DeleteContext(glcontext);
-        glcontext = nullptr;
+        pauseGraphics();
         SDL_DestroyWindow(window);
         window = nullptr;
     }
@@ -773,6 +772,40 @@ void endGraphics()
 }
 
 static void getExtensions();
+
+static std::atomic_uint_fast64_t currentGraphicsContextId(0);
+
+std::uint64_t getGraphicsContextId()
+{
+    return currentGraphicsContextId;
+}
+
+void resumeGraphics()
+{
+    currentGraphicsContextId++;
+    glcontext = SDL_GL_CreateContext(window);
+    if(glcontext == nullptr)
+    {
+        cerr << "error : can't create OpenGL context : " << SDL_GetError();
+        exit(1);
+    }
+    getExtensions();
+    setupRenderLayers();
+}
+
+void pauseGraphics()
+{
+    if(glcontext)
+        SDL_GL_DeleteContext(glcontext);
+    glcontext = nullptr;
+}
+
+bool Display::paused()
+{
+    if(glcontext)
+        return false;
+    return true;
+}
 
 void startGraphics()
 {
@@ -827,14 +860,7 @@ void startGraphics()
         cerr << "error : can't create window : " << SDL_GetError();
         exit(1);
     }
-    glcontext = SDL_GL_CreateContext(window);
-    if(glcontext == nullptr)
-    {
-        cerr << "error : can't create OpenGL context : " << SDL_GetError();
-        exit(1);
-    }
-    getExtensions();
-    setupRenderLayers();
+    resumeGraphics();
 }
 
 static volatile double lastFlipTime = 0;
@@ -1527,8 +1553,28 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         case SDL_JOYBUTTONUP:
             // TODO (jacob#): handle joysticks
             break;
-        case SDL_WINDOWEVENT_RESIZED:
+        case SDL_WINDOWEVENT:
+        {
+            switch(SDLEvent.window.event)
+            {
+            case SDL_WINDOWEVENT_MINIMIZED:
+            case SDL_WINDOWEVENT_HIDDEN:
+                if(!Display::paused())
+                {
+                    return std::make_shared<PauseEvent>();
+                }
+                break;
+            case SDL_WINDOWEVENT_MAXIMIZED:
+            case SDL_WINDOWEVENT_RESTORED:
+            case SDL_WINDOWEVENT_SHOWN:
+                if(Display::paused())
+                {
+                    return std::make_shared<ResumeEvent>();
+                }
+                break;
+            }
             break;
+        }
         case SDL_QUIT:
             return std::make_shared<QuitEvent>();
         case SDL_SYSWMEVENT:
@@ -1602,6 +1648,14 @@ struct DefaultEventHandler : public EventHandler
     {
         return true;
     }
+    virtual bool handlePause(PauseEvent &) override
+    {
+        return true;
+    }
+    virtual bool handleResume(ResumeEvent &) override
+    {
+        return true;
+    }
     virtual bool handleQuit(QuitEvent &) override
     {
         exit(0);
@@ -1624,27 +1678,25 @@ static void handleEvents(shared_ptr<EventHandler> eventHandler)
 
 void glLoadMatrix(Matrix mat)
 {
-    float matArray[16] = {
-        mat.x00,
-        mat.x01,
-        mat.x02,
-        0,
+    float matArray[16] = {mat.x00,
+                          mat.x01,
+                          mat.x02,
+                          mat.x03,
 
-        mat.x10,
-        mat.x11,
-        mat.x12,
-        0,
+                          mat.x10,
+                          mat.x11,
+                          mat.x12,
+                          mat.x13,
 
-        mat.x20,
-        mat.x21,
-        mat.x22,
-        0,
+                          mat.x20,
+                          mat.x21,
+                          mat.x22,
+                          mat.x23,
 
-        mat.x30,
-        mat.x31,
-        mat.x32,
-        1,
-    };
+                          mat.x30,
+                          mat.x31,
+                          mat.x32,
+                          mat.x33};
     glLoadMatrixf(static_cast<const float *>(matArray));
 }
 
@@ -1790,52 +1842,11 @@ void renderInternal(const Triangle *triangles, std::size_t triangleCount)
 {
     if(triangleCount == 0)
         return;
-#if 1
     const char *array_start = reinterpret_cast<const char *>(triangles);
     glVertexPointer(3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
     glTexCoordPointer(
         2, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_texture_coord_start);
     glColorPointer(4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
-#else
-    static vector<float> vertexArray, textureCoordArray, colorArray;
-    vertexArray.resize(triangleCount * 3 * 3);
-    textureCoordArray.resize(triangleCount * 3 * 2);
-    colorArray.resize(triangleCount * 3 * 4);
-    for(size_t i = 0; i < triangleCount; i++)
-    {
-        Triangle tri = triangles[i];
-        vertexArray[i * 3 * 3 + 0 * 3 + 0] = tri.p1.x;
-        vertexArray[i * 3 * 3 + 0 * 3 + 1] = tri.p1.y;
-        vertexArray[i * 3 * 3 + 0 * 3 + 2] = tri.p1.z;
-        vertexArray[i * 3 * 3 + 1 * 3 + 0] = tri.p2.x;
-        vertexArray[i * 3 * 3 + 1 * 3 + 1] = tri.p2.y;
-        vertexArray[i * 3 * 3 + 1 * 3 + 2] = tri.p2.z;
-        vertexArray[i * 3 * 3 + 2 * 3 + 0] = tri.p3.x;
-        vertexArray[i * 3 * 3 + 2 * 3 + 1] = tri.p3.y;
-        vertexArray[i * 3 * 3 + 2 * 3 + 2] = tri.p3.z;
-        textureCoordArray[i * 3 * 2 + 0 * 2 + 0] = tri.t1.u;
-        textureCoordArray[i * 3 * 2 + 0 * 2 + 1] = tri.t1.v;
-        textureCoordArray[i * 3 * 2 + 1 * 2 + 0] = tri.t2.u;
-        textureCoordArray[i * 3 * 2 + 1 * 2 + 1] = tri.t2.v;
-        textureCoordArray[i * 3 * 2 + 2 * 2 + 0] = tri.t3.u;
-        textureCoordArray[i * 3 * 2 + 2 * 2 + 1] = tri.t3.v;
-        colorArray[i * 3 * 4 + 0 * 4 + 0] = tri.c1.r;
-        colorArray[i * 3 * 4 + 0 * 4 + 1] = tri.c1.g;
-        colorArray[i * 3 * 4 + 0 * 4 + 2] = tri.c1.b;
-        colorArray[i * 3 * 4 + 0 * 4 + 3] = tri.c1.a;
-        colorArray[i * 3 * 4 + 1 * 4 + 0] = tri.c2.r;
-        colorArray[i * 3 * 4 + 1 * 4 + 1] = tri.c2.g;
-        colorArray[i * 3 * 4 + 1 * 4 + 2] = tri.c2.b;
-        colorArray[i * 3 * 4 + 1 * 4 + 3] = tri.c2.a;
-        colorArray[i * 3 * 4 + 2 * 4 + 0] = tri.c3.r;
-        colorArray[i * 3 * 4 + 2 * 4 + 1] = tri.c3.g;
-        colorArray[i * 3 * 4 + 2 * 4 + 2] = tri.c3.b;
-        colorArray[i * 3 * 4 + 2 * 4 + 3] = tri.c3.a;
-    }
-    glVertexPointer(3, GL_FLOAT, 0, (const void *)&vertexArray[0]);
-    glTexCoordPointer(2, GL_FLOAT, 0, (const void *)&textureCoordArray[0]);
-    glColorPointer(4, GL_FLOAT, 0, (const void *)&colorArray[0]);
-#endif
     glDrawArrays(GL_TRIANGLES, 0, (GLint)triangleCount * 3);
 }
 
@@ -3277,8 +3288,15 @@ void finishDrawingRenderLayers()
 void setArrayBufferBinding(GLuint buffer)
 {
     static GLuint lastBuffer = 0;
+    static std::uint64_t bufferGrahicsContextId = 0;
     if(haveOpenGLBuffersWithoutMap)
     {
+        auto currentGrahicsContextId = getGraphicsContextId();
+        if(bufferGrahicsContextId != currentGrahicsContextId)
+        {
+            bufferGrahicsContextId = currentGrahicsContextId;
+            lastBuffer = 0;
+        }
         if(buffer != lastBuffer)
         {
             fnGLBindBuffer(GL_ARRAY_BUFFER, buffer);
@@ -3289,7 +3307,8 @@ void setArrayBufferBinding(GLuint buffer)
 
 void getOpenGLExtensions()
 {
-    std::string supportedExtensionsString = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
+    std::string supportedExtensionsString =
+        reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
     const auto extensionDisplayPrefix = L"Extension: ";
     bool wrotePrefix = false;
     for(char ch : supportedExtensionsString)
@@ -3583,8 +3602,12 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
     std::size_t allocatedTriangleCount, usedTriangleCount = 0;
     void *bufferMemory = nullptr;
     bool gotFinalSet = false;
+    std::uint64_t bufferGraphicsContextId;
     MeshBufferImpOpenGLBuffer(std::size_t triangleCount)
-        : buffer(allocateBuffer()), image(), allocatedTriangleCount(triangleCount)
+        : buffer(allocateBuffer()),
+          image(),
+          allocatedTriangleCount(triangleCount),
+          bufferGraphicsContextId(getGraphicsContextId())
     {
         assert(haveOpenGLBuffersWithMap);
         setArrayBufferBinding(buffer);
@@ -3601,7 +3624,8 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
           image(mesh.image),
           allocatedTriangleCount(mesh.size()),
           bufferMemory(nullptr),
-          gotFinalSet(true)
+          gotFinalSet(true),
+          bufferGraphicsContextId(getGraphicsContextId())
     {
         assert(haveOpenGLBuffersWithoutMap);
         setArrayBufferBinding(buffer);
@@ -3612,7 +3636,8 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
     }
     virtual ~MeshBufferImpOpenGLBuffer()
     {
-        freeBuffer(buffer, bufferMemory != nullptr);
+        if(bufferGraphicsContextId == getGraphicsContextId())
+            freeBuffer(buffer, bufferMemory != nullptr);
     }
     virtual void render(Matrix tform, RenderLayer rl) override
     {
@@ -3748,6 +3773,14 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
         static std::size_t bufferSizes[bufferCount];
         static bool didGenerateBuffers = false;
         static std::size_t currentBufferIndex = 0;
+        static std::uint64_t bufferGraphicsContextId = 0;
+        auto currentGraphicsContextId = getGraphicsContextId();
+        if(bufferGraphicsContextId != currentGraphicsContextId)
+        {
+            bufferGraphicsContextId = currentGraphicsContextId;
+            didGenerateBuffers = false;
+            currentBufferIndex = 0;
+        }
         if(!didGenerateBuffers)
         {
             didGenerateBuffers = true;

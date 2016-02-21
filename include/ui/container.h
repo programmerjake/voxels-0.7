@@ -544,6 +544,32 @@ public:
             return Element::handleQuit(event);
         return e->handleQuit(event);
     }
+    virtual bool handlePause(PauseEvent &event) override
+    {
+        bool retval = false;
+        if(currentFocusIndex < elements.size())
+            retval = elements[currentFocusIndex]->handlePause(event);
+        for(std::size_t index = 0; !retval && index < elements.size(); index++)
+        {
+            if(index == currentFocusIndex)
+                continue;
+            retval = elements[index]->handlePause(event);
+        }
+        return retval;
+    }
+    virtual bool handleResume(ResumeEvent &event) override
+    {
+        bool retval = false;
+        if(currentFocusIndex < elements.size())
+            retval = elements[currentFocusIndex]->handleResume(event);
+        for(std::size_t index = 0; !retval && index < elements.size(); index++)
+        {
+            if(index == currentFocusIndex)
+                continue;
+            retval = elements[index]->handleResume(event);
+        }
+        return retval;
+    }
     virtual void handleFocusChange(bool gettingFocus) override
     {
         auto e = getFocusElement();

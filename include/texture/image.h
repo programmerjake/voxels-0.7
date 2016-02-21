@@ -244,13 +244,14 @@ private:
         RowOrder rowOrder;
         std::uint32_t texture;
         bool textureValid;
+        std::uint64_t textureGraphicsContextId;
         std::mutex lock;
         data_t(std::uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
-            : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false), lock()
+            : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false), textureGraphicsContextId(0), lock()
         {
         }
         data_t(std::uint8_t * data, std::shared_ptr<data_t> rt)
-            : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false), lock()
+            : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false), textureGraphicsContextId(0), lock()
         {
         }
         ~data_t();

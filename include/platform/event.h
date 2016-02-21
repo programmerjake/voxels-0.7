@@ -40,6 +40,8 @@ class KeyUpEvent;
 struct TextInputEvent;
 struct TextEditEvent;
 struct QuitEvent;
+struct PauseEvent;
+struct ResumeEvent;
 
 struct EventHandler
 {
@@ -67,6 +69,10 @@ struct EventHandler
     virtual bool handleTextEdit(TextEditEvent &event) = 0;
     /// @return true if the event doesn't need to propagate anymore
     virtual bool handleQuit(QuitEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
+    virtual bool handlePause(PauseEvent &event) = 0;
+    /// @return true if the event doesn't need to propagate anymore
+    virtual bool handleResume(ResumeEvent &event) = 0;
     virtual ~EventHandler() = default;
 };
 }
@@ -95,7 +101,9 @@ public:
         TextInput,
         TextEdit,
         Quit,
-        DEFINE_ENUM_LIMITS(TouchUp, Quit)
+        Pause,
+        Resume,
+        DEFINE_ENUM_LIMITS(TouchUp, Resume)
     };
     const Type type;
 protected:
@@ -311,6 +319,30 @@ struct QuitEvent : public PlatformEvent
     }
 };
 
+struct PauseEvent : public PlatformEvent
+{
+    PauseEvent()
+        : PlatformEvent(Type::Pause)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handlePause(*this);
+    }
+};
+
+struct ResumeEvent : public PlatformEvent
+{
+    ResumeEvent()
+        : PlatformEvent(Type::Resume)
+    {
+    }
+    virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
+    {
+        return eventHandler->handleResume(*this);
+    }
+};
+
 class CombinedEventHandler final : public EventHandler
 {
 private:
@@ -419,7 +451,7 @@ public:
 
         return second->handleTextEdit(event);
     }
-    virtual bool handleQuit(QuitEvent &event)override
+    virtual bool handleQuit(QuitEvent &event) override
     {
         if(first->handleQuit(event))
         {
@@ -427,6 +459,24 @@ public:
         }
 
         return second->handleQuit(event);
+    }
+    virtual bool handlePause(PauseEvent &event) override
+    {
+        if(first->handlePause(event))
+        {
+            return true;
+        }
+
+        return second->handlePause(event);
+    }
+    virtual bool handleResume(ResumeEvent &event) override
+    {
+        if(first->handleResume(event))
+        {
+            return true;
+        }
+
+        return second->handleResume(event);
     }
 };
 }

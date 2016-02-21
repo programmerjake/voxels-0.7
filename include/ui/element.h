@@ -99,6 +99,14 @@ public:
     {
         return false;
     }
+    virtual bool handlePause(PauseEvent &event) override
+    {
+        return false;
+    }
+    virtual bool handleResume(ResumeEvent &event) override
+    {
+        return false;
+    }
     virtual bool handleMouseMoveOut(MouseEvent &event)
     {
         return true;

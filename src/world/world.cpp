@@ -1474,12 +1474,14 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor,
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
-    advanceTimeOfDay(deltaTime);
     std::unique_lock<std::mutex> lockStateLock(stateLock);
+    if(isPaused)
+        return;
     while(waitingForMoveEntities && !destructing)
     {
         stateCond.wait(lockStateLock);
     }
+    advanceTimeOfDay(deltaTime);
     waitingForMoveEntities = true;
     moveEntitiesDeltaTime = deltaTime;
     stateCond.notify_all();
@@ -1914,9 +1916,8 @@ void World::invalidateBlockRange(BlockIterator blockIterator,
 
 void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
 {
-    lock_manager.clear();
     bool wasPaused = paused();
-    paused(true);
+    paused(true, lock_manager);
     try
     {
         stream::write<std::uint32_t>(writerIn, GameVersion::FILE_VERSION);
@@ -2020,12 +2021,10 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
     }
     catch(stream::IOException &)
     {
-        lock_manager.clear();
-        paused(wasPaused);
+        paused(wasPaused, lock_manager);
         throw;
     }
-    lock_manager.clear();
-    paused(wasPaused);
+    paused(wasPaused, lock_manager);
 }
 
 namespace

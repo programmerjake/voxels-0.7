@@ -44,7 +44,10 @@ namespace
 Mesh makeSelectionMesh()
 {
     TextureDescriptor td = TextureAtlas::Selection.td();
-    return transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(1.01)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, td, td, td, td, td));
+    return transform(Matrix::translate(-0.5, -0.5, -0.5)
+                         .concat(Matrix::scale(1.01))
+                         .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                     Generate::unitBox(td, td, td, td, td, td));
 }
 Mesh getSelectionMesh()
 {
@@ -66,12 +69,60 @@ std::vector<Mesh> makeDestructionMeshes()
     {
         TextureDescriptor td = TextureAtlas::Delete(i).td();
         destructionMeshes.emplace_back();
-        destructionMeshes.back().append(transform(Matrix::translate(-0.52, -0.5, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.48, -0.5, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.52, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor(), TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.48, -0.5).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor(), TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.52).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td, TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.48).concat(Matrix::scale(0.99f)).concat(Matrix::translate(0.5, 0.5, 0.5)), Generate::unitBox(TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), TextureDescriptor(), td)));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.52, -0.5, -0.5)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(td,
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.48, -0.5, -0.5)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(TextureDescriptor(),
+                                                                    td,
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.52, -0.5)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    td,
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.48, -0.5)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    td,
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.52)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    td,
+                                                                    TextureDescriptor())));
+        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.48)
+                                                      .concat(Matrix::scale(0.99f))
+                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+                                                  Generate::unitBox(TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    TextureDescriptor(),
+                                                                    td)));
     }
     return std::move(destructionMeshes);
 }
@@ -90,7 +141,11 @@ Mesh getDestructionMesh(float progress)
     index = limit<int>(index, 0, meshes.size() - 1);
     return meshes[index];
 }
-void renderSunOrMoon(Renderer &renderer, Matrix orientationTransform, VectorF position, TextureDescriptor td, float extent = 0.1f)
+void renderSunOrMoon(Renderer &renderer,
+                     Matrix orientationTransform,
+                     VectorF position,
+                     TextureDescriptor td,
+                     float extent = 0.1f)
 {
     VectorF upVector = extent * normalize(cross(position, VectorF(0, 0, 1)));
     VectorF rightVector = extent * normalize(cross(position, upVector));
@@ -100,11 +155,8 @@ void renderSunOrMoon(Renderer &renderer, Matrix orientationTransform, VectorF po
     VectorF pxny = position - upVector + rightVector;
     VectorF pxpy = position + upVector + rightVector;
     ColorF c = colorizeIdentity();
-    renderer << transform(inverse(orientationTransform), Generate::quadrilateral(td,
-                                                                 nxny, c,
-                                                                 pxny, c,
-                                                                 pxpy, c,
-                                                                 nxpy, c));
+    renderer << transform(inverse(orientationTransform),
+                          Generate::quadrilateral(td, nxny, c, pxny, c, pxpy, c, nxpy, c));
 }
 }
 void GameUi::clear(Renderer &renderer)
@@ -120,7 +172,15 @@ void GameUi::clear(Renderer &renderer)
     background = world->getSkyColor(playerPosition);
     Ui::clear(renderer);
     Matrix tform = player->getViewTransform();
-    viewPoint->setPosition(playerPosition);
+    if(viewPoint)
+    {
+        viewPoint->setPosition(playerPosition);
+    }
+    else
+    {
+        viewPoint =
+            std::make_shared<ViewPoint>(*world, playerPosition, GameVersion::DEBUG ? 32 : 48);
+    }
     renderer << RenderLayer::Opaque;
     if(backgroundCamera)
     {
@@ -131,7 +191,8 @@ void GameUi::clear(Renderer &renderer)
         }
         int width, height;
         backgroundCamera->getSize(width, height);
-        if(!backgroundCameraBuffer || (int)backgroundCameraBuffer.width() != width || (int)backgroundCameraBuffer.height() != height)
+        if(!backgroundCameraBuffer || (int)backgroundCameraBuffer.width() != width
+           || (int)backgroundCameraBuffer.height() != height)
         {
             backgroundCameraBuffer = Image(width, height);
         }
@@ -144,7 +205,8 @@ void GameUi::clear(Renderer &renderer)
             width = newBackgroundCameraBuffer.width();
             height = newBackgroundCameraBuffer.height();
         }
-        if(!backgroundCameraTexture || (int)backgroundCameraTexture.width() < width || (int)backgroundCameraTexture.height() < height)
+        if(!backgroundCameraTexture || (int)backgroundCameraTexture.width() < width
+           || (int)backgroundCameraTexture.height() < height)
         {
             int adjustedWidth = 1;
             while(adjustedWidth < width)
@@ -154,18 +216,36 @@ void GameUi::clear(Renderer &renderer)
                 adjustedHeight *= 2;
             backgroundCameraTexture = Image(adjustedWidth, adjustedHeight);
         }
-        backgroundCameraTexture.copyRect(0, backgroundCameraTexture.height() - height, width, height, newBackgroundCameraBuffer, 0, 0);
+        backgroundCameraTexture.copyRect(0,
+                                         backgroundCameraTexture.height() - height,
+                                         width,
+                                         height,
+                                         newBackgroundCameraBuffer,
+                                         0,
+                                         0);
         ColorF colorizeColor = GrayscaleAF(1, 1);
-        renderer << Generate::quadrilateral(TextureDescriptor(backgroundCameraTexture, 0, width / (float)backgroundCameraTexture.width(), 0, height / (float)backgroundCameraTexture.height()),
-                                            VectorF(minX, minY, -1), colorizeColor,
-                                            VectorF(maxX, minY, -1), colorizeColor,
-                                            VectorF(maxX, maxY, -1), colorizeColor,
-                                            VectorF(minX, maxY, -1), colorizeColor);
+        renderer << Generate::quadrilateral(
+            TextureDescriptor(backgroundCameraTexture,
+                              0,
+                              width / (float)backgroundCameraTexture.width(),
+                              0,
+                              height / (float)backgroundCameraTexture.height()),
+            VectorF(minX, minY, -1),
+            colorizeColor,
+            VectorF(maxX, minY, -1),
+            colorizeColor,
+            VectorF(maxX, maxY, -1),
+            colorizeColor,
+            VectorF(minX, maxY, -1),
+            colorizeColor);
     }
     else
     {
         if(hasSun(playerPosition.d))
-            renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getSunPosition(), TextureAtlas::Sun.td());
+            renderSunOrMoon(renderer,
+                            player->getWorldOrientationTransform(),
+                            world->getSunPosition(),
+                            TextureAtlas::Sun.td());
         if(hasMoon(playerPosition.d))
         {
             TextureDescriptor moonTD;
@@ -196,10 +276,12 @@ void GameUi::clear(Renderer &renderer)
                 moonTD = TextureAtlas::Moon7.td();
                 break;
             }
-            renderSunOrMoon(renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
+            renderSunOrMoon(
+                renderer, player->getWorldOrientationTransform(), world->getMoonPosition(), moonTD);
         }
     }
-    RayCasting::Collision collision = player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+    RayCasting::Collision collision =
+        player->castRay(*world, lock_manager, RayCasting::BlockCollisionMaskDefault);
     Mesh additionalObjects;
     if(collision.valid())
     {
@@ -214,7 +296,8 @@ void GameUi::clear(Renderer &renderer)
             Block b = bi.get(lock_manager);
             if(b.good())
             {
-                selectionBoxTransform = b.descriptor->getSelectionBoxTransform(b).concat(Matrix::translate(collision.blockPosition));
+                selectionBoxTransform = b.descriptor->getSelectionBoxTransform(b)
+                                            .concat(Matrix::translate(collision.blockPosition));
                 drawSelectionBox = true;
                 drawDestructionBox = true;
             }
@@ -241,7 +324,8 @@ void GameUi::clear(Renderer &renderer)
             float progress = blockDestructProgress.load(std::memory_order_relaxed);
             if(progress >= 0)
             {
-                additionalObjects.append(transform(selectionBoxTransform, getDestructionMesh(progress)));
+                additionalObjects.append(
+                    transform(selectionBoxTransform, getDestructionMesh(progress)));
             }
         }
     }
@@ -277,7 +361,6 @@ void GameUi::setWorld(std::shared_ptr<World> world)
     }
     assert(player != nullptr);
     playerEntity = player->getPlayerEntity();
-    viewPoint = std::make_shared<ViewPoint>(*world, playerEntity->physicsObject->getPosition(), GameVersion::DEBUG ? 32 : 48);
     playerW = player;
     player->gameInput->copy(*gameInput);
     gameInput = player->gameInput;
@@ -303,7 +386,7 @@ void GameUi::clearWorld(bool stopSound)
         worldDependantElements.pop_back();
         remove(e);
     }
-    world->paused(false);
+    world->paused(false, lock_manager);
     std::shared_ptr<World> theWorld = world; // to extend life
     std::shared_ptr<Player> player = playerW.lock();
     player->gameUi = nullptr;
@@ -327,36 +410,46 @@ void GameUi::addWorldUi()
     std::shared_ptr<Player> player = playerW.lock();
     std::size_t hotBarSize = player->items.itemStacks.size();
     float hotBarWidth = hotBarItemSize * hotBarSize;
-    std::shared_ptr<ImageElement> crosshairs = std::make_shared<ImageElement>(TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40);
+    std::shared_ptr<ImageElement> crosshairs = std::make_shared<ImageElement>(
+        TextureAtlas::Crosshairs.td(), -1.0f / 40, 1.0f / 40, -1.0f / 40, 1.0f / 40);
     crosshairsW = crosshairs;
     add(crosshairs);
     worldDependantElements.push_back(crosshairs);
     for(std::size_t i = 0; i < hotBarSize; i++)
     {
-        std::shared_ptr<Element> e = std::make_shared<HotBarItem>(static_cast<float>(i) * hotBarItemSize - hotBarWidth * 0.5f, static_cast<float>(i + 1) * hotBarItemSize - hotBarWidth * 0.5f, -1.0f, -1.0f + hotBarItemSize, std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]), [this, i]()->bool
-        {
-            std::shared_ptr<Player> player = playerW.lock();
-            if(player == nullptr)
-                return false;
-            return player->currentItemIndex == i;
-        }, [this, i]()
-        {
-            HotBarSelectEventArguments args(i);
-            gameInput->hotBarSelect(args);
-        }, &player->itemsLock);
+        std::shared_ptr<Element> e = std::make_shared<HotBarItem>(
+            static_cast<float>(i) * hotBarItemSize - hotBarWidth * 0.5f,
+            static_cast<float>(i + 1) * hotBarItemSize - hotBarWidth * 0.5f,
+            -1.0f,
+            -1.0f + hotBarItemSize,
+            std::shared_ptr<ItemStack>(player, &player->items.itemStacks[i][0]),
+            [this, i]() -> bool
+            {
+                std::shared_ptr<Player> player = playerW.lock();
+                if(player == nullptr)
+                    return false;
+                return player->currentItemIndex == i;
+            },
+            [this, i]()
+            {
+                HotBarSelectEventArguments args(i);
+                gameInput->hotBarSelect(args);
+            },
+            &player->itemsLock);
         add(e);
         worldDependantElements.push_back(e);
     }
     class FPSDisplay final : public Label
     {
         FPSDisplay(const FPSDisplay &) = delete;
-        FPSDisplay &operator =(const FPSDisplay &) = delete;
+        FPSDisplay &operator=(const FPSDisplay &) = delete;
+
     private:
         GameUi *const gameUi;
+
     public:
         FPSDisplay(GameUi *gameUi)
-            : Label(L"uninitialized", -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1)),
-            gameUi(gameUi)
+            : Label(L"uninitialized", -1.0f, 1.0f, 0.8f, 1, GrayscaleF(1)), gameUi(gameUi)
         {
         }
         virtual void move(double deltaTime) override
@@ -406,7 +499,8 @@ void GameUi::addWorldUi()
             else
                 ss << L"     ";
             ss << L"\n";
-            RayCasting::Collision c = player->castRay(*gameUi->world, gameUi->lock_manager, RayCasting::BlockCollisionMaskDefault);
+            RayCasting::Collision c = player->castRay(
+                *gameUi->world, gameUi->lock_manager, RayCasting::BlockCollisionMaskDefault);
             if(c.valid())
             {
                 switch(c.type)
@@ -415,7 +509,8 @@ void GameUi::addWorldUi()
                     break;
                 case RayCasting::Collision::Type::Block:
                 {
-                    BlockIterator bi = gameUi->world->getBlockIterator(c.blockPosition, gameUi->lock_manager.tls);
+                    BlockIterator bi =
+                        gameUi->world->getBlockIterator(c.blockPosition, gameUi->lock_manager.tls);
                     Block b = bi.get(gameUi->lock_manager);
                     ss << L"Block :\n";
                     if(b.good())
@@ -427,7 +522,8 @@ void GameUi::addWorldUi()
                         const std::size_t searchEndPos = lineLength + lineLengthVariance;
                         while(v.size() > lineLength)
                         {
-                            std::size_t splitPos = v.find_first_of(splittingCharacters, searchStartPos);
+                            std::size_t splitPos =
+                                v.find_first_of(splittingCharacters, searchStartPos);
                             if(splitPos == std::wstring::npos || splitPos > searchEndPos)
                                 splitPos = lineLength;
                             ss << v.substr(0, splitPos + 1) << L"\n";
@@ -463,10 +559,12 @@ void GameUi::addWorldUi()
         class UpArrowButton final : public Button
         {
             UpArrowButton(const UpArrowButton &) = delete;
-            UpArrowButton &operator =(const UpArrowButton &) = delete;
+            UpArrowButton &operator=(const UpArrowButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             UpArrowButton(GameUi *gameUi)
                 : Button(L"\u25B2",
@@ -474,29 +572,29 @@ void GameUi::addWorldUi()
                          2.0f * Display::getTouchControlSize() - Display::scaleX(),
                          0.5f * Display::getTouchControlSize(),
                          1.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        this->gameUi->pressForwardCount++;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        if(--this->gameUi->pressForwardCount < 0)
-                            this->gameUi->pressForwardCount = 0;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              this->gameUi->pressForwardCount++;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              if(--this->gameUi->pressForwardCount < 0)
+                                                  this->gameUi->pressForwardCount = 0;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
@@ -520,10 +618,12 @@ void GameUi::addWorldUi()
         class DownArrowButton final : public Button
         {
             DownArrowButton(const DownArrowButton &) = delete;
-            DownArrowButton &operator =(const DownArrowButton &) = delete;
+            DownArrowButton &operator=(const DownArrowButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             DownArrowButton(GameUi *gameUi)
                 : Button(L"\u25BC",
@@ -531,29 +631,29 @@ void GameUi::addWorldUi()
                          2.0f * Display::getTouchControlSize() - Display::scaleX(),
                          -1.5f * Display::getTouchControlSize(),
                          -0.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        this->gameUi->pressBackwardCount++;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        if(--this->gameUi->pressBackwardCount < 0)
-                            this->gameUi->pressBackwardCount = 0;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              this->gameUi->pressBackwardCount++;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              if(--this->gameUi->pressBackwardCount < 0)
+                                                  this->gameUi->pressBackwardCount = 0;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
@@ -577,10 +677,12 @@ void GameUi::addWorldUi()
         class LeftArrowButton final : public Button
         {
             LeftArrowButton(const LeftArrowButton &) = delete;
-            LeftArrowButton &operator =(const LeftArrowButton &) = delete;
+            LeftArrowButton &operator=(const LeftArrowButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             LeftArrowButton(GameUi *gameUi)
                 : Button(L"\u25C4",
@@ -588,29 +690,29 @@ void GameUi::addWorldUi()
                          Display::getTouchControlSize() - Display::scaleX(),
                          -0.5f * Display::getTouchControlSize(),
                          0.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        this->gameUi->pressLeftCount++;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        if(--this->gameUi->pressLeftCount < 0)
-                            this->gameUi->pressLeftCount = 0;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              this->gameUi->pressLeftCount++;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              if(--this->gameUi->pressLeftCount < 0)
+                                                  this->gameUi->pressLeftCount = 0;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
@@ -634,10 +736,12 @@ void GameUi::addWorldUi()
         class RightArrowButton final : public Button
         {
             RightArrowButton(const RightArrowButton &) = delete;
-            RightArrowButton &operator =(const RightArrowButton &) = delete;
+            RightArrowButton &operator=(const RightArrowButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             RightArrowButton(GameUi *gameUi)
                 : Button(L"\u25BA",
@@ -645,29 +749,29 @@ void GameUi::addWorldUi()
                          3.0f * Display::getTouchControlSize() - Display::scaleX(),
                          -0.5f * Display::getTouchControlSize(),
                          0.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        this->gameUi->pressRightCount++;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        if(--this->gameUi->pressRightCount < 0)
-                            this->gameUi->pressRightCount = 0;
-                        this->gameUi->calculateMoveDirection();
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              this->gameUi->pressRightCount++;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              if(--this->gameUi->pressRightCount < 0)
+                                                  this->gameUi->pressRightCount = 0;
+                                              this->gameUi->calculateMoveDirection();
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
@@ -691,10 +795,12 @@ void GameUi::addWorldUi()
         class JumpButton final : public Button
         {
             JumpButton(const JumpButton &) = delete;
-            JumpButton &operator =(const JumpButton &) = delete;
+            JumpButton &operator=(const JumpButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             JumpButton(GameUi *gameUi)
                 : Button(L"\u2666",
@@ -702,26 +808,26 @@ void GameUi::addWorldUi()
                          2.0f * Display::getTouchControlSize() - Display::scaleX(),
                          -0.5f * Display::getTouchControlSize(),
                          0.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        this->gameUi->handleJumpDown();
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        this->gameUi->handleJumpUp();
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              this->gameUi->handleJumpDown();
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              this->gameUi->handleJumpUp();
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
@@ -745,9 +851,11 @@ void GameUi::addWorldUi()
         class PauseButton final : public Button
         {
             PauseButton(const PauseButton &) = delete;
-            PauseButton &operator =(const PauseButton &) = delete;
+            PauseButton &operator=(const PauseButton &) = delete;
+
         private:
             GameUi *const gameUi;
+
         public:
             PauseButton(GameUi *gameUi)
                 : Button(L"Menu",
@@ -755,13 +863,13 @@ void GameUi::addWorldUi()
                          Display::scaleX(),
                          Display::scaleY() - Display::getTouchControlSize(),
                          Display::scaleY()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                click.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    this->gameUi->startMainMenu();
-                    return Event::Propagate;
-                });
+                click.bind([this](EventArguments &) -> Event::ReturnType
+                           {
+                               this->gameUi->startMainMenu();
+                               return Event::Propagate;
+                           });
             }
             virtual void layout() override
             {
@@ -780,9 +888,11 @@ void GameUi::addWorldUi()
         class DropButton final : public Button
         {
             DropButton(const DropButton &) = delete;
-            DropButton &operator =(const DropButton &) = delete;
+            DropButton &operator=(const DropButton &) = delete;
+
         private:
             GameUi *const gameUi;
+
         public:
             DropButton(GameUi *gameUi)
                 : Button(L"Drop",
@@ -790,14 +900,14 @@ void GameUi::addWorldUi()
                          Display::getTouchControlSize() - Display::scaleX(),
                          0.5f * Display::getTouchControlSize(),
                          1.5f * Display::getTouchControlSize()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                click.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    EventArguments args;
-                    this->gameUi->gameInput->drop(args);
-                    return Event::Propagate;
-                });
+                click.bind([this](EventArguments &) -> Event::ReturnType
+                           {
+                               EventArguments args;
+                               this->gameUi->gameInput->drop(args);
+                               return Event::Propagate;
+                           });
             }
             virtual void layout() override
             {
@@ -816,10 +926,12 @@ void GameUi::addWorldUi()
         class SneakButton final : public Button
         {
             SneakButton(const SneakButton &) = delete;
-            SneakButton &operator =(const SneakButton &) = delete;
+            SneakButton &operator=(const SneakButton &) = delete;
+
         private:
             GameUi *const gameUi;
             bool wasPressed = false;
+
         public:
             SneakButton(GameUi *gameUi)
                 : Button(L"Sneak",
@@ -827,35 +939,36 @@ void GameUi::addWorldUi()
                          Display::scaleX(),
                          Display::scaleY() - Display::getTouchControlSize() * 2.5f,
                          Display::scaleY() - Display::getTouchControlSize() * 1.5f),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                pressed.onChange.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    if(pressed.get())
-                    {
-                        if(wasPressed)
-                            return Event::Propagate;
-                        wasPressed = true;
-                        if(this->gameUi->pressSneakCount++ == 0)
-                            this->gameUi->gameInput->sneak.set(true);
-                    }
-                    else
-                    {
-                        if(!wasPressed)
-                            return Event::Propagate;
-                        wasPressed = false;
-                        if(--this->gameUi->pressSneakCount <= 0)
-                        {
-                            this->gameUi->gameInput->sneak.set(false);
-                            this->gameUi->pressSneakCount = 0;
-                        }
-                    }
-                    return Event::Propagate;
-                });
+                pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
+                                      {
+                                          if(pressed.get())
+                                          {
+                                              if(wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = true;
+                                              if(this->gameUi->pressSneakCount++ == 0)
+                                                  this->gameUi->gameInput->sneak.set(true);
+                                          }
+                                          else
+                                          {
+                                              if(!wasPressed)
+                                                  return Event::Propagate;
+                                              wasPressed = false;
+                                              if(--this->gameUi->pressSneakCount <= 0)
+                                              {
+                                                  this->gameUi->gameInput->sneak.set(false);
+                                                  this->gameUi->pressSneakCount = 0;
+                                              }
+                                          }
+                                          return Event::Propagate;
+                                      });
             }
             virtual void layout() override
             {
-                moveTopRightTo(getParent()->maxX, getParent()->maxY - Display::getTouchControlSize() * 1.5f);
+                moveTopRightTo(getParent()->maxX,
+                               getParent()->maxY - Display::getTouchControlSize() * 1.5f);
                 Button::layout();
             }
             virtual bool canHaveKeyboardFocus() const override
@@ -875,9 +988,11 @@ void GameUi::addWorldUi()
         class InventoryButton final : public Button
         {
             InventoryButton(const InventoryButton &) = delete;
-            InventoryButton &operator =(const InventoryButton &) = delete;
+            InventoryButton &operator=(const InventoryButton &) = delete;
+
         private:
             GameUi *const gameUi;
+
         public:
             InventoryButton(GameUi *gameUi)
                 : Button(L"\u2219\u2219\u2219",
@@ -885,13 +1000,13 @@ void GameUi::addWorldUi()
                          Display::scaleX(),
                          -Display::scaleY(),
                          Display::getTouchControlSize() - Display::scaleY()),
-                gameUi(gameUi)
+                  gameUi(gameUi)
             {
-                click.bind([this](EventArguments &)->Event::ReturnType
-                {
-                    this->gameUi->startInventoryDialog();
-                    return Event::Propagate;
-                });
+                click.bind([this](EventArguments &) -> Event::ReturnType
+                           {
+                               this->gameUi->startInventoryDialog();
+                               return Event::Propagate;
+                           });
             }
             virtual void layout() override
             {
@@ -914,26 +1029,31 @@ void GameUi::createNewWorld()
     clearWorld();
     generatingWorld = true;
     generatedWorld = nullptr;
-    worldGenerateThread = std::thread([this]()
-    {
-        setThreadName(L"world generate");
-        TLS tls;
-        WorldLockManager lock_manager(tls);
-        try
-        {
-            generatedWorld = std::make_shared<World>(&abortWorldCreation);
-            PositionF startingPosition = PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
-            std::shared_ptr<Player> newPlayer = Player::make(L"default-player-name", nullptr, generatedWorld);
-            Entities::builtin::PlayerEntity::addToWorld(*generatedWorld, lock_manager, startingPosition, newPlayer);
-        }
-        catch(WorldConstructionAborted &)
-        {
-        }
-        generatingWorld = false;
-    });
+    worldGenerateThread =
+        std::thread([this]()
+                    {
+                        setThreadName(L"world generate");
+                        TLS tls;
+                        WorldLockManager lock_manager(tls);
+                        try
+                        {
+                            generatedWorld = std::make_shared<World>(&abortWorldCreation);
+                            PositionF startingPosition =
+                                PositionF(0.5f, World::SeaLevel + 8.5f, 0.5f, Dimension::Overworld);
+                            std::shared_ptr<Player> newPlayer =
+                                Player::make(L"default-player-name", nullptr, generatedWorld);
+                            Entities::builtin::PlayerEntity::addToWorld(
+                                *generatedWorld, lock_manager, startingPosition, newPlayer);
+                        }
+                        catch(WorldConstructionAborted &)
+                        {
+                        }
+                        generatingWorld = false;
+                    });
     if(addedUi)
     {
-        std::shared_ptr<Element> e = std::make_shared<Label>(L"Creating World...", -0.7f, 0.7f, -0.3f, 0.3f);
+        std::shared_ptr<Element> e =
+            std::make_shared<Label>(L"Creating World...", -0.7f, 0.7f, -0.3f, 0.3f);
         worldCreationMessage = e;
         add(e);
     }
@@ -945,23 +1065,25 @@ void GameUi::loadWorld(std::wstring fileName)
     generatingWorld = true;
     generatedWorld = nullptr;
     worldGenerateThread = std::thread([this, fileName]()
-    {
-        setThreadName(L"load world");
-        TLS tls;
-        try
-        {
-            auto preader = readUserSpecificFile(fileName);
-            generatedWorld = World::read(*preader);
-        }
-        catch(stream::IOException &e)
-        {
-            getDebugLog() << L"World Load Error : " << e.what() << postnl;
-        }
-        generatingWorld = false;
-    });
+                                      {
+                                          setThreadName(L"load world");
+                                          TLS tls;
+                                          try
+                                          {
+                                              auto preader = readUserSpecificFile(fileName);
+                                              generatedWorld = World::read(*preader);
+                                          }
+                                          catch(stream::IOException &e)
+                                          {
+                                              getDebugLog() << L"World Load Error : " << e.what()
+                                                            << postnl;
+                                          }
+                                          generatingWorld = false;
+                                      });
     if(addedUi)
     {
-        std::shared_ptr<Element> e = std::make_shared<Label>(L"Loading World...", -0.7f, 0.7f, -0.3f, 0.3f);
+        std::shared_ptr<Element> e =
+            std::make_shared<Label>(L"Loading World...", -0.7f, 0.7f, -0.3f, 0.3f);
         worldCreationMessage = e;
         add(e);
     }
@@ -976,29 +1098,29 @@ void GameUi::addUi()
 
 GameUi::GameUi()
     : audioScheduler(),
-    playingAudio(),
-    world(),
-    lock_manager(TLS::getSlow()),
-    viewPoint(),
-    gameInput(std::make_shared<GameInput>()),
-    playerW(),
-    playerEntity(),
-    newDialogLock(),
-    worldDependantElements(),
-    generatingWorld(false),
-    worldGenerateThread(),
-    generatedWorld(nullptr),
-    worldCreationMessage(),
-    abortWorldCreation(false),
-    mainMenu(),
-    mainMenuSong(std::make_shared<Audio>(L"menu-theme.ogg", true)),
-    touches(),
-    backgroundCamera(),
-    backgroundCameraTexture(),
-    backgroundCameraBuffer(),
-    virtualRealityCallbacks(),
-    crosshairsW(),
-    blockDestructProgress(-1.0f)
+      playingAudio(),
+      world(),
+      lock_manager(TLS::getSlow()),
+      viewPoint(),
+      gameInput(std::make_shared<GameInput>()),
+      playerW(),
+      playerEntity(),
+      newDialogLock(),
+      worldDependantElements(),
+      generatingWorld(false),
+      worldGenerateThread(),
+      generatedWorld(nullptr),
+      worldCreationMessage(),
+      abortWorldCreation(false),
+      mainMenu(),
+      mainMenuSong(std::make_shared<Audio>(L"menu-theme.ogg", true)),
+      touches(),
+      backgroundCamera(),
+      backgroundCameraTexture(),
+      backgroundCameraBuffer(),
+      virtualRealityCallbacks(),
+      crosshairsW(),
+      blockDestructProgress(-1.0f)
 {
     gameInput->paused.set(true);
 }
@@ -1018,40 +1140,40 @@ void GameUi::handleSetViewMatrix(Matrix viewMatrix)
     float viewPhi = gameInput->viewPhi.get();
     float viewPsi = gameInput->viewPsi.get();
     // assume that viewMatrix is a rotation and/or a translation matrix
-	Matrix worldOrientationMatrix = inverse(viewMatrix);
-	VectorF viewPoint = transform(worldOrientationMatrix, VectorF(0)) - Player::getViewPositionOffset();
-	std::shared_ptr<Player> player = playerW.lock();
+    Matrix worldOrientationMatrix = inverse(viewMatrix);
+    VectorF viewPoint =
+        transform(worldOrientationMatrix, VectorF(0)) - Player::getViewPositionOffset();
+    std::shared_ptr<Player> player = playerW.lock();
     if(player)
     {
         PositionF playerPosition;
         playerPosition = player->getPosition();
         player->warpToPosition(PositionF(viewPoint, playerPosition.d));
     }
-	VectorF backVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 0, 1)));
-	VectorF upVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 1, 0)));
-	VectorF backVectorXZ = backVector;
-	backVectorXZ.y = 0;
-	viewPhi = std::atan2(-backVector.y, abs(backVectorXZ));
-	if (absSquared(backVectorXZ) >= 1e-8)
-	{
-		viewTheta = std::atan2(backVector.x, backVector.z);
-		upVector =
-			transform(Matrix::rotateY(-viewTheta).concat(Matrix::rotateX(-viewPhi)), upVector);
-		viewPsi = std::atan2(-upVector.x, upVector.y);
-	}
-	else
-	{
-		viewPsi = 0;
-	    if(viewPhi < 0)
-	        upVector = -upVector;
-	    viewTheta = std::atan2(upVector.x, upVector.z);
-	}
+    VectorF backVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 0, 1)));
+    VectorF upVector = normalize(worldOrientationMatrix.applyNoTranslate(VectorF(0, 1, 0)));
+    VectorF backVectorXZ = backVector;
+    backVectorXZ.y = 0;
+    viewPhi = std::atan2(-backVector.y, abs(backVectorXZ));
+    if(absSquared(backVectorXZ) >= 1e-8)
+    {
+        viewTheta = std::atan2(backVector.x, backVector.z);
+        upVector =
+            transform(Matrix::rotateY(-viewTheta).concat(Matrix::rotateX(-viewPhi)), upVector);
+        viewPsi = std::atan2(-upVector.x, upVector.y);
+    }
+    else
+    {
+        viewPsi = 0;
+        if(viewPhi < 0)
+            upVector = -upVector;
+        viewTheta = std::atan2(upVector.x, upVector.z);
+    }
     gameInput->viewTheta.set(viewTheta);
     gameInput->viewPhi.set(viewPhi);
     gameInput->viewPsi.set(viewPsi);
 #endif
 }
-
 }
 }
 }

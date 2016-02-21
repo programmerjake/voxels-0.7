@@ -869,13 +869,14 @@ public:
         std::unique_lock<std::mutex> lockIt(stateLock);
         return isPaused;
     }
-    void paused(bool newPaused)
+    void paused(bool newPaused, WorldLockManager &lockManager)
     {
         std::unique_lock<std::mutex> lockIt(stateLock);
         if(newPaused == isPaused)
         {
             return;
         }
+        lockManager.clear();
         isPaused = newPaused;
         stateCond.notify_all();
         if(isPaused)

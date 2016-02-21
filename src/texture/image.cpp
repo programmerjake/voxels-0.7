@@ -64,7 +64,7 @@ Image::Image(ColorI c)
 Image::data_t::~data_t()
 {
     static_assert(sizeof(uint32_t) == sizeof(GLuint), "GLuint is not the same size as uint32_t");
-    if(texture != 0)
+    if(texture != 0 && textureGraphicsContextId == getGraphicsContextId())
     {
         freeTexture(texture);
     }
@@ -139,6 +139,15 @@ void Image::bind() const
 
     data->lock.lock();
     setRowOrder(RowOrder::BottomToTop);
+
+    auto currentGraphicsContextId = getGraphicsContextId();
+
+    if(data->textureGraphicsContextId != currentGraphicsContextId)
+    {
+        data->textureGraphicsContextId = currentGraphicsContextId;
+        data->textureValid = false;
+        data->texture = 0;
+    }
 
     if(data->textureValid)
     {

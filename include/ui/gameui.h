@@ -54,7 +54,8 @@ class GameUi : public Ui
 {
     friend class MainMenu;
     GameUi(const GameUi &) = delete;
-    GameUi &operator =(const GameUi &) = delete;
+    GameUi &operator=(const GameUi &) = delete;
+
 private:
     struct TouchStruct final
     {
@@ -70,9 +71,9 @@ private:
         State state;
         TouchStruct(VectorF position, bool gotTouchDown)
             : startPosition(position),
-            position(position),
-            startDelayTimeLeft(gotTouchDown ? 0.3f : 0.0f),
-            state(gotTouchDown ? State::StartDelay : State::Move)
+              position(position),
+              startDelayTimeLeft(gotTouchDown ? 0.3f : 0.0f),
+              state(gotTouchDown ? State::StartDelay : State::Move)
         {
         }
     };
@@ -202,6 +203,7 @@ private:
         }
     }
     void handleSetViewMatrix(Matrix viewMatrix);
+
 public:
     std::atomic<float> blockDestructProgress;
     GameUi();
@@ -260,16 +262,19 @@ public:
             std::shared_ptr<Player> player = playerW.lock();
             if(player)
             {
-                virtualRealityCallbacks->move(deltaTime, player->getViewTransform(), [this, &needSetViewDirection, crosshairs](Matrix viewMatrix)
-                {
-                    handleSetViewMatrix(viewMatrix);
-                    if(!viewMatrixOverridden)
-                        needSetViewDirection = false;
-                    if(crosshairs)
+                virtualRealityCallbacks->move(
+                    deltaTime,
+                    player->getViewTransform(),
+                    [this, &needSetViewDirection, crosshairs](Matrix viewMatrix)
                     {
-                        crosshairs->colorizeColor = GrayscaleAF(1, 0);
-                    }
-                });
+                        handleSetViewMatrix(viewMatrix);
+                        if(!viewMatrixOverridden)
+                            needSetViewDirection = false;
+                        if(crosshairs)
+                        {
+                            crosshairs->colorizeColor = GrayscaleAF(1, 0);
+                        }
+                    });
             }
         }
         if(!dialog)
@@ -356,7 +361,11 @@ public:
                 PositionF p = playerW.lock()->getPosition();
                 float height = p.y;
                 float relativeHeight = height / World::SeaLevel;
-                playingAudio = audioScheduler.next(world->getTimeOfDayInSeconds(), world->dayDurationInSeconds, relativeHeight, p.d, volume);
+                playingAudio = audioScheduler.next(world->getTimeOfDayInSeconds(),
+                                                   world->dayDurationInSeconds,
+                                                   relativeHeight,
+                                                   p.d,
+                                                   volume);
             }
             else
             {
@@ -435,7 +444,8 @@ public:
         if(gameInput->paused.get())
             return true;
         VectorF position = Display::transformTouchTo3D(event.x, event.y);
-        VectorF deltaPos = Display::transformTouchTo3D(event.x + event.deltaX, event.y + event.deltaY) - position;
+        VectorF deltaPos =
+            Display::transformTouchTo3D(event.x + event.deltaX, event.y + event.deltaY) - position;
         if(touches.count(event.touchId) == 0)
             touches.emplace(event.touchId, TouchStruct(position, false));
         TouchStruct &touch = touches.at(event.touchId);
@@ -515,7 +525,9 @@ public:
             return true;
         if(!dialog && !gameInput->paused.get())
         {
-            VectorF deltaPos = Display::transformMouseTo3D(event.x + event.deltaX, event.y + event.deltaY) - Display::transformMouseTo3D(event.x, event.y);
+            VectorF deltaPos =
+                Display::transformMouseTo3D(event.x + event.deltaX, event.y + event.deltaY)
+                - Display::transformMouseTo3D(event.x, event.y);
             deltaViewTheta -= deltaPos.x;
             deltaViewPhi += deltaPos.y;
         }
@@ -708,7 +720,8 @@ public:
         case KeyboardKey::Num8:
         case KeyboardKey::Num9:
         {
-            HotBarSelectEventArguments args((std::size_t)event.key - (std::size_t)KeyboardKey::Num1);
+            HotBarSelectEventArguments args((std::size_t)event.key
+                                            - (std::size_t)KeyboardKey::Num1);
             gameInput->hotBarSelect(args);
             return true;
         }
@@ -717,20 +730,23 @@ public:
         {
             if(gameInput->paused.get() || !world)
                 return false;
-            std::int32_t viewDistance = viewPoint->getViewDistance();
-            if(event.key == KeyboardKey::F7)
+            if(viewPoint)
             {
-                viewDistance -= 16;
-                if(viewDistance < 16)
-                    viewDistance = 16;
+                std::int32_t viewDistance = viewPoint->getViewDistance();
+                if(event.key == KeyboardKey::F7)
+                {
+                    viewDistance -= 16;
+                    if(viewDistance < 16)
+                        viewDistance = 16;
+                }
+                else
+                {
+                    viewDistance += 16;
+                    if(viewDistance > 256)
+                        viewDistance = 256;
+                }
+                viewPoint->setViewDistance(viewDistance);
             }
-            else
-            {
-                viewDistance += 16;
-                if(viewDistance > 256)
-                    viewDistance = 256;
-            }
-            viewPoint->setViewDistance(viewDistance);
             return true;
         }
         default:
@@ -807,6 +823,26 @@ public:
             return true;
         return Ui::handleQuit(event);
     }
+    virtual bool handlePause(PauseEvent &event) override
+    {
+        if(virtualRealityCallbacks)
+            virtualRealityCallbacks->handlePause(event);
+        assert(viewPoint.use_count() <= 1);
+        viewPoint = nullptr;
+        if(world)
+            world->paused(true, lock_manager);
+        return Ui::handlePause(event);
+    }
+    virtual bool handleResume(ResumeEvent &event) override
+    {
+        bool retval = Ui::handleResume(event);
+        if(virtualRealityCallbacks)
+            virtualRealityCallbacks->handleResume(event);
+        if(world)
+            world->paused(false, lock_manager);
+        return retval;
+    }
+
 protected:
     virtual void clear(Renderer &renderer) override;
 };

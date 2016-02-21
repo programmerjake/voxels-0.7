@@ -374,10 +374,14 @@ namespace Display
         void start(float minX, float maxX, float minY, float maxY);
         void stop();
     }
+    bool paused();
 }
 
 void startGraphics();
 void endGraphics();
+void pauseGraphics();
+void resumeGraphics();
+std::uint64_t getGraphicsContextId();
 void startAudio();
 void endAudio();
 unsigned getGlobalAudioSampleRate();

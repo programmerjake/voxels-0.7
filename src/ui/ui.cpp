@@ -20,6 +20,8 @@
  */
 #include "ui/ui.h"
 #include "platform/platform.h"
+#include <thread>
+#include <chrono>
 
 namespace programmerjake
 {
@@ -44,14 +46,35 @@ void Ui::run(Renderer &renderer)
         move(Display::frameDeltaTime());
         if(isDone())
             doneTime -= Display::frameDeltaTime();
+        if(Display::paused())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
         Display::initFrame();
-        clear(renderer);
         layout();
+        clear(renderer);
         render(renderer, 1, 32, true);
         renderer.flush();
         Display::flip(-1);
     }
     handleFinish();
+}
+
+bool Ui::handlePause(PauseEvent &event)
+{
+    bool retval = Container::handlePause(event);
+    if(getParent() == nullptr)
+        pauseGraphics();
+    return retval;
+}
+
+bool Ui::handleResume(ResumeEvent &event)
+{
+    bool retval = Container::handleResume(event);
+    if(getParent() == nullptr)
+        resumeGraphics();
+    return retval;
 }
 }
 }
