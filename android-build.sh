@@ -204,7 +204,7 @@ cat >> "$BUILD_PATH/AndroidManifest.xml" <<'EOF'
                  android:hardwareAccelerated="true" >
         <activity android:name="MyActivity"
                   android:label="@string/app_name"
-                  android:configChanges="keyboardHidden|orientation"
+                  android:configChanges="keyboardHidden|orientation|screenSize|keyboard"
                   >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

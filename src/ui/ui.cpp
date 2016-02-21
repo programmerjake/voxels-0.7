@@ -20,6 +20,7 @@
  */
 #include "ui/ui.h"
 #include "platform/platform.h"
+#include "util/logging.h"
 #include <thread>
 #include <chrono>
 
@@ -65,7 +66,10 @@ bool Ui::handlePause(PauseEvent &event)
 {
     bool retval = Container::handlePause(event);
     if(getParent() == nullptr)
+    {
+        getDebugLog() << L"Pausing graphics" << postnl;
         pauseGraphics();
+    }
     return retval;
 }
 
@@ -73,7 +77,10 @@ bool Ui::handleResume(ResumeEvent &event)
 {
     bool retval = Container::handleResume(event);
     if(getParent() == nullptr)
+    {
+        getDebugLog() << L"Resuming graphics" << postnl;
         resumeGraphics();
+    }
     return retval;
 }
 }

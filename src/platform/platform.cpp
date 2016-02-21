@@ -655,6 +655,9 @@ static void runPlatformSetup()
     ignore_unused_variable_warning(v);
 }
 
+static std::thread::id mainThreadId;
+static int SDLCALL myEventFilterFunction(void *userData, SDL_Event *event);
+
 static void startSDL()
 {
     if(runningSDL.exchange(true))
@@ -676,6 +679,8 @@ static void startSDL()
     SDL_SetHint(SDL_HINT_SIMULATE_INPUT_EVENTS, "0");
     SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
     processorCount = SDL_GetCPUCount();
+    mainThreadId = std::this_thread::get_id();
+    SDL_SetEventFilter(myEventFilterFunction, nullptr);
 }
 
 static SDL_AudioSpec globalAudioSpec;
@@ -1276,7 +1281,7 @@ static enum_array<bool, KeyboardKey> keyState;
 
 static MouseButton buttonState = MouseButton_None;
 
-static bool needQuitEvent = false;
+static std::atomic_bool needQuitEvent(false);
 
 static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
 {
@@ -1320,11 +1325,312 @@ static int translateTouch(SDL_TouchID tid, SDL_FingerID fid, bool remove)
     return retval;
 }
 
+static std::shared_ptr<PlatformEvent> makeEvent(SDL_Event &SDLEvent)
+{
+    switch(SDLEvent.type)
+    {
+    case SDL_KEYDOWN:
+    {
+        KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
+        auto retval = std::make_shared<KeyDownEvent>(
+            key,
+            translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)),
+            keyState[key]);
+        keyState[key] = true;
+        return retval;
+    }
+    case SDL_KEYUP:
+    {
+        KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
+        auto retval = std::make_shared<KeyUpEvent>(
+            key, translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)));
+        keyState[key] = false;
+        return retval;
+    }
+    case SDL_MOUSEMOTION:
+    {
+#ifdef __ANDROID__
+        break;
+#else
+        if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
+            break;
+        if(touchSimulationState)
+        {
+            if(touchSimulationState->draggingId >= 0)
+            {
+                float newX = (float)SDLEvent.motion.x / (float)xResInternal * 2 - 1;
+                float newY = (float)SDLEvent.motion.y / (float)yResInternal * 2 - 1;
+                TouchSimulationTouch &touch =
+                    touchSimulationState->touches.at(touchSimulationState->draggingId);
+                float oldX = touch.x;
+                float oldY = touch.y;
+                touch.x = newX;
+                touch.y = newY;
+                return std::make_shared<TouchMoveEvent>(
+                    newX, newY, newX - oldX, newY - oldY, touchSimulationState->draggingId, 0.5f);
+            }
+            break;
+        }
+        return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x,
+                                                (float)SDLEvent.motion.y,
+                                                (float)SDLEvent.motion.xrel,
+                                                (float)SDLEvent.motion.yrel);
+#endif
+    }
+    case SDL_MOUSEWHEEL:
+    {
+#ifdef __ANDROID__
+        break;
+#else
+        if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
+            break;
+        if(touchSimulationState)
+            break;
+#ifdef SDL_MOUSEWHEEL_FLIPPED
+        if(SDLEvent.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+        {
+            return std::make_shared<MouseScrollEvent>(-SDLEvent.wheel.x, -SDLEvent.wheel.y);
+        }
+#endif
+        return std::make_shared<MouseScrollEvent>(SDLEvent.wheel.x, SDLEvent.wheel.y);
+#endif
+    }
+    case SDL_MOUSEBUTTONDOWN:
+    {
+#ifdef __ANDROID__
+        break;
+#else
+        if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
+            break;
+        MouseButton button = translateButton(SDLEvent.button.button);
+        buttonState = static_cast<MouseButton>(buttonState | button); // set bit
+        if(touchSimulationState)
+        {
+            float newX = (float)SDLEvent.button.x / (float)xResInternal * 2 - 1;
+            float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
+            if(touchSimulationState->draggingId >= 0)
+            {
+                TouchSimulationTouch &touch =
+                    touchSimulationState->touches.at(touchSimulationState->draggingId);
+                float oldX = touch.x;
+                float oldY = touch.y;
+                touch.x = newX;
+                touch.y = newY;
+                return std::make_shared<TouchMoveEvent>(
+                    newX, newY, newX - oldX, newY - oldY, touchSimulationState->draggingId, 0.5f);
+            }
+            else
+            {
+                for(auto i = touchSimulationState->touches.begin();
+                    i != touchSimulationState->touches.end();
+                    ++i)
+                {
+                    TouchSimulationTouch &touch = std::get<1>(*i);
+                    float oldX = touch.x;
+                    float oldY = touch.y;
+                    float touchSizeX = 32.0f / (float)xResInternal;
+                    float touchSizeY = 32.0f / (float)yResInternal;
+                    if(std::fabs(oldX - newX) > touchSizeX || std::fabs(oldY - newY) > touchSizeY)
+                        continue;
+                    touchSimulationState->draggingId = touch.id;
+                    touch.x = newX;
+                    touch.y = newY;
+                    return std::make_shared<TouchMoveEvent>(
+                        newX, newY, newX - oldX, newY - oldY, touch.id, 0.5f);
+                }
+                int newId = touchSimulationState->touches.size();
+                for(int i = 0; i < (int)touchSimulationState->touches.size(); i++)
+                {
+                    if(touchSimulationState->touches.count(i) == 0)
+                    {
+                        newId = i;
+                        break;
+                    }
+                }
+                touchSimulationState->draggingId = newId;
+                touchSimulationState->touches.emplace(newId,
+                                                      TouchSimulationTouch(newId, newX, newY));
+                return std::make_shared<TouchDownEvent>(newX, newY, 0.0f, 0.0f, newId, 0.5f);
+            }
+            break;
+        }
+        return std::make_shared<MouseDownEvent>(
+            (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+#endif
+    }
+    case SDL_MOUSEBUTTONUP:
+    {
+#ifdef __ANDROID__
+        break;
+#else
+        if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
+            break;
+        MouseButton button = translateButton(SDLEvent.button.button);
+        buttonState = static_cast<MouseButton>(buttonState & ~button); // clear bit
+        if(touchSimulationState)
+        {
+            float newX = (float)SDLEvent.button.x / (float)xResInternal * 2 - 1;
+            float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
+            if(touchSimulationState->draggingId >= 0)
+            {
+                TouchSimulationTouch &touch =
+                    touchSimulationState->touches.at(touchSimulationState->draggingId);
+                float oldX = touch.x;
+                float oldY = touch.y;
+                touch.x = newX;
+                touch.y = newY;
+                int touchId = touchSimulationState->draggingId;
+                if(button == MouseButton_Left && buttonState == MouseButton_None)
+                {
+                    touchSimulationState->touches.erase(touchId);
+                    touchSimulationState->draggingId = -1;
+                    return std::make_shared<TouchUpEvent>(
+                        newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
+                }
+                else if(buttonState == MouseButton_None)
+                {
+                    touchSimulationState->draggingId = -1;
+                }
+                return std::make_shared<TouchMoveEvent>(
+                    newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
+            }
+            break;
+        }
+        return std::make_shared<MouseUpEvent>(
+            (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
+#endif
+    }
+    case SDL_FINGERMOTION:
+        if(touchSimulationState)
+            break;
+        return std::make_shared<TouchMoveEvent>(
+            SDLEvent.tfinger.x * 2 - 1,
+            SDLEvent.tfinger.y * 2 - 1,
+            SDLEvent.tfinger.dx * 2,
+            SDLEvent.tfinger.dy * 2,
+            translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
+            SDLEvent.tfinger.pressure);
+    case SDL_FINGERDOWN:
+        if(touchSimulationState)
+            break;
+        return std::make_shared<TouchDownEvent>(
+            SDLEvent.tfinger.x * 2 - 1,
+            SDLEvent.tfinger.y * 2 - 1,
+            SDLEvent.tfinger.dx * 2,
+            SDLEvent.tfinger.dy * 2,
+            translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
+            SDLEvent.tfinger.pressure);
+    case SDL_FINGERUP:
+        if(touchSimulationState)
+            break;
+        return std::make_shared<TouchUpEvent>(
+            SDLEvent.tfinger.x * 2 - 1,
+            SDLEvent.tfinger.y * 2 - 1,
+            SDLEvent.tfinger.dx * 2,
+            SDLEvent.tfinger.dy * 2,
+            translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true),
+            SDLEvent.tfinger.pressure);
+    case SDL_JOYAXISMOTION:
+    case SDL_JOYBALLMOTION:
+    case SDL_JOYHATMOTION:
+    case SDL_JOYBUTTONDOWN:
+    case SDL_JOYBUTTONUP:
+        // TODO (jacob#): handle joysticks
+        break;
+    case SDL_WINDOWEVENT:
+    {
+        switch(SDLEvent.window.event)
+        {
+        case SDL_WINDOWEVENT_MINIMIZED:
+        case SDL_WINDOWEVENT_HIDDEN:
+            if(!Display::paused())
+            {
+                return std::make_shared<PauseEvent>();
+            }
+            break;
+        case SDL_WINDOWEVENT_MAXIMIZED:
+        case SDL_WINDOWEVENT_RESTORED:
+        case SDL_WINDOWEVENT_SHOWN:
+            if(Display::paused())
+            {
+                return std::make_shared<ResumeEvent>();
+            }
+            break;
+        }
+        break;
+    }
+    case SDL_QUIT:
+        return std::make_shared<QuitEvent>();
+    case SDL_SYSWMEVENT:
+        // TODO (jacob#): handle SDL_SYSWMEVENT
+        break;
+    case SDL_TEXTEDITING:
+    {
+        std::string text = SDLEvent.edit.text;
+        return std::make_shared<TextEditEvent>(
+            string_cast<std::wstring>(text), SDLEvent.edit.start, SDLEvent.edit.length);
+    }
+    case SDL_TEXTINPUT:
+    {
+        std::string text = SDLEvent.text.text;
+        return std::make_shared<TextInputEvent>(string_cast<std::wstring>(text));
+    }
+    }
+    return nullptr;
+}
+
+static std::mutex synchronousEventLock;
+static std::condition_variable synchronousEventCond;
+static SDL_Event *synchronousEvent = nullptr;
+
+static int SDLCALL myEventFilterFunction(void *userData, SDL_Event *event)
+{
+    switch(event->type)
+    {
+    case SDL_QUIT: // needs special processing
+        needQuitEvent = true;
+        return 0;
+    case SDL_WINDOWEVENT:
+    {
+        if(std::this_thread::get_id() == mainThreadId)
+            return 1;
+        std::unique_lock<std::mutex> lockIt(synchronousEventLock);
+        assert(synchronousEvent == nullptr);
+        synchronousEvent = event;
+        while(synchronousEvent)
+        {
+            synchronousEventCond.wait(lockIt);
+        }
+        return 0;
+    }
+    default:
+        return 1;
+    }
+}
+
+static std::shared_ptr<PlatformEvent> getSynchronousEvent()
+{
+    std::unique_lock<std::mutex> lockIt(synchronousEventLock);
+    if(synchronousEvent)
+    {
+        auto retval = makeEvent(*synchronousEvent);
+        synchronousEvent = nullptr;
+        return retval;
+    }
+    else
+    {
+        synchronousEventCond.notify_all();
+        return nullptr;
+    }
+}
+
 static std::shared_ptr<PlatformEvent> makeEvent()
 {
-    if(needQuitEvent)
+    auto retval = getSynchronousEvent();
+    if(retval)
+        return retval;
+    if(needQuitEvent.exchange(false))
     {
-        needQuitEvent = false;
         return std::make_shared<QuitEvent>();
     }
     while(true)
@@ -1332,267 +1638,17 @@ static std::shared_ptr<PlatformEvent> makeEvent()
         SDL_Event SDLEvent;
         if(SDL_PollEvent(&SDLEvent) == 0)
         {
-            return nullptr;
+            if(needQuitEvent.exchange(false))
+            {
+                return std::make_shared<QuitEvent>();
+            }
+            break;
         }
-        switch(SDLEvent.type)
-        {
-        case SDL_KEYDOWN:
-        {
-            KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            auto retval = std::make_shared<KeyDownEvent>(
-                key,
-                translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)),
-                keyState[key]);
-            keyState[key] = true;
+        retval = makeEvent(SDLEvent);
+        if(retval)
             return retval;
-        }
-        case SDL_KEYUP:
-        {
-            KeyboardKey key = translateKey(SDLEvent.key.keysym.scancode);
-            auto retval = std::make_shared<KeyUpEvent>(
-                key, translateModifiers(static_cast<SDL_Keymod>(SDLEvent.key.keysym.mod)));
-            keyState[key] = false;
-            return retval;
-        }
-        case SDL_MOUSEMOTION:
-        {
-#ifdef __ANDROID__
-            break;
-#else
-            if(SDLEvent.motion.which == SDL_TOUCH_MOUSEID)
-                break;
-            if(touchSimulationState)
-            {
-                if(touchSimulationState->draggingId >= 0)
-                {
-                    float newX = (float)SDLEvent.motion.x / (float)xResInternal * 2 - 1;
-                    float newY = (float)SDLEvent.motion.y / (float)yResInternal * 2 - 1;
-                    TouchSimulationTouch &touch =
-                        touchSimulationState->touches.at(touchSimulationState->draggingId);
-                    float oldX = touch.x;
-                    float oldY = touch.y;
-                    touch.x = newX;
-                    touch.y = newY;
-                    return std::make_shared<TouchMoveEvent>(newX,
-                                                            newY,
-                                                            newX - oldX,
-                                                            newY - oldY,
-                                                            touchSimulationState->draggingId,
-                                                            0.5f);
-                }
-                break;
-            }
-            return std::make_shared<MouseMoveEvent>((float)SDLEvent.motion.x,
-                                                    (float)SDLEvent.motion.y,
-                                                    (float)SDLEvent.motion.xrel,
-                                                    (float)SDLEvent.motion.yrel);
-#endif
-        }
-        case SDL_MOUSEWHEEL:
-        {
-#ifdef __ANDROID__
-            break;
-#else
-            if(SDLEvent.wheel.which == SDL_TOUCH_MOUSEID)
-                break;
-            if(touchSimulationState)
-                break;
-#ifdef SDL_MOUSEWHEEL_FLIPPED
-            if(SDLEvent.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
-            {
-                return std::make_shared<MouseScrollEvent>(-SDLEvent.wheel.x, -SDLEvent.wheel.y);
-            }
-#endif
-            return std::make_shared<MouseScrollEvent>(SDLEvent.wheel.x, SDLEvent.wheel.y);
-#endif
-        }
-        case SDL_MOUSEBUTTONDOWN:
-        {
-#ifdef __ANDROID__
-            break;
-#else
-            if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
-                break;
-            MouseButton button = translateButton(SDLEvent.button.button);
-            buttonState = static_cast<MouseButton>(buttonState | button); // set bit
-            if(touchSimulationState)
-            {
-                float newX = (float)SDLEvent.button.x / (float)xResInternal * 2 - 1;
-                float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
-                if(touchSimulationState->draggingId >= 0)
-                {
-                    TouchSimulationTouch &touch =
-                        touchSimulationState->touches.at(touchSimulationState->draggingId);
-                    float oldX = touch.x;
-                    float oldY = touch.y;
-                    touch.x = newX;
-                    touch.y = newY;
-                    return std::make_shared<TouchMoveEvent>(newX,
-                                                            newY,
-                                                            newX - oldX,
-                                                            newY - oldY,
-                                                            touchSimulationState->draggingId,
-                                                            0.5f);
-                }
-                else
-                {
-                    for(auto i = touchSimulationState->touches.begin();
-                        i != touchSimulationState->touches.end();
-                        ++i)
-                    {
-                        TouchSimulationTouch &touch = std::get<1>(*i);
-                        float oldX = touch.x;
-                        float oldY = touch.y;
-                        float touchSizeX = 32.0f / (float)xResInternal;
-                        float touchSizeY = 32.0f / (float)yResInternal;
-                        if(std::fabs(oldX - newX) > touchSizeX
-                           || std::fabs(oldY - newY) > touchSizeY)
-                            continue;
-                        touchSimulationState->draggingId = touch.id;
-                        touch.x = newX;
-                        touch.y = newY;
-                        return std::make_shared<TouchMoveEvent>(
-                            newX, newY, newX - oldX, newY - oldY, touch.id, 0.5f);
-                    }
-                    int newId = touchSimulationState->touches.size();
-                    for(int i = 0; i < (int)touchSimulationState->touches.size(); i++)
-                    {
-                        if(touchSimulationState->touches.count(i) == 0)
-                        {
-                            newId = i;
-                            break;
-                        }
-                    }
-                    touchSimulationState->draggingId = newId;
-                    touchSimulationState->touches.emplace(newId,
-                                                          TouchSimulationTouch(newId, newX, newY));
-                    return std::make_shared<TouchDownEvent>(newX, newY, 0.0f, 0.0f, newId, 0.5f);
-                }
-                break;
-            }
-            return std::make_shared<MouseDownEvent>(
-                (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
-#endif
-        }
-        case SDL_MOUSEBUTTONUP:
-        {
-#ifdef __ANDROID__
-            break;
-#else
-            if(SDLEvent.button.which == SDL_TOUCH_MOUSEID)
-                break;
-            MouseButton button = translateButton(SDLEvent.button.button);
-            buttonState = static_cast<MouseButton>(buttonState & ~button); // clear bit
-            if(touchSimulationState)
-            {
-                float newX = (float)SDLEvent.button.x / (float)xResInternal * 2 - 1;
-                float newY = (float)SDLEvent.button.y / (float)yResInternal * 2 - 1;
-                if(touchSimulationState->draggingId >= 0)
-                {
-                    TouchSimulationTouch &touch =
-                        touchSimulationState->touches.at(touchSimulationState->draggingId);
-                    float oldX = touch.x;
-                    float oldY = touch.y;
-                    touch.x = newX;
-                    touch.y = newY;
-                    int touchId = touchSimulationState->draggingId;
-                    if(button == MouseButton_Left && buttonState == MouseButton_None)
-                    {
-                        touchSimulationState->touches.erase(touchId);
-                        touchSimulationState->draggingId = -1;
-                        return std::make_shared<TouchUpEvent>(
-                            newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
-                    }
-                    else if(buttonState == MouseButton_None)
-                    {
-                        touchSimulationState->draggingId = -1;
-                    }
-                    return std::make_shared<TouchMoveEvent>(
-                        newX, newY, newX - oldX, newY - oldY, touchId, 0.5f);
-                }
-                break;
-            }
-            return std::make_shared<MouseUpEvent>(
-                (float)SDLEvent.button.x, (float)SDLEvent.button.y, 0.0f, 0.0f, button);
-#endif
-        }
-        case SDL_FINGERMOTION:
-            if(touchSimulationState)
-                break;
-            return std::make_shared<TouchMoveEvent>(
-                SDLEvent.tfinger.x * 2 - 1,
-                SDLEvent.tfinger.y * 2 - 1,
-                SDLEvent.tfinger.dx * 2,
-                SDLEvent.tfinger.dy * 2,
-                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
-                SDLEvent.tfinger.pressure);
-        case SDL_FINGERDOWN:
-            if(touchSimulationState)
-                break;
-            return std::make_shared<TouchDownEvent>(
-                SDLEvent.tfinger.x * 2 - 1,
-                SDLEvent.tfinger.y * 2 - 1,
-                SDLEvent.tfinger.dx * 2,
-                SDLEvent.tfinger.dy * 2,
-                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, false),
-                SDLEvent.tfinger.pressure);
-        case SDL_FINGERUP:
-            if(touchSimulationState)
-                break;
-            return std::make_shared<TouchUpEvent>(
-                SDLEvent.tfinger.x * 2 - 1,
-                SDLEvent.tfinger.y * 2 - 1,
-                SDLEvent.tfinger.dx * 2,
-                SDLEvent.tfinger.dy * 2,
-                translateTouch(SDLEvent.tfinger.touchId, SDLEvent.tfinger.fingerId, true),
-                SDLEvent.tfinger.pressure);
-        case SDL_JOYAXISMOTION:
-        case SDL_JOYBALLMOTION:
-        case SDL_JOYHATMOTION:
-        case SDL_JOYBUTTONDOWN:
-        case SDL_JOYBUTTONUP:
-            // TODO (jacob#): handle joysticks
-            break;
-        case SDL_WINDOWEVENT:
-        {
-            switch(SDLEvent.window.event)
-            {
-            case SDL_WINDOWEVENT_MINIMIZED:
-            case SDL_WINDOWEVENT_HIDDEN:
-                if(!Display::paused())
-                {
-                    return std::make_shared<PauseEvent>();
-                }
-                break;
-            case SDL_WINDOWEVENT_MAXIMIZED:
-            case SDL_WINDOWEVENT_RESTORED:
-            case SDL_WINDOWEVENT_SHOWN:
-                if(Display::paused())
-                {
-                    return std::make_shared<ResumeEvent>();
-                }
-                break;
-            }
-            break;
-        }
-        case SDL_QUIT:
-            return std::make_shared<QuitEvent>();
-        case SDL_SYSWMEVENT:
-            // TODO (jacob#): handle SDL_SYSWMEVENT
-            break;
-        case SDL_TEXTEDITING:
-        {
-            std::string text = SDLEvent.edit.text;
-            return std::make_shared<TextEditEvent>(
-                string_cast<std::wstring>(text), SDLEvent.edit.start, SDLEvent.edit.length);
-        }
-        case SDL_TEXTINPUT:
-        {
-            std::string text = SDLEvent.text.text;
-            return std::make_shared<TextInputEvent>(string_cast<std::wstring>(text));
-        }
-        }
     }
+    return nullptr;
 }
 
 namespace
