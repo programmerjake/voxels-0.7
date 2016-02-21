@@ -3743,7 +3743,7 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
 #if 1
     if(haveOpenGLBuffersWithoutMap)
     {
-        const std::size_t bufferCount = 8;
+        const std::size_t bufferCount = 32;
         static GLuint buffers[bufferCount];
         static std::size_t bufferSizes[bufferCount];
         static bool didGenerateBuffers = false;

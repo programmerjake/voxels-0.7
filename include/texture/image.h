@@ -271,9 +271,7 @@ private:
 
 inline Image whiteTexture()
 {
-    static Image retval;
-    if(retval == nullptr)
-        retval = Image(GrayscaleI(0xFF));
+    static Image retval = Image(GrayscaleI(0xFF));
     return retval;
 }
 }

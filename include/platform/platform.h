@@ -315,6 +315,10 @@ public:
             return 0;
         return impCapacity(imp);
     }
+    bool hasStorage() const
+    {
+        return imp != nullptr;
+    }
     bool empty() const
     {
         if(imp == nullptr)
