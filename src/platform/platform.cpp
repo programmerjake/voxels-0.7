@@ -410,18 +410,31 @@ namespace voxels
 {
 namespace
 {
-char *getPreferencesPath()
+std::string *getPreferencesPath()
 {
     startSDL();
-    return SDL_GetPrefPath("programmerjake", "voxels");
+    char *retval = SDL_GetPrefPath("programmerjake", "voxels");
+#ifdef __ANDROID__
+    if(!retval)
+    {
+        auto internalStoragePath = SDL_AndroidGetInternalStoragePath();
+        if(internalStoragePath)
+        {
+            return new std::string(std::string(internalStoragePath) + "/");
+        }
+    }
+#endif
+    if(retval)
+        return new std::string(retval);
+    return nullptr;
 }
 
 std::wstring makeUserSpecificFilePath(std::wstring name)
 {
-    static char *preferencesPath = getPreferencesPath();
+    static std::string *preferencesPath = getPreferencesPath();
     if(!preferencesPath)
         return name;
-    return string_cast<std::wstring>(preferencesPath) + name;
+    return string_cast<std::wstring>(*preferencesPath) + name;
 }
 }
 
