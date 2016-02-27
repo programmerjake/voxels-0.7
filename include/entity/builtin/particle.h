@@ -35,27 +35,28 @@ namespace Entities
 {
 namespace builtin
 {
-
 class Particle : public EntityDescriptor
 {
 public:
     const bool collideWithBlocks;
     const VectorF gravity;
     const float extent;
+
 protected:
     struct ParticleData
     {
         friend class Particle;
+
     private:
         double time = 0.0f;
+
     public:
         double getTime() const
         {
             return time;
         }
         const float existDuration;
-        ParticleData(float existDuration)
-            : existDuration(existDuration)
+        ParticleData(float existDuration) : existDuration(existDuration)
         {
         }
         virtual ~ParticleData() = default;
@@ -89,33 +90,61 @@ protected:
         assert(data != nullptr);
         return *static_cast<ParticleData *>(data.get());
     }
+
 public:
-    Particle(std::wstring name, std::vector<TextureDescriptor> frames, float framesPerSecond, bool loop = false, bool collideWithBlocks = true, VectorF gravity = VectorF(0), float extent = 1.0f / 12.0f)
-        : EntityDescriptor(name), collideWithBlocks(collideWithBlocks), gravity(gravity), extent(extent), frames(std::move(frames)), framesPerSecond(framesPerSecond), loop(loop)
+    Particle(std::wstring name,
+             std::vector<TextureDescriptor> frames,
+             float framesPerSecond,
+             bool loop = false,
+             bool collideWithBlocks = true,
+             VectorF gravity = VectorF(0),
+             float extent = 1.0f / 12.0f)
+        : EntityDescriptor(name),
+          collideWithBlocks(collideWithBlocks),
+          gravity(gravity),
+          extent(extent),
+          frames(std::move(frames)),
+          framesPerSecond(framesPerSecond),
+          loop(loop)
     {
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(
+        Entity &entity,
+        PositionF position,
+        VectorF velocity,
+        std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
         if(!collideWithBlocks)
         {
             return PhysicsObject::makeEmpty(position, velocity, physicsWorld, gravity);
         }
-        return PhysicsObject::makeCylinder(position, velocity,
-                                           gravity != VectorF(0), false,
-                                           extent, extent,
-                                           PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1, gravity),
-                                           physicsWorld);
+        return PhysicsObject::makeCylinder(
+            position,
+            velocity,
+            gravity != VectorF(0),
+            false,
+            extent,
+            extent,
+            PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1, gravity),
+            physicsWorld);
     }
-    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
+    virtual void makeData(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager) const override
     {
         if(!entity.data)
             entity.data = std::shared_ptr<void>(new ParticleData(getExistDuration(world)));
     }
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const override
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(extent)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        return Transform::translate(-0.5f, -0.5f, -0.5f)
+            .concat(Transform::scale(extent))
+            .concat(Transform::translate(entity.physicsObject->getPosition()));
     }
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
+    virtual void moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const override
     {
         ParticleData &data = getParticleData(entity.data);
         data.time += deltaTime;
@@ -124,7 +153,10 @@ public:
             entity.destroy();
         }
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override
+    virtual void render(Entity &entity,
+                        Mesh &dest,
+                        RenderLayer rl,
+                        const Transform &cameraToWorldMatrix) const override
     {
         if(rl != RenderLayer::Opaque)
             return;
@@ -136,8 +168,8 @@ public:
             return;
         TextureDescriptor frame = frames[frameIndex];
 
-        VectorF upVector = cameraToWorldMatrix.applyNoTranslate(VectorF(0, extent, 0));
-        VectorF rightVector = cameraToWorldMatrix.applyNoTranslate(VectorF(extent, 0, 0));
+        VectorF upVector = cameraToWorldMatrix.normalMatrix.applyNoTranslate(VectorF(0, extent, 0));
+        VectorF rightVector = cameraToWorldMatrix.normalMatrix.applyNoTranslate(VectorF(extent, 0, 0));
         VectorF center = entity.physicsObject->getPosition();
 
         VectorF nxny = center - upVector - rightVector;
@@ -145,14 +177,9 @@ public:
         VectorF pxny = center - upVector + rightVector;
         VectorF pxpy = center + upVector + rightVector;
         ColorF c = colorizeColor(static_cast<float>(time));
-        dest.append(Generate::quadrilateral(frame,
-                                            nxny, c,
-                                            pxny, c,
-                                            pxpy, c,
-                                            nxpy, c));
+        dest.append(Generate::quadrilateral(frame, nxny, c, pxny, c, pxpy, c, nxpy, c));
     }
 };
-
 }
 }
 }

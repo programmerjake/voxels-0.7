@@ -147,7 +147,7 @@ private:
     Image backgroundCameraTexture;
     Image backgroundCameraBuffer;
     std::unique_ptr<VirtualRealityCallbacks> virtualRealityCallbacks;
-    Matrix overridingViewMatrix = Matrix();
+    Transform overridingViewMatrix = Transform();
     bool viewMatrixOverridden = false;
     std::weak_ptr<ImageElement> crosshairsW;
     void addUi();
@@ -202,7 +202,7 @@ private:
             pressJumpCount = 0;
         }
     }
-    void handleSetViewMatrix(Matrix viewMatrix);
+    void handleSetViewMatrix(Transform viewMatrix);
 
 public:
     std::atomic<float> blockDestructProgress;
@@ -265,7 +265,7 @@ public:
                 virtualRealityCallbacks->move(
                     deltaTime,
                     player->getViewTransform(),
-                    [this, &needSetViewDirection, crosshairs](Matrix viewMatrix)
+                    [this, &needSetViewDirection, crosshairs](Transform viewMatrix)
                     {
                         handleSetViewMatrix(viewMatrix);
                         if(!viewMatrixOverridden)

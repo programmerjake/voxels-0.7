@@ -43,39 +43,50 @@ namespace builtin
 class EntityItem final : public EntityDescriptor
 {
     EntityItem(const EntityItem &) = delete;
-    EntityItem &operator =(const EntityItem &) = delete;
+    EntityItem &operator=(const EntityItem &) = delete;
+
 private:
     const enum_array<Mesh, RenderLayer> meshes;
     const bool renderDynamic;
-    const Matrix preorientSelectionBoxTransform;
+    const Transform preorientSelectionBoxTransform;
     static constexpr float baseSize = 0.5f, extraHeight = 0.1f;
     static std::wstring makeName(ItemDescriptorPointer itemDescriptor)
     {
         return L"builtin.item(itemDescriptor=" + itemDescriptor->name + L")";
     }
+
 public:
     const ItemDescriptorPointer itemDescriptor;
-    EntityItem(ItemDescriptorPointer itemDescriptor, enum_array<Mesh, RenderLayer> meshes, Matrix preorientSelectionBoxTransform)
+    EntityItem(ItemDescriptorPointer itemDescriptor,
+               enum_array<Mesh, RenderLayer> meshes,
+               Transform preorientSelectionBoxTransform)
         : EntityDescriptor(makeName(itemDescriptor)),
-          meshes(meshes), renderDynamic(false),
+          meshes(meshes),
+          renderDynamic(false),
           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
           itemDescriptor(itemDescriptor)
     {
     }
-    EntityItem(ItemDescriptorPointer itemDescriptor, Matrix preorientSelectionBoxTransform)
+    EntityItem(ItemDescriptorPointer itemDescriptor, Transform preorientSelectionBoxTransform)
         : EntityDescriptor(makeName(itemDescriptor)),
-          meshes(), renderDynamic(true),
+          meshes(),
+          renderDynamic(true),
           preorientSelectionBoxTransform(preorientSelectionBoxTransform),
           itemDescriptor(itemDescriptor)
     {
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override;
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(
+        Entity &entity,
+        PositionF position,
+        VectorF velocity,
+        std::shared_ptr<PhysicsWorld> physicsWorld) const override;
+
 private:
     struct ItemData final
     {
         ItemData(const ItemData &) = default;
         ItemData(ItemData &&) = default;
-        ItemData &operator =(const ItemData &) = delete;
+        ItemData &operator=(const ItemData &) = delete;
         float angle = 0, bobPhase = 0;
         double timeLeft = 5 * 60;
         double ignorePlayerTime = 0;
@@ -90,26 +101,32 @@ private:
             angle = distribution(generator);
             bobPhase = distribution(generator);
         }
-        ItemData(uint32_t seed, ItemStack itemStack)
-            : itemStack(itemStack)
+        ItemData(uint32_t seed, ItemStack itemStack) : itemStack(itemStack)
         {
             init(seed);
         }
-        ItemData(uint32_t seed, ItemStack itemStack, std::weak_ptr<Player> ignorePlayer, double ignorePlayerTime)
+        ItemData(uint32_t seed,
+                 ItemStack itemStack,
+                 std::weak_ptr<Player> ignorePlayer,
+                 double ignorePlayerTime)
             : ignorePlayerTime(ignorePlayerTime), ignorePlayer(ignorePlayer), itemStack(itemStack)
         {
             init(seed);
         }
-        ItemData(float angle, float bobPhase,
-                 double timeLeft, double ignorePlayerTime,
-                 std::weak_ptr<Player> ignorePlayer, bool followingPlayer, ItemStack itemStack)
+        ItemData(float angle,
+                 float bobPhase,
+                 double timeLeft,
+                 double ignorePlayerTime,
+                 std::weak_ptr<Player> ignorePlayer,
+                 bool followingPlayer,
+                 ItemStack itemStack)
             : angle(angle),
-            bobPhase(bobPhase),
-            timeLeft(timeLeft),
-            ignorePlayerTime(ignorePlayerTime),
-            ignorePlayer(ignorePlayer),
-            followingPlayer(followingPlayer),
-            itemStack(itemStack)
+              bobPhase(bobPhase),
+              timeLeft(timeLeft),
+              ignorePlayerTime(ignorePlayerTime),
+              ignorePlayer(ignorePlayer),
+              followingPlayer(followingPlayer),
+              itemStack(itemStack)
         {
         }
         void write(stream::Writer &writer) const;
@@ -125,9 +142,10 @@ private:
         assert(retval != nullptr);
         return retval;
     }
-    static Matrix getTransform(const std::shared_ptr<ItemData> &data)
+    static Transform getTransform(const std::shared_ptr<ItemData> &data)
     {
-        return Matrix::rotateY(data->angle).concat(Matrix::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
+        return Transform::rotateY(data->angle)
+            .concat(Transform::translate(0, extraHeight / 2 * std::sin(data->bobPhase), 0));
     }
     bool ignorePlayer(Entity &entity, std::shared_ptr<Player> player) const
     {
@@ -136,23 +154,34 @@ private:
             return true;
         return false;
     }
+
 public:
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override
+    virtual void render(Entity &entity,
+                        Mesh &dest,
+                        RenderLayer rl,
+                        const Transform &cameraToWorldMatrix) const override
     {
         std::shared_ptr<ItemData> data = getItemData(entity);
-        Matrix tform = getTransform(data).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        Transform tform =
+            getTransform(data).concat(Transform::translate(entity.physicsObject->getPosition()));
         if(renderDynamic)
             itemDescriptor->entityRender(data->itemStack.item, tform, dest, rl);
         else
             dest.append(transform(tform, meshes[rl]));
     }
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    virtual void moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const override;
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const override
     {
         std::shared_ptr<ItemData> data = getItemData(entity);
-        return preorientSelectionBoxTransform.concat(getTransform(data)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        return preorientSelectionBoxTransform.concat(getTransform(data))
+            .concat(Transform::translate(entity.physicsObject->getPosition()));
     }
-    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
+    virtual void makeData(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager) const override
     {
         assert(getItemData(entity) != nullptr);
     }
@@ -160,17 +189,26 @@ public:
     {
         return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack));
     }
-    static std::shared_ptr<void> makeItemDataIgnorePlayer(ItemStack itemStack, World &world, std::weak_ptr<Player> player, double ignoreTime = 1)
+    static std::shared_ptr<void> makeItemDataIgnorePlayer(ItemStack itemStack,
+                                                          World &world,
+                                                          std::weak_ptr<Player> player,
+                                                          double ignoreTime = 1)
     {
-        return std::shared_ptr<void>(new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
+        return std::shared_ptr<void>(
+            new ItemData(world.getRandomGenerator()(), itemStack, player, ignoreTime));
     }
     static constexpr float dropSpeed = 3;
-    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const override
+    virtual void write(PositionF position,
+                       VectorF velocity,
+                       std::shared_ptr<void> data,
+                       stream::Writer &writer) const override
     {
         ItemData itemData = *getItemData(data);
         stream::write<ItemData>(writer, itemData);
     }
-    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override
+    virtual std::shared_ptr<void> read(PositionF position,
+                                       VectorF velocity,
+                                       stream::Reader &reader) const override
     {
         ItemData itemData = stream::read<ItemData>(reader);
         return std::shared_ptr<void>(new ItemData(itemData));

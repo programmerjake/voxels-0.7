@@ -87,9 +87,9 @@ public:
     {
         getTileData(entity);
     }
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const override
     {
-        return Matrix::identity();
+        return Transform::identity();
     }
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
     {
@@ -116,7 +116,7 @@ public:
         }
         (block->*moveHandler)(data.expectedBlock, bi, world, lock_manager, deltaTime);
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, const Transform &cameraToWorldMatrix) const override
     {
     }
     void addToWorld(World &world, WorldLockManager &lock_manager, PositionI position, Block block, std::atomic_bool *hasEntity = nullptr) const

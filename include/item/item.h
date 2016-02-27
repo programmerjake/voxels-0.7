@@ -59,8 +59,8 @@ public:
         return entity;
     }
 protected:
-    explicit ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform);
-    explicit ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform);
+    explicit ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Transform entityPreorientSelectionBoxTransform);
+    explicit ItemDescriptor(std::wstring name, Transform entityPreorientSelectionBoxTransform);
 public:
     virtual ~ItemDescriptor();
     static constexpr float minRenderZ = 0.75f, maxRenderZ = 1.0f;
@@ -99,7 +99,7 @@ public:
     {
         return 10.0f;
     }
-    virtual void entityRender(Item item, Matrix tform, Mesh &mesh, RenderLayer rl) const
+    virtual void entityRender(Item item, const Transform &tform, Mesh &mesh, RenderLayer rl) const
     {
         UNREACHABLE();
     }

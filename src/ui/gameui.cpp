@@ -44,9 +44,9 @@ namespace
 Mesh makeSelectionMesh()
 {
     TextureDescriptor td = TextureAtlas::Selection.td();
-    return transform(Matrix::translate(-0.5, -0.5, -0.5)
-                         .concat(Matrix::scale(1.01))
-                         .concat(Matrix::translate(0.5, 0.5, 0.5)),
+    return transform(Transform::translate(-0.5, -0.5, -0.5)
+                         .concat(Transform::scale(1.01))
+                         .concat(Transform::translate(0.5, 0.5, 0.5)),
                      Generate::unitBox(td, td, td, td, td, td));
 }
 Mesh getSelectionMesh()
@@ -69,54 +69,54 @@ std::vector<Mesh> makeDestructionMeshes()
     {
         TextureDescriptor td = TextureAtlas::Delete(i).td();
         destructionMeshes.emplace_back();
-        destructionMeshes.back().append(transform(Matrix::translate(-0.52, -0.5, -0.5)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.52, -0.5, -0.5)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(td,
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.48, -0.5, -0.5)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.48, -0.5, -0.5)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(TextureDescriptor(),
                                                                     td,
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.52, -0.5)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.5, -0.52, -0.5)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     td,
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.48, -0.5)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.5, -0.48, -0.5)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     td,
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.52)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.5, -0.5, -0.52)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     td,
                                                                     TextureDescriptor())));
-        destructionMeshes.back().append(transform(Matrix::translate(-0.5, -0.5, -0.48)
-                                                      .concat(Matrix::scale(0.99f))
-                                                      .concat(Matrix::translate(0.5, 0.5, 0.5)),
+        destructionMeshes.back().append(transform(Transform::translate(-0.5, -0.5, -0.48)
+                                                      .concat(Transform::scale(0.99f))
+                                                      .concat(Transform::translate(0.5, 0.5, 0.5)),
                                                   Generate::unitBox(TextureDescriptor(),
                                                                     TextureDescriptor(),
                                                                     TextureDescriptor(),
@@ -142,7 +142,7 @@ Mesh getDestructionMesh(float progress)
     return meshes[index];
 }
 void renderSunOrMoon(Renderer &renderer,
-                     Matrix orientationTransform,
+                     Transform orientationTransform,
                      VectorF position,
                      TextureDescriptor td,
                      float extent = 0.1f)
@@ -171,7 +171,7 @@ void GameUi::clear(Renderer &renderer)
     PositionF playerPosition = player->getPosition();
     background = world->getSkyColor(playerPosition);
     Ui::clear(renderer);
-    Matrix tform = player->getViewTransform();
+    Transform tform = player->getViewTransform();
     if(viewPoint)
     {
         viewPoint->setPosition(playerPosition);
@@ -285,7 +285,7 @@ void GameUi::clear(Renderer &renderer)
     Mesh additionalObjects;
     if(collision.valid())
     {
-        Matrix selectionBoxTransform;
+        Transform selectionBoxTransform;
         bool drawSelectionBox = false;
         bool drawDestructionBox = false;
         switch(collision.type)
@@ -297,7 +297,7 @@ void GameUi::clear(Renderer &renderer)
             if(b.good())
             {
                 selectionBoxTransform = b.descriptor->getSelectionBoxTransform(b)
-                                            .concat(Matrix::translate(collision.blockPosition));
+                                            .concat(Transform::translate(collision.blockPosition));
                 drawSelectionBox = true;
                 drawDestructionBox = true;
             }
@@ -1130,7 +1130,7 @@ void GameUi::startMainMenu()
     setDialog(mainMenu);
 }
 
-void GameUi::handleSetViewMatrix(Matrix viewMatrix)
+void GameUi::handleSetViewMatrix(Transform viewMatrix)
 {
 #if 1
     overridingViewMatrix = viewMatrix;

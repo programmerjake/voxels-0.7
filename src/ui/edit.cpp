@@ -388,19 +388,19 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
         translatedUnderlineMinX = 0; // clip to text box bounds
     if(translatedUnderlineMaxX > visibleTextWidth)
         translatedUnderlineMaxX = visibleTextWidth; // clip to text box bounds
-    Matrix textTransform = Matrix::translate(0, -0.5f * textHeight, 0.0f).concat(Matrix::scale(scale)).concat(Matrix::translate(minX, controlCenterY, -1.0f));
+    Transform textTransform = Transform::translate(0, -0.5f * textHeight, 0.0f).concat(Transform::scale(scale)).concat(Transform::translate(minX, controlCenterY, -1.0f));
     Mesh mesh = Generate::quadrilateral(TextureAtlas::Blank.td(),
                                         VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), backgroundColor,
                                         VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), backgroundColor,
                                         VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), backgroundColor,
                                         VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), backgroundColor);
-    Mesh textMesh = transform(Matrix::translate(-visibleTextLeft, 0, 0), Text::mesh(filteredText, textColor, textProperties));
+    Mesh textMesh = transform(Transform::translate(-visibleTextLeft, 0, 0), Text::mesh(filteredText, textColor, textProperties));
     textMesh = cutAndGetBack(textMesh, VectorF(1, 0, 0), -visibleTextWidth);
     textMesh = cutAndGetBack(textMesh, VectorF(-1, 0, 0), 0);
-    mesh.append(transform(textTransform.concat(Matrix::scale(textZ)), textMesh));
+    mesh.append(transform(textTransform.concat(Transform::scale(textZ)), textMesh));
     if(currentEditingText != L"")
     {
-        mesh.append(transform(textTransform.concat(Matrix::scale(underlineZ)),
+        mesh.append(transform(textTransform.concat(Transform::scale(underlineZ)),
                               Generate::quadrilateral(TextureAtlas::Blank.td(),
                                       VectorF(translatedUnderlineMinX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
                                       VectorF(translatedUnderlineMaxX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
@@ -409,7 +409,7 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     }
     if(cursorOn)
     {
-        mesh.append(transform(textTransform.concat(Matrix::scale(cursorZ)),
+        mesh.append(transform(textTransform.concat(Transform::scale(cursorZ)),
                               Generate::quadrilateral(TextureAtlas::Blank.td(),
                                       VectorF(cursorMinX - visibleTextLeft, cursorMinY, 0.0f), cursorColor,
                                       VectorF(cursorMaxX - visibleTextLeft, cursorMinY, 0.0f), cursorColor,

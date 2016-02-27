@@ -54,7 +54,7 @@ class Renderer final
     Renderer &operator=(const Renderer &) = delete;
 private:
     struct Implementation;
-    void render(const Mesh &m, Matrix tform);
+    void render(const Mesh &m, const Transform &tform);
     void render(const MeshBuffer &m);
     Renderer(std::shared_ptr<Implementation> implementation)
         : currentRenderLayer(RenderLayer::Opaque), implementation(std::move(implementation))
@@ -87,7 +87,7 @@ public:
     static Renderer make();
     Renderer &operator<<(const Mesh &m)
     {
-        render(m, Matrix::identity());
+        render(m, Transform::identity());
         return *this;
     }
     Renderer &operator<<(TransformedMesh m)

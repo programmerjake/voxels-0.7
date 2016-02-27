@@ -88,9 +88,10 @@ public:
     }
     virtual void render(Renderer &renderer)
     {
-
     }
-    virtual void move(double deltaTime, Matrix originalViewMatrix, std::function<void(Matrix viewMatrix)> setViewMatrix) = 0;
+    virtual void move(double deltaTime,
+                      Transform originalViewTransform,
+                      std::function<void(Transform viewMatrix)> setViewMatrix) = 0;
     static std::unique_ptr<VirtualRealityCallbacks> make();
 };
 }

@@ -184,7 +184,7 @@ protected:
         bool drewAny = false;
         ColorF colorizeColor;
         float nxnz = 1, nxpz = 1, pxnz = 1, pxpz = 1;
-        Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+        Transform tform = Transform::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
         blockMesh.clear();
         for(BlockFace bf : enum_traits<BlockFace>())
@@ -205,7 +205,8 @@ protected:
                 const VectorF p5 = VectorF(1, 0, 1);
                 const VectorF p6 = VectorF(0, nxpz, 1);
                 const VectorF p7 = VectorF(1, pxpz, 1);
-                blockMesh.triangles.reserve(12);
+                blockMesh.indexedTriangles.reserve(12);
+                blockMesh.vertices.reserve(24);
                 TextureDescriptor nx = td;
                 TextureDescriptor px = td;
                 TextureDescriptor ny = td;

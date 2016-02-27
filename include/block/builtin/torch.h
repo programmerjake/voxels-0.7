@@ -45,36 +45,36 @@ public:
                          float torchHeight = 10.0f / 16.0f,
                          float torchWidth = 2.0f / 16.0f)
     {
-        Mesh mesh = transform(Matrix::translate(-0.5f, 0, -0.5f)
-                                  .concat(Matrix::scale(torchWidth, torchHeight, torchWidth)),
+        Mesh mesh = transform(Transform::translate(-0.5f, 0, -0.5f)
+                                  .concat(Transform::scale(torchWidth, torchHeight, torchWidth)),
                               Generate::unitBox(TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 bottomTexture,
                                                 topTexture,
                                                 TextureDescriptor(),
                                                 TextureDescriptor()));
-        mesh.append(transform(Matrix::translate(-0.5f * torchWidth, 0, -0.5f),
+        mesh.append(transform(Transform::translate(-0.5f * torchWidth, 0, -0.5f),
                               Generate::unitBox(sideTexture,
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor())));
-        mesh.append(transform(Matrix::translate(-1.0f + 0.5f * torchWidth, 0, -0.5f),
+        mesh.append(transform(Transform::translate(-1.0f + 0.5f * torchWidth, 0, -0.5f),
                               Generate::unitBox(TextureDescriptor(),
                                                 sideTexture,
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor())));
-        mesh.append(transform(Matrix::translate(-0.5f, 0, -0.5f * torchWidth),
+        mesh.append(transform(Transform::translate(-0.5f, 0, -0.5f * torchWidth),
                               Generate::unitBox(TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 sideTexture,
                                                 TextureDescriptor())));
-        mesh.append(transform(Matrix::translate(-0.5f, 0, -1.0f + 0.5f * torchWidth),
+        mesh.append(transform(Transform::translate(-0.5f, 0, -1.0f + 0.5f * torchWidth),
                               Generate::unitBox(TextureDescriptor(),
                                                 TextureDescriptor(),
                                                 TextureDescriptor(),
@@ -83,29 +83,29 @@ public:
                                                 sideTexture)));
         return std::move(mesh);
     }
-    static Matrix makeTorchBlockTransform(BlockFace attachedToFace,
-                                          float torchHeight = 10.0f / 16.0f,
-                                          float torchWidth = 2.0f / 16.0f)
+    static Transform makeTorchBlockTransform(BlockFace attachedToFace,
+                                             float torchHeight = 10.0f / 16.0f,
+                                             float torchWidth = 2.0f / 16.0f)
     {
         const double rotateAngle = 1.2 - M_PI / 2.0;
         switch(attachedToFace)
         {
         case BlockFace::NX:
-            return Matrix::rotateZ(rotateAngle)
-                .concat(Matrix::translate(0, 0.5f - 0.5f * torchHeight, 0.5f));
+            return Transform::rotateZ(rotateAngle)
+                .concat(Transform::translate(0, 0.5f - 0.5f * torchHeight, 0.5f));
         case BlockFace::PX:
-            return Matrix::rotateZ(-rotateAngle)
-                .concat(Matrix::translate(1, 0.5f - 0.5f * torchHeight, 0.5f));
+            return Transform::rotateZ(-rotateAngle)
+                .concat(Transform::translate(1, 0.5f - 0.5f * torchHeight, 0.5f));
         case BlockFace::PZ:
-            return Matrix::rotateX(rotateAngle)
-                .concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 1));
+            return Transform::rotateX(rotateAngle)
+                .concat(Transform::translate(0.5f, 0.5f - 0.5f * torchHeight, 1));
         case BlockFace::NZ:
-            return Matrix::rotateX(-rotateAngle)
-                .concat(Matrix::translate(0.5f, 0.5f - 0.5f * torchHeight, 0));
+            return Transform::rotateX(-rotateAngle)
+                .concat(Transform::translate(0.5f, 0.5f - 0.5f * torchHeight, 0));
         case BlockFace::PY:
-            return Matrix::rotateX(M_PI).concat(Matrix::translate(0.5f, 1.0f, 0.5f));
+            return Transform::rotateX(M_PI).concat(Transform::translate(0.5f, 1.0f, 0.5f));
         default: // NY
-            return Matrix::translate(0.5f, 0, 0.5f);
+            return Transform::translate(0.5f, 0, 0.5f);
         }
     }
     static VectorF makeTorchHeadPosition(float torchHeight = 10.0f / 16.0f,
@@ -128,7 +128,7 @@ public:
                               float torchWidth = 2.0f / 16.0f)
     {
         Mesh mesh = makeMesh(bottomTexture, sideTexture, topTexture, torchHeight, torchWidth);
-        Matrix tform = makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth);
+        Transform tform = makeTorchBlockTransform(attachedToFace, torchHeight, torchWidth);
         return transform(tform, std::move(mesh));
     }
 
@@ -161,7 +161,7 @@ protected:
         return retval + L")";
     }
     const std::pair<VectorF, VectorF> rayCollisionBox;
-    static std::pair<VectorF, VectorF> makeRayCollisionBox(Matrix torchBlockTransform,
+    static std::pair<VectorF, VectorF> makeRayCollisionBox(const Transform &torchBlockTransform,
                                                            float torchHeight,
                                                            float torchWidth)
     {
@@ -279,10 +279,10 @@ public:
         return RayCasting::Collision(
             world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(boxHitFace));
     }
-    virtual Matrix getSelectionBoxTransform(const Block &block) const override
+    virtual Transform getSelectionBoxTransform(const Block &block) const override
     {
-        return Matrix::scale(std::get<1>(rayCollisionBox) - std::get<0>(rayCollisionBox))
-            .concat(Matrix::translate(std::get<0>(rayCollisionBox)));
+        return Transform::scale(std::get<1>(rayCollisionBox) - std::get<0>(rayCollisionBox))
+            .concat(Transform::translate(std::get<0>(rayCollisionBox)));
     }
     virtual bool isReplaceableByFluid() const override
     {

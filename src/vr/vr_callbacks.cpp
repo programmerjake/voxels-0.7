@@ -90,14 +90,18 @@ public:
     }
     virtual void render(Renderer &renderer)
     {
-
     }
-    virtual void move(double deltaTime, Matrix originalViewMatrix, std::function<void(Matrix viewMatrix)> setViewMatrix) override
+    virtual void move(double deltaTime,
+                      Transform originalViewTransorm,
+                      std::function<void(Transform viewMatrix)> setViewMatrix) override
     {
-        Matrix originalCameraToWorldMatrix = inverse(originalViewMatrix);
+        Transform originalCameraToWorldMatrix = inverse(originalViewTransorm);
         static double t = 0;
         t += deltaTime;
-        setViewMatrix(Matrix::translate(-transform(originalCameraToWorldMatrix, VectorF(0))).concat(Matrix::rotateY(t)).concat(Matrix::rotateX(M_PI / 6)).concat(Matrix::translate(0, 0, -20)));
+        setViewMatrix(Transform::translate(-transform(originalCameraToWorldMatrix, VectorF(0)))
+                          .concat(Transform::rotateY(t))
+                          .concat(Transform::rotateX(M_PI / 6))
+                          .concat(Transform::translate(0, 0, -20)));
     }
 };
 }

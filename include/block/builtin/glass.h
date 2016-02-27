@@ -37,10 +37,18 @@ namespace builtin
 class Glass final : public FullBlock
 {
     friend class global_instance_maker<Glass>;
+
 private:
     Glass()
-        : FullBlock(L"builtin.glass", LightProperties(), RayCasting::BlockCollisionMaskGround,
-                    false, false, false, false, false, false)
+        : FullBlock(L"builtin.glass",
+                    LightProperties(),
+                    RayCasting::BlockCollisionMaskGround,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false)
     {
         meshFace[BlockFace::NX] = makeFaceMeshNX(TextureAtlas::Glass.td());
         meshFace[BlockFace::PX] = makeFaceMeshPX(TextureAtlas::Glass.td());
@@ -49,6 +57,7 @@ private:
         meshFace[BlockFace::NZ] = makeFaceMeshNZ(TextureAtlas::Glass.td());
         meshFace[BlockFace::PZ] = makeFaceMeshPZ(TextureAtlas::Glass.td());
     }
+
 public:
     static const Glass *pointer()
     {
@@ -66,7 +75,11 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 0.3f;
@@ -79,21 +92,28 @@ public:
     {
         return true;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
     {
         return nullptr;
     }
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
+    virtual void renderDynamic(
+        const Block &block,
+        Mesh &dest,
+        BlockIterator blockIterator,
+        WorldLockManager &lock_manager,
+        RenderLayer rl,
+        const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
     {
         if(rl != RenderLayer::Opaque)
         {
             return;
         }
         bool drewAny = false;
-        Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+        Transform tform = Transform::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
         Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
         blockMesh.clear();
@@ -113,7 +133,7 @@ public:
                 continue;
             }
             drewAny = true;
-            if(meshFace[bf].size() == 0)
+            if(meshFace[bf].empty())
                 continue;
             faceMesh.clear();
             faceMesh.append(meshFace[bf]);
@@ -126,7 +146,9 @@ public:
             dest.append(transform(tform, blockMesh));
         }
     }
-    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual bool drawsAnythingDynamic(const Block &block,
+                                      BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         for(BlockFace bf : enum_traits<BlockFace>())
         {

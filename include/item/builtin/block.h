@@ -41,33 +41,44 @@ namespace builtin
 class ItemBlock : public ItemDescriptor
 {
     ItemBlock(const ItemBlock &) = delete;
-    ItemBlock &operator =(const ItemBlock &) = delete;
+    ItemBlock &operator=(const ItemBlock &) = delete;
     Mesh mesh;
     BlockDescriptorPointer block;
-    static Matrix getPreorientSelectionBoxTransform()
+    static Transform getPreorientSelectionBoxTransform()
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25f)).concat(Matrix::translate(0, -0.125f, 0));
+        return Transform::translate(-0.5f, -0.5f, -0.5f)
+            .concat(Transform::scale(0.25f))
+            .concat(Transform::translate(0, -0.125f, 0));
     }
     static enum_array<Mesh, RenderLayer> makeMeshes(Mesh mesh)
     {
         enum_array<Mesh, RenderLayer> retval;
-        retval[RenderLayer::Opaque].append(transform(getPreorientSelectionBoxTransform(), std::move(mesh)));
+        retval[RenderLayer::Opaque].append(
+            transform(getPreorientSelectionBoxTransform(), std::move(mesh)));
         return std::move(retval);
     }
+
 protected:
     ItemBlock(std::wstring name, Mesh boxMesh, BlockDescriptorPointer block)
         : ItemDescriptor(name, makeMeshes(boxMesh), getPreorientSelectionBoxTransform()),
-        mesh(),
-        block(block)
+          mesh(),
+          block(block)
     {
-        Matrix tform = Matrix::translate(-0.5f, -0.5f, -0.5f);
-        tform = tform.concat(Matrix::rotateY(-M_PI / 4));
-        tform = tform.concat(Matrix::rotateX(M_PI / 6));
-        tform = tform.concat(Matrix::scale(0.8f / M_SQRT3, 0.8f / M_SQRT3, 0.1f / M_SQRT3));
-        tform = tform.concat(Matrix::translate(0.5f, 0.5f, 0.1f));
+        Transform tform = Transform::translate(-0.5f, -0.5f, -0.5f);
+        tform = tform.concat(Transform::rotateY(-M_PI / 4));
+        tform = tform.concat(Transform::rotateX(M_PI / 6));
+        tform = tform.concat(Transform::scale(0.8f / M_SQRT3, 0.8f / M_SQRT3, 0.1f / M_SQRT3));
+        tform = tform.concat(Transform::translate(0.5f, 0.5f, 0.1f));
         mesh = transform(tform, std::move(boxMesh));
     }
-    ItemBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, BlockDescriptorPointer block)
+    ItemBlock(std::wstring name,
+              TextureDescriptor nx,
+              TextureDescriptor px,
+              TextureDescriptor ny,
+              TextureDescriptor py,
+              TextureDescriptor nz,
+              TextureDescriptor pz,
+              BlockDescriptorPointer block)
         : ItemBlock(name, Generate::unitBox(nx, px, ny, py, nz, pz), block)
     {
     }
@@ -83,15 +94,18 @@ protected:
     {
         return block;
     }
+
 public:
-    static void renderMesh(Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
+    static void renderMesh(
+        Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
     {
-        Matrix tform = Matrix::scale(std::min<float>(maxX - minX, maxY - minY));
-        tform = tform.concat(Matrix::translate(minX, minY, -1));
-        tform = tform.concat(Matrix::scale(maxRenderZ));
+        Transform tform = Transform::scale(std::min<float>(maxX - minX, maxY - minY));
+        tform = tform.concat(Transform::translate(minX, minY, -1));
+        tform = tform.concat(Transform::scale(maxRenderZ));
         dest.append(transform(tform, mesh));
     }
-    virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
+    virtual void render(
+        Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
     {
         renderMesh(dest, minX, maxX, minY, maxY, mesh);
     }
@@ -99,7 +113,10 @@ public:
     {
         return true;
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         if(block == nullptr)
             return item;
@@ -111,9 +128,18 @@ public:
         }
         return item;
     }
-    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override
+    virtual Item onDispenseOrDrop(Item item,
+                                  World &world,
+                                  WorldLockManager &lock_manager,
+                                  PositionI dispensePosition,
+                                  VectorF dispenseDirection,
+                                  bool useSpecialAction) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(item), dispensePosition + VectorF(0.5), dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(item),
+                                   dispensePosition + VectorF(0.5),
+                                   dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
         return Item();
     }
 };

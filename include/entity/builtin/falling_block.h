@@ -39,11 +39,16 @@ class FallingBlock : public EntityDescriptor
 {
 protected:
     Mesh blockMesh;
-    FallingBlock(std::wstring name, Mesh blockMesh)
-        : EntityDescriptor(name), blockMesh(blockMesh)
+    FallingBlock(std::wstring name, Mesh blockMesh) : EntityDescriptor(name), blockMesh(blockMesh)
     {
     }
-    FallingBlock(std::wstring name, TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz)
+    FallingBlock(std::wstring name,
+                 TextureDescriptor nx,
+                 TextureDescriptor px,
+                 TextureDescriptor ny,
+                 TextureDescriptor py,
+                 TextureDescriptor nz,
+                 TextureDescriptor pz)
         : EntityDescriptor(name), blockMesh(Generate::unitBox(nx, px, ny, py, nz, pz))
     {
     }
@@ -55,12 +60,10 @@ protected:
     {
         double timeLeft = 30.0f;
         std::atomic_bool collided;
-        FallingBlockData()
-            : collided(false)
+        FallingBlockData() : collided(false)
         {
         }
-        FallingBlockData(double timeLeft)
-            : timeLeft(timeLeft), collided(false)
+        FallingBlockData(double timeLeft) : timeLeft(timeLeft), collided(false)
         {
         }
     };
@@ -77,15 +80,17 @@ protected:
     struct MyCollisionHandler : public PhysicsCollisionHandler
     {
         std::shared_ptr<std::atomic_bool> collidedPtr;
-        virtual void onCollide(std::shared_ptr<PhysicsObject> collidingObject, std::shared_ptr<PhysicsObject> otherObject) override
+        virtual void onCollide(std::shared_ptr<PhysicsObject> collidingObject,
+                               std::shared_ptr<PhysicsObject> otherObject) override
         {
         }
-        virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject, BlockIterator otherObject, WorldLockManager &lock_manager) override
+        virtual void onCollideWithBlock(std::shared_ptr<PhysicsObject> collidingObject,
+                                        BlockIterator otherObject,
+                                        WorldLockManager &lock_manager) override
         {
             collidedPtr->store(true, std::memory_order_relaxed);
         }
-        MyCollisionHandler(std::shared_ptr<std::atomic_bool> collidedPtr)
-            : collidedPtr(collidedPtr)
+        MyCollisionHandler(std::shared_ptr<std::atomic_bool> collidedPtr) : collidedPtr(collidedPtr)
         {
         }
         MyCollisionHandler(std::shared_ptr<FallingBlockData> data)
@@ -114,8 +119,12 @@ protected:
         b.descriptor->onReplace(world, b, bi, lock_manager);
         world.setBlock(bi, lock_manager, newBlock);
     }
+
 public:
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override
+    virtual void moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const override
     {
         if(getCollided(entity.data).load(std::memory_order_relaxed))
         {
@@ -132,38 +141,70 @@ public:
             return;
         }
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override
+    virtual void render(Entity &entity,
+                        Mesh &dest,
+                        RenderLayer rl,
+                        const Transform &cameraToWorldMatrix) const override
     {
         if(rl != RenderLayer::Opaque)
             return;
-        dest.append(transform(Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.98f)).concat(Matrix::translate(entity.physicsObject->getPosition())), blockMesh));
+        dest.append(
+            transform(Transform::translate(-0.5f, -0.5f, -0.5f)
+                          .concat(Transform::scale(0.98f))
+                          .concat(Transform::translate(entity.physicsObject->getPosition())),
+                      blockMesh));
     }
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const override
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.98f)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        return Transform::translate(-0.5f, -0.5f, -0.5f)
+            .concat(Transform::scale(0.98f))
+            .concat(Transform::translate(entity.physicsObject->getPosition()));
     }
+
 protected:
     virtual void makeData(Entity &entity) const
     {
         if(entity.data == nullptr)
             entity.data = std::shared_ptr<void>(new FallingBlockData);
     }
+
 public:
-    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override
+    virtual void makeData(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager) const override
     {
         makeData(entity);
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(
+        Entity &entity,
+        PositionF position,
+        VectorF velocity,
+        std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
         makeData(entity);
-        std::shared_ptr<PhysicsCollisionHandler> collisionHandler = std::make_shared<MyCollisionHandler>(std::static_pointer_cast<FallingBlockData>(entity.data));
-        return PhysicsObject::makeBox(position, velocity, true, false, VectorF(0.49f), PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1), physicsWorld, collisionHandler);
+        std::shared_ptr<PhysicsCollisionHandler> collisionHandler =
+            std::make_shared<MyCollisionHandler>(
+                std::static_pointer_cast<FallingBlockData>(entity.data));
+        return PhysicsObject::makeBox(
+            position,
+            velocity,
+            true,
+            false,
+            VectorF(0.49f),
+            PhysicsProperties(PhysicsProperties::blockCollisionMask, 0, 0, 1),
+            physicsWorld,
+            collisionHandler);
     }
-    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> dataIn, stream::Writer &writer) const override
+    virtual void write(PositionF position,
+                       VectorF velocity,
+                       std::shared_ptr<void> dataIn,
+                       stream::Writer &writer) const override
     {
         stream::write<float64_t>(writer, getTimeLeft(dataIn));
     }
-    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override
+    virtual std::shared_ptr<void> read(PositionF position,
+                                       VectorF velocity,
+                                       stream::Reader &reader) const override
     {
         double timeLeft = stream::read<float64_t>(reader);
         return std::shared_ptr<void>(new FallingBlockData(timeLeft));

@@ -65,13 +65,13 @@ public:
     }
     static Mesh makeGridMesh(TextureDescriptor td, float insetDistance = 3.0f / 16)
     {
-		Mesh retval = transform(Matrix::scale(1 - 2 * insetDistance, 1, 1)
-                                .concat(Matrix::translate(insetDistance, 0, 0)),
+		Mesh retval = transform(Transform::scale(1 - 2 * insetDistance, 1, 1)
+                                .concat(Transform::translate(insetDistance, 0, 0)),
                                 Generate::unitBox(td, td,
                                                   TextureDescriptor(), TextureDescriptor(),
                                                   TextureDescriptor(), TextureDescriptor()));
-        retval.append(transform(Matrix::scale(1, 1, 1 - 2 * insetDistance)
-                                .concat(Matrix::translate(0, 0, insetDistance)),
+        retval.append(transform(Transform::scale(1, 1, 1 - 2 * insetDistance)
+                                .concat(Transform::translate(0, 0, insetDistance)),
                                 Generate::unitBox(TextureDescriptor(), TextureDescriptor(),
                                                   TextureDescriptor(), TextureDescriptor(),
                                                   td, td)));
@@ -147,9 +147,9 @@ public:
     {
         return ToolLevel_None;
     }
-    virtual Matrix getSelectionBoxTransform(const Block &block) const
+    virtual Transform getSelectionBoxTransform(const Block &block) const
     {
-        return Matrix::scale(1, blockHeight, 1);
+        return Transform::scale(1, blockHeight, 1);
     }
     virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {

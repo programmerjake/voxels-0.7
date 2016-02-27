@@ -771,7 +771,7 @@ inline void runEntityPartScript(
             throw Scripting::ScriptException(L"io.colorA is not a valid value");
         if(doDraw)
             dest.append(
-                colorize(RGBAF(colorR, colorG, colorB, colorA), transform(tform, partMesh)));
+                colorize(RGBAF(colorR, colorG, colorB, colorA), transform(Transform(tform), partMesh)));
     }
     catch(Scripting::ScriptException &e)
     {

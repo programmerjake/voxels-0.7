@@ -28,6 +28,7 @@
 #include <random>
 #include <ostream>
 #include <cstdint>
+#include <utility>
 
 namespace programmerjake
 {
@@ -473,6 +474,29 @@ inline VectorF normalizeNoThrow(const VectorI &v)
 
 constexpr VectorF defaultGravityVector = VectorF(0, -9.8, 0);
 }
+}
+
+namespace std
+{
+template <>
+struct hash<programmerjake::voxels::VectorF> final
+{
+    hash<float> floatHasher;
+    std::size_t operator()(const programmerjake::voxels::VectorF &v) const
+    {
+        return floatHasher(v.x) + 3 * floatHasher(v.y) + 5 * floatHasher(v.z);
+    }
+};
+
+template <>
+struct hash<programmerjake::voxels::VectorI> final
+{
+    hash<std::int32_t> int32Hasher;
+    std::size_t operator()(const programmerjake::voxels::VectorI &v) const
+    {
+        return int32Hasher(v.x) + 8191 * int32Hasher(v.y) + 1021 * int32Hasher(v.z);
+    }
+};
 }
 
 #endif // VECTOR_H

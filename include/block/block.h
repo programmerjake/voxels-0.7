@@ -160,11 +160,9 @@ public:
     {
         BlockLighting bl = lighting;
 
-        for(Triangle &tri : mesh.triangles)
+        for(Vertex &vertex : mesh.vertices)
         {
-            tri.c1 = bl.lightVertex(tri.p1 + offset, tri.c1, tri.n1);
-            tri.c2 = bl.lightVertex(tri.p2 + offset, tri.c2, tri.n2);
-            tri.c3 = bl.lightVertex(tri.p3 + offset, tri.c3, tri.n3);
+            vertex.c = bl.lightVertex(vertex.p + offset, vertex.c, vertex.n);
         }
     }
 public:
@@ -188,10 +186,10 @@ public:
                     continue;
                 }
 
-                if(meshCenter.size() != 0)
+                if(meshCenter.triangleCount() != 0)
                     return true;
 
-                if(meshFace[bf].size() == 0)
+                if(meshFace[bf].triangleCount() == 0)
                     continue;
 
                 return true;
@@ -213,7 +211,7 @@ public:
             }
 
             bool drewAny = false;
-            Matrix tform = Matrix::translate(static_cast<VectorF>(blockIterator.position()));
+            Transform tform = Transform::translate(static_cast<VectorF>(blockIterator.position()));
             Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
             Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
             blockMesh.clear();
@@ -233,7 +231,7 @@ public:
                     continue;
                 }
                 drewAny = true;
-                if(meshFace[bf].size() == 0)
+                if(meshFace[bf].triangleCount() == 0)
                     continue;
                 faceMesh.clear();
                 faceMesh.append(meshFace[bf]);
@@ -273,9 +271,9 @@ public:
     {
         return RayCasting::Collision(world);
     }
-    virtual Matrix getSelectionBoxTransform(const Block &block) const
+    virtual Transform getSelectionBoxTransform(const Block &block) const
     {
-        return Matrix::identity();
+        return Transform::identity();
     }
     virtual void handleToolDamage(Item &tool) const;
     virtual float getBreakDuration(Item tool) const; /// values less than zero mean that this block won't break

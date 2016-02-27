@@ -35,7 +35,7 @@ struct Renderer::Implementation final
 {
     Mesh buffer = Mesh();
     RenderLayer bufferRenderLayer = RenderLayer();
-    Matrix bufferTransform = Matrix::identity();
+    Transform bufferTransform = Transform::identity();
     bool isTransformIdentity = true;
     static bool isBufferSizeBig(std::size_t bufferSize)
     {
@@ -47,31 +47,31 @@ struct Renderer::Implementation final
     }
     void flush()
     {
-        if(buffer.size() != 0)
+        if(buffer.triangleCount() != 0)
         {
-            Display::render(buffer, bufferTransform, bufferRenderLayer);
+            Display::render(buffer, bufferTransform.positionMatrix, bufferRenderLayer);
         }
         buffer.clear();
     }
-    void render(const Mesh &m, Matrix tform, RenderLayer rl)
+    void render(const Mesh &m, const Transform &tform, RenderLayer rl)
     {
-        if(m.size() == 0)
+        if(m.triangleCount() == 0)
             return;
-        if(buffer.size() != 0)
+        if(buffer.triangleCount() != 0)
         {
             if(!buffer.isAppendable(m) || bufferRenderLayer != rl)
             {
                 flush();
             }
-            else if(isBufferSizeBig(buffer.size()))
+            else if(isBufferSizeBig(buffer.triangleCount()))
             {
-                if(isTransformIdentity && isBufferSizeSmall(m.size()))
+                if(isTransformIdentity && isBufferSizeSmall(m.triangleCount()))
                 {
                     buffer.append(m, tform);
                     flush();
                     return;
                 }
-                else if(bufferTransform == tform && isBufferSizeSmall(m.size()))
+                else if(bufferTransform == tform && isBufferSizeSmall(m.triangleCount()))
                 {
                     buffer.append(m);
                     flush();
@@ -92,10 +92,10 @@ struct Renderer::Implementation final
                 buffer.append(m, tform);
                 return;
             }
-            else if(isBufferSizeSmall(buffer.size()))
+            else if(isBufferSizeSmall(buffer.triangleCount()))
             {
                 buffer = Mesh(std::move(buffer), bufferTransform);
-                bufferTransform = Matrix::identity();
+                bufferTransform = Transform::identity();
                 isTransformIdentity = true;
                 buffer.append(m, tform);
                 return;
@@ -105,20 +105,20 @@ struct Renderer::Implementation final
                 flush();
             }
         }
-        assert(buffer.size() == 0);
-        if(isBufferSizeBig(m.size()))
+        assert(buffer.triangleCount() == 0);
+        if(isBufferSizeBig(m.triangleCount()))
         {
-            Display::render(m, tform, rl);
+            Display::render(m, tform.positionMatrix, rl);
             return;
         }
         buffer.append(m);
         bufferTransform = tform;
         bufferRenderLayer = rl;
-        isTransformIdentity = (tform == Matrix::identity());
+        isTransformIdentity = (tform == Transform::identity());
     }
 };
 
-void Renderer::render(const Mesh &m, Matrix tform)
+void Renderer::render(const Mesh &m, const Transform &tform)
 {
     implementation->render(m, tform, currentRenderLayer);
 }
@@ -137,6 +137,261 @@ void Renderer::flush()
 Renderer Renderer::make()
 {
     return Renderer(std::make_shared<Implementation>());
+}
+
+CutMesh cut(const Mesh &mesh, VectorF planeNormal, float planeD)
+{
+    Mesh front, coplanar, back;
+    front.indexedTriangles.reserve(mesh.triangleCount() * 2);
+    coplanar.indexedTriangles.reserve(mesh.triangleCount());
+    back.indexedTriangles.reserve(mesh.triangleCount() * 2);
+    front.vertices.reserve(mesh.vertices.size());
+    coplanar.vertices.reserve(mesh.vertices.size());
+    back.vertices.reserve(mesh.vertices.size());
+    front.image = mesh.image;
+    coplanar.image = mesh.image;
+    back.image = mesh.image;
+    struct VertexTranslations final
+    {
+        bool backValid : 1;
+        bool coplanarValid : 1;
+        bool frontValid : 1;
+        IndexedTriangle::IndexType back;
+        IndexedTriangle::IndexType coplanar;
+        IndexedTriangle::IndexType front;
+        constexpr VertexTranslations()
+            : backValid(false), coplanarValid(false), frontValid(false), back(), coplanar(), front()
+        {
+        }
+    };
+    std::vector<VertexTranslations> vertexTranslations;
+    vertexTranslations.resize(mesh.vertices.size());
+    struct NewVertex final
+    {
+        bool backValid : 1;
+        bool frontValid : 1;
+        IndexedTriangle::IndexType back;
+        IndexedTriangle::IndexType front;
+        Vertex vertex;
+        constexpr NewVertex(Vertex vertex)
+            : backValid(false), frontValid(false), back(), front(), vertex(vertex)
+        {
+        }
+    };
+    std::vector<NewVertex> newVertices;
+    IndexedTriangle::IndexType backVertices[CutTriangle::resultMaxVertexCount];
+    std::size_t backVerticesCount = 0;
+    IndexedTriangle::IndexType frontVertices[CutTriangle::resultMaxVertexCount];
+    std::size_t frontVerticesCount = 0;
+    auto addBack = [&](std::size_t index)
+    {
+        if(index < vertexTranslations.size())
+        {
+            auto &vertex = vertexTranslations[index];
+            if(!vertex.backValid)
+            {
+                vertex.backValid = true;
+                vertex.back = back.addVertex(mesh.vertices[index]);
+            }
+            backVertices[backVerticesCount++] = vertex.back;
+        }
+        else
+        {
+            auto &vertex = newVertices[index];
+            if(!vertex.backValid)
+            {
+                vertex.backValid = true;
+                vertex.back = back.addVertex(vertex.vertex);
+            }
+            backVertices[backVerticesCount++] = vertex.back;
+        }
+    };
+    auto addFront = [&](std::size_t index)
+    {
+        if(index < vertexTranslations.size())
+        {
+            auto &vertex = vertexTranslations[index];
+            if(!vertex.frontValid)
+            {
+                vertex.frontValid = true;
+                vertex.front = front.addVertex(mesh.vertices[index]);
+            }
+            frontVertices[frontVerticesCount++] = vertex.front;
+        }
+        else
+        {
+            auto &vertex = newVertices[index - vertexTranslations.size()];
+            if(!vertex.frontValid)
+            {
+                vertex.frontValid = true;
+                vertex.front = front.addVertex(vertex.vertex);
+            }
+            frontVertices[frontVerticesCount++] = vertex.front;
+        }
+    };
+    auto getVertexPosition = [&](std::size_t index)
+    {
+        assert(index < mesh.vertices.size());
+        return mesh.vertices[index].p;
+    };
+    auto createInterpolated = [&](float t, std::size_t aIndex, std::size_t bIndex)
+    {
+        assert(aIndex < mesh.vertices.size());
+        assert(bIndex < mesh.vertices.size());
+        auto vertex = interpolate(t, mesh.vertices[aIndex], mesh.vertices[bIndex]);
+        std::size_t retval = newVertices.size() + vertexTranslations.size();
+        newVertices.emplace_back(vertex);
+        return retval;
+    };
+    for(IndexedTriangle tri : mesh.indexedTriangles)
+    {
+        backVerticesCount = 0;
+        frontVerticesCount = 0;
+        bool isCoplanar = CutTriangle::cutTriangleAlgorithm<std::size_t>(planeNormal,
+                                                                         planeD,
+                                                                         tri.v[0],
+                                                                         tri.v[1],
+                                                                         tri.v[2],
+                                                                         getVertexPosition,
+                                                                         addBack,
+                                                                         addFront,
+                                                                         createInterpolated);
+        if(isCoplanar)
+        {
+            IndexedTriangle resultTriangle;
+            std::size_t resultTriangleVertexIndex = 0;
+            for(auto index : tri.v)
+            {
+                auto &vertex = vertexTranslations[index];
+                if(!vertex.coplanarValid)
+                {
+                    vertex.coplanarValid = true;
+                    vertex.coplanar = coplanar.addVertex(mesh.vertices[index]);
+                }
+                resultTriangle.v[resultTriangleVertexIndex++] = vertex.coplanar;
+            }
+            coplanar.addTriangle(resultTriangle);
+            continue;
+        }
+        IndexedTriangle frontTriangles[CutTriangle::resultMaxTriangleCount];
+        std::size_t frontTriangleCount = 0;
+        IndexedTriangle backTriangles[CutTriangle::resultMaxTriangleCount];
+        std::size_t backTriangleCount = 0;
+        CutTriangle::triangulate(
+            frontTriangles, frontTriangleCount, frontVertices, frontVerticesCount);
+        CutTriangle::triangulate(backTriangles, backTriangleCount, backVertices, backVerticesCount);
+        for(std::size_t i = 0; i < frontTriangleCount; i++)
+            front.addTriangle(frontTriangles[i]);
+        for(std::size_t i = 0; i < frontTriangleCount; i++)
+            back.addTriangle(backTriangles[i]);
+    }
+    return CutMesh(std::move(front), std::move(coplanar), std::move(back));
+}
+
+Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD)
+{
+    IndexedTriangle::IndexType currentVertices[CutTriangle::resultMaxVertexCount];
+    std::size_t currentVerticesCount = 0;
+    std::vector<IndexedTriangle> originalTriangles;
+    originalTriangles.reserve(mesh.indexedTriangles.size());
+    originalTriangles.swap(mesh.indexedTriangles);
+    auto addVertex = [&](IndexedTriangle::IndexType vertex)
+    {
+        currentVertices[currentVerticesCount++] = vertex;
+    };
+    auto addVertexNoOperation = [](IndexedTriangle::IndexType)
+    {
+    };
+    auto getVertexPosition = [&](IndexedTriangle::IndexType vertex)
+    {
+        assert(vertex < mesh.vertices.size());
+        return mesh.vertices[vertex].p;
+    };
+    auto createInterpolated =
+        [&](float t, IndexedTriangle::IndexType a, IndexedTriangle::IndexType b)
+    {
+        assert(a < mesh.vertices.size());
+        assert(b < mesh.vertices.size());
+        return mesh.addVertex(interpolate(t, mesh.vertices[a], mesh.vertices[b]));
+    };
+    for(IndexedTriangle tri : originalTriangles)
+    {
+        currentVerticesCount = 0;
+        bool isCoplanar = CutTriangle::cutTriangleAlgorithm(planeNormal,
+                                                            planeD,
+                                                            tri.v[0],
+                                                            tri.v[1],
+                                                            tri.v[2],
+                                                            getVertexPosition,
+                                                            addVertexNoOperation,
+                                                            addVertex,
+                                                            createInterpolated);
+        if(isCoplanar)
+        {
+            mesh.addTriangle(tri);
+            continue;
+        }
+        IndexedTriangle currentTriangles[CutTriangle::resultMaxTriangleCount];
+        std::size_t currentTriangleCount = 0;
+        CutTriangle::triangulate(
+            currentTriangles, currentTriangleCount, currentVertices, currentVerticesCount);
+        for(std::size_t i = 0; i < currentTriangleCount; i++)
+            mesh.addTriangle(currentTriangles[i]);
+    }
+    return mesh;
+}
+
+Mesh cutAndGetBack(Mesh mesh, VectorF planeNormal, float planeD)
+{
+    IndexedTriangle::IndexType currentVertices[CutTriangle::resultMaxVertexCount];
+    std::size_t currentVerticesCount = 0;
+    std::vector<IndexedTriangle> originalTriangles;
+    originalTriangles.reserve(mesh.indexedTriangles.size());
+    originalTriangles.swap(mesh.indexedTriangles);
+    auto addVertex = [&](IndexedTriangle::IndexType vertex)
+    {
+        currentVertices[currentVerticesCount++] = vertex;
+    };
+    auto addVertexNoOperation = [](IndexedTriangle::IndexType)
+    {
+    };
+    auto getVertexPosition = [&](IndexedTriangle::IndexType vertex)
+    {
+        assert(vertex < mesh.vertices.size());
+        return mesh.vertices[vertex].p;
+    };
+    auto createInterpolated =
+        [&](float t, IndexedTriangle::IndexType a, IndexedTriangle::IndexType b)
+    {
+        assert(a < mesh.vertices.size());
+        assert(b < mesh.vertices.size());
+        return mesh.addVertex(interpolate(t, mesh.vertices[a], mesh.vertices[b]));
+    };
+    for(IndexedTriangle tri : originalTriangles)
+    {
+        currentVerticesCount = 0;
+        bool isCoplanar = CutTriangle::cutTriangleAlgorithm(planeNormal,
+                                                            planeD,
+                                                            tri.v[0],
+                                                            tri.v[1],
+                                                            tri.v[2],
+                                                            getVertexPosition,
+                                                            addVertex,
+                                                            addVertexNoOperation,
+                                                            createInterpolated);
+        if(isCoplanar)
+        {
+            mesh.addTriangle(tri);
+            continue;
+        }
+        IndexedTriangle currentTriangles[CutTriangle::resultMaxTriangleCount];
+        std::size_t currentTriangleCount = 0;
+        CutTriangle::triangulate(
+            currentTriangles, currentTriangleCount, currentVertices, currentVerticesCount);
+        for(std::size_t i = 0; i < currentTriangleCount; i++)
+            mesh.addTriangle(currentTriangles[i]);
+    }
+    return mesh;
 }
 
 namespace Generate
@@ -175,15 +430,15 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
     float faceMinY = scale * (maxY - fMaxY + 1);
     float faceMaxX = faceMinX + scale * (fMaxX - fMinX);
     float faceMaxY = faceMinY + scale * (fMaxY - fMinY);
-    Mesh retval =
-        transform(Matrix::translate(faceMinX, faceMinY, -0.5f)
-                      .concat(Matrix::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)),
-                  unitBox(TextureDescriptor(),
-                          TextureDescriptor(),
-                          TextureDescriptor(),
-                          TextureDescriptor(),
-                          backTD,
-                          td));
+    Mesh retval = transform(
+        Transform::translate(faceMinX, faceMinY, -0.5f)
+            .concat(Transform::scale(faceMaxX - faceMinX, faceMaxY - faceMinY, thickness)),
+        unitBox(TextureDescriptor(),
+                TextureDescriptor(),
+                TextureDescriptor(),
+                TextureDescriptor(),
+                backTD,
+                td));
     for(int iy = minY; iy <= maxY; iy++)
     {
         for(int ix = minX; ix <= maxX; ix++)
@@ -214,9 +469,10 @@ Mesh item3DImage(TextureDescriptor td, float thickness)
                 py = pixelTD;
             if(transparentPIY)
                 ny = pixelTD;
-            Matrix tform = Matrix::translate(static_cast<float>(ix - minX),
-                                             static_cast<float>(maxY - iy),
-                                             -0.5f).concat(Matrix::scale(scale, scale, thickness));
+            Transform tform =
+                Transform::translate(static_cast<float>(ix - minX),
+                                     static_cast<float>(maxY - iy),
+                                     -0.5f).concat(Transform::scale(scale, scale, thickness));
             retval.append(transform(
                 tform, unitBox(nx, px, ny, py, TextureDescriptor(), TextureDescriptor())));
         }

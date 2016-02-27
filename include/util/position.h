@@ -428,7 +428,7 @@ inline constexpr PositionF operator*(const PositionI &a, const VectorF &b)
     return static_cast<PositionF>(a) * b;
 }
 
-inline PositionF transform(const Matrix &tform, PositionF p)
+inline PositionF transform(const Transform &tform, PositionF p)
 {
     return PositionF(transform(tform, static_cast<VectorF>(p)), p.d);
 }

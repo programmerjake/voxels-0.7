@@ -2798,7 +2798,7 @@ void init()
     }
 }
 
-void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch, const Text::TextProperties &properties)
+void renderChar(Mesh &dest, const Transform &tform, ColorF color, wchar_t ch, const Text::TextProperties &properties)
 {
     init();
     Text::Font font = properties.font;
@@ -2806,11 +2806,11 @@ void renderChar(Mesh &dest, Matrix m, ColorF color, wchar_t ch, const Text::Text
         font = Text::getBitmappedFont8x8();
     if(font.descriptor->isVectorFont)
     {
-        dest.append(colorize(color, transform(m, vectorCharMesh()[translateToFontIndex(ch)])));
+        dest.append(colorize(color, transform(tform, vectorCharMesh()[translateToFontIndex(ch)])));
     }
     else
     {
-        dest.append(colorize(color, transform(m, bitmappedCharMesh()[translateToFontIndex(ch)])));
+        dest.append(colorize(color, transform(tform, bitmappedCharMesh()[translateToFontIndex(ch)])));
     }
 }
 
@@ -2920,10 +2920,10 @@ Mesh Text::mesh(wstring str, ColorF color, const TextProperties &properties)
 
     for(wchar_t ch : str)
     {
-        Matrix mat = Matrix::translate(x, totalHeight - y - 1, 0);
+        Transform tform = Transform::translate(x, totalHeight - y - 1, 0);
         if(updateFromChar(x, y, w, h, ch, properties))
         {
-            renderChar(retval, mat, color, ch, properties);
+            renderChar(retval, tform, color, ch, properties);
         }
     }
 

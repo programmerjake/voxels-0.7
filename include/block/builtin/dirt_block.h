@@ -101,7 +101,7 @@ protected:
         }
         bool drewAny = false;
         ColorF grassShading;
-        Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+        Transform tform = Transform::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
         Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
         blockMesh.clear();
@@ -122,7 +122,7 @@ protected:
             }
             drewAny = true;
             grassShading = getGrassShading(block, blockIterator, lock_manager);
-            if(meshFace[bf].size() == 0 && meshGrassFace[bf].size() == 0)
+            if(meshFace[bf].empty() && meshGrassFace[bf].empty())
                 continue;
             faceMesh.clear();
             faceMesh.append(meshFace[bf]);
@@ -159,10 +159,10 @@ protected:
                 continue;
             }
 
-            if(meshCenter.size() != 0 || meshGrassCenter.size() != 0)
+            if(!meshCenter.empty() || !meshGrassCenter.empty())
                 return true;
 
-            if(meshFace[bf].size() == 0 && meshGrassFace[bf].size() == 0)
+            if(meshFace[bf].empty() && meshGrassFace[bf].empty())
                 continue;
 
             return true;

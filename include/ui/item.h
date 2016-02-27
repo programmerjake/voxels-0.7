@@ -39,10 +39,12 @@ namespace ui
 class UiItem : public Element
 {
     UiItem(const UiItem &) = delete;
-    UiItem operator =(const UiItem &) = delete;
+    UiItem operator=(const UiItem &) = delete;
+
 private:
     std::shared_ptr<ItemStack> itemStack;
     std::recursive_mutex *itemStackLock;
+
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
@@ -52,10 +54,16 @@ public:
     {
         return itemStackLock;
     }
-    UiItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::recursive_mutex *itemStackLock = nullptr)
+    UiItem(float minX,
+           float maxX,
+           float minY,
+           float maxY,
+           std::shared_ptr<ItemStack> itemStack,
+           std::recursive_mutex *itemStackLock = nullptr)
         : Element(minX, maxX, minY, maxY), itemStack(itemStack), itemStackLock(itemStackLock)
     {
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
@@ -73,7 +81,7 @@ protected:
         Item item = is.item;
         Mesh dest;
         item.descriptor->render(item, dest, minX, maxX, minY, maxY);
-        renderer << RenderLayer::Opaque << transform(Matrix::scale(scale), dest);
+        renderer << RenderLayer::Opaque << transform(Transform::scale(scale), dest);
         if(is.count > 1)
         {
             std::wostringstream os;
@@ -93,7 +101,10 @@ protected:
             float xOffset = -1 * textWidth, yOffset = 0 * textHeight;
             xOffset = textScale * xOffset + maxX;
             yOffset = textScale * yOffset + minY;
-            renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, textColor, textProperties));
+            renderer << transform(Transform::scale(textScale)
+                                      .concat(Transform::translate(xOffset, yOffset, -1))
+                                      .concat(Transform::scale(minZ)),
+                                  Text::mesh(text, textColor, textProperties));
         }
     }
 };
@@ -101,10 +112,12 @@ protected:
 class UiItemWithBorder : public Element
 {
     UiItemWithBorder(const UiItemWithBorder &) = delete;
-    UiItemWithBorder &operator =(const UiItemWithBorder &) = delete;
+    UiItemWithBorder &operator=(const UiItemWithBorder &) = delete;
+
 private:
     std::shared_ptr<ItemStack> itemStack;
     std::recursive_mutex *itemStackLock;
+
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
@@ -115,10 +128,20 @@ public:
         return itemStackLock;
     }
     std::function<bool()> isSelected;
-    UiItemWithBorder(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::recursive_mutex *itemStackLock = nullptr)
-        : Element(minX, maxX, minY, maxY), itemStack(itemStack), itemStackLock(itemStackLock), isSelected(isSelected)
+    UiItemWithBorder(float minX,
+                     float maxX,
+                     float minY,
+                     float maxY,
+                     std::shared_ptr<ItemStack> itemStack,
+                     std::function<bool()> isSelected,
+                     std::recursive_mutex *itemStackLock = nullptr)
+        : Element(minX, maxX, minY, maxY),
+          itemStack(itemStack),
+          itemStackLock(itemStackLock),
+          isSelected(isSelected)
     {
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
@@ -127,10 +150,14 @@ protected:
         if(isSelected != nullptr && isSelected())
             backgroundColor = RGBF(0.5f, 1.0f, 0.5f);
         renderer << Generate::quadrilateral(TextureAtlas::HotBarBox.td(),
-                                                  VectorF(minX * borderZ, minY * borderZ, -borderZ), backgroundColor,
-                                                  VectorF(maxX * borderZ, minY * borderZ, -borderZ), backgroundColor,
-                                                  VectorF(maxX * borderZ, maxY * borderZ, -borderZ), backgroundColor,
-                                                  VectorF(minX * borderZ, maxY * borderZ, -borderZ), backgroundColor);
+                                            VectorF(minX * borderZ, minY * borderZ, -borderZ),
+                                            backgroundColor,
+                                            VectorF(maxX * borderZ, minY * borderZ, -borderZ),
+                                            backgroundColor,
+                                            VectorF(maxX * borderZ, maxY * borderZ, -borderZ),
+                                            backgroundColor,
+                                            VectorF(minX * borderZ, maxY * borderZ, -borderZ),
+                                            backgroundColor);
         float centerX = 0.5f * (minX + maxX);
         float centerY = 0.5f * (minY + maxY);
         float width = maxX - minX;
@@ -155,7 +182,7 @@ protected:
         Item item = is.item;
         Mesh dest;
         item.descriptor->render(item, dest, innerMinX, innerMaxX, innerMinY, innerMaxY);
-        renderer << RenderLayer::Opaque << transform(Matrix::scale(scale), dest);
+        renderer << RenderLayer::Opaque << transform(Transform::scale(scale), dest);
         if(is.count > 1)
         {
             std::wostringstream os;
@@ -176,7 +203,10 @@ protected:
             float xOffset = -1 * textWidth, yOffset = 0 * textHeight;
             xOffset = textScale * xOffset + innerMaxX;
             yOffset = textScale * yOffset + innerMinY;
-            renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, textColor, textProperties));
+            renderer << transform(Transform::scale(textScale)
+                                      .concat(Transform::translate(xOffset, yOffset, -1))
+                                      .concat(Transform::scale(minZ)),
+                                  Text::mesh(text, textColor, textProperties));
         }
     }
 };
@@ -185,9 +215,18 @@ class HotBarItem : public UiItemWithBorder
 {
 private:
     std::function<void()> onSelect;
+
 public:
-    HotBarItem(float minX, float maxX, float minY, float maxY, std::shared_ptr<ItemStack> itemStack, std::function<bool()> isSelected, std::function<void()> onSelect, std::recursive_mutex *itemStackLock = nullptr)
-        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock), onSelect(onSelect)
+    HotBarItem(float minX,
+               float maxX,
+               float minY,
+               float maxY,
+               std::shared_ptr<ItemStack> itemStack,
+               std::function<bool()> isSelected,
+               std::function<void()> onSelect,
+               std::recursive_mutex *itemStackLock = nullptr)
+        : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock),
+          onSelect(onSelect)
     {
     }
     virtual void layout() override

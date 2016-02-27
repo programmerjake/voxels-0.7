@@ -37,11 +37,12 @@ namespace Blocks
 {
 namespace builtin
 {
-
 class GenericLadder : public AttachedBlock
 {
 public:
-    static Mesh makeMesh(TextureDescriptor td, BlockFace attachedToFace, float displacementDistance = 0.05f)
+    static Mesh makeMesh(TextureDescriptor td,
+                         BlockFace attachedToFace,
+                         float displacementDistance = 0.05f)
     {
         TextureDescriptor nx, px, ny, py, nz, pz;
         VectorF displacement = VectorF(0);
@@ -72,10 +73,12 @@ public:
             displacement.z = -displacementDistance;
             break;
         }
-        Mesh mesh = transform(Matrix::translate(displacement), Generate::unitBox(nx, px, ny, py, nz, pz));
+        Mesh mesh =
+            transform(Transform::translate(displacement), Generate::unitBox(nx, px, ny, py, nz, pz));
         mesh.append(reverse(mesh));
         return std::move(mesh);
     }
+
 protected:
     static std::wstring makeNameWithBlockFace(std::wstring baseName, BlockFace attachedToFace)
     {
@@ -131,45 +134,70 @@ protected:
         return BlockShape(0.5f * (minV + maxV), 0.5f * (maxV - minV));
     }
     const BlockShape defaultEffectShape;
+
 public:
-    GenericLadder(std::wstring name, BlockShape blockShape,
-                 TextureDescriptor td,
-                 BlockFace attachedToFace, LightProperties lightProperties = LightProperties(),
-                 RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskGround)
-        : AttachedBlock(name, attachedToFace, blockShape,
-                        lightProperties, blockRayCollisionMask, true,
-                        false, false,
-                        false, false,
-                        false, false,
+    GenericLadder(
+        std::wstring name,
+        BlockShape blockShape,
+        TextureDescriptor td,
+        BlockFace attachedToFace,
+        LightProperties lightProperties = LightProperties(),
+        RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskGround)
+        : AttachedBlock(name,
+                        attachedToFace,
+                        blockShape,
+                        lightProperties,
+                        blockRayCollisionMask,
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
                         makeMesh(td, attachedToFace),
-                        Mesh(), Mesh(),
-                        Mesh(), Mesh(),
-                        Mesh(), Mesh(),
+                        Mesh(),
+                        Mesh(),
+                        Mesh(),
+                        Mesh(),
+                        Mesh(),
+                        Mesh(),
                         RenderLayer::Opaque),
-        defaultEffectShape(makeShape(attachedToFace, 0.7f))
+          defaultEffectShape(makeShape(attachedToFace, 0.7f))
     {
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const override
+    virtual RayCasting::Collision getRayCollision(const Block &block,
+                                                  BlockIterator blockIterator,
+                                                  WorldLockManager &lock_manager,
+                                                  World &world,
+                                                  RayCasting::Ray ray) const override
     {
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
-        std::tuple<bool, float, BlockFace> collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
+        std::tuple<bool, float, BlockFace> collision = ray.getAABoxExitFace(
+            (VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1));
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
             return RayCasting::Collision(world);
         if(std::get<2>(collision) != attachedToFace)
             return RayCasting::Collision(world);
-        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
+        return RayCasting::Collision(world,
+                                     std::get<1>(collision),
+                                     blockIterator.position(),
+                                     toBlockFaceOrNone(std::get<2>(collision)));
     }
-    virtual Matrix getSelectionBoxTransform(const Block &block) const override
+    virtual Transform getSelectionBoxTransform(const Block &block) const override
     {
         BlockShape shape = makeShape(attachedToFace, 0.1f);
-        return Matrix::scale(2 * shape.extents).concat(Matrix::translate(shape.offset - shape.extents));
+        return Transform::scale(2 * shape.extents)
+            .concat(Transform::translate(shape.offset - shape.extents));
     }
     virtual bool isGroundBlock() const override
     {
         return false;
     }
-    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    virtual bool canAttachBlock(Block b,
+                                BlockFace attachingFace,
+                                Block attachingBlock) const override
     {
         return false;
     }
@@ -185,7 +213,8 @@ public:
     {
         return ToolLevel_None;
     }
-    virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual BlockShape getEffectShape(BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         return defaultEffectShape;
     }
@@ -201,12 +230,13 @@ private:
     class LadderInstanceMaker final
     {
         LadderInstanceMaker(const LadderInstanceMaker &) = delete;
-        const LadderInstanceMaker &operator =(const LadderInstanceMaker &) = delete;
+        const LadderInstanceMaker &operator=(const LadderInstanceMaker &) = delete;
+
     private:
         enum_array<Ladder *, BlockFace> ladders;
+
     public:
-        LadderInstanceMaker()
-            : ladders()
+        LadderInstanceMaker() : ladders()
         {
             for(BlockFace bf : enum_traits<BlockFace>())
             {
@@ -225,6 +255,7 @@ private:
             return ladders[bf];
         }
     };
+
 private:
     Ladder(BlockFace attachedToFace)
         : GenericLadder(makeNameWithBlockFace(L"builtin.ladder", attachedToFace),
@@ -233,8 +264,10 @@ private:
                         attachedToFace)
     {
     }
+
 public:
-    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn) const override /// @return nullptr if block can't attach to attachedToFaceIn
+    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn)
+        const override /// @return nullptr if block can't attach to attachedToFaceIn
     {
         return global_instance_maker<LadderInstanceMaker>::getInstance()->get(attachedToFaceIn);
     }
@@ -246,12 +279,26 @@ public:
     {
         return pointer(attachedToFaceIn);
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual void onReplace(World &world,
+                           Block b,
+                           BlockIterator bi,
+                           WorldLockManager &lock_manager) const override;
+
 protected:
-    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const override;
+    virtual void onDisattach(World &world,
+                             const Block &block,
+                             BlockIterator blockIterator,
+                             WorldLockManager &lock_manager,
+                             BlockUpdateKind blockUpdateKind) const override;
+
 public:
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -259,7 +306,6 @@ public:
         return nullptr;
     }
 };
-
 }
 }
 }

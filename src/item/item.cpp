@@ -27,17 +27,20 @@ namespace programmerjake
 {
 namespace voxels
 {
-ItemDescriptor::ItemDescriptor(std::wstring name, Matrix entityPreorientSelectionBoxTransform)
+ItemDescriptor::ItemDescriptor(std::wstring name, Transform entityPreorientSelectionBoxTransform)
     : name(name), entity()
 {
     entity = new Entities::builtin::EntityItem(this, entityPreorientSelectionBoxTransform);
     ItemDescriptors.add(this);
 }
 
-ItemDescriptor::ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Matrix entityPreorientSelectionBoxTransform)
+ItemDescriptor::ItemDescriptor(std::wstring name,
+                               enum_array<Mesh, RenderLayer> entityMeshes,
+                               Transform entityPreorientSelectionBoxTransform)
     : name(name), entity()
 {
-    entity = new Entities::builtin::EntityItem(this, entityMeshes, entityPreorientSelectionBoxTransform);
+    entity =
+        new Entities::builtin::EntityItem(this, entityMeshes, entityPreorientSelectionBoxTransform);
     ItemDescriptors.add(this);
 }
 
@@ -47,19 +50,41 @@ ItemDescriptor::~ItemDescriptor()
     delete entity;
 }
 
-Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity)
+Entity *ItemDescriptor::addToWorld(World &world,
+                                   WorldLockManager &lock_manager,
+                                   ItemStack itemStack,
+                                   PositionF position,
+                                   VectorF velocity)
 {
     assert(itemStack.good());
-    return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemData(itemStack, world));
+    return world.addEntity(itemStack.item.descriptor->getEntity(),
+                           position,
+                           velocity,
+                           lock_manager,
+                           itemStack.item.descriptor->getEntity()->makeItemData(itemStack, world));
 }
 
-Entity *ItemDescriptor::addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, std::weak_ptr<Player> player, double ignoreTime)
+Entity *ItemDescriptor::addToWorld(World &world,
+                                   WorldLockManager &lock_manager,
+                                   ItemStack itemStack,
+                                   PositionF position,
+                                   VectorF velocity,
+                                   std::weak_ptr<Player> player,
+                                   double ignoreTime)
 {
     assert(itemStack.good());
-    return world.addEntity(itemStack.item.descriptor->getEntity(), position, velocity, lock_manager, itemStack.item.descriptor->getEntity()->makeItemDataIgnorePlayer(itemStack, world, player, ignoreTime));
+    return world.addEntity(itemStack.item.descriptor->getEntity(),
+                           position,
+                           velocity,
+                           lock_manager,
+                           itemStack.item.descriptor->getEntity()->makeItemDataIgnorePlayer(
+                               itemStack, world, player, ignoreTime));
 }
 
-Entity *ItemDescriptor::dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
+Entity *ItemDescriptor::dropAsEntity(Item item,
+                                     World &world,
+                                     WorldLockManager &lock_manager,
+                                     Player &player) const
 {
     return player.createDroppedItemEntity(ItemStack(item), world, lock_manager);
 }
@@ -100,8 +125,7 @@ struct StreamItemDescriptors final
     std::unordered_map<ItemDescriptorPointer, Descriptor> itemDescriptorPointerToDescriptorMap;
     std::size_t descriptorCount = 0;
     StreamItemDescriptors()
-        : descriptorToItemDescriptorPointerMap(),
-        itemDescriptorPointerToDescriptorMap()
+        : descriptorToItemDescriptorPointerMap(), itemDescriptorPointerToDescriptorMap()
     {
     }
     static StreamItemDescriptors &get(stream::Stream &stream)
@@ -109,7 +133,8 @@ struct StreamItemDescriptors final
         struct tag_t
         {
         };
-        std::shared_ptr<StreamItemDescriptors> retval = stream.getAssociatedValue<StreamItemDescriptors, tag_t>();
+        std::shared_ptr<StreamItemDescriptors> retval =
+            stream.getAssociatedValue<StreamItemDescriptors, tag_t>();
         if(retval)
             return *retval;
         retval = std::make_shared<StreamItemDescriptors>();
@@ -122,7 +147,8 @@ struct StreamItemDescriptors final
         Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
         if(upperLimit != me.descriptorCount + 1)
             upperLimit = static_cast<Descriptor>(me.descriptorCount);
-        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        Descriptor descriptor =
+            stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
         if(descriptor == NullDescriptor)
             return nullptr;
         if(descriptor <= me.descriptorCount)

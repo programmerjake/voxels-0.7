@@ -41,14 +41,26 @@ namespace builtin
 {
 void PlayerEntity::generateMeshes()
 {
-    head = transform(Matrix::translate(-0.5, -0.5, -0.5).concat(Matrix::scale(0.5)), Generate::unitBox(TextureAtlas::Player1HeadLeft.td(), TextureAtlas::Player1HeadRight.td(), TextureAtlas::Player1HeadBottom.td(), TextureAtlas::Player1HeadTop.td(), TextureAtlas::Player1HeadBack.td(), TextureAtlas::Player1HeadFront.td()));
+    head = transform(Transform::translate(-0.5, -0.5, -0.5).concat(Transform::scale(0.5)),
+                     Generate::unitBox(TextureAtlas::Player1HeadLeft.td(),
+                                       TextureAtlas::Player1HeadRight.td(),
+                                       TextureAtlas::Player1HeadBottom.td(),
+                                       TextureAtlas::Player1HeadTop.td(),
+                                       TextureAtlas::Player1HeadBack.td(),
+                                       TextureAtlas::Player1HeadFront.td()));
     FIXME_MESSAGE(add rest of player)
 }
-void PlayerEntity::render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const
+void PlayerEntity::render(Entity &entity,
+                          Mesh &dest,
+                          RenderLayer rl,
+                          const Transform &cameraToWorldMatrix) const
 {
     FIXME_MESSAGE(implement)
 }
-void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
+void PlayerEntity::moveStep(Entity &entity,
+                            World &world,
+                            WorldLockManager &lock_manager,
+                            double deltaTime) const
 {
     std::shared_ptr<Player> player = getPlayer(entity);
     if(player == nullptr)
@@ -72,7 +84,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
             player->lastPosition = lastPosition;
         }
     }
-    VectorF moveDirection = transform(player->getWorldOrientationXZTransform(), player->gameInput->moveDirectionPlayerRelative.get());
+    VectorF moveDirection = transform(player->getWorldOrientationXZTransform(),
+                                      player->gameInput->moveDirectionPlayerRelative.get());
     VectorF newVelocity = entity.physicsObject->getVelocity();
     float moveSpeed = 4.317f;
     VectorF gravity = VectorF(0, -32, 0);
@@ -135,7 +148,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
     newVelocity.z = moveDirection.z * moveSpeed;
     for(int i = player->gameInputMonitoring->retrieveActionCount(); i > 0; i--)
     {
-        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+        RayCasting::Collision c =
+            player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
         if(c.valid())
         {
             switch(c.type)
@@ -184,7 +198,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 player->cooldownTimeLeft = 0;
             player->destructingTime = 0;
         }
-        RayCasting::Collision c = player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
+        RayCasting::Collision c =
+            player->castRay(world, lock_manager, RayCasting::BlockCollisionMaskDefault);
         if(c.valid() && player->cooldownTimeLeft <= 0)
         {
             Item tool = player->removeSelectedItem();
@@ -223,7 +238,8 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                     else if(player->destructingTime < totalDestructTime)
                     {
                         good = false;
-                        player->setBlockDestructProgress(player->destructingTime / totalDestructTime);
+                        player->setBlockDestructProgress(player->destructingTime
+                                                         / totalDestructTime);
                     }
                 }
                 else
@@ -233,14 +249,18 @@ void PlayerEntity::moveStep(Entity &entity, World &world, WorldLockManager &lock
                 }
                 if(good)
                 {
-                    world.setBlock(bi, lock_manager, Block(Blocks::builtin::Air::descriptor(), b.lighting));
+                    world.setBlock(
+                        bi, lock_manager, Block(Blocks::builtin::Air::descriptor(), b.lighting));
                     b.descriptor->onBreak(world, b, bi, lock_manager, tool);
                     for(int i = 0; i < 5; i++)
                     {
-                        VectorF p = VectorF(std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
-                                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
-                                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()));
-                        Entities::builtin::particles::Smoke::addToWorld(world, lock_manager, bi.position() + p);
+                        VectorF p = VectorF(
+                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
+                            std::uniform_real_distribution<float>(0, 1)(world.getRandomGenerator()),
+                            std::uniform_real_distribution<float>(0,
+                                                                  1)(world.getRandomGenerator()));
+                        Entities::builtin::particles::Smoke::addToWorld(
+                            world, lock_manager, bi.position() + p);
                     }
                     player->destructingTime = 0;
                     player->cooldownTimeLeft = 0.25f;
@@ -301,16 +321,30 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
         player->lastPosition = entity.physicsObject->getPosition();
     }
 }
-Entity *PlayerEntity::addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity)
+Entity *PlayerEntity::addToWorld(World &world,
+                                 WorldLockManager &lock_manager,
+                                 PositionF position,
+                                 std::shared_ptr<Player> player,
+                                 VectorF velocity)
 {
-    return world.addEntity(descriptor(), position, velocity, lock_manager, std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
+    return world.addEntity(
+        descriptor(),
+        position,
+        velocity,
+        lock_manager,
+        std::static_pointer_cast<void>(std::make_shared<std::weak_ptr<Player>>(player)));
 }
-void PlayerEntity::write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const
+void PlayerEntity::write(PositionF position,
+                         VectorF velocity,
+                         std::shared_ptr<void> data,
+                         stream::Writer &writer) const
 {
     std::shared_ptr<Player> player = getPlayer(data);
     Player::writeReference(writer, player);
 }
-std::shared_ptr<void> PlayerEntity::read(PositionF position, VectorF velocity, stream::Reader &reader) const
+std::shared_ptr<void> PlayerEntity::read(PositionF position,
+                                         VectorF velocity,
+                                         stream::Reader &reader) const
 {
     std::shared_ptr<Player> player = Player::readReference(reader);
     if(player == nullptr)
@@ -325,14 +359,16 @@ void Player::addToPlayersList()
     world.players().addPlayer(shared_from_this());
 }
 
-std::shared_ptr<Player> Player::make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
+std::shared_ptr<Player> Player::make(std::wstring name,
+                                     ui::GameUi *gameUi,
+                                     std::shared_ptr<World> pworld)
 {
     auto retval = std::shared_ptr<Player>(new Player(name, gameUi, pworld));
 #ifdef DEBUG_VERSION
     for(int i = 0; i < 1; i++)
     {
         retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getAxe()));
-        //retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
+        // retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getHoe()));
         retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getPickaxe()));
         retval->addItem(Item(Items::builtin::tools::DiamondToolset::pointer()->getShovel()));
     }
@@ -362,7 +398,10 @@ bool Player::setDialog(std::shared_ptr<ui::Ui> ui)
     return gameUi->setDialog(ui);
 }
 
-bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b)
+bool Player::placeBlock(RayCasting::Collision collision,
+                        World &world,
+                        WorldLockManager &lock_manager,
+                        Block b)
 {
     if(!b.good())
         return false;
@@ -372,7 +411,8 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
         return false;
     if(oldBlock.descriptor->isReplaceable())
     {
-        if(playerEntity->physicsObject->collidesWithBlock(b.descriptor->blockShape, collision.blockPosition))
+        if(playerEntity->physicsObject->collidesWithBlock(b.descriptor->blockShape,
+                                                          collision.blockPosition))
             return false;
         oldBlock.descriptor->onReplace(world, oldBlock, bi, lock_manager);
         b.lighting = oldBlock.lighting;
@@ -382,7 +422,10 @@ bool Player::placeBlock(RayCasting::Collision collision, World &world, WorldLock
     return false;
 }
 
-bool Player::removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction)
+bool Player::removeBlock(RayCasting::Collision collision,
+                         World &world,
+                         WorldLockManager &lock_manager,
+                         bool runBreakAction)
 {
     PositionI pos = collision.blockPosition;
     bool good = true;
@@ -461,7 +504,8 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
     if(name.empty())
         throw stream::InvalidDataValueException("empty player name");
     ItemStackArray<9, 4> items;
-    std::size_t currentItemIndex = static_cast<std::uint8_t>(stream::read_limited<std::uint8_t>(reader, 0, static_cast<std::uint8_t>(items.itemStacks.size() - 1)));
+    std::size_t currentItemIndex = static_cast<std::uint8_t>(stream::read_limited<std::uint8_t>(
+        reader, 0, static_cast<std::uint8_t>(items.itemStacks.size() - 1)));
     items = stream::read<ItemStackArray<9, 4>>(reader);
     World::StreamWorld streamWorld = World::getStreamWorld(reader);
     assert(streamWorld);
@@ -470,7 +514,8 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
         if(streamWorld.world().players().players.count(name) > 0)
             throw stream::InvalidDataValueException("duplicated player name");
     }
-    std::shared_ptr<Player> retval = std::shared_ptr<Player>(new Player(name, nullptr, streamWorld.shared_world()));
+    std::shared_ptr<Player> retval =
+        std::shared_ptr<Player>(new Player(name, nullptr, streamWorld.shared_world()));
     retval->currentItemIndex = currentItemIndex;
     retval->items = items;
     retval->lastPosition = lastPosition;
@@ -480,60 +525,65 @@ std::shared_ptr<Player> Player::read(stream::Reader &reader)
 
 Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld)
     : lastPosition(),
-    positionLock(),
-    playerEntity(nullptr),
-    gameInputMonitoring(),
-    gameUi(gameUi),
-    destructingPosition(),
-    world(*pworld),
-    worldW(pworld),
-    gameInput(std::make_shared<GameInput>()),
-    name(name),
-    items(),
-    itemsLock()
+      positionLock(),
+      playerEntity(nullptr),
+      gameInputMonitoring(),
+      gameUi(gameUi),
+      destructingPosition(),
+      world(*pworld),
+      worldW(pworld),
+      gameInput(std::make_shared<GameInput>()),
+      name(name),
+      items(),
+      itemsLock()
 {
     gameInputMonitoring = std::make_shared<GameInputMonitoring>();
-    gameInput->jump.onChange.bind([this](EventArguments&)
-    {
-        if(this->gameInput->jump.get())
-            gameInputMonitoring->gotJump = true;
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->attack.onChange.bind([this](EventArguments&)
-    {
-        if(this->gameInput->attack.get())
-            gameInputMonitoring->gotAttack = true;
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->action.bind([this](EventArguments&)
-    {
-        gameInputMonitoring->actionCount++;
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->drop.bind([this](EventArguments&)
-    {
-        gameInputMonitoring->dropCount++;
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->hotBarMoveLeft.bind([this](EventArguments&)
-    {
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-        currentItemIndex = (currentItemIndex + items.itemStacks.size() - 1) % items.itemStacks.size();
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->hotBarMoveRight.bind([this](EventArguments&)
-    {
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-        currentItemIndex = (currentItemIndex + 1) % items.itemStacks.size();
-        return Event::ReturnType::Propagate;
-    });
-    gameInput->hotBarSelect.bind([this](EventArguments &argsIn)
-    {
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
-        HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
-        currentItemIndex = (args.newSelection % items.itemStacks.size() + items.itemStacks.size()) % items.itemStacks.size();
-        return Event::ReturnType::Propagate;
-    });
+    gameInput->jump.onChange.bind([this](EventArguments &)
+                                  {
+                                      if(this->gameInput->jump.get())
+                                          gameInputMonitoring->gotJump = true;
+                                      return Event::ReturnType::Propagate;
+                                  });
+    gameInput->attack.onChange.bind([this](EventArguments &)
+                                    {
+                                        if(this->gameInput->attack.get())
+                                            gameInputMonitoring->gotAttack = true;
+                                        return Event::ReturnType::Propagate;
+                                    });
+    gameInput->action.bind([this](EventArguments &)
+                           {
+                               gameInputMonitoring->actionCount++;
+                               return Event::ReturnType::Propagate;
+                           });
+    gameInput->drop.bind([this](EventArguments &)
+                         {
+                             gameInputMonitoring->dropCount++;
+                             return Event::ReturnType::Propagate;
+                         });
+    gameInput->hotBarMoveLeft.bind([this](EventArguments &)
+                                   {
+                                       std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+                                       currentItemIndex =
+                                           (currentItemIndex + items.itemStacks.size() - 1)
+                                           % items.itemStacks.size();
+                                       return Event::ReturnType::Propagate;
+                                   });
+    gameInput->hotBarMoveRight.bind([this](EventArguments &)
+                                    {
+                                        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+                                        currentItemIndex =
+                                            (currentItemIndex + 1) % items.itemStacks.size();
+                                        return Event::ReturnType::Propagate;
+                                    });
+    gameInput->hotBarSelect.bind(
+        [this](EventArguments &argsIn)
+        {
+            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+            HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
+            currentItemIndex = (args.newSelection % items.itemStacks.size()
+                                + items.itemStacks.size()) % items.itemStacks.size();
+            return Event::ReturnType::Propagate;
+        });
 }
 
 void Player::setBlockDestructProgress(float v)
@@ -541,6 +591,5 @@ void Player::setBlockDestructProgress(float v)
     if(gameUi)
         gameUi->blockDestructProgress.store(v, std::memory_order_relaxed);
 }
-
 }
 }

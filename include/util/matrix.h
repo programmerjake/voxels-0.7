@@ -30,6 +30,7 @@ namespace programmerjake
 {
 namespace voxels
 {
+struct Transform;
 struct Matrix
 {
     union
@@ -132,6 +133,8 @@ struct Matrix
           x33(1)
     {
     }
+
+    explicit constexpr Matrix(const Transform &transform);
 
     constexpr static Matrix identity()
     {
@@ -293,11 +296,32 @@ struct Matrix
                       0,
                       0,
                       (far + near) / (near - far),
-                      2 * far * near / (near - far),
+                      2 * near * far / (near - far),
                       0,
                       0,
                       -1,
                       0);
+    }
+
+    static constexpr Matrix inverseTransposeFrustum(
+        float left, float right, float bottom, float top, float near, float far) noexcept
+    {
+        return Matrix((right - left) / (2 * near),
+                      0,
+                      0,
+                      0,
+                      0,
+                      (top - bottom) / (2 * near),
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      (near - far) / (2 * near * far),
+                      (left + right) / (2 * near),
+                      (bottom + top) / (2 * near),
+                      -1,
+                      (far + near) / (2 * near * far));
     }
 
     static constexpr Matrix ortho(
@@ -317,6 +341,30 @@ struct Matrix
                       0,
                       2 / (near - far),
                       (far + near) / (near - far));
+    }
+
+    static constexpr Matrix inverseTransposeOrtho(
+        float left, float right, float bottom, float top, float near, float far) noexcept
+    {
+        return Matrix((right - left) * 0.5f,
+                      0,
+                      0,
+                      0,
+
+                      0,
+                      (top - bottom) * 0.5f,
+                      0,
+                      0,
+
+                      0,
+                      0,
+                      (near - far) * 0.5f,
+                      0,
+
+                      (left + right) * 0.5f,
+                      (bottom + top) * 0.5f,
+                      (near + far) * -0.5f,
+                      1);
     }
 
     /** @return the determinant of this matrix */
@@ -383,7 +431,7 @@ struct Matrix
         return m.inverse();
     }
 
-    friend Matrix transpose(const Matrix &m)
+    friend constexpr Matrix transpose(const Matrix &m)
     {
         return Matrix(m.x00,
                       m.x01,
@@ -486,53 +534,172 @@ public:
         stream::write<float32_t>(writer, x32);
         stream::write<float32_t>(writer, x33);
     }
+    constexpr bool operator==(const Matrix &rt) const
+    {
+        return x00 == rt.x00 && x01 == rt.x01 && x02 == rt.x02 && x03 == rt.x03 && x10 == rt.x10
+               && x11 == rt.x11 && x12 == rt.x12 && x13 == rt.x13 && x20 == rt.x20 && x21 == rt.x21
+               && x22 == rt.x22 && x23 == rt.x23 && x30 == rt.x30 && x31 == rt.x31 && x32 == rt.x32
+               && x33 == rt.x33;
+    }
+    constexpr bool operator!=(const Matrix &rt) const
+    {
+        return !operator==(rt);
+    }
 };
 
-constexpr VectorF transform(const Matrix &m, VectorF v)
+struct Transform final
 {
-    return m.apply(v);
+    Matrix positionMatrix;
+    Matrix normalMatrix;
+    explicit Transform(const Matrix &matrix) : positionMatrix(matrix)
+    {
+        normalMatrix = inverse(transpose(matrix));
+    }
+    constexpr Transform(const Matrix &positionMatrix, const Matrix &normalMatrix)
+        : positionMatrix(positionMatrix), normalMatrix(normalMatrix)
+    {
+    }
+    constexpr Transform() : positionMatrix(Matrix::identity()), normalMatrix(Matrix::identity())
+    {
+    }
+    static Transform read(stream::Reader &reader)
+    {
+        try
+        {
+            return Transform(stream::read<Matrix>(reader));
+        }
+        catch(std::domain_error &e)
+        {
+            throw stream::InvalidDataValueException(e.what());
+        }
+    }
+    void write(stream::Writer &writer) const
+    {
+        stream::write<Matrix>(writer, positionMatrix);
+    }
+    constexpr Transform concat(const Transform &rt) const
+    {
+        return Transform(positionMatrix.concat(rt.positionMatrix),
+                         normalMatrix.concat(rt.normalMatrix));
+    }
+    friend constexpr Transform inverse(const Transform &transform)
+    {
+        return Transform(transpose(transform.normalMatrix), transpose(transform.positionMatrix));
+    }
+    friend constexpr Transform transpose(const Transform &transform)
+    {
+        using voxels::transpose;
+        return Transform(transpose(transform.positionMatrix), transpose(transform.normalMatrix));
+    }
+    static constexpr Transform identity()
+    {
+        return Transform(Matrix::identity(), Matrix::identity());
+    }
+    static constexpr Transform scale(float v)
+    {
+        return Transform(Matrix::scale(v), Matrix::scale(1.0f / v));
+    }
+    static constexpr Transform scale(float x, float y, float z)
+    {
+        return Transform(Matrix::scale(x, y, z), Matrix::scale(1.0f / x, 1.0f / y, 1.0f / z));
+    }
+    static constexpr Transform scale(VectorF v)
+    {
+        return scale(v.x, v.y, v.z);
+    }
+    static constexpr Transform translate(VectorF v)
+    {
+        return Transform(Matrix::translate(v), transpose(Matrix::translate(-v)));
+    }
+    static constexpr Transform translate(float x, float y, float z)
+    {
+        return translate(VectorF(x, y, z));
+    }
+    static Transform rotate(VectorF axis, double angle)
+    {
+        Matrix matrix = Matrix::rotate(axis, angle);
+        return Transform(matrix, matrix);
+    }
+    static Transform rotateX(double angle)
+    {
+        Matrix matrix = Matrix::rotateX(angle);
+        return Transform(matrix, matrix);
+    }
+    static Transform rotateY(double angle)
+    {
+        Matrix matrix = Matrix::rotateY(angle);
+        return Transform(matrix, matrix);
+    }
+    static Transform rotateZ(double angle)
+    {
+        Matrix matrix = Matrix::rotateZ(angle);
+        return Transform(matrix, matrix);
+    }
+    static constexpr Transform frustum(
+        float left, float right, float bottom, float top, float near, float far)
+    {
+        return Transform(Matrix::frustum(left, right, bottom, top, near, far),
+                         Matrix::inverseTransposeFrustum(left, right, bottom, top, near, far));
+    }
+    static constexpr Transform ortho(
+        float left, float right, float bottom, float top, float near, float far)
+    {
+        return Transform(Matrix::ortho(left, right, bottom, top, near, far),
+                         Matrix::inverseTransposeOrtho(left, right, bottom, top, near, far));
+    }
+    constexpr bool operator==(const Transform &rt) const
+    {
+        return positionMatrix == rt.positionMatrix && normalMatrix == rt.normalMatrix;
+    }
+    constexpr bool operator!=(const Transform &rt) const
+    {
+        return !operator==(rt);
+    }
+};
+
+constexpr Matrix::Matrix(const Transform &transform)
+    : x00(transform.positionMatrix.x00),
+      x01(transform.positionMatrix.x01),
+      x02(transform.positionMatrix.x02),
+      x03(transform.positionMatrix.x03),
+      x10(transform.positionMatrix.x10),
+      x11(transform.positionMatrix.x11),
+      x12(transform.positionMatrix.x12),
+      x13(transform.positionMatrix.x13),
+      x20(transform.positionMatrix.x20),
+      x21(transform.positionMatrix.x21),
+      x22(transform.positionMatrix.x22),
+      x23(transform.positionMatrix.x23),
+      x30(transform.positionMatrix.x30),
+      x31(transform.positionMatrix.x31),
+      x32(transform.positionMatrix.x32),
+      x33(transform.positionMatrix.x33)
+{
 }
 
-inline VectorF transformNormal(const Matrix &m, VectorF v)
+constexpr VectorF transform(const Transform &transform, VectorF v)
 {
-    return normalizeNoThrow(transpose(inverse(m)).applyNoTranslate(v));
+    return transform.positionMatrix.apply(v);
 }
 
-constexpr Matrix transform(const Matrix &a, const Matrix &b)
+inline VectorF transformNormal(const Transform &transform, VectorF v)
+{
+    return normalizeNoThrow(transform.normalMatrix.apply(v));
+}
+
+constexpr Matrix transform(const Transform &a, const Matrix &b)
+{
+    return b.concat(a.positionMatrix);
+}
+
+constexpr Transform transform(const Transform &a, const Transform &b)
 {
     return b.concat(a);
 }
 
-inline bool operator==(const Matrix &a, const Matrix &b)
+inline Transform transform(const Matrix &a, const Transform &b)
 {
-    for(int y = 0; y < 4; y++)
-    {
-        for(int x = 0; x < 4; x++)
-        {
-            if(a.get(x, y) != b.get(x, y))
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-inline bool operator!=(const Matrix &a, const Matrix &b)
-{
-    for(int y = 0; y < 4; y++)
-    {
-        for(int x = 0; x < 4; x++)
-        {
-            if(a.get(x, y) != b.get(x, y))
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return Transform(b.positionMatrix.concat(a));
 }
 }
 }

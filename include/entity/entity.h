@@ -56,12 +56,12 @@ public:
     virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
     {
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const = 0;
+    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, const Transform &cameraToWorldMatrix) const = 0;
     virtual RayCasting::Collision getRayCollision(Entity &entity, World &world, RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const = 0;
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const = 0;
     virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const
     {
         entity.data = nullptr;

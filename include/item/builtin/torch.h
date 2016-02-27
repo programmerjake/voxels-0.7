@@ -35,22 +35,39 @@ namespace Items
 {
 namespace builtin
 {
-
 class GenericTorch : public ItemImage
 {
 public:
     const float torchHeight, torchWidth;
-    GenericTorch(std::wstring name, TextureDescriptor bottomTexture, TextureDescriptor sideTexture, TextureDescriptor topTexture, const Blocks::builtin::GenericTorch *block, float torchHeight = 10.0f / 16.0f, float torchWidth = 2.0f / 16.0f)
-        : ItemImage(name, makeItemMesh(sideTexture), transform(Matrix::translate(0.5f, 0, 0), Blocks::builtin::GenericTorch::makeMesh(bottomTexture, sideTexture, topTexture, torchHeight, torchWidth)), block), torchHeight(torchHeight), torchWidth(torchWidth)
+    GenericTorch(std::wstring name,
+                 TextureDescriptor bottomTexture,
+                 TextureDescriptor sideTexture,
+                 TextureDescriptor topTexture,
+                 const Blocks::builtin::GenericTorch *block,
+                 float torchHeight = 10.0f / 16.0f,
+                 float torchWidth = 2.0f / 16.0f)
+        : ItemImage(name,
+                    makeItemMesh(sideTexture),
+                    transform(Transform::translate(0.5f, 0, 0),
+                              Blocks::builtin::GenericTorch::makeMesh(
+                                  bottomTexture, sideTexture, topTexture, torchHeight, torchWidth)),
+                    block),
+          torchHeight(torchHeight),
+          torchWidth(torchWidth)
     {
     }
+
 protected:
     const Blocks::builtin::GenericTorch *getBlock() const
     {
         return dynamic_cast<const Blocks::builtin::GenericTorch *>(ItemImage::getBlock());
     }
+
 public:
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         const Blocks::builtin::GenericTorch *block = getBlock();
         if(block == nullptr)
@@ -60,7 +77,8 @@ public:
         {
             if(c.type == RayCasting::Collision::Type::Block && c.blockFace != BlockFaceOrNone::None)
             {
-                BlockDescriptorPointer newDescriptor = block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
+                BlockDescriptorPointer newDescriptor =
+                    block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
                 if(newDescriptor != nullptr)
                 {
                     if(player.placeBlock(c, world, lock_manager, Block(newDescriptor)))
@@ -75,11 +93,17 @@ public:
 class Torch final : public GenericTorch
 {
     friend class global_instance_maker<Torch>;
+
 private:
     Torch()
-        : GenericTorch(L"builtin.torch", TextureAtlas::TorchBottom.td(), TextureAtlas::TorchSide.td(), TextureAtlas::TorchTop.td(), Blocks::builtin::Torch::pointer())
+        : GenericTorch(L"builtin.torch",
+                       TextureAtlas::TorchBottom.td(),
+                       TextureAtlas::TorchSide.td(),
+                       TextureAtlas::TorchTop.td(),
+                       Blocks::builtin::Torch::pointer())
     {
     }
+
 public:
     static const Torch *pointer()
     {
@@ -101,11 +125,17 @@ public:
 class RedstoneTorch final : public GenericTorch
 {
     friend class global_instance_maker<RedstoneTorch>;
+
 private:
     RedstoneTorch()
-        : GenericTorch(L"builtin.redstone_torch", TextureAtlas::RedstoneTorchBottomOn.td(), TextureAtlas::RedstoneTorchSideOn.td(), TextureAtlas::RedstoneTorchTopOn.td(), Blocks::builtin::RedstoneTorch::pointer())
+        : GenericTorch(L"builtin.redstone_torch",
+                       TextureAtlas::RedstoneTorchBottomOn.td(),
+                       TextureAtlas::RedstoneTorchSideOn.td(),
+                       TextureAtlas::RedstoneTorchTopOn.td(),
+                       Blocks::builtin::RedstoneTorch::pointer())
     {
     }
+
 public:
     static const RedstoneTorch *pointer()
     {
@@ -115,7 +145,10 @@ public:
     {
         return pointer();
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         const Blocks::builtin::GenericTorch *block = getBlock();
         if(block == nullptr)
@@ -125,12 +158,17 @@ public:
         {
             if(c.type == RayCasting::Collision::Type::Block && c.blockFace != BlockFaceOrNone::None)
             {
-                BlockDescriptorPointer newDescriptor = block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
+                BlockDescriptorPointer newDescriptor =
+                    block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
                 if(newDescriptor != nullptr)
                 {
                     if(player.placeBlock(c, world, lock_manager, Block(newDescriptor)))
                     {
-                        BlockDescriptor::addRedstoneBlockUpdates(world, world.getBlockIterator(c.blockPosition, lock_manager.tls), lock_manager, 2);
+                        BlockDescriptor::addRedstoneBlockUpdates(
+                            world,
+                            world.getBlockIterator(c.blockPosition, lock_manager.tls),
+                            lock_manager,
+                            2);
                         return getAfterPlaceItem();
                     }
                 }
@@ -146,7 +184,6 @@ public:
     {
     }
 };
-
 }
 }
 }

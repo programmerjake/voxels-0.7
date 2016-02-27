@@ -41,49 +41,56 @@ namespace builtin
 class ItemImage : public ItemDescriptor
 {
     ItemImage(const ItemImage &) = delete;
-    ItemImage &operator =(const ItemImage &) = delete;
+    ItemImage &operator=(const ItemImage &) = delete;
     Mesh mesh;
     BlockDescriptorPointer block = nullptr;
     const Entities::builtin::EntityItem *entity = nullptr;
+
 public:
     static Mesh makeItemMesh(TextureDescriptor td)
     {
         assert(td);
         const ColorF c = colorizeIdentity();
-		const VectorF p4 = VectorF(0, 0, 0);
-		const VectorF p5 = VectorF(1, 0, 0);
-		const VectorF p7 = VectorF(1, 1, 0);
-		const VectorF p6 = VectorF(0, 1, 0);
-        return Generate::quadrilateral(td,
-									 p4, c,
-									 p5, c,
-									 p7, c,
-									 p6, c
-									 );
+        const VectorF p4 = VectorF(0, 0, 0);
+        const VectorF p5 = VectorF(1, 0, 0);
+        const VectorF p7 = VectorF(1, 1, 0);
+        const VectorF p6 = VectorF(0, 1, 0);
+        return Generate::quadrilateral(td, p4, c, p5, c, p7, c, p6, c);
     }
-    static Matrix getPreorientSelectionBoxTransform()
+    static Transform getPreorientSelectionBoxTransform()
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.5f)).concat(Matrix::translate(0, 0, 0));
+        return Transform::translate(-0.5f, -0.5f, -0.5f)
+            .concat(Transform::scale(0.5f))
+            .concat(Transform::translate(0, 0, 0));
     }
     static enum_array<Mesh, RenderLayer> makeEntityMeshes(TextureDescriptor td)
     {
         enum_array<Mesh, RenderLayer> retval;
-        retval[RenderLayer::Opaque].append(transform(Matrix::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()), Generate::item3DImage(td)));
+        retval[RenderLayer::Opaque].append(
+            transform(Transform::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()),
+                      Generate::item3DImage(td)));
         return std::move(retval);
     }
     static enum_array<Mesh, RenderLayer> makeEntityMeshes(Mesh mesh)
     {
         enum_array<Mesh, RenderLayer> retval;
-        retval[RenderLayer::Opaque].append(transform(Matrix::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()), std::move(mesh)));
+        retval[RenderLayer::Opaque].append(
+            transform(Transform::translate(0, 0, 0.5f).concat(getPreorientSelectionBoxTransform()),
+                      std::move(mesh)));
         return std::move(retval);
     }
+
 protected:
     ItemImage(std::wstring name, Mesh faceMesh, Mesh entityMesh, BlockDescriptorPointer block)
-        : ItemDescriptor(name, makeEntityMeshes(entityMesh), getPreorientSelectionBoxTransform()), mesh(faceMesh), block(block)
+        : ItemDescriptor(name, makeEntityMeshes(entityMesh), getPreorientSelectionBoxTransform()),
+          mesh(faceMesh),
+          block(block)
     {
     }
     ItemImage(std::wstring name, TextureDescriptor td, BlockDescriptorPointer block)
-        : ItemDescriptor(name, makeEntityMeshes(td), getPreorientSelectionBoxTransform()), mesh(makeItemMesh(td)), block(block)
+        : ItemDescriptor(name, makeEntityMeshes(td), getPreorientSelectionBoxTransform()),
+          mesh(makeItemMesh(td)),
+          block(block)
     {
     }
     virtual Item getAfterPlaceItem() const
@@ -94,15 +101,18 @@ protected:
     {
         return block;
     }
+
 public:
-    static void renderMesh(Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
+    static void renderMesh(
+        Mesh &dest, float minX, float maxX, float minY, float maxY, const Mesh &mesh)
     {
-        Matrix tform = Matrix::scale(std::min<float>(maxX - minX, maxY - minY));
-        tform = tform.concat(Matrix::translate(minX, minY, -1));
-        tform = tform.concat(Matrix::scale(maxRenderZ));
+        Transform tform = Transform::scale(std::min<float>(maxX - minX, maxY - minY));
+        tform = tform.concat(Transform::translate(minX, minY, -1));
+        tform = tform.concat(Transform::scale(maxRenderZ));
         dest.append(transform(tform, mesh));
     }
-    virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
+    virtual void render(
+        Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
     {
         renderMesh(dest, minX, maxX, minY, maxY, mesh);
     }
@@ -110,7 +120,10 @@ public:
     {
         return true;
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         if(block == nullptr)
             return item;
@@ -122,9 +135,18 @@ public:
         }
         return item;
     }
-    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const override
+    virtual Item onDispenseOrDrop(Item item,
+                                  World &world,
+                                  WorldLockManager &lock_manager,
+                                  PositionI dispensePosition,
+                                  VectorF dispenseDirection,
+                                  bool useSpecialAction) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(item), dispensePosition + VectorF(0.5), dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(item),
+                                   dispensePosition + VectorF(0.5),
+                                   dispenseDirection * Entities::builtin::EntityItem::dropSpeed);
         return Item();
     }
 };
@@ -134,4 +156,3 @@ public:
 }
 
 #endif // ITEM_IMAGE_H_INCLUDED
-

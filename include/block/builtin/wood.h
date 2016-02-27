@@ -41,11 +41,13 @@ namespace builtin
 class WoodLog : public FullBlock
 {
     WoodLog(const WoodLog &) = delete;
-    WoodLog &operator =(const WoodLog &) = delete;
+    WoodLog &operator=(const WoodLog &) = delete;
+
 protected:
     const WoodDescriptorPointer woodDescriptor;
     const LogOrientation logOrientation;
-    static std::wstring makeName(WoodDescriptorPointer woodDescriptor, LogOrientation logOrientation)
+    static std::wstring makeName(WoodDescriptorPointer woodDescriptor,
+                                 LogOrientation logOrientation)
     {
         std::wstring retval = L"builtin.wood_log(woodDescriptor=";
         retval += woodDescriptor->name;
@@ -68,7 +70,9 @@ protected:
         retval += L")";
         return retval;
     }
-    static TextureDescriptor getTextureDescriptor(WoodDescriptorPointer woodDescriptor, LogOrientation logOrientation, BlockFace bf)
+    static TextureDescriptor getTextureDescriptor(WoodDescriptorPointer woodDescriptor,
+                                                  LogOrientation logOrientation,
+                                                  BlockFace bf)
     {
         VectorI faceVector = getBlockFaceOutDirection(bf);
         VectorI logVector;
@@ -87,28 +91,41 @@ protected:
             return woodDescriptor->getLogSideTexture();
         return woodDescriptor->getLogTopTexture();
     }
-    void transformBlock(Matrix tform)
+    void transformBlock(Transform tform)
     {
-        tform = Matrix::translate(-0.5f, -0.5f, -0.5f).concat(tform).concat(Matrix::translate(0.5f, 0.5f, 0.5f));
+        tform = Transform::translate(-0.5f, -0.5f, -0.5f)
+                    .concat(tform)
+                    .concat(Transform::translate(0.5f, 0.5f, 0.5f));
         enum_array<Mesh, BlockFace> newMeshFaces;
         for(BlockFace srcBF : enum_traits<BlockFace>())
         {
-            BlockFace destBF = getBlockFaceFromOutVector(tform.applyNoTranslate(getBlockFaceOutDirection(srcBF)));
+            BlockFace destBF =
+                getBlockFaceFromOutVector(transformNormal(tform, getBlockFaceOutDirection(srcBF)));
             newMeshFaces[destBF] = transform(tform, std::move(meshFace[srcBF]));
         }
         meshFace = std::move(newMeshFaces);
     }
+
 public:
     WoodLog(WoodDescriptorPointer woodDescriptor, LogOrientation logOrientation)
-        : FullBlock(makeName(woodDescriptor, logOrientation), LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround,
-                    true, true, true, true, true, true,
+        : FullBlock(makeName(woodDescriptor, logOrientation),
+                    LightProperties(Lighting(), Lighting::makeMaxLight()),
+                    RayCasting::BlockCollisionMaskGround,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::NX),
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::PX),
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::NY),
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::PY),
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::NZ),
                     getTextureDescriptor(woodDescriptor, logOrientation, BlockFace::PZ),
-                    RenderLayer::Opaque), woodDescriptor(woodDescriptor), logOrientation(logOrientation)
+                    RenderLayer::Opaque),
+          woodDescriptor(woodDescriptor),
+          logOrientation(logOrientation)
     {
         switch(logOrientation)
         {
@@ -116,10 +133,10 @@ public:
         case LogOrientation::Y:
             break;
         case LogOrientation::X:
-            transformBlock(Matrix::rotateZ(M_PI / 2));
+            transformBlock(Transform::rotateZ(M_PI / 2));
             break;
         case LogOrientation::Z:
-            transformBlock(Matrix::rotateX(M_PI / 2));
+            transformBlock(Transform::rotateX(M_PI / 2));
             break;
         }
     }
@@ -139,9 +156,16 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getLogItemDescriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(woodDescriptor->getLogItemDescriptor())),
+                                   bi.position() + VectorF(0.5));
         handleToolDamage(tool);
     }
     virtual float getHardness() const override
@@ -156,7 +180,8 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -168,7 +193,8 @@ public:
 class WoodPlanks : public FullBlock
 {
     WoodPlanks(const WoodPlanks &) = delete;
-    WoodPlanks &operator =(const WoodPlanks &) = delete;
+    WoodPlanks &operator=(const WoodPlanks &) = delete;
+
 protected:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -178,10 +204,16 @@ protected:
         retval += L")";
         return retval;
     }
+
 public:
     WoodPlanks(WoodDescriptorPointer woodDescriptor)
-        : FullBlock(makeName(woodDescriptor), LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround,
-                    true, woodDescriptor->getPlanksTexture(), RenderLayer::Opaque), woodDescriptor(woodDescriptor)
+        : FullBlock(makeName(woodDescriptor),
+                    LightProperties(Lighting(), Lighting::makeMaxLight()),
+                    RayCasting::BlockCollisionMaskGround,
+                    true,
+                    woodDescriptor->getPlanksTexture(),
+                    RenderLayer::Opaque),
+          woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
@@ -196,9 +228,16 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getPlanksItemDescriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(woodDescriptor->getPlanksItemDescriptor())),
+                                   bi.position() + VectorF(0.5));
         handleToolDamage(tool);
     }
     virtual float getHardness() const override
@@ -213,7 +252,8 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -225,7 +265,8 @@ public:
 class WoodLeaves : public FullBlock
 {
     WoodLeaves(const WoodLeaves &) = delete;
-    WoodLeaves &operator =(const WoodLeaves &) = delete;
+    WoodLeaves &operator=(const WoodLeaves &) = delete;
+
 protected:
     const WoodDescriptorPointer woodDescriptor;
     const bool canDecay;
@@ -242,10 +283,14 @@ protected:
         retval += L")";
         return retval;
     }
-    virtual bool isConnectedToTree(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual bool isConnectedToTree(BlockIterator blockIterator,
+                                   WorldLockManager &lock_manager) const
     {
         const int checkDistance = 4;
-        checked_array<checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2> supportedArrays;
+        checked_array<checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>,
+                                                  2 * checkDistance + 1>,
+                                    2 * checkDistance + 1>,
+                      2> supportedArrays;
         for(auto &i : supportedArrays)
         {
             for(auto &j : i)
@@ -259,7 +304,9 @@ protected:
                 }
             }
         }
-        checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>, 2 * checkDistance + 1>, 2 * checkDistance + 1> propagates;
+        checked_array<checked_array<checked_array<int, 2 * checkDistance + 1>,
+                                    2 * checkDistance + 1>,
+                      2 * checkDistance + 1> propagates;
         for(auto &i : propagates)
         {
             for(auto &j : i)
@@ -280,8 +327,11 @@ protected:
                     BlockIterator bi = blockIterator;
                     bi.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
                     Block b = bi.get(lock_manager);
-                    int &currentSupported = supportedArrays[currentSupportedArrayIndex][dx + checkDistance][dy + checkDistance][dz + checkDistance];
-                    int &currentPropagates = propagates[dx + checkDistance][dy + checkDistance][dz + checkDistance];
+                    int &currentSupported =
+                        supportedArrays[currentSupportedArrayIndex][dx + checkDistance]
+                                       [dy + checkDistance][dz + checkDistance];
+                    int &currentPropagates =
+                        propagates[dx + checkDistance][dy + checkDistance][dz + checkDistance];
                     currentSupported = 0;
                     currentPropagates = 0;
                     if(!b.good()) // might be log
@@ -311,10 +361,15 @@ protected:
                 {
                     for(int z = -currentCheckDistance; z <= currentCheckDistance; z++)
                     {
-                        int &currentSupported = supportedArrays[currentSupportedArrayIndex][x + checkDistance][y + checkDistance][z + checkDistance];
-                        currentSupported = supportedArrays[1 - currentSupportedArrayIndex][x + checkDistance][y + checkDistance][z + checkDistance];
+                        int &currentSupported =
+                            supportedArrays[currentSupportedArrayIndex][x + checkDistance]
+                                           [y + checkDistance][z + checkDistance];
+                        currentSupported =
+                            supportedArrays[1 - currentSupportedArrayIndex][x + checkDistance]
+                                           [y + checkDistance][z + checkDistance];
                         assert(currentSupported != -1);
-                        int currentPropagetes = propagates[x + checkDistance][y + checkDistance][z + checkDistance];
+                        int currentPropagetes =
+                            propagates[x + checkDistance][y + checkDistance][z + checkDistance];
                         assert(currentPropagetes != -1);
                         if(!currentPropagetes)
                             continue;
@@ -324,7 +379,9 @@ protected:
                         {
                             VectorI delta = getBlockFaceOutDirection(bf);
                             VectorI p = VectorI(x, y, z) + delta;
-                            int lastSupported = supportedArrays[1 - currentSupportedArrayIndex][p.x + checkDistance][p.y + checkDistance][p.z + checkDistance];
+                            int lastSupported =
+                                supportedArrays[1 - currentSupportedArrayIndex][p.x + checkDistance]
+                                               [p.y + checkDistance][p.z + checkDistance];
                             assert(lastSupported != -1);
                             if(lastSupported)
                             {
@@ -336,20 +393,26 @@ protected:
                 }
             }
         }
-        int currentSupported = supportedArrays[currentSupportedArrayIndex][checkDistance][checkDistance][checkDistance];
+        int currentSupported = supportedArrays[currentSupportedArrayIndex][checkDistance]
+                                              [checkDistance][checkDistance];
         assert(currentSupported != -1);
         return currentSupported != 0;
     }
+
 public:
     WoodLeaves(WoodDescriptorPointer woodDescriptor, bool canDecay)
         : FullBlock(makeName(woodDescriptor, canDecay),
-                    LightProperties(Lighting(),
-                                    Lighting::makeDirectOnlyLighting()),
+                    LightProperties(Lighting(), Lighting::makeDirectOnlyLighting()),
                     RayCasting::BlockCollisionMaskGround,
-                    false, false, false, false, false, false),
-        woodDescriptor(woodDescriptor),
-        canDecay(canDecay),
-        meshBlockedFace()
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false),
+          woodDescriptor(woodDescriptor),
+          canDecay(canDecay),
+          meshBlockedFace()
     {
         TextureDescriptor td = woodDescriptor->getLeavesTexture();
         meshFace[BlockFace::NX] = makeFaceMeshNX(td);
@@ -382,16 +445,28 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override
     {
         woodDescriptor->makeLeavesDrops(world, bi, lock_manager, tool);
         handleToolDamage(tool);
     }
-    virtual ColorF getLeavesShading(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual ColorF getLeavesShading(const Block &block,
+                                    BlockIterator blockIterator,
+                                    WorldLockManager &lock_manager) const
     {
         return blockIterator.getBiomeProperties(lock_manager).getLeavesColor();
     }
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
+    virtual void renderDynamic(
+        const Block &block,
+        Mesh &dest,
+        BlockIterator blockIterator,
+        WorldLockManager &lock_manager,
+        RenderLayer rl,
+        const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
     {
         if(rl != RenderLayer::Opaque)
         {
@@ -399,11 +474,12 @@ public:
         }
         bool drewAny = false;
         ColorF leavesShading;
-        Matrix tform = Matrix::translate((VectorF)blockIterator.position());
+        Transform tform = Transform::translate((VectorF)blockIterator.position());
         Mesh &blockMesh = getTempRenderMesh(lock_manager.tls);
         Mesh &faceMesh = getTempRenderMesh2(lock_manager.tls);
         blockMesh.clear();
-        const enum_array<Mesh, BlockFace> &currentMeshFace = *(globalRenderSettings.useFancyLeaves ? &meshFace : &meshBlockedFace);
+        const enum_array<Mesh, BlockFace> &currentMeshFace =
+            *(globalRenderSettings.useFancyLeaves ? &meshFace : &meshBlockedFace);
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
@@ -415,13 +491,14 @@ public:
                 continue;
             }
 
-            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)] || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
+            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)]
+               || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
             {
                 continue;
             }
             drewAny = true;
             leavesShading = getLeavesShading(block, blockIterator, lock_manager);
-            if(currentMeshFace[bf].size() == 0)
+            if(currentMeshFace[bf].empty())
                 continue;
             faceMesh.clear();
             faceMesh.append(colorize(leavesShading, currentMeshFace[bf]));
@@ -434,7 +511,9 @@ public:
             dest.append(transform(tform, blockMesh));
         }
     }
-    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual bool drawsAnythingDynamic(const Block &block,
+                                      BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         for(BlockFace bf : enum_traits<BlockFace>())
         {
@@ -447,7 +526,8 @@ public:
                 continue;
             }
 
-            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)] || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
+            if(b.descriptor->isFaceBlocked[getOppositeBlockFace(bf)]
+               || (!globalRenderSettings.useFancyLeaves && b.descriptor == this))
             {
                 continue;
             }
@@ -456,7 +536,10 @@ public:
         }
         return false;
     }
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const override
     {
         if(!canDecay)
             return;
@@ -478,11 +561,14 @@ public:
         return false;
         FIXME_MESSAGE(add check for shears)
     }
-    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    virtual bool canAttachBlock(Block b,
+                                BlockFace attachingFace,
+                                Block attachingBlock) const override
     {
         return false;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -494,7 +580,8 @@ public:
 class Sapling : public Plant
 {
     Sapling(const Sapling &) = delete;
-    Sapling &operator =(const Sapling &) = delete;
+    Sapling &operator=(const Sapling &) = delete;
+
 protected:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor, unsigned frame)
@@ -512,11 +599,20 @@ protected:
         assert(dynamic_cast<const Plant *>(retval) != nullptr);
         return static_cast<const Plant *>(retval);
     }
-    virtual void dropItems(BlockIterator bi, Block b, World &world, WorldLockManager &lock_manager, Item tool) const override
+    virtual void dropItems(BlockIterator bi,
+                           Block b,
+                           World &world,
+                           WorldLockManager &lock_manager,
+                           Item tool) const override
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(woodDescriptor->getSaplingItemDescriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(woodDescriptor->getSaplingItemDescriptor())),
+                                   bi.position() + VectorF(0.5));
     }
-    virtual bool isPositionValid(BlockIterator blockIterator, Block block, WorldLockManager &lock_manager) const override
+    virtual bool isPositionValid(BlockIterator blockIterator,
+                                 Block block,
+                                 WorldLockManager &lock_manager) const override
     {
         BlockIterator bi = blockIterator;
         bi.moveTowardNY(lock_manager.tls);
@@ -525,7 +621,10 @@ protected:
             return true;
         return b.descriptor->canAttachBlock(b, BlockFace::PY, block);
     }
-    int getTreeBaseSize(int maxTreeBaseSize, BlockIterator &blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
+    int getTreeBaseSize(int maxTreeBaseSize,
+                        BlockIterator &blockIterator,
+                        WorldLockManager &lock_manager,
+                        bool adjustSaplingPosition) const
     {
         if(maxTreeBaseSize < 2)
             return maxTreeBaseSize;
@@ -578,7 +677,10 @@ protected:
         assert(hasSapling[1][1]);
         return 1;
     }
-    bool tryGrowTree(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, bool adjustSaplingPosition) const
+    bool tryGrowTree(World &world,
+                     BlockIterator blockIterator,
+                     WorldLockManager &lock_manager,
+                     bool adjustSaplingPosition) const
     {
         int maxTreeBaseSize = 0;
         for(TreeDescriptorPointer treeDescriptor : woodDescriptor->trees)
@@ -589,7 +691,8 @@ protected:
             if(maxTreeBaseSize < treeDescriptor->baseSize)
                 maxTreeBaseSize = treeDescriptor->baseSize;
         }
-        int treeBaseSize = getTreeBaseSize(maxTreeBaseSize, blockIterator, lock_manager, adjustSaplingPosition);
+        int treeBaseSize =
+            getTreeBaseSize(maxTreeBaseSize, blockIterator, lock_manager, adjustSaplingPosition);
         if(treeBaseSize == 0)
             return false;
         Block block = blockIterator.get(lock_manager);
@@ -616,7 +719,8 @@ protected:
         }
         if(treeGenerateChanceSum == 0)
             return false;
-        std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(0, treeGenerateChanceSum - 1)(world.getRandomGenerator());
+        std::size_t treeIndex = std::uniform_int_distribution<std::size_t>(
+            0, treeGenerateChanceSum - 1)(world.getRandomGenerator());
         TreeDescriptorPointer treeDescriptor = nullptr;
         for(TreeDescriptorPointer td : woodDescriptor->trees)
         {
@@ -632,7 +736,8 @@ protected:
             treeIndex -= td->generateChance;
         }
         assert(treeDescriptor);
-        Tree tree = treeDescriptor->generateTree(std::uniform_int_distribution<std::uint32_t>()(world.getRandomGenerator()));
+        Tree tree = treeDescriptor->generateTree(
+            std::uniform_int_distribution<std::uint32_t>()(world.getRandomGenerator()));
         if(!tree.placeInWorld(blockIterator.position(), world, lock_manager))
         {
             return false;
@@ -642,12 +747,21 @@ protected:
             return true;
         }
     }
+
 public:
     Sapling(WoodDescriptorPointer woodDescriptor, unsigned frame)
-        : Plant(makeName(woodDescriptor, frame), makeDiagonalCrossMesh(woodDescriptor->getSaplingTexture()), frame, 2, 1.0f), woodDescriptor(woodDescriptor)
+        : Plant(makeName(woodDescriptor, frame),
+                makeDiagonalCrossMesh(woodDescriptor->getSaplingTexture()),
+                frame,
+                2,
+                1.0f),
+          woodDescriptor(woodDescriptor)
     {
     }
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const override
     {
         if(animationFrame + 1 < animationFrameCount)
         {
@@ -660,7 +774,8 @@ public:
     {
         return woodDescriptor;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -668,7 +783,6 @@ public:
         return nullptr;
     }
 };
-
 }
 }
 }

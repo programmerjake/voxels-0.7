@@ -297,7 +297,8 @@ private:
     std::shared_ptr<MeshBufferImp> imp;
     Matrix tform;
     static bool impIsEmpty(std::shared_ptr<MeshBufferImp> mesh);
-    static std::size_t impCapacity(std::shared_ptr<MeshBufferImp> mesh);
+    static std::size_t impTriangleCapacity(std::shared_ptr<MeshBufferImp> mesh);
+    static std::size_t impVertexCapacity(std::shared_ptr<MeshBufferImp> mesh);
     MeshBuffer(std::shared_ptr<MeshBufferImp> imp, Matrix tform)
         : imp(std::move(imp)), tform(tform)
     {
@@ -307,13 +308,19 @@ public:
         : imp(), tform(Matrix::identity())
     {
     }
-    MeshBuffer(std::size_t triangleCount);
+    MeshBuffer(std::size_t triangleCount, std::size_t vertexCount);
     bool set(const Mesh &mesh, bool isFinal);
-    std::size_t capacity() const
+    std::size_t triangleCapacity() const
     {
         if(imp == nullptr)
             return 0;
-        return impCapacity(imp);
+        return impTriangleCapacity(imp);
+    }
+    std::size_t vertexCapacity() const
+    {
+        if(imp == nullptr)
+            return 0;
+        return impVertexCapacity(imp);
     }
     bool hasStorage() const
     {
@@ -325,14 +332,14 @@ public:
             return true;
         return impIsEmpty(imp);
     }
-    MeshBuffer createTransformed(Matrix m) const
+    MeshBuffer createTransformed(const Transform &transformIn) const
     {
-        return MeshBuffer(imp, transform(m, tform));
+        return MeshBuffer(imp, transform(transformIn, tform));
     }
     friend void Display::render(const MeshBuffer &m, RenderLayer rl);
 };
 
-inline MeshBuffer transform(const Matrix &m, const MeshBuffer &meshBuffer)
+inline MeshBuffer transform(const Transform &m, const MeshBuffer &meshBuffer)
 {
     return meshBuffer.createTransformed(m);
 }

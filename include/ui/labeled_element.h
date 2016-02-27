@@ -59,7 +59,10 @@ protected:
         float centerY = 0.5f * (minY + maxY);
         xOffset = textScale * xOffset + 0.5f * (newMinX + maxX);
         yOffset = textScale * yOffset + centerY;
-        renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, textColor, textProperties));
+        renderer << transform(Transform::scale(textScale)
+                                  .concat(Transform::translate(xOffset, yOffset, -1))
+                                  .concat(Transform::scale(minZ)),
+                              Text::mesh(text, textColor, textProperties));
         float eHeight = elementHeight();
         renderElement(renderer, minX, newMinX, centerY - 0.5f * eHeight, centerY + 0.5f * eHeight, interpolate<float>(0.125f, minZ, maxZ), maxZ, isSelected);
     }

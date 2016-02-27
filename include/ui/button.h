@@ -61,6 +61,7 @@ private:
             }
         }
     }
+
 public:
     MonitoredBool pressed;
     Event click;
@@ -89,12 +90,12 @@ public:
     }
     GenericButton(float minX, float maxX, float minY, float maxY, bool disabled = false)
         : Element(minX, maxX, minY, maxY),
-        mouseButtons(),
-        keysPressed(),
-        touchs(),
-        disabled(disabled),
-        pressed(false),
-        click()
+          mouseButtons(),
+          keysPressed(),
+          touchs(),
+          disabled(disabled),
+          pressed(false),
+          click()
     {
     }
     virtual bool canHaveKeyboardFocus() const override
@@ -183,6 +184,7 @@ public:
         touchs.clear();
         updatePressed(false);
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override = 0;
 };
@@ -198,6 +200,7 @@ public:
     {
         return false;
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
@@ -212,27 +215,55 @@ public:
     ColorF textColor, selectedTextColor, pressedTextColor;
     ColorF disabledTextColor;
     ColorF color, selectedColor, pressedColor;
-    Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color, ColorF textColor, ColorF selectedTextColor, ColorF pressedTextColor, ColorF disabledTextColor, ColorF selectedColor, ColorF pressedColor, Text::TextProperties textProperties = Text::defaultTextProperties)
+    Button(std::wstring text,
+           float minX,
+           float maxX,
+           float minY,
+           float maxY,
+           ColorF color,
+           ColorF textColor,
+           ColorF selectedTextColor,
+           ColorF pressedTextColor,
+           ColorF disabledTextColor,
+           ColorF selectedColor,
+           ColorF pressedColor,
+           Text::TextProperties textProperties = Text::defaultTextProperties)
         : GenericButton(minX, maxX, minY, maxY),
-        text(text),
-        textProperties(textProperties),
-        textColor(textColor),
-        selectedTextColor(selectedTextColor),
-        pressedTextColor(pressedTextColor),
-        disabledTextColor(disabledTextColor),
-        color(color),
-        selectedColor(selectedColor),
-        pressedColor(pressedColor)
+          text(text),
+          textProperties(textProperties),
+          textColor(textColor),
+          selectedTextColor(selectedTextColor),
+          pressedTextColor(pressedTextColor),
+          disabledTextColor(disabledTextColor),
+          color(color),
+          selectedColor(selectedColor),
+          pressedColor(pressedColor)
     {
     }
-    Button(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF color = GrayscaleF(0.65), ColorF textColor = GrayscaleF(0), Text::TextProperties textProperties = Text::defaultTextProperties)
+    Button(std::wstring text,
+           float minX,
+           float maxX,
+           float minY,
+           float maxY,
+           ColorF color = GrayscaleF(0.65),
+           ColorF textColor = GrayscaleF(0),
+           Text::TextProperties textProperties = Text::defaultTextProperties)
         : Button(text,
-                 minX, maxX, minY, maxY,
-                 color, textColor,
-                 colorize(GrayscaleF(0.75), textColor), colorize(GrayscaleF(0.5), textColor), interpolate(0.5, GrayscaleF(0.5f), textColor),
-                 interpolate(0.5, GrayscaleF(1), color), color, textProperties)
+                 minX,
+                 maxX,
+                 minY,
+                 maxY,
+                 color,
+                 textColor,
+                 colorize(GrayscaleF(0.75), textColor),
+                 colorize(GrayscaleF(0.5), textColor),
+                 interpolate(0.5, GrayscaleF(0.5f), textColor),
+                 interpolate(0.5, GrayscaleF(1), color),
+                 color,
+                 textProperties)
     {
     }
+
 protected:
     void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus, bool isPressed)
     {
@@ -265,15 +296,23 @@ protected:
             topColor = colorize(GrayscaleF(0.7f), pressedColor);
             textScale *= 0.9f;
         }
-        renderer << Generate::quadrilateral(whiteTexture(),
-                                                  VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), bottomColor,
-                                                  VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), bottomColor,
-                                                  VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), topColor,
-                                                  VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), topColor);
+        renderer << Generate::quadrilateral(
+            whiteTexture(),
+            VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ),
+            bottomColor,
+            VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ),
+            bottomColor,
+            VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+            topColor,
+            VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+            topColor);
         float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
         xOffset = textScale * xOffset + 0.5f * (minX + maxX);
         yOffset = textScale * yOffset + 0.5f * (minY + maxY);
-        renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, currentTextColor, textProperties));
+        renderer << transform(Transform::scale(textScale)
+                                  .concat(Transform::translate(xOffset, yOffset, -1))
+                                  .concat(Transform::scale(minZ)),
+                              Text::mesh(text, currentTextColor, textProperties));
     }
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {

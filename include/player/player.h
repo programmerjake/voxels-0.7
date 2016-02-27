@@ -58,6 +58,7 @@ namespace builtin
 class PlayerEntity final : public EntityDescriptor
 {
     friend class global_instance_maker<PlayerEntity>;
+
 private:
     Mesh head;
     Mesh body;
@@ -67,7 +68,13 @@ private:
     Mesh rightLeg;
     void generateMeshes();
     PlayerEntity()
-        : EntityDescriptor(L"builtin.player"), head(), body(), leftArm(), rightArm(), leftLeg(), rightLeg()
+        : EntityDescriptor(L"builtin.player"),
+          head(),
+          body(),
+          leftArm(),
+          rightArm(),
+          leftLeg(),
+          rightLeg()
     {
         generateMeshes();
     }
@@ -79,28 +86,62 @@ private:
     {
         return std::static_pointer_cast<std::weak_ptr<Player>>(data)->lock();
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const override
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(
+        Entity &entity,
+        PositionF position,
+        VectorF velocity,
+        std::shared_ptr<PhysicsWorld> physicsWorld) const override
     {
-        return PhysicsObject::makeCylinder(position, velocity,
-                                           true, false,
-                                           0.3, 0.9,
-                                           PhysicsProperties(PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask, PhysicsProperties::playerCollisionMask, 0, 1, VectorF(0, -32, 0)), physicsWorld);
+        return PhysicsObject::makeCylinder(
+            position,
+            velocity,
+            true,
+            false,
+            0.3,
+            0.9,
+            PhysicsProperties(
+                PhysicsProperties::playerCollisionMask | PhysicsProperties::blockCollisionMask,
+                PhysicsProperties::playerCollisionMask,
+                0,
+                1,
+                VectorF(0, -32, 0)),
+            physicsWorld);
     }
+
 public:
     static const PlayerEntity *descriptor()
     {
         return global_instance_maker<PlayerEntity>::getInstance();
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, Matrix cameraToWorldMatrix) const override;
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const override;
-    virtual Matrix getSelectionBoxTransform(const Entity &entity) const override
+    virtual void render(Entity &entity,
+                        Mesh &dest,
+                        RenderLayer rl,
+                        const Transform &cameraToWorldMatrix) const override;
+    virtual void moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const override;
+    virtual Transform getSelectionBoxTransform(const Entity &entity) const override
     {
-        return Matrix::translate(-0.5f, -0.5f, -0.5f).concat(Matrix::scale(0.25, 1.8, 0.25)).concat(Matrix::translate(entity.physicsObject->getPosition()));
+        return Transform::translate(-0.5f, -0.5f, -0.5f)
+            .concat(Transform::scale(0.25, 1.8, 0.25))
+            .concat(Transform::translate(entity.physicsObject->getPosition()));
     }
-    virtual void makeData(Entity &entity, World &world, WorldLockManager &lock_manager) const override;
-    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const override;
-    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override;
-    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, PositionF position, std::shared_ptr<Player> player, VectorF velocity = VectorF(0));
+    virtual void makeData(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager) const override;
+    virtual void write(PositionF position,
+                       VectorF velocity,
+                       std::shared_ptr<void> data,
+                       stream::Writer &writer) const override;
+    virtual std::shared_ptr<void> read(PositionF position,
+                                       VectorF velocity,
+                                       stream::Reader &reader) const override;
+    static Entity *addToWorld(World &world,
+                              WorldLockManager &lock_manager,
+                              PositionF position,
+                              std::shared_ptr<Player> player,
+                              VectorF velocity = VectorF(0));
 };
 }
 }
@@ -109,12 +150,13 @@ GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class Player final : public std::enable_shared_from_this<Player>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     friend class Entities::builtin::PlayerEntity;
     friend class Players_t;
     friend class ui::GameUi;
     Player(const Player &) = delete;
-    Player &operator =(const Player &) = delete;
+    Player &operator=(const Player &) = delete;
+
 private:
     struct GameInputMonitoring
     {
@@ -122,8 +164,7 @@ private:
         std::atomic_int actionCount;
         std::atomic_int dropCount;
         std::atomic_bool gotAttack;
-        GameInputMonitoring()
-            : gotJump(false), actionCount(0), dropCount(0), gotAttack(false)
+        GameInputMonitoring() : gotJump(false), actionCount(0), dropCount(0), gotAttack(false)
         {
         }
         bool retrieveGotJump()
@@ -157,6 +198,7 @@ private:
     PositionI destructingPosition;
     World &world;
     std::weak_ptr<World> worldW;
+
 public:
     static VectorF getViewPositionOffset()
     {
@@ -172,7 +214,9 @@ public:
         return playerEntity;
     }
     bool setDialog(std::shared_ptr<ui::Ui> ui);
-    static std::shared_ptr<Player> make(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
+    static std::shared_ptr<Player> make(std::wstring name,
+                                        ui::GameUi *gameUi,
+                                        std::shared_ptr<World> pworld);
     ~Player()
     {
         removeFromPlayersList();
@@ -183,18 +227,23 @@ public:
         lastPosition = position;
         warpToLastPositionCount = 2; // extra overlap so we don't have issues with a data-race
     }
-    Matrix getWorldOrientationXZTransform() const
+    Transform getWorldOrientationXZTransform() const
     {
-        return Matrix::rotateY(gameInput->viewTheta.get());
+        return Transform::rotateY(gameInput->viewTheta.get());
     }
-    Matrix getWorldOrientationTransform() const
+    Transform getWorldOrientationTransform() const
     {
-        return Matrix::rotateZ(gameInput->viewPsi.get()).concat(Matrix::rotateX(gameInput->viewPhi.get())).concat(Matrix::rotateY(gameInput->viewTheta.get()));
+        return Transform::rotateZ(gameInput->viewPsi.get())
+            .concat(Transform::rotateX(gameInput->viewPhi.get()))
+            .concat(Transform::rotateY(gameInput->viewTheta.get()));
     }
-    Matrix getViewTransform()
+    Transform getViewTransform()
     {
         VectorF pos = getPosition() + getViewPositionOffset();
-        return Matrix::translate(-pos).concat(Matrix::rotateY(-gameInput->viewTheta.get())).concat(Matrix::rotateX(-gameInput->viewPhi.get())).concat(Matrix::rotateZ(-gameInput->viewPsi.get()));
+        return Transform::translate(-pos)
+            .concat(Transform::rotateY(-gameInput->viewTheta.get()))
+            .concat(Transform::rotateX(-gameInput->viewPhi.get()))
+            .concat(Transform::rotateZ(-gameInput->viewPsi.get()));
     }
     PositionF getPosition()
     {
@@ -227,19 +276,37 @@ public:
     }
     RayCasting::Ray getViewRay()
     {
-        return transform(inverse(getViewTransform()), RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));
+        return transform(inverse(getViewTransform()),
+                         RayCasting::Ray(PositionF(0, 0, 0, getPosition().d), VectorF(0, 0, -1)));
     }
-    RayCasting::Collision castRay(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask)
+    RayCasting::Collision castRay(World &world,
+                                  WorldLockManager &lock_manager,
+                                  RayCasting::BlockCollisionMask rayBlockCollisionMask)
     {
-        return world.castRay(getViewRay(), lock_manager, gameInput->isCreativeMode.get() ? 30.0f : 5.0f, rayBlockCollisionMask, playerEntity);
+        return world.castRay(getViewRay(),
+                             lock_manager,
+                             gameInput->isCreativeMode.get() ? 30.0f : 5.0f,
+                             rayBlockCollisionMask,
+                             playerEntity);
     }
-    Entity *createDroppedItemEntity(ItemStack itemStack, World &world, WorldLockManager &lock_manager)
+    Entity *createDroppedItemEntity(ItemStack itemStack,
+                                    World &world,
+                                    WorldLockManager &lock_manager)
     {
         assert(itemStack.good());
         RayCasting::Ray ray = getViewRay();
-        return ItemDescriptor::addToWorld(world, lock_manager, itemStack, ray.startPosition, normalize(ray.direction) * 6, shared_from_this());
+        return ItemDescriptor::addToWorld(world,
+                                          lock_manager,
+                                          itemStack,
+                                          ray.startPosition,
+                                          normalize(ray.direction) * 6,
+                                          shared_from_this());
     }
-    RayCasting::Collision getPlacedBlockPosition(World &world, WorldLockManager &lock_manager, RayCasting::BlockCollisionMask rayBlockCollisionMask = RayCasting::BlockCollisionMaskDefault)
+    RayCasting::Collision getPlacedBlockPosition(
+        World &world,
+        WorldLockManager &lock_manager,
+        RayCasting::BlockCollisionMask rayBlockCollisionMask =
+            RayCasting::BlockCollisionMaskDefault)
     {
         RayCasting::Collision c = castRay(world, lock_manager, rayBlockCollisionMask);
         if(c.valid())
@@ -282,8 +349,14 @@ public:
         }
         return RayCasting::Collision(world);
     }
-    bool placeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, Block b);
-    bool removeBlock(RayCasting::Collision collision, World &world, WorldLockManager &lock_manager, bool runBreakAction = false);
+    bool placeBlock(RayCasting::Collision collision,
+                    World &world,
+                    WorldLockManager &lock_manager,
+                    Block b);
+    bool removeBlock(RayCasting::Collision collision,
+                     World &world,
+                     WorldLockManager &lock_manager,
+                     bool runBreakAction = false);
     unsigned addItem(Item item)
     {
         if(!item.good())
@@ -337,7 +410,8 @@ class PlayerList final
     friend class LockedPlayers;
     friend class World;
     PlayerList(const PlayerList &) = delete;
-    PlayerList &operator =(const PlayerList &) = delete;
+    PlayerList &operator=(const PlayerList &) = delete;
+
 private:
     typedef std::unordered_map<std::wstring, std::shared_ptr<Player>> ListType;
     ListType players;
@@ -352,10 +426,10 @@ private:
     {
         return players.end();
     }
-    PlayerList()
-        : players(), playersLock()
+    PlayerList() : players(), playersLock()
     {
     }
+
 public:
     ~PlayerList() = default;
     LockedPlayers lock();
@@ -364,53 +438,55 @@ public:
 class LockedPlayers final
 {
     friend class PlayerList;
+
 private:
     std::unique_lock<std::recursive_mutex> theLock;
     PlayerList &players;
-    LockedPlayers(PlayerList &players)
-        : theLock(players.playersLock), players(players)
+    LockedPlayers(PlayerList &players) : theLock(players.playersLock), players(players)
     {
     }
+
 public:
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator final : public std::iterator<std::forward_iterator_tag, const std::shared_ptr<Player>>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class iterator final
+        : public std::iterator<std::forward_iterator_tag, const std::shared_ptr<Player>>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class LockedPlayers;
+
     private:
         PlayerList::ListType::iterator iter;
-        iterator(PlayerList::ListType::iterator iter)
-            : iter(iter)
+        iterator(PlayerList::ListType::iterator iter) : iter(iter)
         {
         }
+
     public:
-        iterator()
-            : iter()
+        iterator() : iter()
         {
         }
-        iterator &operator ++()
+        iterator &operator++()
         {
             ++iter;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             return iterator(iter++);
         }
-        const std::shared_ptr<Player> &operator *() const
+        const std::shared_ptr<Player> &operator*() const
         {
             return std::get<1>(*iter);
         }
-        const std::shared_ptr<Player> *operator ->() const
+        const std::shared_ptr<Player> *operator->() const
         {
             return &std::get<1>(*iter);
         }
-        bool operator ==(const iterator &rt) const
+        bool operator==(const iterator &rt) const
         {
             return iter == rt.iter;
         }
-        bool operator !=(const iterator &rt) const
+        bool operator!=(const iterator &rt) const
         {
             return iter != rt.iter;
         }

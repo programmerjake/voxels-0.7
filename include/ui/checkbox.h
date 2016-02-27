@@ -54,18 +54,28 @@ private:
         }
     }
     bool pressed;
+
 public:
     MonitoredBool checked;
     ColorF checkboxColor, selectedCheckboxColor;
-    CheckBox(std::wstring text, float minX, float maxX, float minY, float maxY, bool checked = false, ColorF textColor = GrayscaleF(0), ColorF checkboxColor = GrayscaleF(0), ColorF selectedCheckboxColor = RGBF(0, 0, 1), Text::TextProperties textProperties = Text::defaultTextProperties)
+    CheckBox(std::wstring text,
+             float minX,
+             float maxX,
+             float minY,
+             float maxY,
+             bool checked = false,
+             ColorF textColor = GrayscaleF(0),
+             ColorF checkboxColor = GrayscaleF(0),
+             ColorF selectedCheckboxColor = RGBF(0, 0, 1),
+             Text::TextProperties textProperties = Text::defaultTextProperties)
         : LabeledElement(text, minX, maxX, minY, maxY, textColor, textProperties),
-        mouseButtons(),
-        keysPressed(),
-        touchs(),
-        pressed(false),
-        checked(checked),
-        checkboxColor(checkboxColor),
-        selectedCheckboxColor(selectedCheckboxColor)
+          mouseButtons(),
+          keysPressed(),
+          touchs(),
+          pressed(false),
+          checked(checked),
+          checkboxColor(checkboxColor),
+          selectedCheckboxColor(selectedCheckboxColor)
     {
     }
     virtual bool canHaveKeyboardFocus() const override
@@ -147,6 +157,7 @@ public:
         updatePressed(false);
         return true;
     }
+
 protected:
     virtual float elementWidth() override
     {
@@ -156,7 +167,14 @@ protected:
     {
         return std::min<float>(maxY - minY, 0.25f * (maxX - minX));
     }
-    virtual void renderElement(Renderer &renderer, float minX, float maxX, float minY, float maxY, float minZ, float maxZ, bool isSelected) override
+    virtual void renderElement(Renderer &renderer,
+                               float minX,
+                               float maxX,
+                               float minY,
+                               float maxY,
+                               float minZ,
+                               float maxZ,
+                               bool isSelected) override
     {
         std::wstring str = L"\u2610";
         if(checked.get())
@@ -172,7 +190,10 @@ protected:
         float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
         xOffset = textScale * xOffset + 0.5f * (minX + maxX);
         yOffset = textScale * yOffset + 0.5f * (minY + maxY);
-        renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(str, isSelected ? selectedCheckboxColor : checkboxColor));
+        renderer << transform(Transform::scale(textScale)
+                                  .concat(Transform::translate(xOffset, yOffset, -1))
+                                  .concat(Transform::scale(minZ)),
+                              Text::mesh(str, isSelected ? selectedCheckboxColor : checkboxColor));
     }
 };
 }

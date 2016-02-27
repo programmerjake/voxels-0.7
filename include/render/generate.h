@@ -30,23 +30,30 @@ namespace programmerjake
 {
 namespace voxels
 {
-inline Mesh reverse(const Mesh &mesh)
+inline Mesh reverse(Mesh mesh)
 {
-    std::vector<Triangle> triangles = mesh.triangles;
-    for(Triangle &tri : triangles)
+    for(IndexedTriangle &tri : mesh.indexedTriangles)
     {
-        using std::swap;
-        swap(tri.p1, tri.p2);
-        swap(tri.c1, tri.c2);
-        swap(tri.t1, tri.t2);
-        VectorF n1 = -tri.n2;
-        VectorF n2 = -tri.n1;
-        VectorF n3 = -tri.n3;
-        tri.n1 = n1;
-        tri.n2 = n2;
-        tri.n3 = n3;
+        tri = reverse(tri);
     }
-    return Mesh(std::move(triangles), mesh.image);
+    for(Vertex &v : mesh.vertices)
+    {
+        v = reverse(v);
+    }
+    return mesh;
+}
+
+inline Mesh &&reverse(Mesh &&mesh)
+{
+    for(IndexedTriangle &tri : mesh.indexedTriangles)
+    {
+        tri = reverse(tri);
+    }
+    for(Vertex &v : mesh.vertices)
+    {
+        v = reverse(v);
+    }
+    return std::move(mesh);
 }
 
 inline std::shared_ptr<Mesh> reverse(std::shared_ptr<Mesh> mesh)
@@ -74,13 +81,34 @@ inline ColorizedMesh reverse(ColorizedMesh mesh)
     return mesh;
 }
 
-inline Mesh lightMesh(Mesh m, std::function<ColorF(ColorF color, VectorF position, VectorF normal)> lightVertex)
+inline TransformedMeshRRef reverse(TransformedMeshRRef &&mesh)
 {
-    for(Triangle & tri : m.triangles)
+    reverse(mesh.mesh);
+    return std::move(mesh);
+}
+
+inline ColorizedTransformedMeshRRef reverse(ColorizedTransformedMeshRRef &&mesh)
+{
+    reverse(mesh.mesh);
+    return std::move(mesh);
+}
+
+inline ColorizedMeshRRef reverse(ColorizedMeshRRef &&mesh)
+{
+    reverse(mesh.mesh);
+    return std::move(mesh);
+}
+
+template <typename Fn>
+inline Mesh lightMesh(
+    Mesh m, Fn &lightVertex)
+{
+    for(Vertex &v : m.vertices)
     {
-        tri.c1 = lightVertex(tri.c1, tri.p1, tri.n1);
-        tri.c2 = lightVertex(tri.c2, tri.p2, tri.n2);
-        tri.c3 = lightVertex(tri.c3, tri.p3, tri.n3);
+        ColorF color = v.c;
+        VectorF position = v.p;
+        VectorF normal = v.n;
+        v.c = lightVertex(color, position, normal);
     }
     return m;
 }
@@ -92,150 +120,89 @@ struct CutMesh
         : front(std::move(front)), coplanar(std::move(coplanar)), back(std::move(back))
     {
     }
-    CutMesh()
-        : front(), coplanar(), back()
+    CutMesh() : front(), coplanar(), back()
     {
     }
 };
 
-inline CutMesh cut(const Mesh &mesh, VectorF planeNormal, float planeD)
-{
-    Mesh front, coplanar, back;
-    front.triangles.reserve(mesh.size() * 2);
-    coplanar.triangles.reserve(mesh.size());
-    back.triangles.reserve(mesh.size() * 2);
-    front.image = mesh.image;
-    coplanar.image = mesh.image;
-    back.image = mesh.image;
-    for(Triangle tri : mesh.triangles)
-    {
-        CutTriangle ct = cut(tri, planeNormal, planeD);
-        for(size_t i = 0; i < ct.frontTriangleCount; i++)
-            front.append(ct.frontTriangles[i]);
-        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
-            coplanar.append(ct.coplanarTriangles[i]);
-        for(size_t i = 0; i < ct.backTriangleCount; i++)
-            back.append(ct.backTriangles[i]);
-    }
-    return CutMesh(std::move(front), std::move(coplanar), std::move(back));
-}
-
-inline Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD)
-{
-    std::vector<Triangle> triangles = std::move(mesh.triangles);
-    mesh.triangles.clear();
-    mesh.triangles.reserve(triangles.size());
-    for(Triangle tri : triangles)
-    {
-        CutTriangle ct = cut(tri, planeNormal, planeD);
-        for(size_t i = 0; i < ct.frontTriangleCount; i++)
-            mesh.append(ct.frontTriangles[i]);
-        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
-            mesh.append(ct.coplanarTriangles[i]);
-    }
-    return std::move(mesh);
-}
-
-inline Mesh cutAndGetBack(Mesh mesh, VectorF planeNormal, float planeD)
-{
-    std::vector<Triangle> triangles = std::move(mesh.triangles);
-    mesh.triangles.clear();
-    mesh.triangles.reserve(triangles.size());
-    for(Triangle tri : triangles)
-    {
-        CutTriangle ct = cut(tri, planeNormal, planeD);
-        for(size_t i = 0; i < ct.backTriangleCount; i++)
-            mesh.append(ct.backTriangles[i]);
-        for(size_t i = 0; i < ct.coplanarTriangleCount; i++)
-            mesh.append(ct.coplanarTriangles[i]);
-    }
-    return std::move(mesh);
-}
+CutMesh cut(const Mesh &mesh, VectorF planeNormal, float planeD); // in mesh.cpp
+Mesh cutAndGetFront(Mesh mesh, VectorF planeNormal, float planeD); // in mesh.cpp
+Mesh cutAndGetBack(Mesh mesh, VectorF planeNormal, float planeD); // in mesh.cpp
 
 namespace Generate
 {
-	inline Mesh quadrilateral(TextureDescriptor texture, VectorF p1, ColorF c1, VectorF p2, ColorF c2, VectorF p3, ColorF c3, VectorF p4, ColorF c4)
-	{
-		const TextureCoord t1 = TextureCoord(texture.minU, texture.minV);
-		const TextureCoord t2 = TextureCoord(texture.maxU, texture.minV);
-		const TextureCoord t3 = TextureCoord(texture.maxU, texture.maxV);
-		const TextureCoord t4 = TextureCoord(texture.minU, texture.maxV);
-		return Mesh(std::vector<Triangle>{Triangle(p1, c1, t1, p2, c2, t2, p3, c3, t3), Triangle(p3, c3, t3, p4, c4, t4, p1, c1, t1)}, texture.image);
-	}
+inline Mesh quadrilateral(TextureDescriptor texture,
+                          VectorF p1,
+                          ColorF c1,
+                          VectorF p2,
+                          ColorF c2,
+                          VectorF p3,
+                          ColorF c3,
+                          VectorF p4,
+                          ColorF c4)
+{
+    const TextureCoord t1 = TextureCoord(texture.minU, texture.minV);
+    const TextureCoord t2 = TextureCoord(texture.maxU, texture.minV);
+    const TextureCoord t3 = TextureCoord(texture.maxU, texture.maxV);
+    const TextureCoord t4 = TextureCoord(texture.minU, texture.maxV);
+    const VectorF normal = Triangle(p1, p2, p3).n1;
+    Mesh retval(texture.image);
+    auto v1 = retval.addVertex(Vertex(t1, p1, c1, normal));
+    auto v2 = retval.addVertex(Vertex(t2, p2, c2, normal));
+    auto v3 = retval.addVertex(Vertex(t3, p3, c3, normal));
+    auto v4 = retval.addVertex(Vertex(t4, p4, c4, normal));
+    retval.addTriangle(IndexedTriangle(v1, v2, v3));
+    retval.addTriangle(IndexedTriangle(v3, v4, v1));
+    return retval;
+}
 
-	/// make a box from <0, 0, 0> to <1, 1, 1>
-	inline Mesh unitBox(TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz)
-	{
-		const VectorF p0 = VectorF(0, 0, 0);
-		const VectorF p1 = VectorF(1, 0, 0);
-		const VectorF p2 = VectorF(0, 1, 0);
-		const VectorF p3 = VectorF(1, 1, 0);
-		const VectorF p4 = VectorF(0, 0, 1);
-		const VectorF p5 = VectorF(1, 0, 1);
-		const VectorF p6 = VectorF(0, 1, 1);
-		const VectorF p7 = VectorF(1, 1, 1);
-		Mesh retval;
-		retval.triangles.reserve(12);
-		constexpr ColorF c = colorizeIdentity();
-		if(nx)
-		{
-			retval.append(quadrilateral(nx,
-									 p0, c,
-									 p4, c,
-									 p6, c,
-									 p2, c
-									 ));
-		}
-		if(px)
-		{
-			retval.append(quadrilateral(px,
-									 p5, c,
-									 p1, c,
-									 p3, c,
-									 p7, c
-									 ));
-		}
-		if(ny)
-		{
-			retval.append(quadrilateral(ny,
-									 p0, c,
-									 p1, c,
-									 p5, c,
-									 p4, c
-									 ));
-		}
-		if(py)
-		{
-			retval.append(quadrilateral(py,
-									 p6, c,
-									 p7, c,
-									 p3, c,
-									 p2, c
-									 ));
-		}
-		if(nz)
-		{
-			retval.append(quadrilateral(nz,
-									 p1, c,
-									 p0, c,
-									 p2, c,
-									 p3, c
-									 ));
-		}
-		if(pz)
-		{
-			retval.append(quadrilateral(pz,
-									 p4, c,
-									 p5, c,
-									 p7, c,
-									 p6, c
-									 ));
-		}
-		return retval;
-	}
+/// make a box from <0, 0, 0> to <1, 1, 1>
+inline Mesh unitBox(TextureDescriptor nx,
+                    TextureDescriptor px,
+                    TextureDescriptor ny,
+                    TextureDescriptor py,
+                    TextureDescriptor nz,
+                    TextureDescriptor pz)
+{
+    const VectorF p0 = VectorF(0, 0, 0);
+    const VectorF p1 = VectorF(1, 0, 0);
+    const VectorF p2 = VectorF(0, 1, 0);
+    const VectorF p3 = VectorF(1, 1, 0);
+    const VectorF p4 = VectorF(0, 0, 1);
+    const VectorF p5 = VectorF(1, 0, 1);
+    const VectorF p6 = VectorF(0, 1, 1);
+    const VectorF p7 = VectorF(1, 1, 1);
+    Mesh retval;
+    constexpr ColorF c = colorizeIdentity();
+    if(nx)
+    {
+        retval.append(quadrilateral(nx, p0, c, p4, c, p6, c, p2, c));
+    }
+    if(px)
+    {
+        retval.append(quadrilateral(px, p5, c, p1, c, p3, c, p7, c));
+    }
+    if(ny)
+    {
+        retval.append(quadrilateral(ny, p0, c, p1, c, p5, c, p4, c));
+    }
+    if(py)
+    {
+        retval.append(quadrilateral(py, p6, c, p7, c, p3, c, p2, c));
+    }
+    if(nz)
+    {
+        retval.append(quadrilateral(nz, p1, c, p0, c, p2, c, p3, c));
+    }
+    if(pz)
+    {
+        retval.append(quadrilateral(pz, p4, c, p5, c, p7, c, p6, c));
+    }
+    return retval;
+}
 
-	Mesh item3DImage(TextureDescriptor td, float thickness = -1);
-	Mesh itemDamage(float damageValue);
+Mesh item3DImage(TextureDescriptor td, float thickness = -1);
+Mesh itemDamage(float damageValue);
 }
 }
 }

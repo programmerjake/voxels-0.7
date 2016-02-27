@@ -42,8 +42,7 @@ protected:
         : ItemImage(name, faceMesh, entityMesh, nullptr)
     {
     }
-    Tool(std::wstring name, TextureDescriptor td)
-        : ItemImage(name, td, nullptr)
+    Tool(std::wstring name, TextureDescriptor td) : ItemImage(name, td, nullptr)
     {
     }
     virtual Item getAfterPlaceItem() const final
@@ -53,11 +52,11 @@ protected:
     struct ToolData
     {
         const unsigned damage;
-        ToolData(unsigned damage)
-            : damage(damage)
+        ToolData(unsigned damage) : damage(damage)
         {
         }
     };
+
 public:
     virtual unsigned maxDamage() const = 0;
     virtual Item setDamage(Item item, unsigned newDamage) const
@@ -67,7 +66,8 @@ public:
         else if(newDamage >= maxDamage())
             return Item();
         else
-            return Item(item.descriptor, std::static_pointer_cast<void>(std::make_shared<ToolData>(newDamage)));
+            return Item(item.descriptor,
+                        std::static_pointer_cast<void>(std::make_shared<ToolData>(newDamage)));
     }
     virtual Item addDamage(Item item, unsigned additionalDamage) const
     {
@@ -84,13 +84,17 @@ public:
     {
         return (float)getDamage(item) / (float)maxDamage();
     }
-    virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
+    virtual void render(
+        Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const override
     {
         ItemImage::render(item, dest, minX, maxX, minY, maxY);
         float damage = getRelativeDamage(item);
         if(damage > 0)
         {
-            Matrix damageTransform = Matrix::scale(maxX - minX, maxY - minY, 1).concat(Matrix::translate(minX, minY, -1)).concat(Matrix::scale(0.5f * (minRenderZ + maxRenderZ)));
+            Transform damageTransform =
+                Transform::scale(maxX - minX, maxY - minY, 1)
+                    .concat(Transform::translate(minX, minY, -1))
+                    .concat(Transform::scale(0.5f * (minRenderZ + maxRenderZ)));
             dest.append(transform(damageTransform, Generate::itemDamage(damage)));
         }
     }
@@ -110,8 +114,13 @@ public:
     }
     virtual float getMineDurationFactor(Item item) const = 0;
     virtual ToolLevel getToolLevel() const = 0;
+
 protected:
-    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const = 0;
+    virtual Item incrementDamage(Item tool,
+                                 bool toolKindMatches,
+                                 bool toolCanMine,
+                                 bool minedInstantly) const = 0;
+
 public:
     static Item incrementDamage(Item tool, BlockDescriptorPointer blockDescriptor)
     {
@@ -120,7 +129,10 @@ public:
         const Tool *descriptor = dynamic_cast<const Tool *>(tool.descriptor);
         if(descriptor == nullptr)
             return tool;
-        return descriptor->incrementDamage(tool, blockDescriptor->isHelpingToolKind(tool), blockDescriptor->isMatchingTool(tool), blockDescriptor->getBreakDuration(tool) == 0);
+        return descriptor->incrementDamage(tool,
+                                           blockDescriptor->isHelpingToolKind(tool),
+                                           blockDescriptor->isMatchingTool(tool),
+                                           blockDescriptor->getBreakDuration(tool) == 0);
     }
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {

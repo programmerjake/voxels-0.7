@@ -39,14 +39,24 @@ public:
     std::wstring text;
     Text::TextProperties textProperties;
     ColorF textColor;
-    Label(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF textColor = GrayscaleF(0), Text::TextProperties textProperties = Text::defaultTextProperties)
-        : Element(minX, maxX, minY, maxY), text(text), textProperties(textProperties), textColor(textColor)
+    Label(std::wstring text,
+          float minX,
+          float maxX,
+          float minY,
+          float maxY,
+          ColorF textColor = GrayscaleF(0),
+          Text::TextProperties textProperties = Text::defaultTextProperties)
+        : Element(minX, maxX, minY, maxY),
+          text(text),
+          textProperties(textProperties),
+          textColor(textColor)
     {
     }
     virtual bool canHaveKeyboardFocus() const override
     {
         return false;
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
@@ -61,7 +71,10 @@ protected:
         float xOffset = -0.5f * textWidth, yOffset = -0.5f * textHeight;
         xOffset = textScale * xOffset + 0.5f * (minX + maxX);
         yOffset = textScale * yOffset + 0.5f * (minY + maxY);
-        renderer << transform(Matrix::scale(textScale).concat(Matrix::translate(xOffset, yOffset, -1)).concat(Matrix::scale(minZ)), Text::mesh(text, textColor, textProperties));
+        renderer << transform(Transform::scale(textScale)
+                                  .concat(Transform::translate(xOffset, yOffset, -1))
+                                  .concat(Transform::scale(minZ)),
+                              Text::mesh(text, textColor, textProperties));
     }
 };
 }

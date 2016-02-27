@@ -148,9 +148,9 @@ public:
     friend Ray transform(Matrix tform, Ray r);
 };
 
-inline Ray transform(Matrix tform, Ray r)
+inline Ray transform(const Transform &tform, Ray r)
 {
-    return Ray(transform(tform, r.startPosition), tform.applyNoTranslate(r.direction));
+    return Ray(transform(tform, r.startPosition), tform.normalMatrix.applyNoTranslate(r.direction));
 }
 
 class RayBlockIterator
