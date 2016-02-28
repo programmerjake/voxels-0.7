@@ -711,7 +711,7 @@ void ViewPoint::render(Renderer &renderer,
         float distanceSquared = absSquared(cameraPosition - averagePosition);
         triangleIndirectArray.emplace_back(i, distanceSquared);
     }
-#if 0
+#if 1
     std::sort(triangleIndirectArray.begin(),
               triangleIndirectArray.end(),
               [](IndirectTriangle a, IndirectTriangle b) -> bool

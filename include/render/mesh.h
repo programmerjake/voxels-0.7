@@ -136,8 +136,28 @@ struct ColorizedTransformedMeshRRef
     operator std::shared_ptr<Mesh>() && ;
 };
 
-struct Mesh
+struct Mesh16 final
 {
+    typedef IndexedTriangle16 TriangleType;
+    std::vector<IndexedTriangle16> indexedTriangles;
+    std::vector<Vertex> vertices;
+    Image image;
+    Mesh16(Image image = nullptr) : indexedTriangles(), vertices(), image(std::move(image))
+    {
+    }
+    Mesh16(std::vector<IndexedTriangle16> indexedTriangles,
+           std::vector<Vertex> vertices,
+           Image image = nullptr)
+        : indexedTriangles(std::move(indexedTriangles)),
+          vertices(std::move(vertices)),
+          image(std::move(image))
+    {
+    }
+};
+
+struct Mesh final
+{
+    typedef IndexedTriangle TriangleType;
     std::vector<IndexedTriangle> indexedTriangles;
     std::vector<Vertex> vertices;
     Image image;
@@ -518,8 +538,96 @@ struct Mesh
     {
         return !operator==(rt);
     }
-    friend Mesh optimize(Mesh mesh);
-    friend Mesh optimizeNoReorderTriangles(Mesh mesh);
+    static Mesh optimize(Mesh mesh);
+    static Mesh optimizeNoReorderTriangles(Mesh mesh);
+
+private:
+    template <typename ReturnedMesh>
+    static std::vector<ReturnedMesh> splitHelper(const Mesh &sourceMesh, std::size_t maxVertexCount)
+    {
+        std::size_t meshCount = (sourceMesh.vertexCount() + maxVertexCount - 1) / maxVertexCount;
+        std::size_t estimatedTriangleCount = sourceMesh.indexedTriangles.size() / meshCount;
+        std::size_t initialTriangleReserveCount =
+            estimatedTriangleCount + estimatedTriangleCount / 4;
+        std::vector<ReturnedMesh> retval;
+        retval.reserve(meshCount);
+        retval.push_back(ReturnedMesh(sourceMesh.image));
+        retval.back().vertices.reserve(maxVertexCount);
+        retval.back().indexedTriangles.reserve(initialTriangleReserveCount);
+        std::size_t NoVertex = sourceMesh.vertexCount();
+        std::vector<std::size_t> vertexTranslations;
+        vertexTranslations.assign(sourceMesh.vertexCount(), NoVertex);
+        for(IndexedTriangle tri : sourceMesh.indexedTriangles)
+        {
+            std::size_t vertexAllocateCount = 0;
+            for(auto vertex : tri.v)
+            {
+                if(vertexTranslations[vertex] == NoVertex)
+                    vertexAllocateCount++;
+            }
+            if(vertexAllocateCount + retval.back().vertices.size() > maxVertexCount)
+            {
+                retval.push_back(ReturnedMesh(sourceMesh.image));
+                retval.back().vertices.reserve(maxVertexCount);
+                retval.back().indexedTriangles.reserve(initialTriangleReserveCount);
+                vertexTranslations.assign(sourceMesh.vertexCount(), NoVertex);
+            }
+            for(auto &vertex : tri.v)
+            {
+                std::size_t &newVertex = vertexTranslations[vertex];
+                if(newVertex == NoVertex)
+                {
+                    newVertex = retval.back().vertices.size();
+                    retval.back().vertices.push_back(sourceMesh.vertices[vertex]);
+                }
+                vertex = newVertex;
+            }
+            retval.back().indexedTriangles.emplace_back(tri);
+        }
+        return retval;
+    }
+
+public:
+    static std::vector<Mesh> split(const Mesh &sourceMesh, std::size_t maxVertexCount)
+    {
+        assert(maxVertexCount
+               >= 3); // otherwise the resulting meshes would not be able to hold any triangles.
+        if(sourceMesh.vertexCount() <= maxVertexCount)
+        {
+            std::vector<Mesh> retval;
+            retval.reserve(1);
+            retval.push_back(sourceMesh);
+            return retval;
+        }
+        return splitHelper<Mesh>(sourceMesh, maxVertexCount);
+    }
+    static std::vector<Mesh> split(Mesh &&sourceMesh, std::size_t maxVertexCount)
+    {
+        assert(maxVertexCount
+               >= 3); // otherwise the resulting meshes would not be able to hold any triangles.
+        if(sourceMesh.vertexCount() <= maxVertexCount)
+        {
+            std::vector<Mesh> retval;
+            retval.reserve(1);
+            retval.push_back(std::move(sourceMesh));
+            return retval;
+        }
+        return splitHelper<Mesh>(sourceMesh, maxVertexCount);
+    }
+    static std::vector<Mesh16> split16(const Mesh &sourceMesh, std::size_t maxVertexCount)
+    {
+        assert(maxVertexCount
+               >= 3); // otherwise the resulting meshes would not be able to hold any triangles.
+        assert(maxVertexCount - 1 <= std::numeric_limits<IndexedTriangle16::IndexType>::max());
+        if(sourceMesh.triangleCount() == 0)
+        {
+            std::vector<Mesh16> retval;
+            retval.reserve(1);
+            retval.push_back(Mesh16(sourceMesh.image));
+            return retval;
+        }
+        return splitHelper<Mesh16>(sourceMesh, maxVertexCount);
+    }
 };
 
 inline TransformedMesh::operator std::shared_ptr<Mesh>() const

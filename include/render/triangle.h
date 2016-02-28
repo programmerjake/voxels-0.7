@@ -169,6 +169,47 @@ struct IndexedTriangle final
 static_assert(sizeof(IndexedTriangle) == sizeof(IndexedTriangle::IndexType) * 3,
               "IndexedTriangle is wrong size");
 
+struct IndexedTriangle16 final
+{
+    typedef std::uint16_t IndexType;
+    static_assert(std::numeric_limits<IndexType>::max() <= std::numeric_limits<std::size_t>::max(),
+                  "index type is too big");
+    IndexType v[3];
+    constexpr IndexedTriangle16(IndexType v0, IndexType v1, IndexType v2) : v{v0, v1, v2}
+    {
+    }
+    explicit constexpr IndexedTriangle16(IndexedTriangle tri)
+        : v{
+            static_cast<IndexType>(tri.v[0]),
+            static_cast<IndexType>(tri.v[1]),
+            static_cast<IndexType>(tri.v[2]),
+          }
+    {
+    }
+    constexpr IndexedTriangle16() : v{}
+    {
+    }
+    static constexpr std::size_t indexMaxValue()
+    {
+        return std::numeric_limits<IndexType>::max();
+    }
+    constexpr IndexedTriangle offsettedBy(IndexType offset) const
+    {
+        return IndexedTriangle(v[0] + offset, v[1] + offset, v[2] + offset);
+    }
+    constexpr bool operator==(const IndexedTriangle &rt) const
+    {
+        return v[0] == rt.v[0] && v[1] == rt.v[1] && v[2] == rt.v[2];
+    }
+    constexpr bool operator!=(const IndexedTriangle &rt) const
+    {
+        return !operator==(rt);
+    }
+};
+
+static_assert(sizeof(IndexedTriangle16) == sizeof(IndexedTriangle16::IndexType) * 3,
+              "IndexedTriangle is wrong size");
+
 struct Triangle
 {
     TextureCoord t1; // do NOT change the order of the variables
@@ -593,7 +634,8 @@ struct CutTriangle final
 {
     static constexpr std::size_t triangleVertexCount = 3;
     static constexpr std::size_t resultMaxVertexCount = triangleVertexCount + 1;
-    static constexpr std::size_t resultMaxTriangleCount = resultMaxVertexCount - triangleVertexCount + 1;
+    static constexpr std::size_t resultMaxTriangleCount =
+        resultMaxVertexCount - triangleVertexCount + 1;
     Triangle frontTriangles[resultMaxTriangleCount];
     std::size_t frontTriangleCount = 0;
     Triangle coplanarTriangles[1];
@@ -785,8 +827,10 @@ public:
             coplanarTriangles[coplanarTriangleCount++] = tri;
             return;
         }
-        triangulate(frontTriangles, frontTriangleCount, frontVertices.vertices, frontVertices.vertexCount);
-        triangulate(backTriangles, backTriangleCount, backVertices.vertices, backVertices.vertexCount);
+        triangulate(
+            frontTriangles, frontTriangleCount, frontVertices.vertices, frontVertices.vertexCount);
+        triangulate(
+            backTriangles, backTriangleCount, backVertices.vertices, backVertices.vertexCount);
     }
 };
 

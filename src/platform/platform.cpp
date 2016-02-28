@@ -1938,6 +1938,24 @@ void renderInternal(const IndexedTriangle *indexedTriangles,
                    reinterpret_cast<const char *>(indexedTriangles));
 }
 
+void renderInternal(const IndexedTriangle16 *indexedTriangles,
+                    const Vertex *vertices,
+                    std::size_t triangleCount)
+{
+    if(triangleCount == 0)
+        return;
+    const char *vertex_array_start = reinterpret_cast<const char *>(vertices);
+    glVertexPointer(3, GL_FLOAT, sizeof(Vertex), vertex_array_start + offsetof(Vertex, p));
+    glTexCoordPointer(2, GL_FLOAT, sizeof(Vertex), vertex_array_start + offsetof(Vertex, t));
+    glColorPointer(4, GL_FLOAT, sizeof(Vertex), vertex_array_start + offsetof(Vertex, c));
+    static_assert(sizeof(IndexedTriangle16::IndexType) == sizeof(GLushort),
+                  "fix argument to glDrawElements");
+    glDrawElements(GL_TRIANGLES,
+                   (GLsizei)triangleCount * 3,
+                   GL_UNSIGNED_SHORT,
+                   reinterpret_cast<const char *>(indexedTriangles));
+}
+
 #if defined(_MSC_VER) || defined(__ANDROID__)
 typedef std::ptrdiff_t GLsizeiptr;
 typedef std::ptrdiff_t GLintptr;
@@ -1980,6 +1998,7 @@ typedef GLenum(APIENTRYP PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)(GLenum target);
 #define GL_DEPTH_ATTACHMENT_EXT 0x8D00
 #define GL_FRAMEBUFFER_COMPLETE_EXT 0x8CD5
 #define GL_ARRAY_BUFFER 0x8892
+#define GL_ELEMENT_ARRAY_BUFFER 0x8893
 #define GL_DYNAMIC_DRAW 0x88E8
 #define GL_WRITE_ONLY 0x88B9
 #endif // _MSC_VER
@@ -2009,6 +2028,7 @@ enum_array<GLuint, RenderLayer> renderLayerRenderbuffer = {};
 enum_array<GLuint, RenderLayer> renderLayerTexture = {};
 int renderLayerTextureW = 1, renderLayerTextureH = 1;
 bool haveOpenGLArbitraryTextureSize = false;
+bool haveOpenGL32BitIndexes = false;
 
 bool renderLayerNeedsSeperateRenderTarget(RenderLayer rl)
 {
@@ -3421,6 +3441,12 @@ void getOpenGLExtensions()
     }
     getDebugLog() << postnl;
 #ifdef GRAPHICS_OPENGL
+#if 1
+    haveOpenGL32BitIndexes = true;
+#else
+    haveOpenGL32BitIndexes = false;
+    FIXME_MESSAGE(testing 16bit indexes)
+#endif
     haveOpenGLBuffersWithoutMap =
         SDL_GL_ExtensionSupported("GL_ARB_vertex_buffer_object") ? true : false;
     haveOpenGLBuffersWithMap = haveOpenGLBuffersWithoutMap;
@@ -3550,6 +3576,7 @@ void getOpenGLExtensions()
     fnGLBufferData = (PFNGLBUFFERDATAPROC)SDL_GL_GetProcAddress("glBufferData");
     fnGLBufferSubData = (PFNGLBUFFERSUBDATAPROC)SDL_GL_GetProcAddress("glBufferSubData");
     haveOpenGLBuffersWithMap = SDL_GL_ExtensionSupported("GL_OES_mapbuffer") ? true : false;
+    haveOpenGL32BitIndexes = SDL_GL_ExtensionSupported("GL_OES_element_index_uint") ? true : false;
     if(!fnGLBindBuffer || !fnGLDeleteBuffers || !fnGLGenBuffers || !fnGLBufferData
        || !fnGLBufferSubData)
     {
@@ -3629,7 +3656,7 @@ struct FreeBuffer final
 {
     GLuint buffer;
     bool needUnmap;
-    FreeBuffer(GLuint buffer, bool needUnmap = false) : buffer(buffer), needUnmap(needUnmap)
+    FreeBuffer(GLuint buffer, bool needUnmap) : buffer(buffer), needUnmap(needUnmap)
     {
     }
 };
@@ -3666,10 +3693,10 @@ GLuint allocateBuffer()
     }
     return retval.buffer;
 }
-void freeBuffer(GLuint displayList, bool unmap)
+void freeBuffer(GLuint buffer, bool unmap)
 {
     lock_guard<mutex> lockGuard(freeBuffersLock());
-    freeBuffers().push_back(displayList);
+    freeBuffers().push_back(FreeBuffer(buffer, unmap));
 }
 }
 
@@ -3685,120 +3712,250 @@ struct MeshBufferImp
 
 namespace
 {
-#define DONT_USE_MESHBUFFERIMPOPENGLBUFFER
+template <GLenum target>
+struct OpenGLBuffer final
+{
+    OpenGLBuffer(const OpenGLBuffer &) = delete;
+    OpenGLBuffer &operator=(const OpenGLBuffer &) = delete;
+    GLuint id;
+    void *mappedMemory;
+    std::size_t size;
+    std::uint64_t graphicsContextId;
+    OpenGLBuffer() : id(0), mappedMemory(nullptr), size(0), graphicsContextId(0)
+    {
+    }
+    explicit OpenGLBuffer(std::size_t size, GLenum usage)
+        : id(allocateBuffer()),
+          mappedMemory(nullptr),
+          size(size),
+          graphicsContextId(getGraphicsContextId())
+    {
+        assert(haveOpenGLBuffersWithoutMap);
+        bind();
+        fnGLBufferData(target, size, nullptr, usage);
+    }
+    void reset()
+    {
+        if(!empty() && graphicsContextId == getGraphicsContextId())
+        {
+            freeBuffer(id, mapped());
+        }
+        id = 0;
+        mappedMemory = nullptr;
+        size = 0;
+        graphicsContextId = 0;
+    }
+    ~OpenGLBuffer()
+    {
+        reset();
+    }
+    OpenGLBuffer &operator=(OpenGLBuffer &&rt)
+    {
+        if(this == &rt)
+            return *this;
+        reset();
+        id = rt.id;
+        mappedMemory = rt.mappedMemory;
+        size = rt.size;
+        graphicsContextId = rt.graphicsContextId;
+        rt.id = 0;
+        rt.mappedMemory = nullptr;
+        rt.size = 0;
+        rt.graphicsContextId = 0;
+        return *this;
+    }
+    OpenGLBuffer(OpenGLBuffer &&rt)
+        : id(rt.id),
+          mappedMemory(rt.mappedMemory),
+          size(rt.size),
+          graphicsContextId(rt.graphicsContextId)
+    {
+        rt.id = 0;
+        rt.mappedMemory = nullptr;
+        rt.size = 0;
+        rt.graphicsContextId = 0;
+    }
+    bool mapped() const
+    {
+        return mappedMemory != nullptr;
+    }
+    bool empty() const
+    {
+        return id == 0;
+    }
+    void bind()
+    {
+        assert(!empty());
+        setBufferBinding<target>(id);
+    }
+    void *map(GLenum access)
+    {
+        assert(haveOpenGLBuffersWithMap);
+        assert(!empty());
+        assert(!mapped());
+        assert(graphicsContextId == getGraphicsContextId());
+        bind();
+        mappedMemory = fnGLMapBuffer(target, access);
+        if(!mappedMemory)
+        {
+            getDebugLog() << L"mapping OpenGL buffer failed" << postnl;
+            abort();
+        }
+        return mappedMemory;
+    }
+    void unmap()
+    {
+        assert(haveOpenGLBuffersWithMap);
+        assert(!empty());
+        if(!mapped())
+            return;
+        if(graphicsContextId == getGraphicsContextId())
+        {
+            bind();
+            if(!fnGLUnmapBuffer(target))
+            {
+                getDebugLog() << L"OpenGL buffer data corrupted" << postnl;
+                abort();
+            }
+        }
+        mappedMemory = nullptr;
+    }
+};
+
+//#define DONT_USE_MESHBUFFERIMPOPENGLBUFFER
 #ifndef DONT_USE_MESHBUFFERIMPOPENGLBUFFER
+template <bool Is16Bit>
 struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
 {
     MeshBufferImpOpenGLBuffer(const MeshBufferImpOpenGLBuffer &) = delete;
     MeshBufferImpOpenGLBuffer &operator=(const MeshBufferImpOpenGLBuffer &) = delete;
-    GLuint buffer;
+    OpenGLBuffer<GL_ARRAY_BUFFER> vertexBuffer;
+    std::vector<std::size_t> sectionSizes;
+    OpenGLBuffer<GL_ELEMENT_ARRAY_BUFFER> triangleBuffer;
     Image image;
-    std::size_t allocatedTriangleCount, usedTriangleCount = 0;
-    void *bufferMemory = nullptr;
     bool gotFinalSet = false;
-    std::uint64_t bufferGraphicsContextId;
-    MeshBufferImpOpenGLBuffer(std::size_t triangleCount)
-        : buffer(allocateBuffer()),
+    const std::size_t allocatedVertexCount;
+    typedef
+        typename std::conditional<Is16Bit, IndexedTriangle16, IndexedTriangle>::type TriangleType;
+    typedef typename std::conditional<Is16Bit, Mesh16, Mesh>::type MeshType;
+    static constexpr std::size_t sectionSizeInVertices = TriangleType::indexMaxValue() + 1;
+        MeshBufferImpOpenGLBuffer(std::size_t triangleCount, std::size_t vertexCount)
+        : vertexBuffer(),
+          sectionSizes(),
+          triangleBuffer(),
           image(),
-          allocatedTriangleCount(triangleCount),
-          bufferGraphicsContextId(getGraphicsContextId())
+          allocatedVertexCount(vertexCount)
     {
-        assert(haveOpenGLBuffersWithMap);
-        setBufferBinding<GL_ARRAY_BUFFER>(buffer);
-        fnGLBufferData(GL_ARRAY_BUFFER, sizeof(Triangle) * triangleCount, nullptr, GL_DYNAMIC_DRAW);
-        bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if(bufferMemory == nullptr)
+        assert(triangleCount > 0);
+        assert(vertexCount > 0);
+        triangleBuffer = OpenGLBuffer<GL_ELEMENT_ARRAY_BUFFER>(sizeof(TriangleType) * triangleCount,
+                                                               GL_STATIC_DRAW);
+        if(Is16Bit)
         {
-            cerr << "error : can't map opengl buffer\n" << flush;
-            abort();
+            std::size_t sectionCount =
+                (vertexCount + sectionSizeInVertices - 1) / sectionSizeInVertices;
+            if(sectionCount > 1)
+            {
+                vertexCount = sectionSizeInVertices * sectionCount;
+            }
+            sectionSizes.assign(sectionCount, 0);
         }
-    }
-    MeshBufferImpOpenGLBuffer(const Mesh &mesh)
-        : buffer(allocateBuffer()),
-          image(mesh.image),
-          allocatedTriangleCount(mesh.size()),
-          bufferMemory(nullptr),
-          gotFinalSet(true),
-          bufferGraphicsContextId(getGraphicsContextId())
-    {
-        assert(haveOpenGLBuffersWithoutMap);
-        setBufferBinding<GL_ARRAY_BUFFER>(buffer);
-        fnGLBufferData(GL_ARRAY_BUFFER,
-                       sizeof(Triangle) * mesh.size(),
-                       mesh.triangles.data(),
-                       GL_DYNAMIC_DRAW);
-    }
-    virtual ~MeshBufferImpOpenGLBuffer()
-    {
-        if(bufferGraphicsContextId == getGraphicsContextId())
-            freeBuffer(buffer, bufferMemory != nullptr);
+        else
+        {
+            sectionSizes.assign(1, 0);
+        }
+        vertexBuffer = OpenGLBuffer<GL_ARRAY_BUFFER>(sizeof(Vertex) * vertexCount, GL_STATIC_DRAW);
+        triangleBuffer.map(GL_WRITE_ONLY);
+        vertexBuffer.map(GL_WRITE_ONLY);
     }
     virtual void render(Matrix tform, RenderLayer rl) override
     {
-        if(usedTriangleCount == 0)
+        if(empty())
             return;
+        triangleBuffer.unmap();
+        vertexBuffer.unmap();
         image.bind();
         glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
         glLoadMatrix(tform);
-        setBufferBinding<GL_ARRAY_BUFFER>(buffer);
-        if(bufferMemory != nullptr)
+
+        triangleBuffer.bind();
+        vertexBuffer.bind();
+        Vertex *vertexPtr = nullptr;
+        TriangleType *trianglePtr = nullptr;
+        for(std::size_t currentSectionSize : sectionSizes)
         {
-            assert(haveOpenGLBuffersWithMap);
-            fnGLUnmapBuffer(GL_ARRAY_BUFFER);
-            bufferMemory = nullptr;
+            renderToRenderLayer(rl,
+                                [trianglePtr, vertexPtr, currentSectionSize]()
+                                {
+                                    renderInternal(trianglePtr, vertexPtr, currentSectionSize);
+                                });
+            trianglePtr += currentSectionSize;
+            vertexPtr += sectionSizeInVertices;
         }
-        GLint vertexCount = usedTriangleCount * 3;
-        renderToRenderLayer(
-            rl,
-            [vertexCount]()
-            {
-                const char *array_start = (const char *)0;
-                glVertexPointer(
-                    3, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_position_start);
-                glTexCoordPointer(2,
-                                  GL_FLOAT,
-                                  Triangle_vertex_stride,
-                                  array_start + Triangle_texture_coord_start);
-                glColorPointer(
-                    4, GL_FLOAT, Triangle_vertex_stride, array_start + Triangle_color_start);
-                glDrawArrays(GL_TRIANGLES, 0, vertexCount);
-            });
-        glLoadIdentity();
+        glPopMatrix();
         if(!gotFinalSet)
         {
-            assert(haveOpenGLBuffersWithMap);
-            bufferMemory = fnGLMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-            if(bufferMemory == nullptr)
-            {
-                cerr << "error : can't map opengl buffer\n" << flush;
-                abort();
-            }
+            triangleBuffer.map(GL_WRITE_ONLY);
+            vertexBuffer.map(GL_WRITE_ONLY);
         }
     }
     virtual bool set(const Mesh &mesh, bool isFinal) override
     {
         if(gotFinalSet)
             return false;
-        if(mesh.triangles.size() > allocatedTriangleCount)
+        if(mesh.triangleCount() * sizeof(TriangleType) > triangleBuffer.size)
             return false;
-        assert(bufferMemory);
+        if(mesh.vertexCount() * sizeof(Vertex) > vertexBuffer.size)
+            return false;
+        assert(triangleBuffer.mapped());
+        assert(vertexBuffer.mapped());
         image = mesh.image;
-        Triangle *triangles = (Triangle *)bufferMemory;
-        for(std::size_t i = 0; i < mesh.triangles.size(); i++)
+        if(Is16Bit)
         {
-            triangles[i] = mesh.triangles[i];
+            auto splitMeshes = Mesh::split16(mesh, sectionSizeInVertices);
+            assert(splitMeshes.size() <= sectionSizes.size());
+            IndexedTriangle16 *triangles = reinterpret_cast<IndexedTriangle16 *>(triangleBuffer.mappedMemory);
+            Vertex *vertices = reinterpret_cast<Vertex *>(vertexBuffer.mappedMemory);
+            for(std::size_t sectionIndex = 0; sectionIndex < splitMeshes.size();
+                sectionIndex++)
+            {
+                auto &splitMesh = splitMeshes[sectionIndex];
+                for(std::size_t i = 0; i < splitMesh.vertices.size(); i++)
+                    vertices[i] = splitMesh.vertices[i];
+                for(std::size_t i = 0; i < splitMesh.indexedTriangles.size(); i++)
+                    triangles[i] = splitMesh.indexedTriangles[i];
+                sectionSizes[sectionIndex] = splitMesh.indexedTriangles.size();
+                triangles += splitMesh.indexedTriangles.size();
+                vertices += sectionSizeInVertices;
+            }
         }
-        usedTriangleCount = mesh.triangles.size();
+        else
+        {
+            sectionSizes[0] = mesh.triangleCount();
+            IndexedTriangle *triangles = reinterpret_cast<IndexedTriangle *>(triangleBuffer.mappedMemory);
+            Vertex *vertices = reinterpret_cast<Vertex *>(vertexBuffer.mappedMemory);
+            for(std::size_t i = 0; i < mesh.vertices.size(); i++)
+                vertices[i] = mesh.vertices[i];
+            for(std::size_t i = 0; i < mesh.indexedTriangles.size(); i++)
+                triangles[i] = mesh.indexedTriangles[i];
+        }
         gotFinalSet = isFinal;
         return true;
     }
     virtual bool empty() const override
     {
-        return usedTriangleCount == 0;
+        if(sectionSizes[0] == 0)
+            return true;
+        return false;
     }
-    virtual std::size_t capacity() const override
+    virtual std::size_t triangleCapacity() const override
     {
-        return allocatedTriangleCount;
+        return triangleBuffer.size / sizeof(TriangleType);
+    }
+    virtual std::size_t vertexCapacity() const override
+    {
+        return allocatedVertexCount;
     }
 };
 #endif
@@ -3851,12 +4008,13 @@ struct MeshBufferImpFallback final : public MeshBufferImp
         return allocatedVertexCount;
     }
 };
-}
 
-void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
+template <typename MeshType>
+void renderImp(const MeshType &m, Matrix tform, RenderLayer rl)
 {
 #if 0
-    getDebugLog() << L"Display::render(<triangles = " << m.triangleCount() << L", vertices = " << m.vertexCount() << L">, ..., ";
+    getDebugLog() << L"Display::render(<triangles = " << m.indexedTriangles.size()
+                  << L", vertices = " << m.vertices.size() << L">, ..., ";
     switch(rl)
     {
     case RenderLayer::Opaque:
@@ -3868,9 +4026,9 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
     }
     getDebugLog() << L")" << postnl;
 #endif
-    if(m.empty())
+    if(m.indexedTriangles.empty())
         return;
-    const IndexedTriangle *indexedTriangles = m.indexedTriangles.data();
+    auto indexedTriangles = m.indexedTriangles.data();
     const Vertex *vertices = m.vertices.data();
 #if 0
     if(haveOpenGLBuffersWithoutMap)
@@ -3906,29 +4064,29 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
         }
         setBufferBinding<GL_ARRAY_BUFFER>(vertexBuffers[currentBufferIndex]);
         setBufferBinding<GL_ELEMENT_ARRAY_BUFFER>(triangleBuffers[currentBufferIndex]);
-        if(triangleBufferSizes[currentBufferIndex] < m.triangleCount())
+        if(triangleBufferSizes[currentBufferIndex] < m.indexedTriangles.size())
         {
             triangleBufferSizes[currentBufferIndex] *= 2;
-            if(triangleBufferSizes[currentBufferIndex] < m.triangleCount())
-                triangleBufferSizes[currentBufferIndex] = m.triangleCount();
+            if(triangleBufferSizes[currentBufferIndex] < m.indexedTriangles.size())
+                triangleBufferSizes[currentBufferIndex] = m.indexedTriangles.size();
             fnGLBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                           sizeof(IndexedTriangle) * triangleBufferSizes[currentBufferIndex],
+                           sizeof(*indexedTriangles) * triangleBufferSizes[currentBufferIndex],
                            nullptr,
                            GL_DYNAMIC_DRAW);
         }
-        fnGLBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(IndexedTriangle) * m.triangleCount(), indexedTriangles);
+        fnGLBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(*indexedTriangles) * m.indexedTriangles.size(), indexedTriangles);
         indexedTriangles = nullptr;
-        if(vertexBufferSizes[currentBufferIndex] < m.vertexCount())
+        if(vertexBufferSizes[currentBufferIndex] < m.vertices.size())
         {
             vertexBufferSizes[currentBufferIndex] *= 2;
-            if(vertexBufferSizes[currentBufferIndex] < m.vertexCount())
-                vertexBufferSizes[currentBufferIndex] = m.vertexCount();
+            if(vertexBufferSizes[currentBufferIndex] < m.vertices.size())
+                vertexBufferSizes[currentBufferIndex] = m.vertices.size();
             fnGLBufferData(GL_ARRAY_BUFFER,
                            sizeof(Vertex) * vertexBufferSizes[currentBufferIndex],
                            nullptr,
                            GL_DYNAMIC_DRAW);
         }
-        fnGLBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * m.vertexCount(), vertices);
+        fnGLBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * m.vertices.size(), vertices);
         vertices = nullptr;
         currentBufferIndex++;
         currentBufferIndex %= bufferCount;
@@ -3939,7 +4097,6 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
         setBufferBinding<GL_ELEMENT_ARRAY_BUFFER>(0);
     }
 #else
-    FIXME_MESSAGE(disabled using buffer for all rendering)
     setBufferBinding<GL_ARRAY_BUFFER>(0);
     setBufferBinding<GL_ELEMENT_ARRAY_BUFFER>(0);
 #endif
@@ -3950,9 +4107,28 @@ void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
     renderToRenderLayer(rl,
                         [&m, indexedTriangles, vertices]()
                         {
-                            renderInternal(indexedTriangles, vertices, m.triangleCount());
+                            renderInternal(indexedTriangles, vertices, m.indexedTriangles.size());
                         });
     glPopMatrix();
+}
+}
+
+void Display::render(const Mesh &m, Matrix tform, RenderLayer rl)
+{
+    if(haveOpenGL32BitIndexes)
+    {
+        renderImp<Mesh>(m, tform, rl);
+    }
+    else
+    {
+        std::vector<Mesh16> meshes = Mesh::split16(
+            m,
+            static_cast<std::size_t>(std::numeric_limits<IndexedTriangle16::IndexType>::max()) + 1);
+        for(const Mesh16 &mesh : meshes)
+        {
+            renderImp<Mesh16>(mesh, tform, rl);
+        }
+    }
 }
 
 void Display::initFrame()
@@ -4035,13 +4211,19 @@ std::size_t MeshBuffer::impVertexCapacity(std::shared_ptr<MeshBufferImp> mesh)
     return mesh->vertexCapacity();
 }
 
-MeshBuffer::MeshBuffer(std::size_t triangleCount, std::size_t vertexCount) : imp(), tform(Matrix::identity())
+MeshBuffer::MeshBuffer(std::size_t triangleCount, std::size_t vertexCount)
+    : imp(), tform(Matrix::identity())
 {
     if(triangleCount == 0 || vertexCount == 0)
         imp = nullptr;
 #ifndef DONT_USE_MESHBUFFERIMPOPENGLBUFFER
     else if(haveOpenGLBuffersWithMap)
-        imp = std::make_shared<MeshBufferImpOpenGLBuffer>(triangleCount, vertexCount);
+    {
+        if(haveOpenGL32BitIndexes)
+            imp = std::make_shared<MeshBufferImpOpenGLBuffer<false>>(triangleCount, vertexCount);
+        else
+            imp = std::make_shared<MeshBufferImpOpenGLBuffer<true>>(triangleCount, vertexCount);
+    }
 #endif
     else
         imp = std::make_shared<MeshBufferImpFallback>(triangleCount, vertexCount);

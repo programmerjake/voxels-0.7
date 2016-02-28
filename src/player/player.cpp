@@ -162,6 +162,7 @@ void PlayerEntity::moveStep(Entity &entity,
                     break;
                 if(c.entity->descriptor->onUse(*c.entity, world, lock_manager, player))
                     continue;
+                break;
             }
             case RayCasting::Collision::Type::Block:
             {
