@@ -236,11 +236,9 @@ EOF
 cat > "$BUILD_PATH/jni/Application.mk" <<'EOF'
 APP_STL := gnustl_shared
 
-APP_ABI := armeabi-v7a armeabi x86
+APP_ABI := armeabi-v7a armeabi x86 x86_64
 
-ifeq ($(APP_OPTIM),debug)
-  APP_CFLAGS += -Og
-endif
+NDK_TOOLCHAIN_VERSION := 5
 
 EOF
 cat > "$BUILD_PATH/jni/src/Android.mk" <<'EOF'
@@ -279,7 +277,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 
 LOCAL_CPP_FEATURES := rtti exceptions
 
-LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DDEBUG_VERSION
+LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DDEBUG_VERSION -Og
 
 LOCAL_CPPFLAGS += -std=c++11 -Dthread_local=thread_local_error
 
