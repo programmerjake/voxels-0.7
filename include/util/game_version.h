@@ -40,6 +40,22 @@ namespace GameVersion
 #else
     const bool DEBUG = false;
 #endif
+#if defined(_WIN64) || defined(_WIN32)
+    const bool MOBILE = false;
+#elif defined(__ANDROID__)
+    const bool MOBILE = true;
+#elif defined(__APPLE__)
+#include "TargetConditionals.h"
+#if TARGET_OS_IPHONE
+    const bool MOBILE = true;
+#else
+    const bool MOBILE = false;
+#endif
+#elif defined(__linux) || defined(__unix) || defined(__posix)
+    const bool MOBILE = false;
+#else
+#error unknown platform
+#endif
 };
 }
 }

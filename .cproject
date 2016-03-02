@@ -28,7 +28,7 @@
 								<option id="gnu.cpp.compiler.option.include.paths.1849491417" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/voxels-0.7/include}&quot;"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.other.other.1587201943" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -pthread -Werror=all -Wno-error=old-style-cast" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.other.other.1587201943" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -pthread -Werror=all -Wno-error=old-style-cast -fstack-usage" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2070833634" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="DEBUG_VERSION"/>
 								</option>
@@ -45,7 +45,7 @@
 								<option id="gnu.c.compiler.option.include.paths.799137686" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/voxels-0.7/include}&quot;"/>
 								</option>
-								<option id="gnu.c.compiler.option.misc.other.1642829838" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 -pthread" valueType="string"/>
+								<option id="gnu.c.compiler.option.misc.other.1642829838" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 -pthread -fstack-usage" valueType="string"/>
 								<option id="gnu.c.compiler.option.optimization.flags.2108084579" name="Other optimization flags" superClass="gnu.c.compiler.option.optimization.flags" value="-Og" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1197145660" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

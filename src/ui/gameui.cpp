@@ -31,6 +31,7 @@
 #include "platform/thread_name.h"
 #include "util/tls.h"
 #include "ui/button.h"
+#include "util/game_version.h"
 #include <memory>
 
 namespace programmerjake
@@ -179,7 +180,7 @@ void GameUi::clear(Renderer &renderer)
     else
     {
         viewPoint =
-            std::make_shared<ViewPoint>(*world, playerPosition, GameVersion::DEBUG ? 32 : 48);
+            std::make_shared<ViewPoint>(*world, playerPosition, (GameVersion::DEBUG ? 32 : 48) / (GameVersion::MOBILE ? 2 : 1));
     }
     renderer << RenderLayer::Opaque;
     if(backgroundCamera)
