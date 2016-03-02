@@ -78,7 +78,9 @@ struct PlayingAudioData
         if(decoder->isHighLatencySource())
             decoder = make_shared<StreamBufferingAudioDecoder>(decoder);
         unsigned channels = decoder->channelCount();
-        checked_array<float, bufferValueCount> buffer;
+        typedef checked_array<float, bufferValueCount> BufferType;
+        auto pbuffer = std::unique_ptr<BufferType>(new BufferType);
+        auto &buffer = *pbuffer;
         uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
         uint64_t decodedAmount;
         for(decodedAmount = 0;decodedAmount < bufferSamples;)
@@ -100,7 +102,9 @@ struct PlayingAudioData
         unsigned channels = decoder->channelCount();
         if(!overallEOF && bufferQueue.size() < bufferQueue.capacity() / 2)
         {
-            checked_array<float, bufferValueCount> buffer;
+            typedef checked_array<float, bufferValueCount> BufferType;
+            auto pbuffer = std::unique_ptr<BufferType>(new BufferType);
+            auto &buffer = *pbuffer;
             uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
             uint64_t decodedAmount;
             bool hitEnd = false;

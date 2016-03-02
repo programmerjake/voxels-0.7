@@ -152,7 +152,11 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 {
                 }
             };
-            checked_array<HashNode *, bigHashPrime> overallHashTable;
+            struct OverallHashTableTLSTag
+            {
+            };
+            thread_local_variable<checked_array<HashNode *, bigHashPrime>, OverallHashTableTLSTag> overallHashTableTLS(lock_manager.tls);
+            auto &overallHashTable = overallHashTableTLS.get();
             overallHashTable.fill(nullptr);
             struct FreeListHeadTag
             {
@@ -205,8 +209,8 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                                 freeListHead = freeListHead->hashNext;
                             else
                                 node = new HashNode;
-                            std::size_t hash =
-                                static_cast<std::size_t>(xPosition * 8191 + zPosition) % bigHashPrime;
+                            std::size_t hash = static_cast<std::size_t>(xPosition * 8191
+                                                                        + zPosition) % bigHashPrime;
                             node->hashNext = overallHashTable.at(hash);
                             node->x = xPosition;
                             node->z = zPosition;

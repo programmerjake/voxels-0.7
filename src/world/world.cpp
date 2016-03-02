@@ -188,8 +188,9 @@ private:
         if(retval.empty)
         {
             retval.empty = false;
-            BlocksGenerateArray blocks;
-            generateFn(pos, blocks, retval.groundHeights);
+            struct BlocksTLSTag{};
+            thread_local_variable<BlocksGenerateArray, BlocksTLSTag> blocks(TLS::getSlow());
+            generateFn(pos, blocks.get(), retval.groundHeights);
             for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
             {
                 for(int dy = 0; dy < BlockChunk::chunkSizeY; dy++)
@@ -197,7 +198,7 @@ private:
                     for(int dz = 0; dz < BlockChunk::chunkSizeZ; dz++)
                     {
                         retval.blocks[dx][dy][dz] =
-                            static_cast<PackedBlock>(std::move(blocks[dx][dy][dz]));
+                            static_cast<PackedBlock>(std::move(blocks.get()[dx][dy][dz]));
                         // blocks[dx][dy][dz] = Block();
                     }
                 }
@@ -2082,15 +2083,22 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
         ignore_unused_variable_warning(player);
     }
     std::uint64_t chunkCount = stream::read<std::uint64_t>(reader);
-    BlocksGenerateArray blocks;
-    checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX>
-        biomes;
-    checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI,
+    struct BlocksTLSTag
+    {
+    };
+    thread_local_variable<BlocksGenerateArray, BlocksTLSTag> blocksTLS(lock_manager.tls);
+    auto &blocks = blocksTLS.get();
+    struct BiomesTLSTag
+    {
+    };
+    thread_local_variable<checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX>, BiomesTLSTag> biomesTLS(lock_manager.tls);
+    auto &biomes = biomesTLS.get();
+    auto blockUpdates = checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI,
                                                                      float,
                                                                      BlockUpdateKind>>,
                                               BlockChunk::subchunkCountZ>,
                                 BlockChunk::subchunkCountY>,
-                  BlockChunk::subchunkCountX> blockUpdates;
+                  BlockChunk::subchunkCountX>();
     for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
     {
         PositionI chunkBasePosition = stream::read<PositionI>(reader);
