@@ -21,67 +21,85 @@
 #ifndef REDSTONE_SIGNAL_H_INCLUDED
 #define REDSTONE_SIGNAL_H_INCLUDED
 
+#include <cstdint>
+#include <type_traits>
+
 namespace programmerjake
 {
 namespace voxels
 {
-struct RedstoneSignal final
+struct RedstoneSignalComponent final
 {
 private:
-    static constexpr int max(int a, int b)
+    template <typename T>
+    static constexpr T max(T a, T b)
     {
         return a > b ? a : b;
     }
+
 public:
-    int strongSignalStrength = 0;
-    int weakSignalStrength = 0;
-    bool canConnectToRedstoneDustDirectly = false;
-    bool canConnectToRedstoneDustThroughBlock = false;
-    static constexpr int maxSignalStrength = 0xF;
-    constexpr RedstoneSignal()
+    static constexpr int strengthBitWidth = 4;
+    static constexpr unsigned maxStrength = (1U << strengthBitWidth) - 1;
+    unsigned strength : strengthBitWidth;
+    bool connected : 1;
+    constexpr RedstoneSignalComponent() : strength(0), connected(false)
     {
     }
-    constexpr RedstoneSignal(int strongSignalStrength, int weakSignalStrength, bool canConnectToRedstoneDustDirectly, bool canConnectToRedstoneDustThroughBlock)
-        : strongSignalStrength(strongSignalStrength),
-          weakSignalStrength(max(weakSignalStrength, strongSignalStrength)),
-          canConnectToRedstoneDustDirectly(canConnectToRedstoneDustDirectly || canConnectToRedstoneDustThroughBlock),
-          canConnectToRedstoneDustThroughBlock(canConnectToRedstoneDustThroughBlock)
+    template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+    constexpr explicit RedstoneSignalComponent(T strength)
+        : strength(strength), connected(true)
     {
     }
-    RedstoneSignal(int strongSignalStrength)
-        : RedstoneSignal(strongSignalStrength, strongSignalStrength, true, true)
+    template <typename T, typename = typename std::enable_if<std::is_same<std::nullptr_t, T>::value>::type>
+    constexpr explicit RedstoneSignalComponent(T, std::nullptr_t = nullptr)
+        : strength(0), connected(false)
     {
     }
-    RedstoneSignal(bool strongSignalStrength)
-        : RedstoneSignal(strongSignalStrength ? maxSignalStrength : 0, strongSignalStrength ? maxSignalStrength : 0, true, true)
+    constexpr RedstoneSignalComponent operator|(RedstoneSignalComponent rt) const
+    {
+        return (connected || rt.connected) ?
+                   RedstoneSignalComponent(strength > rt.strength ? strength : rt.strength) :
+                   RedstoneSignalComponent(nullptr);
+    }
+    RedstoneSignalComponent &operator|=(RedstoneSignalComponent rt)
+    {
+        return operator=(operator|(rt));
+    }
+};
+
+struct RedstoneSignal final
+{
+    RedstoneSignalComponent weakComponent;
+    RedstoneSignalComponent strongComponent;
+    constexpr RedstoneSignal(std::nullptr_t = nullptr)
+        : weakComponent(nullptr), strongComponent(nullptr)
     {
     }
-    constexpr bool good() const
+    constexpr RedstoneSignal(RedstoneSignalComponent weakComponent,
+                             RedstoneSignalComponent strongComponent)
+        : weakComponent(weakComponent | strongComponent), strongComponent(strongComponent)
     {
-        return isOnAtAll() || canConnectToRedstoneDustDirectly;
     }
-    RedstoneSignal combine(RedstoneSignal rt) const
+    constexpr explicit RedstoneSignal(RedstoneSignalComponent component)
+        : weakComponent(component), strongComponent(component)
     {
-        return RedstoneSignal(max(strongSignalStrength, rt.strongSignalStrength),
-                              max(weakSignalStrength, rt.weakSignalStrength),
-                              canConnectToRedstoneDustDirectly || rt.canConnectToRedstoneDustDirectly,
-                              canConnectToRedstoneDustThroughBlock || rt.canConnectToRedstoneDustThroughBlock);
     }
-    RedstoneSignal transmitThroughSolidBlock() const
+    constexpr RedstoneSignal operator|(RedstoneSignal rt) const
     {
-        return RedstoneSignal(0, weakSignalStrength, canConnectToRedstoneDustThroughBlock, false);
+        return RedstoneSignal(weakComponent | rt.weakComponent,
+                              strongComponent | rt.strongComponent);
     }
-    constexpr int getRedstoneDustSignalStrength() const
+    RedstoneSignal &operator|=(RedstoneSignal rt)
     {
-        return canConnectToRedstoneDustDirectly ? weakSignalStrength : 0;
+        return operator=(operator|(rt));
     }
-    constexpr int getSignalStrength() const
+    constexpr RedstoneSignal makeWeaker() const
     {
-        return weakSignalStrength;
+        return RedstoneSignal(strongComponent, RedstoneSignalComponent(nullptr));
     }
-    constexpr bool isOnAtAll() const
+    RedstoneSignal &weaken()
     {
-        return getSignalStrength() > 0;
+        return operator=(makeWeaker());
     }
 };
 }

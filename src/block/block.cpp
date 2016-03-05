@@ -205,7 +205,7 @@ void BlockDescriptor::handleToolDamage(Item &tool) const
     tool = Items::builtin::tools::Tool::incrementDamage(tool, this);
 }
 
-RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager)
+RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager, bool senseWeakInputThroughBlock)
 {
     blockIterator.moveToward(inputThroughBlockFace, lock_manager.tls);
     Block b = blockIterator.get(lock_manager);
@@ -223,7 +223,15 @@ RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBl
             b = bi.get(lock_manager);
             if(b.good())
             {
-                retval = retval.combine(b.descriptor->getRedstoneSignal(bf).transmitThroughSolidBlock());
+                auto blockRedstoneSignal = b.descriptor->getRedstoneSignal(bf);
+                if(senseWeakInputThroughBlock)
+                {
+                    retval |= blockRedstoneSignal;
+                }
+                else
+                {
+                    retval |= blockRedstoneSignal.makeWeaker();
+                }
             }
         }
     }

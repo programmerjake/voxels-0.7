@@ -51,7 +51,7 @@ public:
         BottomAndTop,
         DEFINE_ENUM_LIMITS(None, BottomAndTop)
     };
-    const int signalStrength;
+    const unsigned signalStrength;
     const EdgeAttachedState edgeAttachedStateNX;
     const EdgeAttachedState edgeAttachedStatePX;
     const EdgeAttachedState edgeAttachedStateNZ;
@@ -95,7 +95,7 @@ private:
             return L"None";
         }
     }
-    static std::wstring makeName(int signalStrength,
+    static std::wstring makeName(unsigned signalStrength,
                                  EdgeAttachedState edgeAttachedStateNX,
                                  EdgeAttachedState edgeAttachedStatePX,
                                  EdgeAttachedState edgeAttachedStateNZ,
@@ -110,13 +110,13 @@ private:
         ss << L")";
         return ss.str();
     }
-    static ColorF getColorizeColor(int signalStrength)
+    static ColorF getColorizeColor(unsigned signalStrength)
     {
-        return interpolate((float)signalStrength / (float)RedstoneSignal::maxSignalStrength,
+        return interpolate((float)signalStrength / (float)RedstoneSignalComponent::maxStrength,
                            GrayscaleF(0.5f),
                            GrayscaleF(1.0f));
     }
-    static Mesh makeMesh(int signalStrength,
+    static Mesh makeMesh(unsigned signalStrength,
                          EdgeAttachedState edgeAttachedStateNX,
                          EdgeAttachedState edgeAttachedStatePX,
                          EdgeAttachedState edgeAttachedStateNZ,
@@ -234,7 +234,7 @@ private:
                               .concat(Transform::translate(0.5f, 0.5f, 0.5f));
         return colorize(getColorizeColor(signalStrength), transform(tform, std::move(retval)));
     }
-    RedstoneDust(int signalStrength,
+    RedstoneDust(unsigned signalStrength,
                  EdgeAttachedState edgeAttachedStateNX,
                  EdgeAttachedState edgeAttachedStatePX,
                  EdgeAttachedState edgeAttachedStateNZ,
@@ -282,12 +282,12 @@ private:
                                                        EdgeAttachedState>,
                                             EdgeAttachedState>,
                                  EdgeAttachedState>,
-                      RedstoneSignal::maxSignalStrength + 1> descriptors;
+                      RedstoneSignalComponent::maxStrength + 1> descriptors;
 
     public:
         RedstoneDustConstructor() : descriptors()
         {
-            for(int signalStrength = 0; signalStrength <= RedstoneSignal::maxSignalStrength;
+            for(unsigned signalStrength = 0; signalStrength <= RedstoneSignalComponent::maxStrength;
                 signalStrength++)
             {
                 for(EdgeAttachedState nx : enum_traits<EdgeAttachedState>())
@@ -325,7 +325,7 @@ private:
                 }
             }
         }
-        const RedstoneDust *pointer(int signalStrength,
+        const RedstoneDust *pointer(unsigned signalStrength,
                                     EdgeAttachedState edgeAttachedStateNX,
                                     EdgeAttachedState edgeAttachedStatePX,
                                     EdgeAttachedState edgeAttachedStateNZ,
@@ -337,7 +337,7 @@ private:
     };
 
 public:
-    static const RedstoneDust *pointer(int signalStrength,
+    static const RedstoneDust *pointer(unsigned signalStrength,
                                        EdgeAttachedState edgeAttachedStateNX,
                                        EdgeAttachedState edgeAttachedStatePX,
                                        EdgeAttachedState edgeAttachedStateNZ,
@@ -350,7 +350,7 @@ public:
             edgeAttachedStateNZ,
             edgeAttachedStatePZ);
     }
-    static BlockDescriptorPointer descriptor(int signalStrength,
+    static BlockDescriptorPointer descriptor(unsigned signalStrength,
                                              EdgeAttachedState edgeAttachedStateNX,
                                              EdgeAttachedState edgeAttachedStatePX,
                                              EdgeAttachedState edgeAttachedStateNZ,
@@ -397,14 +397,13 @@ private:
                 b = bi.get(lock_manager);
                 if(b.good())
                 {
-                    retval = retval.combine(
-                        b.descriptor->getRedstoneSignal(bf).transmitThroughSolidBlock());
+                    retval |= b.descriptor->getRedstoneSignal(bf).makeWeaker();
                 }
             }
         }
         return retval;
     }
-    static std::pair<int, EdgeAttachedState> calcOrientationAndSignalStrengthSide(
+    static std::pair<unsigned, EdgeAttachedState> calcOrientationAndSignalStrengthSide(
         BlockIterator blockIterator,
         WorldLockManager &lock_manager,
         BlockFace side,
@@ -412,7 +411,7 @@ private:
     {
         EdgeAttachedState edgeAttachedState = EdgeAttachedState::None;
         RedstoneSignal redstoneSignal = calculateRedstoneSignal(side, blockIterator, lock_manager);
-        int signal = 0;
+        unsigned signal = 0;
         BlockIterator bi = blockIterator;
         bi.moveToward(side, lock_manager.tls);
         Block b = bi.get(lock_manager);
@@ -427,7 +426,7 @@ private:
             }
             else
             {
-                signal = redstoneSignal.getRedstoneDustSignalStrength();
+                signal = redstoneSignal.weakComponent.strength;
                 if(!b.descriptor->breaksRedstoneDust())
                 {
                     bi.moveTowardNY(lock_manager.tls);
@@ -446,7 +445,7 @@ private:
                 }
             }
         }
-        if(redstoneSignal.good())
+        if(redstoneSignal.weakComponent.connected)
             edgeAttachedState = EdgeAttachedState::Bottom;
         if(!blockAboveCutsRedstoneDust)
         {
@@ -470,7 +469,7 @@ private:
                 }
             }
         }
-        return std::pair<int, EdgeAttachedState>(signal, edgeAttachedState);
+        return std::pair<unsigned, EdgeAttachedState>(signal, edgeAttachedState);
     }
 
 public:
@@ -485,19 +484,19 @@ public:
         {
             blockAboveCutsRedstoneDust = b.descriptor->breaksRedstoneDust();
         }
-        std::pair<int, EdgeAttachedState> nxState = calcOrientationAndSignalStrengthSide(
+        std::pair<unsigned, EdgeAttachedState> nxState = calcOrientationAndSignalStrengthSide(
             blockIterator, lock_manager, BlockFace::NX, blockAboveCutsRedstoneDust);
-        std::pair<int, EdgeAttachedState> pxState = calcOrientationAndSignalStrengthSide(
+        std::pair<unsigned, EdgeAttachedState> pxState = calcOrientationAndSignalStrengthSide(
             blockIterator, lock_manager, BlockFace::PX, blockAboveCutsRedstoneDust);
-        std::pair<int, EdgeAttachedState> nzState = calcOrientationAndSignalStrengthSide(
+        std::pair<unsigned, EdgeAttachedState> nzState = calcOrientationAndSignalStrengthSide(
             blockIterator, lock_manager, BlockFace::NZ, blockAboveCutsRedstoneDust);
-        std::pair<int, EdgeAttachedState> pzState = calcOrientationAndSignalStrengthSide(
+        std::pair<unsigned, EdgeAttachedState> pzState = calcOrientationAndSignalStrengthSide(
             blockIterator, lock_manager, BlockFace::PZ, blockAboveCutsRedstoneDust);
-        int nyState = calculateRedstoneSignal(BlockFace::NY, blockIterator, lock_manager)
-                          .getRedstoneDustSignalStrength();
-        int pyState = calculateRedstoneSignal(BlockFace::PY, blockIterator, lock_manager)
-                          .getRedstoneDustSignalStrength();
-        int signalStrength = std::max(std::get<0>(nxState), std::get<0>(pxState));
+        unsigned nyState = calculateRedstoneSignal(BlockFace::NY, blockIterator, lock_manager)
+                               .weakComponent.strength;
+        unsigned pyState = calculateRedstoneSignal(BlockFace::PY, blockIterator, lock_manager)
+                               .weakComponent.strength;
+        unsigned signalStrength = std::max(std::get<0>(nxState), std::get<0>(pxState));
         signalStrength = std::max(signalStrength, std::get<0>(nzState));
         signalStrength = std::max(signalStrength, std::get<0>(pzState));
         signalStrength = std::max(signalStrength, nyState);
@@ -520,7 +519,8 @@ public:
     }
     virtual RedstoneSignal getRedstoneSignal(BlockFace outputThroughBlockFace) const override
     {
-        return RedstoneSignal(0, signalStrength, true, false);
+        return RedstoneSignal(RedstoneSignalComponent(signalStrength),
+                              RedstoneSignalComponent(nullptr));
     }
     virtual bool generatesParticles() const override
     {
@@ -780,20 +780,20 @@ public:
                                    double deltaTime) const override;
     virtual RedstoneSignal getRedstoneSignal(BlockFace outputThroughBlockFace) const
     {
-        int signal = isOn ? RedstoneSignal::maxSignalStrength : 0;
+        auto signal = RedstoneSignalComponent(isOn ? RedstoneSignalComponent::maxStrength : 0);
         if(outputThroughBlockFace == attachedToFace)
-            return RedstoneSignal(0, 0, true, true);
+            return RedstoneSignal(RedstoneSignalComponent(0));
         if(outputThroughBlockFace == BlockFace::PY)
-            return RedstoneSignal(signal, signal, true, true);
-        return RedstoneSignal(0, signal, true, false);
+            return RedstoneSignal(signal);
+        return RedstoneSignal(signal).makeWeaker();
     }
     static const RedstoneTorch *calcSignalStrength(BlockIterator blockIterator,
                                                    WorldLockManager &lock_manager,
                                                    BlockFace attachedToFace)
     {
-        return pointer(
-            attachedToFace,
-            !calculateRedstoneSignal(attachedToFace, blockIterator, lock_manager).isOnAtAll());
+        return pointer(attachedToFace,
+                       calculateRedstoneSignal(attachedToFace, blockIterator, lock_manager)
+                               .weakComponent.strength == 0);
     }
     virtual void tick(World &world,
                       const Block &block,

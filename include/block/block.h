@@ -334,7 +334,7 @@ public:
     {
         return RedstoneSignal();
     }
-    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager);
+    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager, bool senseWeakInputThroughBlock = true);
     static void addRedstoneBlockUpdates(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned distance = 1);
     virtual std::wstring getDescription(BlockIterator blockIterator, WorldLockManager &lock_manager) const
     {
