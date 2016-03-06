@@ -33,6 +33,7 @@
 #include "util/tls.h"
 #include <queue>
 #include <vector>
+#include <unordered_map>
 
 namespace programmerjake
 {
@@ -73,6 +74,7 @@ private:
             return false;
         }
     };
+    struct MeshCache;
 private:
     PositionF position;
     std::int32_t viewDistance;
@@ -81,7 +83,7 @@ private:
     std::recursive_mutex theLock;
     bool shuttingDown;
     std::shared_ptr<Meshes> blockRenderMeshes;
-    std::shared_ptr<Meshes> nextBlockRenderMeshes;
+    std::queue<std::shared_ptr<Meshes>> nextBlockRenderMeshes;
     World &world;
     std::list<ViewPoint *>::iterator myPositionInViewPointsList;
     std::shared_ptr<void> pLightingCache;
@@ -90,6 +92,7 @@ private:
     std::unordered_set<PositionI> renderingSubchunks;
     std::unordered_map<PositionI, std::size_t> chunkInvalidSubchunkCountMap;
     std::mutex subchunkQueueLock;
+    const std::shared_ptr<MeshCache> meshCache;
 private:
     void generateSubchunkMeshesFn(TLS &tls);
     void generateMeshesFn(TLS &tls);

@@ -160,6 +160,18 @@ void dumpMeshStats()
 }
 }
 
+struct ViewPoint::MeshCache final
+{
+    std::mutex lock;
+    struct MeshesEntry
+    {
+        std::shared_ptr<const enum_array<Mesh, RenderLayer>> cachedMeshes;
+        BlockChunkInvalidateCountType invalidateCount;
+    };
+    std::unordered_map<PositionI, MeshesEntry> meshes;
+    static constexpr bool usePerChunkBuffer = false;
+};
+
 void ViewPoint::queueSubchunk(PositionI subchunkBase,
                               float distanceFromPlayer,
                               std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
@@ -302,7 +314,10 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
     if(meshes)
     {
         while(cbi.chunk->getChunkVariables().generatingCachedMeshes)
+        {
+            lock_manager.clear();
             cbi.chunk->getChunkVariables().cachedMeshesCond.wait(cachedChunkMeshesLock);
+        }
     }
     else if(cbi.chunk->getChunkVariables().generatingCachedMeshes)
     {
@@ -380,6 +395,7 @@ bool ViewPoint::generateChunkMeshes(std::shared_ptr<enum_array<Mesh, RenderLayer
 
 void ViewPoint::generateMeshesFn(TLS &tls)
 {
+    static_assert(!MeshCache::usePerChunkBuffer, "not implemented");
     auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
     std::unique_lock<std::recursive_mutex> lockIt(theLock);
     std::shared_ptr<Meshes> cachedMeshes = nullptr;
@@ -391,8 +407,11 @@ void ViewPoint::generateMeshesFn(TLS &tls)
         cachedMeshes = nullptr;
         if(!meshes)
         {
-            meshes = nextBlockRenderMeshes;
-            nextBlockRenderMeshes = nullptr;
+            if(!nextBlockRenderMeshes.empty())
+            {
+                meshes = nextBlockRenderMeshes.front();
+                nextBlockRenderMeshes.pop();
+            }
             if(meshes == nullptr)
                 meshes = std::make_shared<Meshes>();
         }
@@ -524,7 +543,7 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
       theLock(),
       shuttingDown(false),
       blockRenderMeshes(nullptr),
-      nextBlockRenderMeshes(nullptr),
+      nextBlockRenderMeshes(),
       world(world),
       myPositionInViewPointsList(),
       pLightingCache(),
@@ -532,7 +551,8 @@ ViewPoint::ViewPoint(World &world, PositionF position, int32_t viewDistance)
       queuedSubchunks(),
       renderingSubchunks(),
       chunkInvalidSubchunkCountMap(),
-      subchunkQueueLock()
+      subchunkQueueLock(),
+      meshCache(std::make_shared<MeshCache>())
 {
     {
         std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
@@ -575,6 +595,7 @@ void ViewPoint::render(Renderer &renderer,
                        WorldLockManager &lock_manager,
                        Mesh additionalObjects)
 {
+    static_assert(!MeshCache::usePerChunkBuffer, "not implemented");
     Transform cameraToWorld = inverse(worldToCamera);
     std::unique_lock<std::recursive_mutex> lockViewPoint(theLock);
     typedef std::unordered_map<std::thread::id, std::shared_ptr<BlockLightingCache>>
@@ -592,9 +613,9 @@ void ViewPoint::render(Renderer &renderer,
         pBlockLightingCache = std::make_shared<BlockLightingCache>();
     BlockLightingCache &lightingCache = *pBlockLightingCache;
     std::shared_ptr<Meshes> meshes = blockRenderMeshes;
-    if(!nextBlockRenderMeshes)
+    if(nextBlockRenderMeshes.size() < 3)
     {
-        nextBlockRenderMeshes = std::make_shared<Meshes>();
+        auto newBlockRenderMeshes = std::make_shared<Meshes>();
         for(RenderLayer rl : enum_traits<RenderLayer>())
         {
             std::size_t meshBufferTriangleCount = 0;
@@ -613,9 +634,10 @@ void ViewPoint::render(Renderer &renderer,
             meshBufferVertexCount *= 2;
             if(rl == RenderLayer::Translucent)
                 continue;
-            nextBlockRenderMeshes->meshBuffers[rl] =
+            newBlockRenderMeshes->meshBuffers[rl] =
                 MeshBuffer(meshBufferTriangleCount, meshBufferVertexCount);
         }
+        nextBlockRenderMeshes.push(newBlockRenderMeshes);
     }
     struct EntityMeshesTag final
     {
