@@ -105,18 +105,21 @@ bool DateTime::isDaylightSavingsTime(DateTime time)
 DateTime::DateTime(std::tm time, bool isLocalTime)
     : millisecondsSincePosixTimeEpoch()
 {
+    std::int64_t year = time.tm_year;
     // normalize
+    time.tm_year = isLeapYear(year + 1900) ? 80 : 70; // to prevent overflow
+    int originalYear = time.tm_year;
     time.tm_isdst = 0;
     std::tm time2 = time;
     std::mktime(&time2);
     time.tm_isdst = time2.tm_isdst; // so the hour is not adjusted
     std::mktime(&time);
+    year += time.tm_year - originalYear;
     // derived from The Open Group Base Specifications Issue 7 4.15 http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_15
     std::int64_t seconds = time.tm_sec;
     seconds += (std::int64_t)time.tm_min * 60;
     seconds += (std::int64_t)time.tm_hour * 3600;
     seconds += (std::int64_t)time.tm_yday * 86400;
-    std::int64_t year = time.tm_year;
     seconds += (year - 70) * 31536000;
     // using floorDivide makes this valid for dates before January 1 of 1970
     seconds += floorDivide(year - 69, 4) * 86400;
