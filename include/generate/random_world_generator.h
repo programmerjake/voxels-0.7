@@ -128,7 +128,7 @@ private:
         }
         float getValueCanonicalF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
-            return (float)getValueU(rx, ry, rz) * (-0.25f / (float)0x40000000UL);
+            return (float)getValueU(rx, ry, rz) * (1.0f / (float)(1ULL << 32));
         }
         float getValueBalancedF(std::int32_t rx, std::int32_t ry, std::int32_t rz) const
         {
@@ -224,7 +224,7 @@ public:
     float getValueCanonicalF(PositionI position, RandomClass randomClass)
     {
         std::uint32_t v = getValueU(position, randomClass);
-        return (float)v * (-0.25f / (float)0x40000000UL);
+        return (float)v * (1.0f / (float)(1ULL << 32));
     }
     float getValueBalancedF(PositionF position, RandomClass randomClass)
     {
