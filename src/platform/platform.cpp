@@ -4167,7 +4167,7 @@ void Display::initFrame()
     glViewport(0, 0, width(), height());
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    const float minDistance = 5e-2f, maxDistance = 200.0f;
+    const float minDistance = 1e-1f, maxDistance = 500.0f;
 #if defined(GRAPHICS_OPENGL_ES)
     glFrustumf
 #else
