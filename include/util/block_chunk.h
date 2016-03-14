@@ -96,27 +96,27 @@ private:
     ~BlockUpdate()
     {
     }
+    struct FreeList final
+    {
+        BlockUpdate *head = nullptr;
+        std::size_t size = 0;
+        ~FreeList()
+        {
+            while(head != nullptr)
+            {
+                BlockUpdate *deleteMe = head;
+                head = head->block_next;
+                delete deleteMe;
+            }
+        }
+    };
+    struct freeList_tls_tag
+    {
+    };
     static void allocateAndFree(BlockUpdate *blockUpdateToFree,
                                 BlockUpdate **pBlockUpdateToAllocate,
                                 TLS &tls)
     {
-        struct FreeList final
-        {
-            BlockUpdate *head = nullptr;
-            std::size_t size = 0;
-            ~FreeList()
-            {
-                while(head != nullptr)
-                {
-                    BlockUpdate *deleteMe = head;
-                    head = head->block_next;
-                    delete deleteMe;
-                }
-            }
-        };
-        struct freeList_tls_tag
-        {
-        };
         thread_local_variable<FreeList, freeList_tls_tag> freeList(tls);
         if(pBlockUpdateToAllocate)
         {
