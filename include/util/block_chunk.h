@@ -752,6 +752,7 @@ struct BlockChunkChunkVariables final
     std::mutex blockUpdateListLock;
     BlockUpdate *blockUpdateListHead = nullptr;
     BlockUpdate *blockUpdateListTail = nullptr;
+    enum_array<std::size_t, BlockUpdatePhase> blockUpdatesPerPhase;
     std::chrono::steady_clock::time_point lastBlockUpdateTime;
     bool lastBlockUpdateTimeValid = false;
     std::recursive_mutex entityListLock;
@@ -788,6 +789,7 @@ struct BlockChunkChunkVariables final
           cachedMeshesUpToDate(false),
           wlp(),
           blockUpdateListLock(),
+          blockUpdatesPerPhase(),
           lastBlockUpdateTime(),
           entityListLock(),
           entityList([](WrappedEntity *v)

@@ -370,6 +370,7 @@ public:
                         bi.chunk->getChunkVariables().blockUpdateListTail = pnode->chunk_prev;
                     else
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
+                    bi.chunk->getChunkVariables().blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]--;
                     BlockUpdate::free(pnode, lock_manager.tls);
                     if(blockOptionalData->empty())
                     {
@@ -397,6 +398,7 @@ public:
             else
                 bi.chunk->getChunkVariables().blockUpdateListTail = pnode;
             bi.chunk->getChunkVariables().blockUpdateListHead = pnode;
+            bi.chunk->getChunkVariables().blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]++;
         }
         return retval;
     }
@@ -453,6 +455,7 @@ public:
             else
                 bi.chunk->getChunkVariables().blockUpdateListTail = pnode;
             bi.chunk->getChunkVariables().blockUpdateListHead = pnode;
+            bi.chunk->getChunkVariables().blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]++;
         }
         return false;
     }
@@ -918,15 +921,19 @@ private:
     bool isPaused = false;
     std::size_t unpausedThreadCount = 0;
     std::thread chunkUnloaderThread;
+    BlockUpdatePhase blockUpdateCurrentPhase;
+    std::size_t blockUpdateCurrentPhaseCount;
+    std::size_t blockUpdateNextPhaseCount;
+    bool blockUpdateDidAnything;
     // private functions
     void lightingThreadFn(TLS &tls);
-    void blockUpdateThreadFn(TLS &tls);
+    void blockUpdateThreadFn(TLS &tls, bool isPhaseManager);
     void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag, std::unique_ptr<ThreadPauseGuard> &pauseGuard);
     void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls);
     void particleGeneratingThreadFn(TLS &tls);
     void moveEntitiesThreadFn(TLS &tls);
     static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
-    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockIterator bi, WorldLockManager &lock_manager);
+    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockUpdatePhase phase, BlockIterator bi, WorldLockManager &lock_manager);
     static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
     float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
     bool isInitialGenerateChunk(PositionI position);

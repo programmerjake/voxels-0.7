@@ -145,13 +145,14 @@ public:
                         RandomSource &randomSource)
     {
         Chunk &c = getChunk(chunkBasePosition, randomSource);
-        world.setBiomePropertiesRange<false>(chunkBasePosition,
-                                      chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1,
-                                                                  BlockChunk::chunkSizeY - 1,
-                                                                  BlockChunk::chunkSizeZ - 1),
-                                      lock_manager,
-                                      c.columns,
-                                      VectorI(0, 0, 0));
+        world.setBiomePropertiesRange<false>(
+            chunkBasePosition,
+            chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1,
+                                        BlockChunk::chunkSizeY - 1,
+                                        BlockChunk::chunkSizeZ - 1),
+            lock_manager,
+            c.columns,
+            VectorI(0, 0, 0));
     }
 };
 
@@ -188,7 +189,9 @@ private:
         if(retval.empty)
         {
             retval.empty = false;
-            struct BlocksTLSTag{};
+            struct BlocksTLSTag
+            {
+            };
             thread_local_variable<BlocksGenerateArray, BlocksTLSTag> blocks(TLS::getSlow());
             generateFn(pos, blocks.get(), retval.groundHeights);
             for(int dx = 0; dx < BlockChunk::chunkSizeX; dx++)
@@ -605,7 +608,11 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, internal_const
       playerList(std::shared_ptr<PlayerList>(new PlayerList())),
       stateLock(),
       stateCond(),
-      chunkUnloaderThread()
+      chunkUnloaderThread(),
+      blockUpdateCurrentPhase(BlockUpdatePhase::InitialPhase),
+      blockUpdateCurrentPhaseCount(ThreadCounts::get().blockUpdateThreadCount),
+      blockUpdateNextPhaseCount(0),
+      blockUpdateDidAnything(false)
 {
 }
 
@@ -623,6 +630,8 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind,
     auto lockIt = std::unique_lock<decltype(chunk->getChunkVariables().blockUpdateListLock)>(
         chunk->getChunkVariables().blockUpdateListLock);
     BlockUpdate *retval = nullptr;
+    std::size_t &blockUpdatesLeft =
+        bi.chunk->getChunkVariables().blockUpdatesPerPhase[BlockUpdateKindPhase(kind)];
     for(BlockUpdate *node = chunk->getChunkVariables().blockUpdateListHead; node != nullptr;)
     {
         if(node->kind == kind)
@@ -641,6 +650,7 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind,
             if(retval != nullptr)
                 retval->chunk_prev = node;
             retval = node;
+            blockUpdatesLeft--;
             node = next_node;
             VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
             VectorI subchunkRelativePosition =
@@ -679,7 +689,8 @@ BlockUpdate *World::removeAllBlockUpdatesInChunk(BlockUpdateKind kind,
     return retval;
 }
 
-BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi,
+BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockUpdatePhase phase,
+                                                      BlockIterator bi,
                                                       WorldLockManager &lock_manager)
 {
     std::shared_ptr<BlockChunk> chunk = bi.chunk;
@@ -696,9 +707,16 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi,
     chunk->getChunkVariables().lastBlockUpdateTimeValid = true;
     chunk->getChunkVariables().lastBlockUpdateTime = now;
     BlockUpdate *retval = nullptr;
+    std::size_t &blockUpdatesLeft = bi.chunk->getChunkVariables().blockUpdatesPerPhase[phase];
     for(BlockUpdate *node = chunk->getChunkVariables().blockUpdateListHead; node != nullptr;)
     {
         if(node->kind == BlockUpdateKind::Lighting)
+        {
+            node = node->chunk_next;
+            continue;
+        }
+        auto nodePhase = BlockUpdateKindPhase(node->kind);
+        if(nodePhase != BlockUpdatePhase::Asynchronous && nodePhase != phase)
         {
             node = node->chunk_next;
             continue;
@@ -721,6 +739,7 @@ BlockUpdate *World::removeAllReadyBlockUpdatesInChunk(BlockIterator bi,
                 retval->chunk_prev = node;
             retval = node;
             node = next_node;
+            blockUpdatesLeft--;
             VectorI subchunkIndex = BlockChunk::getSubchunkIndexFromPosition(retval->position);
             VectorI subchunkRelativePosition =
                 BlockChunk::getSubchunkRelativePosition(retval->position);
@@ -778,7 +797,11 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
       playerList(std::shared_ptr<PlayerList>(new PlayerList())),
       stateLock(),
       stateCond(),
-      chunkUnloaderThread()
+      chunkUnloaderThread(),
+      blockUpdateCurrentPhase(BlockUpdatePhase::InitialPhase),
+      blockUpdateCurrentPhaseCount(ThreadCounts::get().blockUpdateThreadCount),
+      blockUpdateNextPhaseCount(0),
+      blockUpdateDidAnything(false)
 {
     TLS &tls = TLS::getSlow();
     ([this, abortFlag, &tls]()
@@ -872,11 +895,12 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bo
          }
          for(std::size_t i = 0; i < ThreadCounts::get().blockUpdateThreadCount; i++)
          {
-             blockUpdateThreads.emplace_back([this]()
+             bool isPhaseManager = i == 0;
+             blockUpdateThreads.emplace_back([this, isPhaseManager]()
                                              {
                                                  setThreadName(L"block update");
                                                  TLS tls;
-                                                 blockUpdateThreadFn(tls);
+                                                 blockUpdateThreadFn(tls, isPhaseManager);
                                              });
          }
          getDebugLog() << L"lighting initial world..." << postnl;
@@ -1082,30 +1106,76 @@ void World::lightingThreadFn(TLS &tls)
     }
 }
 
-void World::blockUpdateThreadFn(TLS &tls)
+void World::blockUpdateThreadFn(TLS &tls, bool isPhaseManager)
 {
     setThreadPriority(ThreadPriority::Low);
     ThreadPauseGuard pauseGuard(*this);
-    WorldLockManager lock_manager(tls);
     BlockChunkMap *chunks = &physicsWorld->chunks;
+    bool didAnything = true;
     while(!destructing)
     {
-        bool didAnything = false;
+        BlockUpdatePhase phase;
+        if(isPhaseManager)
+        {
+            std::unique_lock<std::mutex> lockIt(stateLock);
+            blockUpdateCurrentPhaseCount--;
+            blockUpdateNextPhaseCount++;
+            while(blockUpdateCurrentPhaseCount != 0)
+            {
+                stateCond.wait(lockIt);
+                if(destructing)
+                    return;
+            }
+            if(blockUpdateDidAnything)
+                didAnything = true;
+            if(didAnything && blockUpdateCurrentPhase == BlockUpdatePhase::InitialPhase)
+            {
+                blockUpdateDidAnything = false;
+                lockIt.unlock();
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                lockIt.lock();
+            }
+            std::swap(blockUpdateCurrentPhaseCount, blockUpdateNextPhaseCount);
+            blockUpdateCurrentPhase = BlockUpdatePhaseNext(blockUpdateCurrentPhase);
+            phase = blockUpdateCurrentPhase;
+            stateCond.notify_all();
+        }
+        else
+        {
+            std::unique_lock<std::mutex> lockIt(stateLock);
+            blockUpdateCurrentPhaseCount--;
+            blockUpdateNextPhaseCount++;
+            if(didAnything)
+                blockUpdateDidAnything = true;
+            stateCond.notify_all();
+            phase = blockUpdateCurrentPhase;
+            while(phase == blockUpdateCurrentPhase)
+            {
+                stateCond.wait(lockIt);
+                if(destructing)
+                    return;
+            }
+            phase = blockUpdateCurrentPhase;
+        }
+        if(destructing)
+            return;
+        didAnything = false;
         for(auto chunkIter = chunks->begin(); chunkIter != chunks->end(); chunkIter++)
         {
             if(destructing)
                 break;
             if(!chunkIter->isLoaded())
                 continue;
-            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(lock_manager.tls);
+            std::shared_ptr<BlockChunk> chunk = chunkIter->getOrLoad(tls);
             if(chunkIter.is_locked())
                 chunkIter.unlock();
-            lock_manager.clear();
             pauseGuard.checkForPause();
             BlockIterator cbi(chunk, chunks, chunk->basePosition, VectorI(0));
-            for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager);
+            WorldLockManager lock_manager(tls);
+            std::size_t ranUpdateCount = 0;
+            for(BlockUpdate *node = removeAllReadyBlockUpdatesInChunk(phase, cbi, lock_manager);
                 node != nullptr;
-                node = removeAllReadyBlockUpdatesInChunk(cbi, lock_manager))
+                node = removeAllReadyBlockUpdatesInChunk(phase, cbi, lock_manager))
             {
                 didAnything = true;
                 while(node != nullptr)
@@ -1123,17 +1193,17 @@ void World::blockUpdateThreadFn(TLS &tls)
                     if(node != nullptr)
                         node->chunk_prev = nullptr;
                     BlockUpdate::free(deleteMe, lock_manager.tls);
+                    if(ranUpdateCount++ > 500)
+                    {
+                        lock_manager.clear();
+                        ranUpdateCount = 0;
+                    }
                 }
                 if(destructing)
                     break;
             }
         }
-        lock_manager.clear();
         pauseGuard.checkForPause();
-        if(!didAnything)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
     }
 }
 
@@ -1893,6 +1963,8 @@ void World::invalidateBlockRange(BlockIterator blockIterator,
                                                               biXYZ.position(),
                                                               0.0f,
                                                               blockOptionalData->updateListHead);
+                                    bi.chunk->getChunkVariables()
+                                        .blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]++;
                                     blockOptionalData->updateListHead = pnode;
                                     pnode->chunk_next =
                                         biXYZ.chunk->getChunkVariables().blockUpdateListHead;
@@ -2091,14 +2163,17 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
     struct BiomesTLSTag
     {
     };
-    thread_local_variable<checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX>, BiomesTLSTag> biomesTLS(lock_manager.tls);
+    thread_local_variable<checked_array<checked_array<BiomeProperties, BlockChunk::chunkSizeZ>,
+                                        BlockChunk::chunkSizeX>,
+                          BiomesTLSTag> biomesTLS(lock_manager.tls);
     auto &biomes = biomesTLS.get();
-    auto blockUpdates = checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI,
-                                                                     float,
-                                                                     BlockUpdateKind>>,
-                                              BlockChunk::subchunkCountZ>,
-                                BlockChunk::subchunkCountY>,
-                  BlockChunk::subchunkCountX>();
+    auto blockUpdates =
+        checked_array<checked_array<checked_array<std::vector<std::tuple<PositionI,
+                                                                         float,
+                                                                         BlockUpdateKind>>,
+                                                  BlockChunk::subchunkCountZ>,
+                                    BlockChunk::subchunkCountY>,
+                      BlockChunk::subchunkCountX>();
     for(std::uint64_t chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
     {
         PositionI chunkBasePosition = stream::read<PositionI>(reader);
@@ -2263,11 +2338,12 @@ std::shared_ptr<World> World::read(stream::Reader &readerIn)
     }
     for(std::size_t i = 0; i < ThreadCounts::get().blockUpdateThreadCount; i++)
     {
-        world.blockUpdateThreads.emplace_back([&world]()
+        bool isPhaseManager = i == 0;
+        world.blockUpdateThreads.emplace_back([&world, isPhaseManager]()
                                               {
                                                   setThreadName(L"block update");
                                                   TLS tls;
-                                                  world.blockUpdateThreadFn(tls);
+                                                  world.blockUpdateThreadFn(tls, isPhaseManager);
                                               });
     }
     world.particleGeneratingThread = thread([&world]()

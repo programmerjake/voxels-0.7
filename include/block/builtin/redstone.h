@@ -565,10 +565,7 @@ public:
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
-            world.addBlockUpdate(blockIterator,
-                                 lock_manager,
-                                 BlockUpdateKind::Redstone,
-                                 BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
+            world.addBlockUpdate(blockIterator, lock_manager, BlockUpdateKind::Redstone, 0);
         }
         else if(kind == BlockUpdateKind::Redstone || kind == BlockUpdateKind::RedstoneDust)
         {
@@ -589,12 +586,7 @@ public:
                             BlockIterator bi = blockIterator;
                             bi.moveBy(delta, lock_manager.tls);
                             world.addBlockUpdate(
-                                bi,
-                                lock_manager,
-                                BlockUpdateKind::Redstone,
-                                BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
-                            world.addBlockUpdate(
-                                bi, lock_manager, BlockUpdateKind::RedstoneDust, 0);
+                                bi, lock_manager, BlockUpdateKind::Redstone, 0);
                         }
                     }
                 }
@@ -656,7 +648,7 @@ private:
         const RedstoneTorchInstanceMaker &operator=(const RedstoneTorchInstanceMaker &) = delete;
 
     private:
-        enum_array<enum_array<RedstoneTorch *, bool>, BlockFace> torches;
+        enum_array<enum_array<enum_array<RedstoneTorch *, bool>, bool>, BlockFace> torches;
 
     public:
         RedstoneTorchInstanceMaker() : torches()
@@ -665,29 +657,34 @@ private:
             {
                 for(bool isOn : enum_traits<bool>())
                 {
-                    torches[bf][isOn] = nullptr;
-                    if(bf != BlockFace::PY)
-                        torches[bf][isOn] = new RedstoneTorch(bf, isOn);
+                    for(bool nextIsOn : enum_traits<bool>())
+                    {
+                        torches[bf][isOn][nextIsOn] = nullptr;
+                        if(bf != BlockFace::PY)
+                            torches[bf][isOn][nextIsOn] = new RedstoneTorch(bf, isOn, nextIsOn);
+                    }
                 }
             }
         }
         ~RedstoneTorchInstanceMaker()
         {
             for(auto &i : torches)
-                for(auto v : i)
-                    delete v;
+                for(auto j : i)
+                    for(auto v : j)
+                        delete v;
         }
-        const RedstoneTorch *get(BlockFace bf, bool isOn) const
+        const RedstoneTorch *get(BlockFace bf, bool isOn, bool nextIsOn) const
         {
-            return torches[bf][isOn];
+            return torches[bf][isOn][nextIsOn];
         }
     };
 
 public:
     const bool isOn;
+    const bool nextIsOn;
 
 private:
-    static std::wstring makeName(BlockFace attachedToFace, bool isOn)
+    static std::wstring makeName(BlockFace attachedToFace, bool isOn, bool nextIsOn)
     {
         std::wstring retval = L"builtin.redstone_torch(attachedToFace=";
         switch(attachedToFace)
@@ -716,11 +713,16 @@ private:
             retval += L"true";
         else
             retval += L"false";
+        retval += L",nextIsOn=";
+        if(nextIsOn)
+            retval += L"true";
+        else
+            retval += L"false";
         return retval + L")";
     }
-    RedstoneTorch(BlockFace attachedToFace, bool isOn)
+    RedstoneTorch(BlockFace attachedToFace, bool isOn, bool nextIsOn)
         : GenericTorch(
-              makeName(attachedToFace, isOn),
+              makeName(attachedToFace, isOn, nextIsOn),
               isOn ? TextureAtlas::RedstoneTorchBottomOn.td() :
                      TextureAtlas::RedstoneTorchBottomOff.td(),
               isOn ? TextureAtlas::RedstoneTorchSideOn.td() :
@@ -728,7 +730,8 @@ private:
               isOn ? TextureAtlas::RedstoneTorchTopOn.td() : TextureAtlas::RedstoneTorchTopOff.td(),
               attachedToFace,
               LightProperties(isOn ? Lighting::makeArtificialLighting(7) : Lighting())),
-          isOn(isOn)
+          isOn(isOn),
+          nextIsOn(nextIsOn)
     {
     }
 
@@ -737,18 +740,27 @@ public:
         const override /// @return nullptr if block can't attach to attachedToFaceIn
     {
         return global_instance_maker<RedstoneTorchInstanceMaker>::getInstance()->get(
-            attachedToFaceIn, isOn);
+            attachedToFaceIn, isOn, nextIsOn);
     }
     static const RedstoneTorch *pointer(BlockFace attachedToFaceIn = BlockFace::NY,
                                         bool isOn = true)
     {
         return global_instance_maker<RedstoneTorchInstanceMaker>::getInstance()->get(
-            attachedToFaceIn, isOn);
+            attachedToFaceIn, isOn, isOn);
+    }
+    static const RedstoneTorch *pointer(BlockFace attachedToFaceIn, bool isOn, bool nextIsOn)
+    {
+        return global_instance_maker<RedstoneTorchInstanceMaker>::getInstance()->get(
+            attachedToFaceIn, isOn, nextIsOn);
     }
     static BlockDescriptorPointer descriptor(BlockFace attachedToFaceIn = BlockFace::NY,
                                              bool isOn = true)
     {
-        return pointer(attachedToFaceIn, isOn);
+        return pointer(attachedToFaceIn, isOn, isOn);
+    }
+    static BlockDescriptorPointer descriptor(BlockFace attachedToFaceIn, bool isOn, bool nextIsOn)
+    {
+        return pointer(attachedToFaceIn, isOn, nextIsOn);
     }
     virtual void onBreak(World &world,
                          Block b,
@@ -787,11 +799,12 @@ public:
             return RedstoneSignal(signal);
         return RedstoneSignal(signal).makeWeaker();
     }
-    static const RedstoneTorch *calcSignalStrength(BlockIterator blockIterator,
-                                                   WorldLockManager &lock_manager,
-                                                   BlockFace attachedToFace)
+    const RedstoneTorch *calcSignalStrength(BlockIterator blockIterator,
+                                            WorldLockManager &lock_manager,
+                                            BlockFace attachedToFace) const
     {
         return pointer(attachedToFace,
+                       isOn,
                        calculateRedstoneSignal(attachedToFace, blockIterator, lock_manager)
                                .weakComponent.strength == 0);
     }
@@ -803,20 +816,28 @@ public:
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
-            world.addBlockUpdate(blockIterator,
-                                 lock_manager,
-                                 BlockUpdateKind::Redstone,
-                                 BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
+            world.addBlockUpdate(blockIterator, lock_manager, BlockUpdateKind::Redstone, 0);
         }
-        else if(kind == BlockUpdateKind::Redstone)
+        else if(kind == BlockUpdateKind::Redstone || kind == BlockUpdateKind::RedstoneDust)
         {
             const RedstoneTorch *newDescriptor =
                 calcSignalStrength(blockIterator, lock_manager, attachedToFace);
             if(newDescriptor != this)
             {
-                world.setBlock(blockIterator, lock_manager, Block(newDescriptor, block.lighting));
-                addRedstoneBlockUpdates(world, blockIterator, lock_manager, 2);
+                world.setBlock(
+                    blockIterator, lock_manager, Block(newDescriptor, block.lighting));
+                world.addBlockUpdate(blockIterator,
+                                     lock_manager,
+                                     BlockUpdateKind::SynchronousUpdateFinalize,
+                                     BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
             }
+            return;
+        }
+        else if(kind == BlockUpdateKind::SynchronousUpdateFinalize)
+        {
+            const RedstoneTorch *newDescriptor = pointer(attachedToFace, nextIsOn);
+            world.setBlock(blockIterator, lock_manager, Block(newDescriptor, block.lighting));
+            addRedstoneBlockUpdates(world, blockIterator, lock_manager, 2);
             return;
         }
         AttachedBlock::tick(world, block, blockIterator, lock_manager, kind);

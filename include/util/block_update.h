@@ -36,8 +36,21 @@ enum class BlockUpdateKind : std::uint8_t
     UpdateNotify,
     Water,
     Redstone,
+
+    /// not used; use Redstone instead
     RedstoneDust,
-    DEFINE_ENUM_LIMITS(Lighting, RedstoneDust)
+    SynchronousUpdateFinalize,
+    DEFINE_ENUM_LIMITS(Lighting, SynchronousUpdateFinalize)
+};
+
+enum class BlockUpdatePhase
+{
+    Asynchronous,
+    Calculate,
+    Update,
+
+    InitialPhase = Calculate,
+    DEFINE_ENUM_LIMITS(Asynchronous, Update)
 };
 
 inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
@@ -56,9 +69,50 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
         return 0.1f;
     case BlockUpdateKind::RedstoneDust:
         return 0.1f;
+    case BlockUpdateKind::SynchronousUpdateFinalize:
+        return -1;
     }
     UNREACHABLE();
-    return 0;
+    return -1;
+}
+
+inline BlockUpdatePhase BlockUpdateKindPhase(BlockUpdateKind buKind)
+{
+    switch(buKind)
+    {
+    case BlockUpdateKind::Lighting:
+        return BlockUpdatePhase::Asynchronous;
+    case BlockUpdateKind::General:
+        return BlockUpdatePhase::Update;
+    case BlockUpdateKind::UpdateNotify:
+        return BlockUpdatePhase::Calculate;
+    case BlockUpdateKind::Water:
+        return BlockUpdatePhase::Update;
+    case BlockUpdateKind::Redstone:
+        return BlockUpdatePhase::Calculate;
+    case BlockUpdateKind::RedstoneDust:
+        return BlockUpdatePhase::Calculate;
+    case BlockUpdateKind::SynchronousUpdateFinalize:
+        return BlockUpdatePhase::Update;
+    }
+    UNREACHABLE();
+    return BlockUpdatePhase::Asynchronous;
+}
+
+inline BlockUpdatePhase BlockUpdatePhaseNext(BlockUpdatePhase phase)
+{
+    switch(phase)
+    {
+    case BlockUpdatePhase::Asynchronous:
+        UNREACHABLE();
+        return BlockUpdatePhase::InitialPhase;
+    case BlockUpdatePhase::Calculate:
+        return BlockUpdatePhase::Update;
+    case BlockUpdatePhase::Update:
+        return BlockUpdatePhase::Calculate;
+    }
+    UNREACHABLE();
+    return BlockUpdatePhase::InitialPhase;
 }
 }
 }
