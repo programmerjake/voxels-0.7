@@ -1125,6 +1125,7 @@ void World::blockUpdateThreadFn(TLS &tls, bool isPhaseManager)
                 stateCond.wait(lockIt);
                 if(destructing)
                     return;
+                pauseGuard.checkForPause(lockIt);
             }
             if(blockUpdateDidAnything)
                 didAnything = true;
@@ -1154,6 +1155,7 @@ void World::blockUpdateThreadFn(TLS &tls, bool isPhaseManager)
                 stateCond.wait(lockIt);
                 if(destructing)
                     return;
+                pauseGuard.checkForPause(lockIt);
             }
             phase = blockUpdateCurrentPhase;
         }
