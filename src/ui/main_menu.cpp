@@ -129,6 +129,8 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     FIXME_MESSAGE(testing vector font)
     Text::TextProperties vectorFont = Text::defaultTextProperties;
     vectorFont.font = Text::getVectorFont();
+    Text::TextProperties rasterFont = Text::defaultTextProperties;
+    rasterFont.font = Text::getBitmappedFont8x8();
     std::wstring demoString =
         L"\u2611\u263A\u263B\u2665\u2666\u2663\u2660\u2022\u25D8\u25CB\u25D9\u2642\u2640\u266A"
         L"\u266B\u263C\n";
@@ -167,8 +169,8 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
         L"\u25A0\u2610";
     std::shared_ptr<Container> textContainer =
         std::make_shared<ShadedContainer>(-1.05f, 1.05f, 0.3f, 1.0f, GrayscaleAF(0.0f, 0.75f));
-    textContainer->add(
-        std::make_shared<Label>(demoString, -1.0f, -0.1f, 0.35f, 0.95f, GrayscaleF(0.5f)));
+    textContainer->add(std::make_shared<Label>(
+        demoString, -1.0f, -0.1f, 0.35f, 0.95f, GrayscaleF(0.5f), rasterFont));
     textContainer->add(std::make_shared<Label>(
         demoString, 0.1f, 1.0f, 0.35f, 0.95f, RGBF(0.0f, 1.0f, 1.0f), vectorFont));
     textContainer->add(std::make_shared<Label>(
