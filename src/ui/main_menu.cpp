@@ -124,7 +124,6 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
 {
     add(std::make_shared<BackgroundElement>());
     std::shared_ptr<GameUi> gameUi = std::dynamic_pointer_cast<GameUi>(get(shared_from_this()));
-    GameUi &gameUiR = *gameUi;
 #ifdef DEBUG_VERSION
     FIXME_MESSAGE(testing vector font)
     Text::TextProperties vectorFont = Text::defaultTextProperties;
@@ -190,11 +189,13 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
             creativeMode->set(creativeModeCheckBoxR.checked.cget());
             return Event::ReturnType::Propagate;
         });
+#if 0
     std::shared_ptr<CheckBox> backgroundCameraCheckBox =
         std::make_shared<CheckBox>(L"Background Camera", -0.8f, 0.8f, -0.35f, -0.1f);
     add(backgroundCameraCheckBox);
     CheckBox &backgroundCameraCheckBoxR = *backgroundCameraCheckBox;
     backgroundCameraCheckBox->checked.set(gameUi->hasBackgroundCamera());
+    GameUi &gameUiR = *gameUi;
     backgroundCameraCheckBox->checked.onChange.bind(
         [&backgroundCameraCheckBoxR, &gameUiR, this](EventArguments &) -> Event::ReturnType
         {
@@ -251,6 +252,26 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
             }
             return Event::ReturnType::Propagate;
         });
+#else
+    std::shared_ptr<CheckBox> fontCheckBox =
+        std::make_shared<CheckBox>(L"Use Vector Font", -0.8f, 0.8f, -0.35f, -0.1f);
+    add(fontCheckBox);
+    CheckBox &fontCheckBoxR = *fontCheckBox;
+    fontCheckBox->checked.set(Text::getDefaultFont() == Text::getVectorFont());
+    fontCheckBox->checked.onChange.bind(
+        [&fontCheckBoxR](EventArguments &) -> Event::ReturnType
+        {
+            if(fontCheckBoxR.checked.get())
+            {
+                Text::setDefaultFont(Text::getVectorFont());
+            }
+            else
+            {
+                Text::setDefaultFont(Text::getBitmappedFont8x8());
+            }
+            return Event::ReturnType::Propagate;
+        });
+#endif
     std::shared_ptr<CheckBox> fullScreenCheckBox =
         std::make_shared<CheckBox>(L"Full Screen", -0.8f, 0.8f, -0.65f, -0.4f);
     add(fullScreenCheckBox);

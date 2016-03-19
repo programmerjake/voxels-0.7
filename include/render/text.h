@@ -36,30 +36,52 @@ typedef const FontDescriptor *FontDescriptorPointer;
 struct Font final
 {
     Font(const Font &) = default;
-    Font &operator =(const Font &) = default;
+    Font &operator=(const Font &) = default;
     FontDescriptorPointer descriptor;
-    explicit Font(FontDescriptorPointer descriptor = nullptr)
-        : descriptor(descriptor)
+    explicit Font(FontDescriptorPointer descriptor = nullptr) : descriptor(descriptor)
     {
+    }
+    bool operator==(const Font &rt) const;
+    bool operator!=(const Font &rt) const
+    {
+        return !operator ==(rt);
     }
 };
 inline Font getDefaultFont()
 {
-    return Font();
+    return Font(nullptr);
+}
+Font getActualDefaultFont();
+inline bool Font::operator==(const Font &rt) const
+{
+    if(descriptor == rt.descriptor)
+        return true;
+    if(!descriptor)
+        return rt.descriptor == getActualDefaultFont().descriptor;
+    if(!rt.descriptor)
+        return descriptor == getActualDefaultFont().descriptor;
+    return false;
 }
 Font getBitmappedFont8x8();
 Font getVectorFont();
+void setDefaultFont(Font font);
 struct TextProperties final
 {
     float tabWidth = 8;
     Font font = getDefaultFont();
 };
 extern const TextProperties defaultTextProperties;
-float width(std::wstring str, const TextProperties & properties = defaultTextProperties);
-float height(std::wstring str, const TextProperties & properties = defaultTextProperties);
-float xPos(std::wstring str, std::size_t cursorPosition, const TextProperties & properties = defaultTextProperties);
-float yPos(std::wstring str, std::size_t cursorPosition, const TextProperties & properties = defaultTextProperties);
-Mesh mesh(std::wstring str, ColorF color = colorizeIdentity(), const TextProperties & properties = defaultTextProperties);
+float width(std::wstring str, const TextProperties &properties = defaultTextProperties);
+float height(std::wstring str, const TextProperties &properties = defaultTextProperties);
+float xPos(std::wstring str,
+           std::size_t cursorPosition,
+           const TextProperties &properties = defaultTextProperties);
+float yPos(std::wstring str,
+           std::size_t cursorPosition,
+           const TextProperties &properties = defaultTextProperties);
+Mesh mesh(std::wstring str,
+          ColorF color = colorizeIdentity(),
+          const TextProperties &properties = defaultTextProperties);
 }
 }
 }

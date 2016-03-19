@@ -2232,31 +2232,183 @@ static const VectorFontVertex vectorFontVertices[] = {
     {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 103 : 'g'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {4, 3, VectorFontVertex::StartLoop},
+    {4, 8, VectorFontVertex::Vertex},
+    {4, 8, VectorFontVertex::Vertex},
+    {5, 8, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {1, 2, VectorFontVertex::Vertex},
+    {0, 3, VectorFontVertex::EndLoop},
+    {7, 3, VectorFontVertex::StartLoop},
+    {7, 2, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {5, 3, VectorFontVertex::EndLoop},
+    {2, 5, VectorFontVertex::StartLoop},
+    {2, 3, VectorFontVertex::Vertex},
+    {0, 3, VectorFontVertex::Vertex},
+    {0, 5, VectorFontVertex::Vertex},
+    {1, 6, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {4, 5, VectorFontVertex::EndLoop},
+    {4, 7, VectorFontVertex::StartLoop},
+    {0, 7, VectorFontVertex::Vertex},
+    {0, 8, VectorFontVertex::Vertex},
+    {4, 8, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 104 : 'h'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {3, 4, VectorFontVertex::StartLoop},
+    {4, 3, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::Vertex},
+    {1, 0, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::EndLoop},
+    {1, 6, VectorFontVertex::StartLoop},
+    {0, 7, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::EndLoop},
+    {1, 0, VectorFontVertex::StartLoop},
+    {0, 0, VectorFontVertex::Vertex},
+    {1, 1, VectorFontVertex::EndLoop},
+    {5, 3, VectorFontVertex::StartLoop},
+    {5, 7, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::Vertex},
+    {7, 3, VectorFontVertex::Vertex},
+    {6, 2, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {4, 3, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 105 : 'i'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {4, 1, VectorFontVertex::StartLoop},
+    {4, 0, VectorFontVertex::Vertex},
+    {2, 0, VectorFontVertex::Vertex},
+    {2, 1, VectorFontVertex::EndLoop},
+    {2, 3, VectorFontVertex::StartLoop},
+    {2, 6, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::Vertex},
+    {1, 2, VectorFontVertex::EndLoop},
+    {2, 6, VectorFontVertex::StartLoop},
+    {1, 7, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 106 : 'j'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {6, 1, VectorFontVertex::StartLoop},
+    {6, 0, VectorFontVertex::Vertex},
+    {4, 0, VectorFontVertex::Vertex},
+    {4, 1, VectorFontVertex::EndLoop},
+    {4, 7, VectorFontVertex::StartLoop},
+    {0, 7, VectorFontVertex::Vertex},
+    {1, 8, VectorFontVertex::Vertex},
+    {5, 8, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::Vertex},
+    {6, 2, VectorFontVertex::Vertex},
+    {4, 2, VectorFontVertex::EndLoop},
+    {2, 7, VectorFontVertex::StartLoop},
+    {2, 5, VectorFontVertex::Vertex},
+    {0, 5, VectorFontVertex::Vertex},
+    {0, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 107 : 'k'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {4.5f, 4.5f, VectorFontVertex::StartLoop},
+    {7, 2, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::EndLoop},
+    {1, 6, VectorFontVertex::StartLoop},
+    {0, 7, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::Vertex},
+    {3, 0, VectorFontVertex::Vertex},
+    {1, 0, VectorFontVertex::EndLoop},
+    {1, 1, VectorFontVertex::StartLoop},
+    {1, 0, VectorFontVertex::Vertex},
+    {0, 0, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 108 : 'l'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {2, 1, VectorFontVertex::StartLoop},
+    {2, 0, VectorFontVertex::Vertex},
+    {1, 0, VectorFontVertex::EndLoop},
+    {2, 6, VectorFontVertex::StartLoop},
+    {1, 7, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {4, 6, VectorFontVertex::Vertex},
+    {4, 0, VectorFontVertex::Vertex},
+    {2, 0, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 109 : 'm'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {5.5f, 4, VectorFontVertex::StartLoop},
+    {5.5f, 7, VectorFontVertex::Vertex},
+    {7, 7, VectorFontVertex::Vertex},
+    {7, 3.5f, VectorFontVertex::Vertex},
+    {6, 2.5f, VectorFontVertex::Vertex},
+    {4.5f, 2.5f, VectorFontVertex::Vertex},
+    {4, 3, VectorFontVertex::Vertex},
+    {1.5f, 3, VectorFontVertex::Vertex},
+    {1.5f, 4, VectorFontVertex::EndLoop},
+    {1.5f, 4, VectorFontVertex::StartLoop},
+    {1.5f, 4.5f, VectorFontVertex::Vertex},
+    {2, 4, VectorFontVertex::EndLoop},
+    {3.5f, 3, VectorFontVertex::StartLoop},
+    {3, 2.5f, VectorFontVertex::Vertex},
+    {2, 2.5f, VectorFontVertex::Vertex},
+    {1.5f, 3, VectorFontVertex::EndLoop},
+    {4.5f, 7, VectorFontVertex::StartLoop},
+    {4.5f, 4, VectorFontVertex::Vertex},
+    {3, 4, VectorFontVertex::Vertex},
+    {3, 7, VectorFontVertex::EndLoop},
+    {1.5f, 7, VectorFontVertex::StartLoop},
+    {1.5f, 2, VectorFontVertex::Vertex},
+    {0, 2, VectorFontVertex::Vertex},
+    {0, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 110 : 'n'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {4, 3, VectorFontVertex::StartLoop},
+    {4, 7, VectorFontVertex::Vertex},
+    {6, 7, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {2.5f, 2, VectorFontVertex::Vertex},
+    {2.5f, 3, VectorFontVertex::EndLoop},
+    {2, 3.5f, VectorFontVertex::StartLoop},
+    {2.5f, 3, VectorFontVertex::Vertex},
+    {2.5f, 2, VectorFontVertex::Vertex},
+    {2, 2.5f, VectorFontVertex::Vertex},
+    {2, 2, VectorFontVertex::Vertex},
+    {0, 2, VectorFontVertex::Vertex},
+    {0, 7, VectorFontVertex::Vertex},
+    {2, 7, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 111 : 'o'
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {2, 3, VectorFontVertex::StartLoop},
+    {6, 3, VectorFontVertex::Vertex},
+    {5, 2, VectorFontVertex::Vertex},
+    {1, 2, VectorFontVertex::Vertex},
+    {0, 3, VectorFontVertex::Vertex},
+    {0, 6, VectorFontVertex::Vertex},
+    {1, 7, VectorFontVertex::Vertex},
+    {2, 7, VectorFontVertex::EndLoop},
+    {4, 6, VectorFontVertex::StartLoop},
+    {2, 6, VectorFontVertex::Vertex},
+    {2, 7, VectorFontVertex::Vertex},
+    {5, 7, VectorFontVertex::Vertex},
+    {6, 6, VectorFontVertex::Vertex},
+    {6, 3, VectorFontVertex::Vertex},
+    {4, 3, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 112 : 'p'
     FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
@@ -2837,12 +2989,7 @@ void renderChar(Mesh &dest,
     Text::Font font = properties.font;
     if(font.descriptor == nullptr)
     {
-#if 0
-        font = Text::getVectorFont();
-#else
-        font = Text::getBitmappedFont8x8();
-        FIXME_MESSAGE(change to use vector font by default)
-#endif
+        font = Text::getActualDefaultFont();
     }
     if(font.descriptor->isVectorFont)
     {
@@ -2970,6 +3117,34 @@ Mesh Text::mesh(wstring str, ColorF color, const TextProperties &properties)
     }
 
     return retval;
+}
+
+namespace
+{
+std::atomic<Text::FontDescriptorPointer> defaultFont(nullptr);
+}
+
+Text::Font Text::getActualDefaultFont()
+{
+    FontDescriptorPointer retval = defaultFont.load();
+    if(!retval)
+    {
+#if 0
+        return Text::getVectorFont();
+#else
+        return Text::getBitmappedFont8x8();
+        FIXME_MESSAGE(change to use vector font by default)
+#endif
+    }
+    return Font(retval);
+}
+
+void Text::setDefaultFont(Font font)
+{
+    if(font.descriptor != nullptr)
+    {
+        defaultFont.store(font.descriptor);
+    }
 }
 }
 }
