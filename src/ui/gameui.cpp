@@ -571,7 +571,7 @@ void GameUi::addWorldUi()
                 : Button(L"\u25B2",
                          Display::getTouchControlSize() - Display::scaleX(),
                          2.0f * Display::getTouchControlSize() - Display::scaleX(),
-                         0.5f * Display::getTouchControlSize(),
+                         0,
                          1.5f * Display::getTouchControlSize()),
                   gameUi(gameUi)
             {
@@ -631,7 +631,7 @@ void GameUi::addWorldUi()
                          Display::getTouchControlSize() - Display::scaleX(),
                          2.0f * Display::getTouchControlSize() - Display::scaleX(),
                          -1.5f * Display::getTouchControlSize(),
-                         -0.5f * Display::getTouchControlSize()),
+                         0),
                   gameUi(gameUi)
             {
                 pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
@@ -805,10 +805,10 @@ void GameUi::addWorldUi()
         public:
             JumpButton(GameUi *gameUi)
                 : Button(L"\u2666",
-                         Display::getTouchControlSize() - Display::scaleX(),
-                         2.0f * Display::getTouchControlSize() - Display::scaleX(),
-                         -0.5f * Display::getTouchControlSize(),
-                         0.5f * Display::getTouchControlSize()),
+                    Display::scaleX() - Display::getTouchControlSize(),
+                    Display::scaleX(),
+                    Display::getTouchControlSize() * -1.5f,
+                    Display::getTouchControlSize() * -0.5f),
                   gameUi(gameUi)
             {
                 pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
@@ -832,7 +832,7 @@ void GameUi::addWorldUi()
             }
             virtual void layout() override
             {
-                moveBy(getParent()->minX + Display::getTouchControlSize() - minX, 0.0f);
+                moveRightTo(getParent()->maxX);
                 Button::layout();
             }
             virtual void reset() override
@@ -899,8 +899,8 @@ void GameUi::addWorldUi()
                 : Button(L"Drop",
                          -Display::scaleX(),
                          Display::getTouchControlSize() - Display::scaleX(),
-                         0.5f * Display::getTouchControlSize(),
-                         1.5f * Display::getTouchControlSize()),
+                         Display::scaleY() - Display::getTouchControlSize(),
+                         Display::scaleY()),
                   gameUi(gameUi)
             {
                 click.bind([this](EventArguments &) -> Event::ReturnType
@@ -912,7 +912,7 @@ void GameUi::addWorldUi()
             }
             virtual void layout() override
             {
-                moveBy(getParent()->minX - minX, 0.0f);
+                moveTopLeftTo(-Display::scaleX(), Display::scaleY());
                 Button::layout();
             }
             virtual bool canHaveKeyboardFocus() const override
@@ -938,8 +938,8 @@ void GameUi::addWorldUi()
                 : Button(L"Sneak",
                          Display::scaleX() - Display::getTouchControlSize(),
                          Display::scaleX(),
-                         Display::scaleY() - Display::getTouchControlSize() * 2.5f,
-                         Display::scaleY() - Display::getTouchControlSize() * 1.5f),
+                         Display::getTouchControlSize() * 0.5f,
+                         Display::getTouchControlSize() * 1.5f),
                   gameUi(gameUi)
             {
                 pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType
@@ -968,8 +968,7 @@ void GameUi::addWorldUi()
             }
             virtual void layout() override
             {
-                moveTopRightTo(getParent()->maxX,
-                               getParent()->maxY - Display::getTouchControlSize() * 1.5f);
+                moveRightTo(getParent()->maxX);
                 Button::layout();
             }
             virtual bool canHaveKeyboardFocus() const override
