@@ -3073,7 +3073,11 @@ static const VectorFontVertex vectorFontVertices[] = {
     FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
 
     // Glyph 249 : ''
-    FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
+    {5, 5, VectorFontVertex::StartLoop},
+    {5, 3, VectorFontVertex::Vertex},
+    {3, 3, VectorFontVertex::Vertex},
+    {3, 5, VectorFontVertex::EndLoop},
+    {0, 0, VectorFontVertex::EndGlyph},
 
     // Glyph 250 : ''
     FIXME_MESSAGE(finish creating glyph){0, 0, VectorFontVertex::UnimplementedGlyph},
