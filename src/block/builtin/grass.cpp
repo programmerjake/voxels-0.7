@@ -38,7 +38,7 @@ void Grass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &l
 void Grass::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
 {
     BlockIterator bi = blockIterator;
-    bi.moveBy(VectorI(0, 1, 0), lock_manager.tls);
+    bi.moveBy(VectorI(0, 1, 0), lock_manager);
     Block b = bi.get(lock_manager);
     if((b.lighting.toFloat(world.getLighting(bi.position().d)) >= 4.0f / 15 || b.lighting.indirectSkylight >= 4) && b.descriptor->lightProperties.isTotallyTransparent())
         return;

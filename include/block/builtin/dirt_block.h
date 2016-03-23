@@ -108,7 +108,7 @@ protected:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf, lock_manager.tls);
+            i.moveToward(bf, lock_manager);
             Block b = i.get(lock_manager);
 
             if(!b)
@@ -146,7 +146,7 @@ protected:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf, lock_manager.tls);
+            i.moveToward(bf, lock_manager);
             Block b = i.get(lock_manager);
 
             if(!b)

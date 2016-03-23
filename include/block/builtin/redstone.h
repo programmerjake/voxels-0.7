@@ -380,7 +380,7 @@ private:
                                                   BlockIterator blockIterator,
                                                   WorldLockManager &lock_manager)
     {
-        blockIterator.moveToward(inputThroughBlockFace, lock_manager.tls);
+        blockIterator.moveToward(inputThroughBlockFace, lock_manager);
         Block b = blockIterator.get(lock_manager);
         if(!b.good())
             return RedstoneSignal();
@@ -393,7 +393,7 @@ private:
                 if(bf == inputThroughBlockFace)
                     continue;
                 BlockIterator bi = blockIterator;
-                bi.moveFrom(bf, lock_manager.tls);
+                bi.moveFrom(bf, lock_manager);
                 b = bi.get(lock_manager);
                 if(b.good())
                 {
@@ -413,7 +413,7 @@ private:
         RedstoneSignal redstoneSignal = calculateRedstoneSignal(side, blockIterator, lock_manager);
         unsigned signal = 0;
         BlockIterator bi = blockIterator;
-        bi.moveToward(side, lock_manager.tls);
+        bi.moveToward(side, lock_manager);
         Block b = bi.get(lock_manager);
         if(b.good())
         {
@@ -429,7 +429,7 @@ private:
                 signal = redstoneSignal.weakComponent.strength;
                 if(!b.descriptor->breaksRedstoneDust())
                 {
-                    bi.moveTowardNY(lock_manager.tls);
+                    bi.moveTowardNY(lock_manager);
                     b = bi.get(lock_manager);
                     if(b.good())
                     {
@@ -450,11 +450,11 @@ private:
         if(!blockAboveCutsRedstoneDust)
         {
             bi = blockIterator;
-            bi.moveToward(side, lock_manager.tls);
+            bi.moveToward(side, lock_manager);
             b = bi.get(lock_manager);
             if(b.good() && b.descriptor->transmitsRedstoneSignalDown())
             {
-                bi.moveTowardPY(lock_manager.tls);
+                bi.moveTowardPY(lock_manager);
                 b = bi.get(lock_manager);
                 if(b.good())
                 {
@@ -477,7 +477,7 @@ public:
                                                                 WorldLockManager &lock_manager)
     {
         BlockIterator bi = blockIterator;
-        bi.moveTowardPY(lock_manager.tls);
+        bi.moveTowardPY(lock_manager);
         Block b = bi.get(lock_manager);
         bool blockAboveCutsRedstoneDust = true;
         if(b.good())
@@ -584,7 +584,7 @@ public:
                         for(delta.z = -zDistance; delta.z <= zDistance; delta.z++)
                         {
                             BlockIterator bi = blockIterator;
-                            bi.moveBy(delta, lock_manager.tls);
+                            bi.moveBy(delta, lock_manager);
                             world.addBlockUpdate(
                                 bi, lock_manager, BlockUpdateKind::Redstone, 0);
                         }

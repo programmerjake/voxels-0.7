@@ -502,7 +502,7 @@ public:
                 for(int dz = -1; dz <= 1; dz++)
                 {
                     BlockIterator bi2 = bi;
-                    bi2.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
+                    bi2.moveBy(VectorI(dx, dy, dz), lock_manager);
                     invalidateBlock(std::move(bi2), lock_manager);
                 }
             }
@@ -536,7 +536,7 @@ public:
                 for(int dz = -1; dz <= 1; dz++)
                 {
                     BlockIterator bi2 = bi;
-                    bi2.moveTo(pos + VectorI(dx, y, dz), lock_manager.tls);
+                    bi2.moveTo(pos + VectorI(dx, y, dz), lock_manager);
                     invalidateBlock(std::move(bi2), lock_manager);
                 }
             }
@@ -550,10 +550,10 @@ public:
         VectorI adjustedMinCorner = minCorner - VectorI(1, 0, 1);
         VectorI adjustedMaxCorner = maxCorner + VectorI(1, 0, 1);
         BlockIterator biX = getBlockIterator(minCorner, lock_manager.tls);
-        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX(lock_manager.tls))
+        for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX(lock_manager))
         {
             BlockIterator biXZ = biX;
-            for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXZ.moveTowardPZ(lock_manager.tls))
+            for(p.z = minCorner.z; p.z <= maxCorner.z; p.z++, biXZ.moveTowardPZ(lock_manager))
             {
                 biXZ.updateLock(lock_manager);
                 BlockChunkBiome &b = biXZ.getBiome();
@@ -619,7 +619,8 @@ public:
                     maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, maxCorner.y - subchunkPos.y);
                     maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, maxCorner.z - subchunkPos.z);
                     BlockIterator sbi = blockIterator;
-                    sbi.moveTo(subchunkPos, lock_manager.tls);
+                    sbi.moveTo(subchunkPos, lock_manager);
+                    std::size_t setBlockCount = 0;
                     for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
                     {
                         for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
@@ -627,7 +628,12 @@ public:
                             for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
                             {
                                 BlockIterator bi = sbi;
-                                bi.moveBy(subchunkRelativePos, lock_manager.tls);
+                                if(setBlockCount++ > 500)
+                                {
+                                    lock_manager.clear();
+                                    setBlockCount = 0;
+                                }
+                                bi.moveBy(subchunkRelativePos, lock_manager);
                                 VectorI newBlocksPosition = subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
                                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
                                 BlockChunkBlock &b = bi.getBlock(lock_manager);

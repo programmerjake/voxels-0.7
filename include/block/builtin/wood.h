@@ -325,7 +325,7 @@ protected:
                 for(int dz = -checkDistance; dz <= checkDistance; dz++)
                 {
                     BlockIterator bi = blockIterator;
-                    bi.moveBy(VectorI(dx, dy, dz), lock_manager.tls);
+                    bi.moveBy(VectorI(dx, dy, dz), lock_manager);
                     Block b = bi.get(lock_manager);
                     int &currentSupported =
                         supportedArrays[currentSupportedArrayIndex][dx + checkDistance]
@@ -483,7 +483,7 @@ public:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf, lock_manager.tls);
+            i.moveToward(bf, lock_manager);
             Block b = i.get(lock_manager);
 
             if(!b)
@@ -518,7 +518,7 @@ public:
         for(BlockFace bf : enum_traits<BlockFace>())
         {
             BlockIterator i = blockIterator;
-            i.moveToward(bf, lock_manager.tls);
+            i.moveToward(bf, lock_manager);
             Block b = i.get(lock_manager);
 
             if(!b)
@@ -615,7 +615,7 @@ protected:
                                  WorldLockManager &lock_manager) const override
     {
         BlockIterator bi = blockIterator;
-        bi.moveTowardNY(lock_manager.tls);
+        bi.moveTowardNY(lock_manager);
         Block b = bi.get(lock_manager);
         if(!b.good())
             return true;
@@ -635,7 +635,7 @@ protected:
             for(int dz = -1; dz <= 1; dz++)
             {
                 BlockIterator bi = blockIterator;
-                bi.moveBy(VectorI(dx, 0, dz), lock_manager.tls);
+                bi.moveBy(VectorI(dx, 0, dz), lock_manager);
                 Block b = bi.get(lock_manager);
                 hasSapling[dx + 1][dz + 1] = false;
                 if(!b.good())
@@ -669,7 +669,7 @@ protected:
                 {
                     if(!adjustSaplingPosition && growDX != 0 && growDZ != 0)
                         return 0;
-                    blockIterator.moveBy(VectorI(growDX, 0, growDZ), lock_manager.tls);
+                    blockIterator.moveBy(VectorI(growDX, 0, growDZ), lock_manager);
                     return 2;
                 }
             }
@@ -699,7 +699,7 @@ protected:
         if(block.lighting.toFloat(world.getLighting(blockIterator.position().d)) < 9 / 16.0f)
             return false;
         BlockIterator bi = blockIterator;
-        bi.moveTowardNY(lock_manager.tls);
+        bi.moveTowardNY(lock_manager);
         Block b = bi.get(lock_manager);
         if(!b.good())
             return false;

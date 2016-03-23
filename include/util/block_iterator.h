@@ -48,8 +48,10 @@ class BlockIterator final
     BlockChunkMap *chunks;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
-    void getChunk(TLS &tls)
+    void getChunk(TLS &tls, WorldLockManager *plock_manager)
     {
+        if(plock_manager)
+            plock_manager->clear();
         chunk = (*chunks)[currentBasePosition].getOrLoad(tls);
     }
     BlockChunkSubchunk &getSubchunk() const
@@ -90,7 +92,7 @@ public:
         : chunk(), chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
         assert(chunks != nullptr);
-        getChunk(tls);
+        getChunk(tls, nullptr);
     }
     BlockIterator(const BlockIterator &) = default;
     BlockIterator(BlockIterator &&) = default;
@@ -100,121 +102,121 @@ public:
     {
         return currentBasePosition + currentRelativePosition;
     }
-    void moveTowardNX(TLS &tls)
+    void moveTowardNX(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.x <= 0)
         {
             currentRelativePosition.x = BlockChunk::chunkSizeX - 1;
             currentBasePosition.x -= BlockChunk::chunkSizeX;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.x--;
     }
-    void moveTowardNY(TLS &tls)
+    void moveTowardNY(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.y <= 0)
         {
             currentRelativePosition.y = BlockChunk::chunkSizeY - 1;
             currentBasePosition.y -= BlockChunk::chunkSizeY;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.y--;
     }
-    void moveTowardNZ(TLS &tls)
+    void moveTowardNZ(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.z <= 0)
         {
             currentRelativePosition.z = BlockChunk::chunkSizeZ - 1;
             currentBasePosition.z -= BlockChunk::chunkSizeZ;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.z--;
     }
-    void moveTowardPX(TLS &tls)
+    void moveTowardPX(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.x >= BlockChunk::chunkSizeX - 1)
         {
             currentRelativePosition.x = 0;
             currentBasePosition.x += BlockChunk::chunkSizeX;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.x++;
     }
-    void moveTowardPY(TLS &tls)
+    void moveTowardPY(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.y >= BlockChunk::chunkSizeY - 1)
         {
             currentRelativePosition.y = 0;
             currentBasePosition.y += BlockChunk::chunkSizeY;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.y++;
     }
-    void moveTowardPZ(TLS &tls)
+    void moveTowardPZ(WorldLockManager &lock_manager)
     {
         if(currentRelativePosition.z >= BlockChunk::chunkSizeZ - 1)
         {
             currentRelativePosition.z = 0;
             currentBasePosition.z += BlockChunk::chunkSizeZ;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.z++;
     }
-    void moveToward(BlockFace bf, TLS &tls)
+    void moveToward(BlockFace bf, WorldLockManager &lock_manager)
     {
         switch(bf)
         {
         case BlockFace::NX:
-            moveTowardNX(tls);
+            moveTowardNX(lock_manager);
             break;
         case BlockFace::PX:
-            moveTowardPX(tls);
+            moveTowardPX(lock_manager);
             break;
         case BlockFace::NY:
-            moveTowardNY(tls);
+            moveTowardNY(lock_manager);
             break;
         case BlockFace::PY:
-            moveTowardPY(tls);
+            moveTowardPY(lock_manager);
             break;
         case BlockFace::NZ:
-            moveTowardNZ(tls);
+            moveTowardNZ(lock_manager);
             break;
         case BlockFace::PZ:
-            moveTowardPZ(tls);
+            moveTowardPZ(lock_manager);
             break;
         }
     }
-    void moveFrom(BlockFace bf, TLS &tls)
+    void moveFrom(BlockFace bf, WorldLockManager &lock_manager)
     {
         switch(bf)
         {
         case BlockFace::NX:
-            moveTowardPX(tls);
+            moveTowardPX(lock_manager);
             break;
         case BlockFace::PX:
-            moveTowardNX(tls);
+            moveTowardNX(lock_manager);
             break;
         case BlockFace::NY:
-            moveTowardPY(tls);
+            moveTowardPY(lock_manager);
             break;
         case BlockFace::PY:
-            moveTowardNY(tls);
+            moveTowardNY(lock_manager);
             break;
         case BlockFace::NZ:
-            moveTowardPZ(tls);
+            moveTowardPZ(lock_manager);
             break;
         case BlockFace::PZ:
-            moveTowardNZ(tls);
+            moveTowardNZ(lock_manager);
             break;
         }
     }
-    void moveBy(VectorI delta, TLS &tls)
+    void moveBy(VectorI delta, WorldLockManager &lock_manager)
     {
         currentRelativePosition += delta;
         VectorI deltaBasePosition = BlockChunk::getChunkBasePosition(currentRelativePosition);
@@ -222,24 +224,24 @@ public:
         {
             currentBasePosition += deltaBasePosition;
             currentRelativePosition -= deltaBasePosition;
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
     }
-    void moveTo(VectorI pos, TLS &tls)
+    void moveTo(VectorI pos, WorldLockManager &lock_manager)
     {
-        moveBy(pos - static_cast<VectorI>(position()), tls);
+        moveBy(pos - static_cast<VectorI>(position()), lock_manager);
     }
-    void moveTo(PositionI pos, TLS &tls)
+    void moveTo(PositionI pos, WorldLockManager &lock_manager)
     {
         if(pos.d == currentBasePosition.d)
         {
-            moveTo(static_cast<VectorI>(pos), tls);
+            moveTo(static_cast<VectorI>(pos), lock_manager);
         }
         else
         {
             currentBasePosition = BlockChunk::getChunkBasePosition(pos);
             currentRelativePosition = BlockChunk::getChunkRelativePosition(pos);
-            getChunk(tls);
+            getChunk(lock_manager.tls, &lock_manager);
         }
     }
 private:

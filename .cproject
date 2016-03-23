@@ -31,6 +31,7 @@
 								<option id="gnu.cpp.compiler.option.other.other.1587201943" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -pthread -Werror=all -Wno-error=old-style-cast -fstack-usage" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2070833634" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="DEBUG_VERSION"/>
+									<listOptionValue builtIn="false" value="DEBUG_CHUNK_LOCK_TIME=1"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.optimization.flags.1779535500" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="" valueType="string"/>
 								<option id="gnu.cpp.compiler.option.debugging.gprof.1385309276" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
@@ -41,6 +42,7 @@
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.547116371" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.783581254" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="DEBUG_VERSION"/>
+									<listOptionValue builtIn="false" value="DEBUG_CHUNK_LOCK_TIME=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.paths.799137686" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/voxels-0.7/include}&quot;"/>
@@ -109,6 +111,9 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/voxels-0.7/include}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.other.other.1318553049" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -pthread" valueType="string"/>
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1462849415" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="NDEBUG=1"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.139733156" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.1149424133" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
@@ -116,6 +121,7 @@
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.450902200" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1730738367" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="DEBUG_VERSION"/>
+									<listOptionValue builtIn="false" value="NDEBUG=1"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.paths.105255534" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/voxels-0.7/include}&quot;"/>
@@ -318,9 +324,27 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="voxels-0.7.cdt.managedbuild.target.gnu.exe.1826507129" name="Executable" projectType="cdt.managedbuild.target.gnu.exe"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/voxels-0.7"/>
+		</configuration>
+		<configuration configurationName="Optimized"/>
+		<configuration configurationName="Profile"/>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/voxels-0.7"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1444833523;cdt.managedbuild.config.gnu.exe.debug.1444833523.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.144267881;cdt.managedbuild.tool.gnu.cpp.compiler.input.1775727468">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1444833523.859899157;cdt.managedbuild.config.gnu.exe.debug.1444833523.859899157.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.129255625;cdt.managedbuild.tool.gnu.c.compiler.input.1798566911">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1444833523.859899157;cdt.managedbuild.config.gnu.exe.debug.1444833523.859899157.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.882200580;cdt.managedbuild.tool.gnu.cpp.compiler.input.1510190452">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.841714346;cdt.managedbuild.config.gnu.exe.release.841714346.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.1811680848;cdt.managedbuild.tool.gnu.cpp.compiler.input.139733156">
@@ -333,15 +357,4 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
-	<storageModule moduleId="refreshScope" versionNumber="2">
-		<configuration configurationName="Release">
-			<resource resourceType="PROJECT" workspacePath="/voxels-0.7"/>
-		</configuration>
-		<configuration configurationName="Profile"/>
-		<configuration configurationName="Debug">
-			<resource resourceType="PROJECT" workspacePath="/voxels-0.7"/>
-		</configuration>
-	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

@@ -72,7 +72,7 @@ public:
 protected:
     ThreeStateBool isAttached(Block b, BlockIterator bi, WorldLockManager &lock_manager) const
     {
-        bi.moveToward(attachedToFace, lock_manager.tls);
+        bi.moveToward(attachedToFace, lock_manager);
         Block attachedToBlock = bi.get(lock_manager);
         if(!attachedToBlock.good())
             return ThreeStateBool::Unknown;

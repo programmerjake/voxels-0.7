@@ -153,7 +153,7 @@ BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_
             for(int z = 0; (size_t)z < blocks[x][y].size(); z++)
             {
                 BlockIterator curBi = bi;
-                curBi.moveBy(VectorI(x - 1, y - 1, z - 1), lock_manager.tls);
+                curBi.moveBy(VectorI(x - 1, y - 1, z - 1), lock_manager);
                 auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
                 const Block &b = curBi.get(lock_manager);
 
@@ -207,7 +207,7 @@ void BlockDescriptor::handleToolDamage(Item &tool) const
 
 RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager, bool senseWeakInputThroughBlock)
 {
-    blockIterator.moveToward(inputThroughBlockFace, lock_manager.tls);
+    blockIterator.moveToward(inputThroughBlockFace, lock_manager);
     Block b = blockIterator.get(lock_manager);
     if(!b.good())
         return RedstoneSignal();
@@ -219,7 +219,7 @@ RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBl
             if(bf == inputThroughBlockFace)
                 continue;
             BlockIterator bi = blockIterator;
-            bi.moveFrom(bf, lock_manager.tls);
+            bi.moveFrom(bf, lock_manager);
             b = bi.get(lock_manager);
             if(b.good())
             {
@@ -250,7 +250,7 @@ void BlockDescriptor::addRedstoneBlockUpdates(World &world, BlockIterator blockI
             for(delta.z = -zDistance; delta.z <= zDistance; delta.z++)
             {
                 BlockIterator bi = blockIterator;
-                bi.moveBy(delta, lock_manager.tls);
+                bi.moveBy(delta, lock_manager);
                 world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::Redstone, BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
             }
         }

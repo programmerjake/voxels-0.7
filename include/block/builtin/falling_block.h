@@ -43,7 +43,7 @@ public:
     virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
     {
         BlockIterator bi = blockIterator;
-        bi.moveTowardNY(lock_manager.tls);
+        bi.moveTowardNY(lock_manager);
         Block b = bi.get(lock_manager);
         if(b.good() && b.descriptor->isReplaceableByFallingBlock())
         {

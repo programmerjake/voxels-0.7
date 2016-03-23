@@ -532,6 +532,7 @@ struct ViewPoint::Implementation final
         auto invalidateCount = subchunk.invalidateCount;
         std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes =
             makeCachedMesh(&cachedSubchunkMeshCount);
+        std::size_t lockManagerOperationCount = 0;
         for(std::int32_t bx = 0; bx < BlockChunk::subchunkSizeXYZ; bx++)
         {
             for(std::int32_t by = 0; by < BlockChunk::subchunkSizeXYZ; by++)
@@ -539,7 +540,12 @@ struct ViewPoint::Implementation final
                 for(std::int32_t bz = 0; bz < BlockChunk::subchunkSizeXYZ; bz++)
                 {
                     BlockIterator bbi = sbi;
-                    bbi.moveBy(VectorI(bx, by, bz), lock_manager.tls);
+                    bbi.moveBy(VectorI(bx, by, bz), lock_manager);
+                    if(lockManagerOperationCount++ > 1000)
+                    {
+                        lockManagerOperationCount = 0;
+                        lock_manager.clear();
+                    }
                     BlockDescriptorPointer bd = bbi.get(lock_manager).descriptor;
                     if(bd != nullptr)
                     {
@@ -551,12 +557,22 @@ struct ViewPoint::Implementation final
                             for(BlockFace bf : enum_traits<BlockFace>())
                             {
                                 BlockIterator bfbi = bbi;
-                                bfbi.moveToward(bf, lock_manager.tls);
+                                bfbi.moveToward(bf, lock_manager);
+                                if(lockManagerOperationCount++ > 1000)
+                                {
+                                    lockManagerOperationCount = 0;
+                                    lock_manager.clear();
+                                }
                                 lighting[toBlockFaceOrNone(bf)] =
                                     lightingCache.getBlockLighting(bfbi, lock_manager, wlp);
                             }
                             for(RenderLayer rl : enum_traits<RenderLayer>())
                             {
+                                if(lockManagerOperationCount++ > 1000)
+                                {
+                                    lockManagerOperationCount = 0;
+                                    lock_manager.clear();
+                                }
                                 bd->render(bbi.get(lock_manager),
                                            subchunkMeshes->at(rl),
                                            bbi,
@@ -641,7 +657,7 @@ struct ViewPoint::Implementation final
                     PositionI subchunkPosition =
                         chunkPosition
                         + BlockChunk::getChunkRelativePositionFromSubchunkIndex(subchunkIndex);
-                    sbi.moveTo(subchunkPosition, lock_manager.tls);
+                    sbi.moveTo(subchunkPosition, lock_manager);
                     BlockChunkSubchunk &subchunk = sbi.getSubchunk();
                     std::shared_ptr<enum_array<Mesh, RenderLayer>> subchunkMeshes =
                         subchunk.cachedMeshes.load(std::memory_order_relaxed);
@@ -897,7 +913,7 @@ struct ViewPoint::Implementation final
                 PositionF vertexPosition(vertex.p, position.d);
                 PositionI vertexPositionI = (PositionI)vertexPosition;
                 VectorF relativeVertexPosition = vertexPosition - vertexPositionI;
-                bi.moveTo(vertexPositionI, lock_manager.tls);
+                bi.moveTo(vertexPositionI, lock_manager);
                 BlockLighting lighting = lightingCache.getBlockLighting(bi, lock_manager, wlp);
                 vertex.c = lighting.lightVertex(relativeVertexPosition, vertex.c, vertex.n);
             }
