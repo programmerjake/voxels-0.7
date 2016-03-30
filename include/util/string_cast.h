@@ -67,6 +67,7 @@ inline std::string string_cast<std::string>(std::wstring wstr)
                 nextValue -= 0xDC00U;
                 value <<= 10;
                 value += nextValue;
+                value += 0x10000UL;
             }
         }
 #endif
