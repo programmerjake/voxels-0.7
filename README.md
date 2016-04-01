@@ -8,3 +8,5 @@ Credits
 Software by Jacob R. Lifshay
 
 Music from Terasology
+
+Files in external-lib are by their respective authors.
