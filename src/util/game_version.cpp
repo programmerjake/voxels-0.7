@@ -21,7 +21,7 @@
  */
 #include "util/game_version.h"
 
-const std::wstring programmerjake::voxels::GameVersion::VERSION = L"0.7.4.1";
+const std::wstring programmerjake::voxels::GameVersion::VERSION = L"0.7.5.1";
 const std::uint32_t programmerjake::voxels::GameVersion::FILE_VERSION = 5;
 
 #ifdef COMPILE_DUMP_VERSION
