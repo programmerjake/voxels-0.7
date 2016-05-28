@@ -74,7 +74,7 @@ win32)
     project_filename="voxels-0.7-win.cbp"
     ;;
 esac
-mapfile -t a < "$project_filename"
+mapfile -t a < <(sed -z 's/\r\n/\n/g' "$project_filename")
 found_target=0
 current_target=""
 in_compiler=0
