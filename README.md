@@ -7,6 +7,13 @@ Status
 
 Currently creating a ecmascript 2015 engine for scripting: [javascript-tasklets](https://github.com/programmerjake/javascript-tasklets)
 
+Downloads
+=========
+
+[Releases](https://github.com/programmerjake/voxels-0.7/releases)
+
+[Source](https://github.com/programmerjake/voxels-0.7)
+
 Credits
 =======
 
