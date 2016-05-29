@@ -33,6 +33,7 @@ Release
 !libeay*.*
 !ssleay*.*
 build
+/build-*/
 .settings
 /Profile/
 /Optimized/

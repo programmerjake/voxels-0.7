@@ -34,9 +34,9 @@ PROJECT_PATH="`dirname "$0"`"
 pushd "$PROJECT_PATH" > /dev/null
 PROJECT_PATH="`pwd`"
 popd > /dev/null
-BUILD_PATH="$PROJECT_PATH/build"
+BUILD_PATH="$PROJECT_PATH/build-android"
 rm -rf "$BUILD_PATH"
-EXTERNAL_PATH="$PROJECT_PATH/external-lib/android"
+EXTERNAL_PATH="$PROJECT_PATH/external-lib"
 SDL_PATH="$EXTERNAL_PATH/SDL2-2.0.3"
 LIBPNG_PATH="$EXTERNAL_PATH/libpng-1.6.18"
 LIBOGG_PATH="$EXTERNAL_PATH/libogg-1.3.2"

@@ -1,0 +1,15 @@
+[submodule "external-lib/openssl"]
+	path = external-lib/openssl
+	url = https://github.com/openssl/openssl.git
+[submodule "external-lib/libpng"]
+	path = external-lib/libpng
+	url = https://github.com/glennrp/libpng.git
+[submodule "external-lib/SDL"]
+	path = external-lib/SDL
+	url = https://github.com/programmerjake/SDL.git
+[submodule "external-lib/ogg"]
+	path = external-lib/ogg
+	url = https://github.com/xiph/ogg.git
+[submodule "external-lib/vorbis"]
+	path = external-lib/vorbis
+	url = https://github.com/xiph/vorbis.git
