@@ -21,6 +21,7 @@
 #include "platform/print.h"
 #include "util/util.h"
 
+#ifdef PRINTING_ENABLED
 #if _WIN64 || _WIN32
 FIXME_MESSAGE("implement printing for windows")
 namespace programmerjake
@@ -208,6 +209,21 @@ std::vector<std::shared_ptr<Printer>> getPrinterList()
 }
 #else
 #error unknown platform in print.cpp
+#endif
+#else
+namespace programmerjake
+{
+namespace voxels
+{
+namespace Printing
+{
+std::vector<std::shared_ptr<Printer>> getPrinterList()
+{
+    throw PrintingException("printing not implemented for windows");
+}
+}
+}
+}
 #endif
 
 #if 0

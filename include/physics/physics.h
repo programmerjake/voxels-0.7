@@ -25,7 +25,6 @@
 #include "util/matrix.h"
 #include "util/position.h"
 #include "stream/stream.h"
-#include "script/script.h"
 #include "util/enum_traits.h"
 #include "util/block_chunk.h"
 #include "block/block.h"

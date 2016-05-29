@@ -13,3 +13,6 @@
 [submodule "external-lib/vorbis"]
 	path = external-lib/vorbis
 	url = https://github.com/xiph/vorbis.git
+[submodule "external-lib/zlib"]
+	path = external-lib/zlib
+	url = https://github.com/madler/zlib.git

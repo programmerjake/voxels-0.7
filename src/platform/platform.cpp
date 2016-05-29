@@ -55,13 +55,8 @@
 #include <csignal>
 #include <cstdio>
 #include <ctime>
-#ifdef _MSC_VER
 #include <SDL.h>
 #include <SDL_main.h>
-#else
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_main.h>
-#endif // _MSC_VER
 #ifdef __IPHONEOS__
 #define GRAPHICS_OPENGL_ES
 #include <OpenGLES/ES1/gl.h>

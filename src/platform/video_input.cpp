@@ -131,6 +131,7 @@ std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
 }
 }
 
+#ifdef CAMERA_ENABLED
 #if _WIN64 || _WIN32
 
 #include "videoInput.h"
@@ -263,6 +264,21 @@ std::vector<const VideoInputDevice *> makeVideoInputDeviceList()
 }
 #else
 FIXME_MESSAGE(implement video input for platform)
+namespace programmerjake
+{
+namespace voxels
+{
+namespace
+{
+std::vector<const VideoInputDevice *> makeVideoInputDeviceList()
+{
+    return std::vector<const VideoInputDevice *>();
+}
+}
+}
+}
+#endif
+#else
 namespace programmerjake
 {
 namespace voxels
