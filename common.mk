@@ -1,4 +1,4 @@
-.PHONY: all clean distclean install
+.PHONY: all clean distclean install bin-archive
 
 SHELL := /bin/bash
 
@@ -12,8 +12,13 @@ CC := $(CHOST)-gcc
 export CC
 CXX := $(CHOST)-g++
 export CXX
+CPP := $(CHOST)-cpp
+export CPP
+CXXCPP := $(CHOST)-cpp
+export CXXCPP
 AR := $(CHOST)-ar
 export AR
+LIBS :=
 SOURCE_DIR := $(abspath .)
 HEADERS := $(wildcard $(SOURCE_DIR)/include/*.h)
 HEADERS += $(wildcard $(SOURCE_DIR)/include/*/*.h)
@@ -32,7 +37,7 @@ OPENSSL_LIB_DIR := $(OPENSSL_BUILD_DIR)
 HEADERS += $(OPENSSL_BUILD_MAKEFILE)
 LIBCRYPTO := $(OPENSSL_BUILD_DIR)/$(LIBCRYPTO_NAME)
 LIBSSL := $(OPENSSL_BUILD_DIR)/$(LIBSSL_NAME)
-LDFLAGS += $(LIBSSL) $(LIBCRYPTO)
+LIBS += $(LIBSSL) $(LIBCRYPTO)
 LIBPNG_BUILD_DIR := $(BUILD_DIR)/libpng
 LIBPNG_BUILD_AUTOGEN := $(LIBPNG_BUILD_DIR)/autogen.sh
 LIBPNG_BUILD_CONFIGURE := $(LIBPNG_BUILD_DIR)/configure
@@ -42,7 +47,7 @@ LIBPNG_LIB_DIR := $(LIBPNG_BUILD_DIR)
 HEADERS += $(LIBPNG_BUILD_MAKEFILE)
 LIBPNG_LA := $(LIBPNG_BUILD_DIR)/.libs/libpng16.la
 LIBPNG := $(LIBPNG_BUILD_DIR)/libpng16.a
-LDFLAGS += $(LIBPNG)
+LIBS += $(LIBPNG)
 ZLIB_BUILD_DIR := $(BUILD_DIR)/zlib
 ZLIB_BUILD_CONFIGURE := $(ZLIB_BUILD_DIR)/configure
 ZLIB_BUILD_MAKEFILE := $(ZLIB_BUILD_DIR)/Makefile
@@ -50,7 +55,7 @@ ZLIB_INCLUDE_DIR := $(ZLIB_BUILD_DIR)
 ZLIB_LIB_DIR := $(ZLIB_BUILD_DIR)
 HEADERS += $(ZLIB_BUILD_MAKEFILE)
 LIBZ := $(ZLIB_BUILD_DIR)/libz.a
-LDFLAGS += $(LIBZ)
+LIBS += $(LIBZ)
 VORBIS_BUILD_DIR := $(BUILD_DIR)/vorbis
 VORBIS_BUILD_AUTOGEN := $(VORBIS_BUILD_DIR)/autogen.sh
 VORBIS_BUILD_MAKEFILE := $(VORBIS_BUILD_DIR)/Makefile
@@ -60,7 +65,7 @@ HEADERS += $(VORBIS_BUILD_MAKEFILE)
 LIBVORBISFILE_LA := $(VORBIS_BUILD_DIR)/lib/.libs/libvorbisfile.la
 LIBVORBIS := $(VORBIS_BUILD_DIR)/libvorbis.a
 LIBVORBISFILE := $(VORBIS_BUILD_DIR)/libvorbisfile.a
-LDFLAGS += $(LIBVORBISFILE) $(LIBVORBIS)
+LIBS += $(LIBVORBISFILE) $(LIBVORBIS)
 OGG_BUILD_DIR := $(BUILD_DIR)/ogg
 OGG_BUILD_AUTOGEN := $(OGG_BUILD_DIR)/autogen.sh
 OGG_BUILD_MAKEFILE := $(OGG_BUILD_DIR)/Makefile
@@ -69,7 +74,7 @@ OGG_LIB_DIR := $(OGG_BUILD_DIR)
 HEADERS += $(OGG_BUILD_MAKEFILE)
 LIBOGG_LA := $(OGG_BUILD_DIR)/src/.libs/libogg.la
 LIBOGG := $(OGG_BUILD_DIR)/libogg.a
-LDFLAGS += $(LIBOGG)
+LIBS += $(LIBOGG)
 SDL_BUILD_DIR := $(BUILD_DIR)/SDL
 SDL_BUILD_CONFIGURE := $(SDL_BUILD_DIR)/configure
 SDL_BUILD_MAKEFILE := $(SDL_BUILD_DIR)/Makefile
@@ -79,7 +84,7 @@ HEADERS += $(SDL_BUILD_MAKEFILE)
 LIBSDL2_LA := $(SDL_BUILD_DIR)/build/.libs/libSDL2.la
 LIBSDL2 := $(SDL_BUILD_DIR)/build/libSDL2.a
 LIBSDL2MAIN := $(SDL_BUILD_DIR)/build/libSDL2main.a
-LDFLAGS += $(LIBSDL2) -Wl,--whole-archive $(LIBSDL2MAIN) -Wl,--no-whole-archive
+LIBS += $(LIBSDL2) -Wl,--whole-archive $(LIBSDL2MAIN) -Wl,--no-whole-archive
 PROGRAM_NAME := voxels$(EXEEXT)
 PROGRAM := $(BUILD_DIR)/$(PROGRAM_NAME)
 CPP_SOURCES := $(wildcard $(SOURCE_DIR)/src/*.cpp)
@@ -196,7 +201,7 @@ $(SDL_BUILD_CONFIGURE): ;
 	&& [ -x $(SDL_BUILD_CONFIGURE) ]
 
 $(SDL_BUILD_MAKEFILE): $(SDL_BUILD_CONFIGURE)
-	cd $(SDL_BUILD_DIR) && ./configure --disable-dependency-tracking --enable-libc --disable-shared --disable-render-d3d --host $(CHOST)
+	cd $(SDL_BUILD_DIR) && ./configure --disable-dependency-tracking --enable-libc --disable-sndio --disable-shared --disable-render-d3d --host $(CHOST)
 
 $(LIBSDL2_LA): $(SDL_BUILD_MAKEFILE)
 	cd $(SDL_BUILD_DIR) && $(MAKE)
@@ -222,10 +227,9 @@ $(BUILD_DIR)/%.o : $(SOURCE_DIR)/%.cpp $(HEADERS)
 	mkdir -p $(dir $@) && $(CXX) $(CPPFLAGS) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 LDFLAGS += -static-libgcc -static-libstdc++
-LDFLAGS += $(DEFERRED_LDFLAGS)
 
 $(PROGRAM) : $(OBJECTS) $(LIBSDL2) $(LIBSDL2MAIN) $(LIBPNG) $(LIBOGG) $(LIBVORBISFILE) $(LIBVORBIS) $(LIBCRYPTO) $(LIBSSL) $(LIBZ)
-	$(CXX) -o $(PROGRAM) $(OBJECTS) $(LDFLAGS)
+	$(CXX) -o $(PROGRAM) $(OBJECTS) $(LDFLAGS) $(LIBS) $(DEFERRED_LDFLAGS)
 
 install: all
 
@@ -234,3 +238,12 @@ clean:
 
 distclean: clean
 	-rm -rf $(BUILD_DIR)
+
+ARCHIVE_NAME := voxels$(ARCHIVE_EXTENSION)
+
+bin-archive: all
+	mkdir -p $(BUILD_DIR)/voxels-0.7 \
+	&& cp -rt $(BUILD_DIR)/voxels-0.7 $(PROGRAM) $(SOURCE_DIR)/res $(SOURCE_DIR)/LICENSE $(SOURCE_DIR)/README.md \
+	&& cd $(BUILD_DIR) \
+	&& { rm -f $(ARCHIVE_NAME) || true; } \
+	&& $(ARCHIVE_COMMAND) $(ARCHIVE_NAME) voxels-0.7

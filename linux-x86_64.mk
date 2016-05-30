@@ -11,6 +11,8 @@ CFLAGS := -O2 -DNDEBUG
 endif
 CFLAGS := $(CFLAGS)
 CFLAGS += -pthread
-DEFERRED_LDFLAGS := -pthread -lGL -ldl
+DEFERRED_LDFLAGS := -pthread -lGL -ldl -lrt
+ARCHIVE_EXTENSION := .txz
+ARCHIVE_COMMAND := tar -cvaf
 
 include common.mk

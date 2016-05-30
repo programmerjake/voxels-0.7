@@ -1,4 +1,4 @@
 Makefile
 .vs
-/build-*/
+/build-*
 /.settings/
