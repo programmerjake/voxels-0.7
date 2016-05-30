@@ -72,7 +72,7 @@ TLS *&TLS::getTlsSlowHelper()
 }
 
 std::atomic_size_t TLS::next_variable_position(0);
-const std::size_t TLS::tls_memory_size = 1 << 22;
+const std::size_t TLS::tls_memory_size = 1 << 23;
 
 TLS::TLS()
     : memory(new char[tls_memory_size])
