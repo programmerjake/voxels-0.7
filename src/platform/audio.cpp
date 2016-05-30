@@ -25,11 +25,7 @@
 #include <chrono>
 #include <functional>
 #include <unordered_set>
-#ifdef _MSC_VER
 #include <SDL.h>
-#else
-#include <SDL2/SDL.h>
-#endif // _MSC_VER
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
