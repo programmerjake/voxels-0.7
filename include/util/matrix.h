@@ -304,28 +304,28 @@ struct Matrix
     }
 
     static constexpr Matrix inverseTransposeFrustum(
-        float left, float right, float bottom, float top, float near, float far) noexcept
+        float left, float right, float bottom, float top, float front, float back) noexcept
     {
-        return Matrix((right - left) / (2 * near),
+        return Matrix((right - left) / (2 * front),
                       0,
                       0,
                       0,
                       0,
-                      (top - bottom) / (2 * near),
+                      (top - bottom) / (2 * front),
                       0,
                       0,
                       0,
                       0,
                       0,
-                      (near - far) / (2 * near * far),
-                      (left + right) / (2 * near),
-                      (bottom + top) / (2 * near),
+                      (front - back) / (2 * front * back),
+                      (left + right) / (2 * front),
+                      (bottom + top) / (2 * front),
                       -1,
-                      (far + near) / (2 * near * far));
+                      (back + front) / (2 * front * back));
     }
 
     static constexpr Matrix ortho(
-        float left, float right, float bottom, float top, float near, float far) noexcept
+        float left, float right, float bottom, float top, float front, float back) noexcept
     {
         return Matrix(-2 / (left - right),
                       0,
@@ -339,12 +339,12 @@ struct Matrix
 
                       0,
                       0,
-                      2 / (near - far),
-                      (far + near) / (near - far));
+                      2 / (front - back),
+                      (back + front) / (front - back));
     }
 
     static constexpr Matrix inverseTransposeOrtho(
-        float left, float right, float bottom, float top, float near, float far) noexcept
+        float left, float right, float bottom, float top, float front, float back) noexcept
     {
         return Matrix((right - left) * 0.5f,
                       0,
@@ -358,12 +358,12 @@ struct Matrix
 
                       0,
                       0,
-                      (near - far) * 0.5f,
+                      (front - back) * 0.5f,
                       0,
 
                       (left + right) * 0.5f,
                       (bottom + top) * 0.5f,
-                      (near + far) * -0.5f,
+                      (front + back) * -0.5f,
                       1);
     }
 
@@ -636,16 +636,16 @@ struct Transform final
         return Transform(matrix, matrix);
     }
     static constexpr Transform frustum(
-        float left, float right, float bottom, float top, float near, float far)
+        float left, float right, float bottom, float top, float front, float back)
     {
-        return Transform(Matrix::frustum(left, right, bottom, top, near, far),
-                         Matrix::inverseTransposeFrustum(left, right, bottom, top, near, far));
+        return Transform(Matrix::frustum(left, right, bottom, top, front, back),
+                         Matrix::inverseTransposeFrustum(left, right, bottom, top, front, back));
     }
     static constexpr Transform ortho(
-        float left, float right, float bottom, float top, float near, float far)
+        float left, float right, float bottom, float top, float front, float back)
     {
-        return Transform(Matrix::ortho(left, right, bottom, top, near, far),
-                         Matrix::inverseTransposeOrtho(left, right, bottom, top, near, far));
+        return Transform(Matrix::ortho(left, right, bottom, top, front, back),
+                         Matrix::inverseTransposeOrtho(left, right, bottom, top, front, back));
     }
     constexpr bool operator==(const Transform &rt) const
     {
