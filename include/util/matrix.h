@@ -283,20 +283,20 @@ struct Matrix
     }
 
     static constexpr Matrix frustum(
-        float left, float right, float bottom, float top, float near, float far) noexcept
+        float left, float right, float bottom, float top, float front, float back) noexcept
     {
-        return Matrix(2 * near / (right - left),
+        return Matrix(2 * front / (right - left),
                       0,
                       (right + left) / (right - left),
                       0,
                       0,
-                      2 * near / (top - bottom),
+                      2 * front / (top - bottom),
                       (top + bottom) / (top - bottom),
                       0,
                       0,
                       0,
-                      (far + near) / (near - far),
-                      2 * near * far / (near - far),
+                      (back + front) / (front - back),
+                      2 * front * back / (front - back),
                       0,
                       0,
                       -1,
