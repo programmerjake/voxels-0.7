@@ -24,7 +24,6 @@
 #include "util/position.h"
 #include "stream/stream.h"
 #include "stream/compressed_stream.h"
-#include "util/basic_block_chunk.h"
 #include "render/mesh.h"
 #include "render/render_layer.h"
 #include "util/enum_traits.h"
@@ -247,13 +246,13 @@ struct BlockChunkBlock final
     LightValueType indirectArtificalLight : lightBitWidth;
     bool hasOptionalData : 1;
     static constexpr int blockKindBitWidth = 32 - 1 - 3 * lightBitWidth;
-    unsigned blockKind : blockKindBitWidth;
+    std::uint32_t blockKind : blockKindBitWidth;
     BlockChunkBlock()
         : directSkylight(0),
           indirectSkylight(0),
           indirectArtificalLight(0),
           hasOptionalData(false),
-          blockKind((static_cast<unsigned>(1) << blockKindBitWidth) - 1)
+          blockKind((static_cast<std::uint32_t>(1) << blockKindBitWidth) - 1)
     {
     }
     void invalidate()
@@ -275,275 +274,12 @@ struct BlockChunkBlock final
 
 class BlockOptionalDataHashTable;
 
-class BlockOptionalData final
-{
-    friend class BlockOptionalDataHashTable;
-    BlockOptionalData(const BlockOptionalData &) = delete;
-    BlockOptionalData &operator=(const BlockOptionalData &) = delete;
-
-public:
-    static constexpr int BlockChunkSubchunkShiftXYZ = 3;
-    static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = 1 << BlockChunkSubchunkShiftXYZ;
-
-private:
-    BlockOptionalData *hashNext = nullptr;
-    BlockOptionalData() : posX(), posY(), posZ(), data()
-    {
-    }
-    ~BlockOptionalData()
-    {
-    }
-    void init()
-    {
-        hashNext = nullptr;
-        updateListHead = nullptr;
-        data = nullptr;
-    }
-    struct Allocator final
-    {
-        Allocator(const Allocator &) = delete;
-        Allocator &operator=(const Allocator &) = delete;
-
-    private:
-        BlockOptionalData *freeListHead = nullptr;
-        std::size_t freeListSize = 0;
-
-    public:
-        Allocator() = default;
-        ~Allocator()
-        {
-            while(freeListHead != nullptr)
-            {
-                BlockOptionalData *deleteMe = freeListHead;
-                freeListHead = freeListHead->hashNext;
-                delete deleteMe;
-            }
-        }
-        void free(BlockOptionalData *p)
-        {
-            if(!p)
-                return;
-            if(freeListSize > 1 << 16)
-            {
-                delete p;
-                return;
-            }
-            p->init();
-            p->hashNext = freeListHead;
-            freeListHead = p;
-            freeListSize++;
-        }
-        BlockOptionalData *allocate()
-        {
-            if(freeListHead)
-            {
-                BlockOptionalData *retval = freeListHead;
-                freeListHead = retval->hashNext;
-                freeListSize--;
-                return retval;
-            }
-            return new BlockOptionalData();
-        }
-    };
-    static Allocator &getAllocator(TLS &tls)
-    {
-        struct a_tls_tag
-        {
-        };
-        thread_local_variable<Allocator, a_tls_tag> a(tls);
-        return a.get();
-    }
-    static void free(BlockOptionalData *p, TLS &tls)
-    {
-        getAllocator(tls).free(p);
-    }
-    static BlockOptionalData *allocate(TLS &tls)
-    {
-        return getAllocator(tls).allocate();
-    }
-    std::uint8_t posX : BlockChunkSubchunkShiftXYZ,
-                        posY : BlockChunkSubchunkShiftXYZ,
-                               posZ : BlockChunkSubchunkShiftXYZ;
-
-public:
-    BlockUpdate *updateListHead = nullptr; // BlockChunkChunkVariables is responsible for deleting
-    BlockDataPointer<BlockData> data;
-    bool empty() const
-    {
-        return updateListHead == nullptr && data == nullptr;
-    }
-};
-
-class BlockOptionalDataHashTable final
-{
-public:
-    static constexpr std::int32_t BlockChunkSubchunkSizeXYZ =
-        BlockOptionalData::BlockChunkSubchunkSizeXYZ;
-
-private:
-    checked_array<BlockOptionalData *, (1 << 8)> table;
-    static std::thread::id getThreadId(TLS &tls)
-    {
-        struct retval_tls_tag
-        {
-        };
-        thread_local_variable<std::thread::id, retval_tls_tag> retval(tls,
-                                                                      std::this_thread::get_id());
-        return retval.get();
-    }
-    std::size_t hashPos(VectorI pos) const
-    {
-        assert(pos.x >= 0 && pos.x < BlockChunkSubchunkSizeXYZ);
-        assert(pos.y >= 0 && pos.y < BlockChunkSubchunkSizeXYZ);
-        assert(pos.z >= 0 && pos.z < BlockChunkSubchunkSizeXYZ);
-        return (pos.x + pos.y * 9 + pos.z * 49) % table.size();
-    }
-
-public:
-    BlockOptionalDataHashTable() : table{}
-    {
-    }
-    void clear(TLS &tls)
-    {
-        for(BlockOptionalData *&i : table)
-        {
-            BlockOptionalData *node = i;
-            i = nullptr;
-            while(node != nullptr)
-            {
-                BlockOptionalData *freeMe = node;
-                node = node->hashNext;
-                BlockOptionalData::free(freeMe, tls);
-            }
-        }
-    }
-    ~BlockOptionalDataHashTable()
-    {
-        clear(TLS::getSlow());
-    }
-    BlockOptionalDataHashTable(const BlockOptionalDataHashTable &rt) : table{}
-    {
-        for(std::size_t i = 0; i < table.size(); i++)
-        {
-            BlockOptionalData **pNewNode = &table[i];
-            for(BlockOptionalData *node = rt.table[i]; node != nullptr; node = node->hashNext)
-            {
-                BlockOptionalData *newNode = BlockOptionalData::allocate(TLS::getSlow());
-                *pNewNode = newNode;
-                pNewNode = &newNode->hashNext;
-                newNode->data = node->data;
-            }
-            *pNewNode = nullptr;
-        }
-    }
-    BlockOptionalDataHashTable &operator=(const BlockOptionalDataHashTable &) = delete;
-    void erase(VectorI pos, TLS &tls)
-    {
-        BlockOptionalData **pNode = &table[hashPos(pos)];
-        while(*pNode != nullptr)
-        {
-            BlockOptionalData *node = *pNode;
-            if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
-            {
-                *pNode = node->hashNext;
-                BlockOptionalData::free(node, tls);
-                return;
-            }
-            assert(node != node->hashNext);
-            pNode = &node->hashNext;
-        }
-    }
-    BlockOptionalData *get_or_make(VectorI pos, TLS &tls)
-    {
-        BlockOptionalData **pNode = &table[hashPos(pos)];
-        BlockOptionalData **pTableEntry = pNode;
-        while(*pNode != nullptr)
-        {
-            BlockOptionalData *node = *pNode;
-            if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
-            {
-                *pNode = node->hashNext;
-                node->hashNext = *pTableEntry;
-                *pTableEntry = node;
-                return node;
-            }
-            pNode = &node->hashNext;
-        }
-        BlockOptionalData *node = BlockOptionalData::allocate(tls);
-        node->posX = pos.x;
-        node->posY = pos.y;
-        node->posZ = pos.z;
-        node->hashNext = *pTableEntry;
-        *pTableEntry = node;
-        return node;
-    }
-    BlockOptionalData *get(VectorI pos)
-    {
-        BlockOptionalData **pNode = &table[hashPos(pos)];
-        BlockOptionalData **pTableEntry = pNode;
-        while(*pNode != nullptr)
-        {
-            BlockOptionalData *node = *pNode;
-            if(node->posX == pos.x && node->posY == pos.y && node->posZ == pos.z)
-            {
-                *pNode = node->hashNext;
-                node->hashNext = *pTableEntry;
-                *pTableEntry = node;
-                return node;
-            }
-            pNode = &node->hashNext;
-        }
-        return nullptr;
-    }
-    BlockDataPointer<BlockData> getData(VectorI pos)
-    {
-        BlockOptionalData *node = get(pos);
-        if(node == nullptr)
-            return nullptr;
-        return node->data;
-    }
-    bool setData(VectorI pos, BlockDataPointer<BlockData> data, TLS &tls)
-    {
-        BlockOptionalData *node;
-        if(data != nullptr)
-            node = get_or_make(pos, tls);
-        else
-            node = get(pos);
-        if(node == nullptr)
-            return false;
-        node->data = std::move(data);
-        if(node->empty())
-        {
-            erase(pos, tls);
-            return false;
-        }
-        return true;
-    }
-    bool setUpdateListHead(VectorI pos, BlockUpdate *updateListHead, TLS &tls)
-    {
-        BlockOptionalData *node;
-        if(updateListHead != nullptr)
-            node = get_or_make(pos, tls);
-        else
-            node = get(pos);
-        if(node == nullptr)
-            return false;
-        node->updateListHead = updateListHead;
-        if(node->empty())
-        {
-            erase(pos, tls);
-            return false;
-        }
-        return true;
-    }
-    BlockUpdate *getUpdateListHead(VectorI pos)
-    {
-        BlockOptionalData *node = get(pos);
-        if(node == nullptr)
-            return nullptr;
-        return node->updateListHead;
-    }
-};
+constexpr int BlockChunkShiftX = 4;
+constexpr int BlockChunkShiftY = 8;
+constexpr int BlockChunkShiftZ = 4;
+constexpr std::int32_t BlockChunkSizeX = 1 << BlockChunkShiftX;
+constexpr std::int32_t BlockChunkSizeY = 1 << BlockChunkShiftY;
+constexpr std::int32_t BlockChunkSizeZ = 1 << BlockChunkShiftZ;
 
 struct BlockChunkBiome final
 {
@@ -554,7 +290,190 @@ struct BlockChunkBiome final
 };
 
 typedef std::uint64_t BlockChunkInvalidateCountType;
-struct BlockChunk;
+struct BlockChunk final
+{
+    static constexpr int chunkShiftX = 4;
+    static constexpr int chunkShiftY = 8;
+    static constexpr int chunkShiftZ = 4;
+    static constexpr std::int32_t chunkSizeX = 1 << chunkShiftX;
+    static constexpr std::int32_t chunkSizeY = 1 << chunkShiftY;
+    static constexpr std::int32_t chunkSizeZ = 1 << chunkShiftZ;
+    static constexpr PositionI getChunkBasePosition(PositionI pos)
+    {
+        return PositionI(
+            pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1), pos.d);
+    }
+    static constexpr VectorI getChunkBasePosition(VectorI pos)
+    {
+        return VectorI(
+            pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1));
+    }
+    static constexpr PositionI getChunkRelativePosition(PositionI pos)
+    {
+        return PositionI(
+            pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1), pos.d);
+    }
+    static constexpr VectorI getChunkRelativePosition(VectorI pos)
+    {
+        return VectorI(
+            pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
+    }
+    class BlocksArray final
+    {
+    private:
+        BlockChunkBlock blocks[chunkSizeX * chunkSizeY * chunkSizeZ];
+        static constexpr std::size_t getIndex(std::size_t indexX,
+                                              std::size_t indexY,
+                                              std::size_t indexZ) noexcept
+        {
+            assert(indexX < static_cast<std::size_t>(chunkSizeX)
+                   && indexY < static_cast<std::size_t>(chunkSizeY)
+                   && indexZ < static_cast<std::size_t>(chunkSizeZ));
+            return indexZ + (indexX << chunkShiftZ) + (indexY << (chunkShiftZ + chunkShiftX));
+        }
+
+    public:
+        class IndexHelper1;
+        class IndexHelper2 final
+        {
+            friend class IndexHelper1;
+
+        private:
+            BlockChunkBlock *blocks;
+            std::size_t indexX;
+            std::size_t indexY;
+            IndexHelper2(BlockChunkBlock *blocks, std::size_t indexX, std::size_t indexY)
+                : blocks(blocks), indexX(indexX), indexY(indexY)
+            {
+            }
+
+        public:
+            BlockChunkBlock &operator[](std::size_t indexZ)
+            {
+                return blocks[getIndex(indexX, indexY, indexZ)];
+            }
+            BlockChunkBlock &at(std::size_t index)
+            {
+                assert(index < size());
+                return operator[](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeZ;
+            }
+        };
+        class IndexHelper1 final
+        {
+            friend class BlocksArray;
+
+        private:
+            BlockChunkBlock *blocks;
+            std::size_t indexX;
+            IndexHelper1(BlockChunkBlock *blocks, std::size_t indexX)
+                : blocks(blocks), indexX(indexX)
+            {
+            }
+
+        public:
+            IndexHelper2 operator[](std::size_t indexY)
+            {
+                return IndexHelper2(blocks, indexX, indexY);
+            }
+            IndexHelper2 at(std::size_t index)
+            {
+                assert(index < size());
+                return operator[](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeY;
+            }
+        };
+        class ConstIndexHelper1;
+        class ConstIndexHelper2 final
+        {
+            friend class ConstIndexHelper1;
+
+        private:
+            const BlockChunkBlock *blocks;
+            std::size_t indexX;
+            std::size_t indexY;
+            ConstIndexHelper2(const BlockChunkBlock *blocks, std::size_t indexX, std::size_t indexY)
+                : blocks(blocks), indexX(indexX), indexY(indexY)
+            {
+            }
+
+        public:
+            const BlockChunkBlock &operator[](std::size_t indexZ)
+            {
+                return blocks[getIndex(indexX, indexY, indexZ)];
+            }
+            const BlockChunkBlock &at(std::size_t index)
+            {
+                assert(index < size());
+                return operator[](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeZ;
+            }
+        };
+        class ConstIndexHelper1 final
+        {
+            friend class BlocksArray;
+
+        private:
+            const BlockChunkBlock *blocks;
+            std::size_t indexX;
+            ConstIndexHelper1(const BlockChunkBlock *blocks, std::size_t indexX)
+                : blocks(blocks), indexX(indexX)
+            {
+            }
+
+        public:
+            ConstIndexHelper2 operator[](std::size_t indexY)
+            {
+                return ConstIndexHelper2(blocks, indexX, indexY);
+            }
+            ConstIndexHelper2 at(std::size_t index)
+            {
+                assert(index < size());
+                return operator[](index);
+            }
+            static std::size_t size()
+            {
+                return chunkSizeY;
+            }
+        };
+        ConstIndexHelper1 operator[](std::size_t indexX) const
+        {
+            return ConstIndexHelper1(blocks, indexX);
+        }
+        IndexHelper1 operator[](std::size_t indexX)
+        {
+            return IndexHelper1(blocks, indexX);
+        }
+        ConstIndexHelper1 at(std::size_t index) const
+        {
+            assert(index < size());
+            return operator[](index);
+        }
+        IndexHelper1 at(std::size_t index)
+        {
+            assert(index < size());
+            return operator[](index);
+        }
+        static std::size_t size()
+        {
+            return chunkSizeX;
+        }
+    };
+    typedef std::mutex LockType;
+    LockType lock;
+    checked_array<checked_array<BlockChunkBiome, chunkSizeZ>, chunkSizeX> biomes;
+    BlocksArray blocks;
+    BlockOptionalDataHashTable blockOptionalData;
+};
 
 struct BlockChunkSubchunk final
 {

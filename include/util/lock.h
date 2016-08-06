@@ -29,7 +29,477 @@
 #include <unordered_map>
 #include <exception>
 #include <mutex>
+#include <condition_variable>
+#include <chrono>
+#include <atomic>
 #include "util/tls.h"
+#include "util/checked_array.h"
+
+#if defined(TEST_WIN32_KEYED_EVENT_MUTEX_MAIN)
+#define TEST_WIN32_KEYED_EVENT_MUTEX
+#endif
+
+#if defined(_WIN32) || defined(TEST_WIN32_KEYED_EVENT_MUTEX)
+namespace programmerjake
+{
+namespace voxels
+{
+class ConditionVariable;
+class Mutex final
+{
+    friend class ConditionVariable;
+    Mutex(const Mutex &) = delete;
+    Mutex &operator=(const Mutex &) = delete;
+
+private:
+    static_assert(sizeof(std::size_t) == sizeof(std::atomic_size_t), "");
+    static_assert(alignof(std::atomic_size_t) >= 2, "");
+    static constexpr std::size_t KeyedEventHandleCount = (1 << 4) + 1;
+    static checked_array<void *, KeyedEventHandleCount> makeGlobalKeyedEvents() noexcept;
+    static const checked_array<void *, KeyedEventHandleCount> &getGlobalKeyedEvents() noexcept
+    {
+        static const checked_array<void *, KeyedEventHandleCount> retval = makeGlobalKeyedEvents();
+        return retval;
+    }
+    static void *getKeyedEventHandle(void *syncPointer) noexcept
+    {
+        return getGlobalKeyedEvents()[std::hash<void *>()(syncPointer) % KeyedEventHandleCount];
+    }
+    static std::cv_status waitForKeyedEvent(void *handle,
+                                            void *key,
+                                            const std::int64_t *timeout) noexcept;
+    static std::cv_status releaseKeyedEvent(void *handle,
+                                            void *key,
+                                            const std::int64_t *timeout) noexcept;
+    static std::cv_status waitForKeyedEvent(void *key, const std::int64_t *timeout) noexcept
+    {
+        return waitForKeyedEvent(getKeyedEventHandle(key), key, timeout);
+    }
+    static std::cv_status releaseKeyedEvent(void *key, const std::int64_t *timeout) noexcept
+    {
+        return releaseKeyedEvent(getKeyedEventHandle(key), key, timeout);
+    }
+    void checkpoint() noexcept
+#ifdef TEST_WIN32_KEYED_EVENT_MUTEX
+        ;
+#else
+    {
+    }
+#endif
+
+private:
+    std::atomic_size_t state;
+
+private:
+    static constexpr bool isOwned(std::size_t stateValue) noexcept
+    {
+        return stateValue & 1;
+    }
+    static constexpr std::size_t setOwned(std::size_t stateValue, bool owned) noexcept
+    {
+        return (stateValue & ~static_cast<std::size_t>(1)) | owned;
+    }
+    static constexpr std::size_t getWaiterCount(std::size_t stateValue) noexcept
+    {
+        return stateValue >> 1;
+    }
+    static constexpr std::size_t setWaiterCount(std::size_t stateValue,
+                                                std::size_t waiterCount) noexcept
+    {
+        return (stateValue & 1) | (waiterCount << 1);
+    }
+    static constexpr std::size_t createState(std::size_t waiterCount, bool owned) noexcept
+    {
+        return (waiterCount << 1) | owned;
+    }
+
+public:
+    constexpr Mutex() noexcept : state(createState(0, false))
+    {
+    }
+    ~Mutex()
+    {
+        assert(state.load(std::memory_order_relaxed) == createState(0, false));
+    }
+    void lock() noexcept
+    {
+        while(true)
+        {
+            std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+            std::size_t newStateValue;
+            bool needWait;
+            do
+            {
+                checkpoint();
+                if(isOwned(oldStateValue))
+                {
+                    needWait = true;
+                    newStateValue = createState(getWaiterCount(oldStateValue) + 1, true);
+                }
+                else
+                {
+                    needWait = false;
+                    newStateValue = setOwned(oldStateValue, true);
+                }
+            } while(!state.compare_exchange_weak(oldStateValue,
+                                                 newStateValue,
+                                                 std::memory_order_acquire,
+                                                 std::memory_order_relaxed));
+            checkpoint();
+            if(!needWait)
+                break;
+            waitForKeyedEvent(&state, nullptr);
+            checkpoint();
+        }
+    }
+    bool try_lock() noexcept
+    {
+        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+        if(isOwned(oldStateValue))
+            return false;
+        std::size_t newStateValue = setOwned(oldStateValue, true);
+        checkpoint();
+        bool retval = state.compare_exchange_weak(
+            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed);
+        checkpoint();
+        return retval;
+    }
+    void unlock() noexcept
+    {
+        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+        std::size_t newStateValue;
+        bool needRelease;
+        do
+        {
+            checkpoint();
+            assert(isOwned(oldStateValue));
+            needRelease = oldStateValue != createState(0, true);
+            if(needRelease)
+                newStateValue = createState(getWaiterCount(oldStateValue) - 1, false);
+            else
+                newStateValue = createState(0, false);
+        } while(!state.compare_exchange_weak(
+            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed));
+        checkpoint();
+        if(needRelease)
+        {
+            releaseKeyedEvent(&state, nullptr);
+        }
+    }
+};
+
+#if 1
+#warning finish ConditionVariable
+#else
+class ConditionVariable final
+{
+    ConditionVariable(const ConditionVariable &) = delete;
+    ConditionVariable &operator=(const ConditionVariable &) = delete;
+
+private:
+    Mutex lock;
+#error finish
+    template <typename Duration>
+    static std::uint64_t convertToNTTime(
+        const std::chrono::time_point<std::chrono::system_clock, Duration> &time) noexcept
+    {
+        auto duration = time - std::chrono::system_clock::from_time_t(0);
+        std::chrono::seconds seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+        duration -= seconds;
+        ::timespec retval;
+        retval.tv_sec = static_cast<std::time_t>(seconds.count());
+        retval.tv_nsec =
+            static_cast<long>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
+        if(retval.tv_nsec < 0)
+        {
+            retval.tv_nsec += 1000000000L;
+            retval.tv_sec--;
+        }
+        else if(retval.tv_nsec >= 1000000000L)
+        {
+            retval.tv_nsec -= 1000000000L;
+            retval.tv_sec++;
+        }
+        return retval;
+    }
+    template <typename Rep, typename Period>
+    static ::timespec convertToTimespec(const std::chrono::duration<Rep, Period> &time) noexcept
+    {
+        return convertToTimespec(time + std::chrono::system_clock::now());
+    }
+    template <
+        typename Clock,
+        typename Duration,
+        typename =
+            typename std::enable_if<!std::is_same<Clock, std::chrono::system_clock>::value>::type>
+    static ::timespec convertToTimespec(
+        const std::chrono::time_point<Clock, Duration> &time) noexcept
+    {
+        return convertToTimespec(time - Clock::now());
+    }
+
+public:
+    constexpr ConditionVariable() = default;
+    ~ConditionVariable()
+    {
+        int error = ::pthread_cond_destroy(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void notify_one() noexcept
+    {
+        int error = ::pthread_cond_signal(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void notify_all() noexcept
+    {
+        int error = ::pthread_cond_broadcast(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void wait(std::unique_lock<Mutex> &theLock) noexcept
+    {
+        int error = ::pthread_cond_wait(&condition, &theLock.mutex()->mutex);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    template <typename Fn>
+    void wait(std::unique_lock<Mutex> &theLock, Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        while(!static_cast<bool>(fn()))
+            wait(theLock);
+    }
+    template <typename Rep, typename Period>
+    std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
+                            const std::chrono::duration<Rep, Period> &time) noexcept
+    {
+        auto timespec = convertToTimespec(time);
+        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+        if(error == ETIMEDOUT)
+            return std::cv_status::timeout;
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+        return std::cv_status::no_timeout;
+    }
+    template <typename Clock, typename Duration>
+    std::cv_status wait_until(std::unique_lock<Mutex> &theLock,
+                              const std::chrono::time_point<Clock, Duration> &time) noexcept
+    {
+        auto timespec = convertToTimespec(time);
+        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+        if(error == ETIMEDOUT)
+            return std::cv_status::timeout;
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+        return std::cv_status::no_timeout;
+    }
+    template <typename Clock, typename Duration, typename Fn>
+    bool wait_until(std::unique_lock<Mutex> &theLock,
+                    const std::chrono::time_point<Clock, Duration> &time,
+                    Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        if(!static_cast<bool>(fn()))
+        {
+            auto timespec = convertToTimespec(time);
+            do
+            {
+                int error =
+                    ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+                if(error == ETIMEDOUT)
+                    return static_cast<bool>(fn());
+                if(error != 0)
+                    Mutex::handlePThreadsError(error);
+            } while(!static_cast<bool>(fn()));
+        }
+        return true;
+    }
+};
+#endif
+}
+}
+#elif defined(__linux) || defined(__APPLE__) // pthreads is fast enough
+#include <pthread.h>
+namespace programmerjake
+{
+namespace voxels
+{
+class ConditionVariable;
+class Mutex final
+{
+    friend class ConditionVariable;
+    Mutex(const Mutex &) = delete;
+    Mutex &operator=(const Mutex &) = delete;
+
+private:
+    ::pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    static void handlePThreadsError(int error) noexcept
+    {
+        volatile int error2 =
+            error; // for debugging; volatile so the variable doesn't get optimized away
+        std::terminate();
+    }
+
+public:
+    constexpr Mutex() = default;
+    ~Mutex()
+    {
+        int error = ::pthread_mutex_destroy(&mutex);
+        if(error != 0)
+            handlePThreadsError(error);
+    }
+    void lock() noexcept
+    {
+        int error = ::pthread_mutex_lock(&mutex);
+        if(error != 0)
+            handlePThreadsError(error);
+    }
+    bool try_lock() noexcept
+    {
+        int error = ::pthread_mutex_trylock(&mutex);
+        if(error == 0)
+            return true;
+        if(error != EBUSY)
+            handlePThreadsError(error);
+        return false;
+    }
+    void unlock() noexcept
+    {
+        int error = ::pthread_mutex_unlock(&mutex);
+        if(error != 0)
+            handlePThreadsError(error);
+    }
+};
+
+class ConditionVariable final
+{
+    ConditionVariable(const ConditionVariable &) = delete;
+    ConditionVariable &operator=(const ConditionVariable &) = delete;
+
+private:
+    ::pthread_cond_t condition = PTHREAD_COND_INITIALIZER;
+    template <typename Duration>
+    static ::timespec convertToTimespec(
+        const std::chrono::time_point<std::chrono::system_clock, Duration> &time) noexcept
+    {
+        auto duration = time - std::chrono::system_clock::from_time_t(0);
+        std::chrono::seconds seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+        duration -= seconds;
+        ::timespec retval;
+        retval.tv_sec = static_cast<std::time_t>(seconds.count());
+        retval.tv_nsec =
+            static_cast<long>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
+        if(retval.tv_nsec < 0)
+        {
+            retval.tv_nsec += 1000000000L;
+            retval.tv_sec--;
+        }
+        else if(retval.tv_nsec >= 1000000000L)
+        {
+            retval.tv_nsec -= 1000000000L;
+            retval.tv_sec++;
+        }
+        return retval;
+    }
+    template <typename Rep, typename Period>
+    static ::timespec convertToTimespec(const std::chrono::duration<Rep, Period> &time) noexcept
+    {
+        return convertToTimespec(time + std::chrono::system_clock::now());
+    }
+    template <
+        typename Clock,
+        typename Duration,
+        typename =
+            typename std::enable_if<!std::is_same<Clock, std::chrono::system_clock>::value>::type>
+    static ::timespec convertToTimespec(
+        const std::chrono::time_point<Clock, Duration> &time) noexcept
+    {
+        return convertToTimespec(time - Clock::now());
+    }
+
+public:
+    constexpr ConditionVariable() = default;
+    ~ConditionVariable()
+    {
+        int error = ::pthread_cond_destroy(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void notify_one() noexcept
+    {
+        int error = ::pthread_cond_signal(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void notify_all() noexcept
+    {
+        int error = ::pthread_cond_broadcast(&condition);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void wait(std::unique_lock<Mutex> &theLock) noexcept
+    {
+        int error = ::pthread_cond_wait(&condition, &theLock.mutex()->mutex);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    template <typename Fn>
+    void wait(std::unique_lock<Mutex> &theLock, Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        while(!static_cast<bool>(fn()))
+            wait(theLock);
+    }
+    template <typename Rep, typename Period>
+    std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
+                            const std::chrono::duration<Rep, Period> &time) noexcept
+    {
+        auto timespec = convertToTimespec(time);
+        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+        if(error == ETIMEDOUT)
+            return std::cv_status::timeout;
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+        return std::cv_status::no_timeout;
+    }
+    template <typename Clock, typename Duration>
+    std::cv_status wait_until(std::unique_lock<Mutex> &theLock,
+                              const std::chrono::time_point<Clock, Duration> &time) noexcept
+    {
+        auto timespec = convertToTimespec(time);
+        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+        if(error == ETIMEDOUT)
+            return std::cv_status::timeout;
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+        return std::cv_status::no_timeout;
+    }
+    template <typename Clock, typename Duration, typename Fn>
+    bool wait_until(std::unique_lock<Mutex> &theLock,
+                    const std::chrono::time_point<Clock, Duration> &time,
+                    Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        if(!static_cast<bool>(fn()))
+        {
+            auto timespec = convertToTimespec(time);
+            do
+            {
+                int error =
+                    ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+                if(error == ETIMEDOUT)
+                    return static_cast<bool>(fn());
+                if(error != 0)
+                    Mutex::handlePThreadsError(error);
+            } while(!static_cast<bool>(fn()));
+        }
+        return true;
+    }
+};
+}
+}
+#else
+#error implement Mutex
+#endif
 
 namespace programmerjake
 {
@@ -111,20 +581,21 @@ private:
     void (*lockFn)(void *pLock);
     bool (*try_lockFn)(void *pLock);
     void (*unlockFn)(void *pLock);
+
 public:
     template <typename T>
     explicit generic_lock_wrapper(T &theLock)
         : pLock(static_cast<void *>(std::addressof(theLock))), lockFn(), try_lockFn(), unlockFn()
     {
-        lockFn = [](void *pLock)->void
+        lockFn = [](void *pLock) -> void
         {
             static_cast<T *>(pLock)->lock();
         };
-        try_lockFn = [](void *pLock)->bool
+        try_lockFn = [](void *pLock) -> bool
         {
             return static_cast<T *>(pLock)->try_lock();
         };
-        unlockFn = [](void *pLock)->void
+        unlockFn = [](void *pLock) -> void
         {
             static_cast<T *>(pLock)->unlock();
         };
@@ -150,8 +621,7 @@ private:
     {
         std::multiset<std::size_t> lock_levels;
         std::unordered_map<const void *, std::size_t> locks;
-        variables_t()
-            : lock_levels(), locks()
+        variables_t() : lock_levels(), locks()
         {
         }
     };
@@ -164,6 +634,7 @@ private:
         return retval.get();
     }
     static void handleError(const char *what, std::size_t lock_level, const void *theLock);
+
 public:
     static void check_lock(std::size_t lock_level, const void *theLock)
     {
@@ -216,9 +687,9 @@ template <std::size_t level>
 class checked_lock final
 {
     std::mutex theLock;
+
 public:
-    checked_lock()
-        : theLock()
+    checked_lock() : theLock()
     {
     }
     static constexpr std::size_t lock_level = level;
@@ -268,9 +739,9 @@ template <std::size_t level>
 class checked_recursive_lock final
 {
     std::recursive_mutex theLock;
+
 public:
-    checked_recursive_lock()
-        : theLock()
+    checked_recursive_lock() : theLock()
     {
     }
     static constexpr std::size_t lock_level = level;
@@ -315,7 +786,6 @@ public:
             theLock.unlock();
     }
 };
-
 }
 }
 
