@@ -62,13 +62,13 @@ struct BlockDescriptorIndex
 private:
     static const BlockDescriptor **blockDescriptorTable;
     static std::size_t blockDescriptorTableSize, blockDescriptorTableAllocated;
-    explicit BlockDescriptorIndex(std::uint16_t index) : index(index)
+    constexpr explicit BlockDescriptorIndex(std::uint16_t index) noexcept : index(index)
     {
     }
     static BlockDescriptorIndex addNewDescriptor(const BlockDescriptor *bd) // should only be called
-                                                                            // before any threads
-                                                                            // other than the main
-                                                                            // thread are started
+    // before any threads
+    // other than the main
+    // thread are started
     {
         assert(bd != nullptr);
         if(blockDescriptorTableSize >= blockDescriptorTableAllocated)
@@ -98,80 +98,80 @@ public:
         return BlockDescriptorIndex(index);
     }
     IndexIntType index;
-    constexpr BlockDescriptorIndex() : index(NullIndex)
+    constexpr BlockDescriptorIndex() noexcept : index(NullIndex)
     {
     }
     static constexpr IndexIntType NullIndex = ~static_cast<IndexIntType>(0);
-    constexpr BlockDescriptorIndex(std::nullptr_t) : index(NullIndex)
+    constexpr BlockDescriptorIndex(std::nullptr_t) noexcept : index(NullIndex)
     {
     }
-    BlockDescriptorIndex(BlockDescriptorPointer bd);
-    const BlockDescriptor *get() const
+    BlockDescriptorIndex(BlockDescriptorPointer bd) noexcept;
+    const BlockDescriptor *get() const noexcept
     {
         if(index == NullIndex)
             return nullptr;
         assert(index < blockDescriptorTableSize);
         return blockDescriptorTable[index];
     }
-    const BlockDescriptor *operator->() const
+    const BlockDescriptor *operator->() const noexcept
     {
         assert(index < blockDescriptorTableSize);
         return blockDescriptorTable[index];
     }
-    const BlockDescriptor &operator*() const
+    const BlockDescriptor &operator*() const noexcept
     {
         assert(index < blockDescriptorTableSize);
         return *blockDescriptorTable[index];
     }
-    operator const BlockDescriptor *() const
+    operator const BlockDescriptor *() const noexcept
     {
         return get();
     }
-    explicit operator bool() const
+    explicit operator bool() const noexcept
     {
         return index != NullIndex;
     }
-    bool operator!() const
+    bool operator!() const noexcept
     {
         return index == NullIndex;
     }
-    friend bool operator==(std::nullptr_t, BlockDescriptorIndex v)
+    friend bool operator==(std::nullptr_t, BlockDescriptorIndex v) noexcept
     {
         return !v;
     }
-    friend bool operator==(BlockDescriptorIndex v, std::nullptr_t)
+    friend bool operator==(BlockDescriptorIndex v, std::nullptr_t) noexcept
     {
         return !v;
     }
-    friend bool operator==(const BlockDescriptor *a, BlockDescriptorIndex b)
+    friend bool operator==(const BlockDescriptor *a, BlockDescriptorIndex b) noexcept
     {
         return a == b.get();
     }
-    friend bool operator==(BlockDescriptorIndex a, const BlockDescriptor *b)
+    friend bool operator==(BlockDescriptorIndex a, const BlockDescriptor *b) noexcept
     {
         return a.get() == b;
     }
-    friend bool operator==(BlockDescriptorIndex a, BlockDescriptorIndex b)
+    friend bool operator==(BlockDescriptorIndex a, BlockDescriptorIndex b) noexcept
     {
         return a.index == b.index;
     }
-    friend bool operator!=(std::nullptr_t, BlockDescriptorIndex v)
+    friend bool operator!=(std::nullptr_t, BlockDescriptorIndex v) noexcept
     {
         return static_cast<bool>(v);
     }
-    friend bool operator!=(BlockDescriptorIndex v, std::nullptr_t)
+    friend bool operator!=(BlockDescriptorIndex v, std::nullptr_t) noexcept
     {
         return static_cast<bool>(v);
     }
-    friend bool operator!=(const BlockDescriptor *a, BlockDescriptorIndex b)
+    friend bool operator!=(const BlockDescriptor *a, BlockDescriptorIndex b) noexcept
     {
         return a != b.get();
     }
-    friend bool operator!=(BlockDescriptorIndex a, const BlockDescriptor *b)
+    friend bool operator!=(BlockDescriptorIndex a, const BlockDescriptor *b) noexcept
     {
         return a.get() != b;
     }
-    friend bool operator!=(BlockDescriptorIndex a, BlockDescriptorIndex b)
+    friend bool operator!=(BlockDescriptorIndex a, BlockDescriptorIndex b) noexcept
     {
         return a.index != b.index;
     }

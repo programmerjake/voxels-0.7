@@ -21,7 +21,7 @@
 #ifndef UNLOCK_GUARD_H_INCLUDED
 #define UNLOCK_GUARD_H_INCLUDED
 
-#include <mutex>
+#include "util/lock.h"
 
 namespace programmerjake
 {

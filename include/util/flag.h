@@ -21,9 +21,8 @@
 #ifndef FLAG_H_INCLUDED
 #define FLAG_H_INCLUDED
 
-#include <mutex>
 #include <atomic>
-#include <condition_variable>
+#include "util/lock.h"
 
 namespace programmerjake
 {
@@ -32,16 +31,16 @@ namespace voxels
 class flag final
 {
 private:
-    mutable std::mutex lock;
-    mutable std::condition_variable_any cond;
+    mutable Mutex lock;
+    mutable ConditionVariable cond;
     std::atomic_bool value;
     mutable std::atomic_size_t waitingCount;
+
 public:
-    flag(bool value = false)
-        : lock(), cond(), value(value), waitingCount(0)
+    flag(bool value = false) : lock(), cond(), value(value), waitingCount(0)
     {
     }
-    const flag &operator =(bool v)
+    const flag &operator=(bool v)
     {
         if(value.exchange(v) != v)
         {
@@ -51,7 +50,7 @@ public:
 
         return *this;
     }
-    const flag &operator =(const flag &r)
+    const flag &operator=(const flag &r)
     {
         return *this = (bool)r;
     }
@@ -72,7 +71,7 @@ public:
         bool retval = value;
         return retval;
     }
-    bool operator !() const
+    bool operator!() const
     {
         bool retval = value;
         return !retval;
@@ -86,14 +85,14 @@ public:
 
         waitingCount++;
 
-        lock.lock();
+        std::unique_lock<Mutex> lockIt(lock);
 
         while(v != value)
         {
-            cond.wait(lock);
+            cond.wait(lockIt);
         }
 
-        lock.unlock();
+        lockIt.unlock();
 
         waitingCount--;
     }
@@ -108,14 +107,14 @@ public:
 
         waitingCount++;
 
-        lock.lock();
+        std::unique_lock<Mutex> lockIt(lock);
 
         while(v != value.exchange(!v))
         {
-            cond.wait(lock);
+            cond.wait(lockIt);
         }
         cond.notify_all();
-        lock.unlock();
+        lockIt.unlock();
         waitingCount++;
     }
     void set()

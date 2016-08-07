@@ -35,7 +35,7 @@
 #include "util/tls.h"
 #include "util/checked_array.h"
 
-#if defined(TEST_WIN32_KEYED_EVENT_MUTEX_MAIN) || (1 && defined(__CDT_PARSER__))
+#if defined(TEST_WIN32_KEYED_EVENT_MUTEX_MAIN) || (0 && defined(__CDT_PARSER__))
 #define TEST_WIN32_KEYED_EVENT_MUTEX
 #endif
 
@@ -45,9 +45,11 @@ namespace programmerjake
 namespace voxels
 {
 class ConditionVariable;
+class RecursiveMutex;
 class Mutex final
 {
     friend class ConditionVariable;
+    friend class RecursiveMutex;
     Mutex(const Mutex &) = delete;
     Mutex &operator=(const Mutex &) = delete;
 
@@ -78,6 +80,10 @@ private:
     {
         return releaseKeyedEvent(getKeyedEventHandle(key), key, timeout);
     }
+    typedef std::uint_least32_t threadIdValue;
+    typedef std::atomic_uint_least32_t atomicThreadId;
+    static constexpr threadIdValue emptyThreadId = 0;
+    static threadIdValue getCurrentThreadId() noexcept;
     void checkpoint() noexcept
 #ifdef TEST_WIN32_KEYED_EVENT_MUTEX
         ;
@@ -85,6 +91,119 @@ private:
     {
     }
 #endif
+    template <bool isRecursive>
+    void lockImp(std::size_t *nestCount, atomicThreadId *owner) noexcept
+    {
+        assert(isRecursive == (nestCount != nullptr));
+        assert(isRecursive == (owner != nullptr));
+        threadIdValue myThreadId;
+        if(isRecursive)
+        {
+            myThreadId = getCurrentThreadId();
+            auto ownerValue = owner->load(std::memory_order_relaxed);
+            if(ownerValue == myThreadId)
+            {
+                ++*nestCount;
+                return;
+            }
+        }
+        while(true)
+        {
+            std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+            std::size_t newStateValue;
+            bool needWait;
+            do
+            {
+                checkpoint();
+                if(isOwned(oldStateValue))
+                {
+                    needWait = true;
+                    newStateValue = createState(getWaiterCount(oldStateValue) + 1, true);
+                }
+                else
+                {
+                    needWait = false;
+                    newStateValue = setOwned(oldStateValue, true);
+                }
+            } while(!state.compare_exchange_weak(oldStateValue,
+                                                 newStateValue,
+                                                 std::memory_order_acquire,
+                                                 std::memory_order_relaxed));
+            checkpoint();
+            if(!needWait)
+                break;
+            waitForKeyedEvent(&state, nullptr);
+            checkpoint();
+        }
+        if(isRecursive)
+        {
+            assert(owner->load(std::memory_order_relaxed) == emptyThreadId);
+            owner->store(myThreadId, std::memory_order_relaxed);
+        }
+    }
+    template <bool isRecursive>
+    bool tryLockImp(std::size_t *nestCount, atomicThreadId *owner) noexcept
+    {
+        assert(isRecursive == (nestCount != nullptr));
+        assert(isRecursive == (owner != nullptr));
+        threadIdValue myThreadId;
+        if(isRecursive)
+        {
+            myThreadId = getCurrentThreadId();
+            auto ownerValue = owner->load(std::memory_order_relaxed);
+            if(ownerValue == myThreadId)
+            {
+                ++*nestCount;
+                return true;
+            }
+        }
+        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+        if(isOwned(oldStateValue))
+            return false;
+        std::size_t newStateValue = setOwned(oldStateValue, true);
+        checkpoint();
+        bool retval = state.compare_exchange_weak(
+            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed);
+        checkpoint();
+        if(retval && isRecursive)
+        {
+            assert(owner->load(std::memory_order_relaxed) == emptyThreadId);
+            owner->store(myThreadId, std::memory_order_relaxed);
+        }
+        return retval;
+    }
+    template <bool isRecursive>
+    void unlockImp(std::size_t *nestCount, atomicThreadId *owner) noexcept
+    {
+        assert(isRecursive == (nestCount != nullptr));
+        assert(isRecursive == (owner != nullptr));
+        if(isRecursive)
+        {
+            assert(owner->load(std::memory_order_relaxed) == getCurrentThreadId());
+            if((*nestCount)-- != 0)
+                return;
+            owner->store(emptyThreadId, std::memory_order_relaxed);
+        }
+        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
+        std::size_t newStateValue;
+        bool needRelease;
+        do
+        {
+            checkpoint();
+            assert(isOwned(oldStateValue));
+            needRelease = oldStateValue != createState(0, true);
+            if(needRelease)
+                newStateValue = createState(getWaiterCount(oldStateValue) - 1, false);
+            else
+                newStateValue = createState(0, false);
+        } while(!state.compare_exchange_weak(
+            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed));
+        checkpoint();
+        if(needRelease)
+        {
+            releaseKeyedEvent(&state, nullptr);
+        }
+    }
 
 private:
     std::atomic_size_t state;
@@ -122,68 +241,15 @@ public:
     }
     void lock() noexcept
     {
-        while(true)
-        {
-            std::size_t oldStateValue = state.load(std::memory_order_relaxed);
-            std::size_t newStateValue;
-            bool needWait;
-            do
-            {
-                checkpoint();
-                if(isOwned(oldStateValue))
-                {
-                    needWait = true;
-                    newStateValue = createState(getWaiterCount(oldStateValue) + 1, true);
-                }
-                else
-                {
-                    needWait = false;
-                    newStateValue = setOwned(oldStateValue, true);
-                }
-            } while(!state.compare_exchange_weak(oldStateValue,
-                                                 newStateValue,
-                                                 std::memory_order_acquire,
-                                                 std::memory_order_relaxed));
-            checkpoint();
-            if(!needWait)
-                break;
-            waitForKeyedEvent(&state, nullptr);
-            checkpoint();
-        }
+        lockImp<false>(nullptr, nullptr);
     }
     bool try_lock() noexcept
     {
-        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
-        if(isOwned(oldStateValue))
-            return false;
-        std::size_t newStateValue = setOwned(oldStateValue, true);
-        checkpoint();
-        bool retval = state.compare_exchange_weak(
-            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed);
-        checkpoint();
-        return retval;
+        return tryLockImp<false>(nullptr, nullptr);
     }
     void unlock() noexcept
     {
-        std::size_t oldStateValue = state.load(std::memory_order_relaxed);
-        std::size_t newStateValue;
-        bool needRelease;
-        do
-        {
-            checkpoint();
-            assert(isOwned(oldStateValue));
-            needRelease = oldStateValue != createState(0, true);
-            if(needRelease)
-                newStateValue = createState(getWaiterCount(oldStateValue) - 1, false);
-            else
-                newStateValue = createState(0, false);
-        } while(!state.compare_exchange_weak(
-            oldStateValue, newStateValue, std::memory_order_acquire, std::memory_order_relaxed));
-        checkpoint();
-        if(needRelease)
-        {
-            releaseKeyedEvent(&state, nullptr);
-        }
+        unlockImp<false>(nullptr, nullptr);
     }
 };
 
@@ -401,6 +467,34 @@ public:
         return true;
     }
 };
+
+class RecursiveMutex final
+{
+    RecursiveMutex(const RecursiveMutex &) = delete;
+    RecursiveMutex &operator=(const RecursiveMutex &) = delete;
+
+private:
+    Mutex baseLock;
+    std::size_t nestCount;
+    Mutex::atomicThreadId owner;
+
+public:
+    RecursiveMutex() noexcept : baseLock(), nestCount(0), owner(Mutex::emptyThreadId)
+    {
+    }
+    void lock() noexcept
+    {
+        baseLock.lockImp<true>(&nestCount, &owner);
+    }
+    bool try_lock() noexcept
+    {
+        return baseLock.tryLockImp<true>(&nestCount, &owner);
+    }
+    void unlock() noexcept
+    {
+        baseLock.unlockImp<true>(&nestCount, &owner);
+    }
+};
 }
 }
 #elif defined(__linux) || defined(__APPLE__) // pthreads is fast enough
@@ -410,9 +504,11 @@ namespace programmerjake
 namespace voxels
 {
 class ConditionVariable;
+class RecursiveMutex;
 class Mutex final
 {
     friend class ConditionVariable;
+    friend class RecursiveMutex;
     Mutex(const Mutex &) = delete;
     Mutex &operator=(const Mutex &) = delete;
 
@@ -423,7 +519,26 @@ private:
     {
         volatile int error2 =
             error; // for debugging; volatile so the variable doesn't get optimized away
+        static_cast<void>(error2);
         std::terminate();
+    }
+    template <int mutexType>
+    static const pthread_mutexattr_t *createMutexAttr() noexcept
+    {
+        static pthread_mutexattr_t retval;
+        int error = ::pthread_mutexattr_init(&retval);
+        if(error != 0)
+            handlePThreadsError(error);
+        error = ::pthread_mutexattr_settype(&retval, mutexType);
+        if(error != 0)
+            handlePThreadsError(error);
+        return &retval;
+    }
+    template <int mutexType>
+    static const pthread_mutexattr_t *getMutexAttr() noexcept
+    {
+        static const pthread_mutexattr_t *retval = createMutexAttr<mutexType>();
+        return retval;
     }
 
 public:
@@ -454,6 +569,50 @@ public:
         int error = ::pthread_mutex_unlock(&mutex);
         if(error != 0)
             handlePThreadsError(error);
+    }
+};
+
+class RecursiveMutex final
+{
+    RecursiveMutex(const RecursiveMutex &) = delete;
+    RecursiveMutex &operator=(const RecursiveMutex &) = delete;
+
+private:
+    ::pthread_mutex_t mutex;
+
+public:
+    RecursiveMutex()
+    {
+        int error = ::pthread_mutex_init(&mutex, Mutex::getMutexAttr<PTHREAD_MUTEX_RECURSIVE>());
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    ~RecursiveMutex()
+    {
+        int error = ::pthread_mutex_destroy(&mutex);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void lock() noexcept
+    {
+        int error = ::pthread_mutex_lock(&mutex);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    bool try_lock() noexcept
+    {
+        int error = ::pthread_mutex_trylock(&mutex);
+        if(error == 0)
+            return true;
+        if(error != EBUSY)
+            Mutex::handlePThreadsError(error);
+        return false;
+    }
+    void unlock() noexcept
+    {
+        int error = ::pthread_mutex_unlock(&mutex);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
     }
 };
 
@@ -592,7 +751,7 @@ public:
 }
 }
 #else
-#error implement Mutex
+#error implement Mutex and ConditionVariable
 #endif
 
 namespace programmerjake
@@ -780,7 +939,7 @@ public:
 template <std::size_t level>
 class checked_lock final
 {
-    std::mutex theLock;
+    Mutex theLock;
 
 public:
     checked_lock() : theLock()
@@ -832,7 +991,7 @@ public:
 template <std::size_t level>
 class checked_recursive_lock final
 {
-    std::recursive_mutex theLock;
+    RecursiveMutex theLock;
 
 public:
     checked_recursive_lock() : theLock()

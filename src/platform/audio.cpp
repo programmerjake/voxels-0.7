@@ -20,7 +20,7 @@
  */
 #include "platform/audio.h"
 #include "platform/platform.h"
-#include <mutex>
+#include "util/lock.h"
 #include <thread>
 #include <chrono>
 #include <functional>

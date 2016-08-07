@@ -31,7 +31,7 @@
 #include <limits>
 #include <thread>
 #include <unordered_map>
-#include <mutex>
+#include "util/lock.h"
 #include <chrono>
 #include <list>
 #include "util/logging.h"
@@ -925,7 +925,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator,
                 });
         }
         {
-            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            std::unique_lock<Mutex> lockIt(initialChunkGenerateStruct->lock);
             while(initialChunkGenerateStruct->count > 0)
             {
                 if(abortFlag && *abortFlag)
@@ -941,7 +941,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator,
         if(abortFlag && *abortFlag)
         {
             destructing = true;
-            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            std::unique_lock<Mutex> lockIt(initialChunkGenerateStruct->lock);
             initialChunkGenerateStruct->generatorWait = false;
             initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
             return;
@@ -962,7 +962,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator,
             if(abortFlag && *abortFlag)
             {
                 destructing = true;
-                std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+                std::unique_lock<Mutex> lockIt(initialChunkGenerateStruct->lock);
                 initialChunkGenerateStruct->generatorWait = false;
                 initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
                 return;
@@ -972,14 +972,14 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator,
         if(abortFlag && *abortFlag)
         {
             destructing = true;
-            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            std::unique_lock<Mutex> lockIt(initialChunkGenerateStruct->lock);
             initialChunkGenerateStruct->generatorWait = false;
             initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
             return;
         }
         getDebugLog() << L"generated initial world." << postnl;
         {
-            std::unique_lock<std::mutex> lockIt(initialChunkGenerateStruct->lock);
+            std::unique_lock<Mutex> lockIt(initialChunkGenerateStruct->lock);
             initialChunkGenerateStruct->generatorWait = false;
             initialChunkGenerateStruct->generatorWaitDoneCond.notify_all();
         }
@@ -1000,7 +1000,7 @@ World::World(SeedType seed, const WorldGenerator *worldGenerator,
     if(abortFlag && *abortFlag)
     {
         destructing = true;
-        std::unique_lock<std::mutex> lockStateLock(stateLock);
+        std::unique_lock<Mutex> lockStateLock(stateLock);
         stateCond.notify_all();
         lockStateLock.unlock();
         for(auto &t : lightingThreads)
@@ -1030,7 +1030,7 @@ World::~World()
 {
     assert(viewPoints.empty());
     destructing = true;
-    std::unique_lock<std::mutex> lockStateLock(stateLock);
+    std::unique_lock<Mutex> lockStateLock(stateLock);
     stateCond.notify_all();
     lockStateLock.unlock();
     for(auto &t : lightingThreads)
@@ -1180,7 +1180,7 @@ void World::blockUpdateThreadFn(TLS &tls, bool isPhaseManager)
         BlockUpdatePhase phase;
         if(isPhaseManager)
         {
-            std::unique_lock<std::mutex> lockIt(stateLock);
+            std::unique_lock<Mutex> lockIt(stateLock);
             blockUpdateCurrentPhaseCount--;
             blockUpdateNextPhaseCount++;
             while(blockUpdateCurrentPhaseCount != 0)
@@ -1208,7 +1208,7 @@ void World::blockUpdateThreadFn(TLS &tls, bool isPhaseManager)
         }
         else
         {
-            std::unique_lock<std::mutex> lockIt(stateLock);
+            std::unique_lock<Mutex> lockIt(stateLock);
             blockUpdateCurrentPhaseCount--;
             blockUpdateNextPhaseCount++;
             if(didAnything)
@@ -1326,9 +1326,9 @@ void World::generateChunk(std::shared_ptr<BlockChunk> chunk,
     pauseGuard = std::unique_ptr<ThreadPauseGuard>(new ThreadPauseGuard(*this));
     BlockIterator cbi = getBlockIterator(chunk->basePosition, lock_manager.tls);
     {
-        std::unique_lock<std::recursive_mutex> lockSrcChunk(
+        std::unique_lock<RecursiveMutex> lockSrcChunk(
             gcbi.chunk->getChunkVariables().entityListLock, std::defer_lock);
-        std::unique_lock<std::recursive_mutex> lockDestChunk(
+        std::unique_lock<RecursiveMutex> lockDestChunk(
             cbi.chunk->getChunkVariables().entityListLock, std::defer_lock);
         std::lock(lockSrcChunk, lockDestChunk);
         WrappedEntity::ChunkListType &srcChunkList =
@@ -1502,7 +1502,7 @@ void World::chunkGeneratingThreadFn(
             lock_manager.clear();
             if(isChunkInitialGenerate && initialChunkGenerateStruct != nullptr)
             {
-                std::unique_lock<std::mutex> lockIt(
+                std::unique_lock<Mutex> lockIt(
                     initialChunkGenerateStruct->lock);
                 if(initialChunkGenerateStruct->count > 0)
                 {
@@ -1559,7 +1559,7 @@ float World::getChunkGeneratePriority(BlockIterator bi,
     }
     if(bi.position().y != 0)
         return NAN;
-    std::unique_lock<std::mutex> lockIt(viewPointsLock);
+    std::unique_lock<Mutex> lockIt(viewPointsLock);
     float retval = 0;
     bool retvalSet = false;
     PositionF chunkMinCorner = bi.position();
@@ -1635,7 +1635,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
         position, velocity, physicsWorld);
     descriptor->makeData(entity->entity, *this, lock_manager);
     lock_manager.block_biome_lock.clear();
-    std::unique_lock<std::recursive_mutex> lockChunk(
+    std::unique_lock<RecursiveMutex> lockChunk(
         bi.chunk->getChunkVariables().entityListLock);
     bi.updateLock(lock_manager);
     WrappedEntity::ChunkListType &chunkList =
@@ -1652,7 +1652,7 @@ Entity *World::addEntity(EntityDescriptorPointer descriptor, PositionF position,
 void World::move(double deltaTime, WorldLockManager &lock_manager)
 {
     lock_manager.clear();
-    std::unique_lock<std::mutex> lockStateLock(stateLock);
+    std::unique_lock<Mutex> lockStateLock(stateLock);
     if(isPaused)
         return;
     while(waitingForMoveEntities && !destructing)
@@ -1672,7 +1672,7 @@ void World::moveEntitiesThreadFn(TLS &tls)
     auto lastUsageReportTime = std::chrono::steady_clock::now();
     while(!destructing)
     {
-        std::unique_lock<std::mutex> lockStateLock(stateLock);
+        std::unique_lock<Mutex> lockStateLock(stateLock);
         waitingForMoveEntities = false;
         stateCond.notify_all();
         while(!destructing && !waitingForMoveEntities)
@@ -1749,7 +1749,7 @@ void World::moveEntitiesThreadFn(TLS &tls)
                     }
                 }
             }
-            std::unique_lock<std::recursive_mutex> lockChunk(
+            std::unique_lock<RecursiveMutex> lockChunk(
                 chunk->getChunkVariables().entityListLock);
             WrappedEntity::ChunkListType &chunkEntityList =
                 chunk->getChunkVariables().entityList;
@@ -1806,7 +1806,7 @@ void World::moveEntitiesThreadFn(TLS &tls)
                 }
                 auto nextI = i;
                 ++nextI;
-                std::unique_lock<std::recursive_mutex> lockChunk(
+                std::unique_lock<RecursiveMutex> lockChunk(
                     destBi.chunk->getChunkVariables().entityListLock);
                 WrappedEntity::ChunkListType &chunkDestEntityList =
                     chunk->getChunkVariables().entityList;
@@ -1941,7 +1941,7 @@ void World::particleGeneratingThreadFn(TLS &tls)
         lastTimePoint = currentTimePoint;
         std::vector<std::pair<PositionF, float>> viewPointsVector;
         {
-            std::unique_lock<std::mutex> lockIt(viewPointsLock);
+            std::unique_lock<Mutex> lockIt(viewPointsLock);
             for(ViewPoint *viewPoint : viewPoints)
             {
                 PositionF position;
@@ -2020,7 +2020,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
 {
     BlockChunkSubchunk *lastSubchunk = nullptr;
     BlockChunkChunkVariables *lastChunk = nullptr;
-    std::unique_lock<std::mutex> lockIt;
+    std::unique_lock<Mutex> lockIt;
     VectorI minSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(
         minCorner);
     VectorI maxSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(
@@ -2092,7 +2092,7 @@ void World::invalidateBlockRange(BlockIterator blockIterator, VectorI minCorner,
                             {
                                 lastSubchunk = &subchunk;
                                 lockIt =
-                                    std::unique_lock<std::mutex>(
+                                    std::unique_lock<Mutex>(
                                         biXYZ.chunk->getChunkVariables().blockUpdateListLock);
                             }
                             b.invalidate();
@@ -2178,7 +2178,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
             StreamWorldGuard streamWorldGuard(writer, *this, lock_manager);
             stream::write<SeedType>(writer, worldGeneratorSeed);
             {
-                std::unique_lock<std::mutex> lockIt(randomGeneratorLock);
+                std::unique_lock<Mutex> lockIt(randomGeneratorLock);
                 stream::write<rc4_random_engine>(writer, randomGenerator);
             }
             LockedPlayers lockedPlayers = players().lock();
@@ -2210,7 +2210,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                 stream::write<PositionI>(writer, chunk->basePosition);
                 std::vector<WrappedEntity *> entities;
                 {
-                    std::unique_lock<std::recursive_mutex> lockChunk(
+                    std::unique_lock<RecursiveMutex> lockChunk(
                         chunk->getChunkVariables().entityListLock);
                     WrappedEntity::ChunkListType &chunkEntityList =
                         chunk->getChunkVariables().entityList;
@@ -2271,7 +2271,7 @@ void World::write(stream::Writer &writerIn, WorldLockManager &lock_manager)
                     }
                 }
             }
-            std::unique_lock<std::recursive_mutex> lockTimeOfDay(timeOfDayLock);
+            std::unique_lock<RecursiveMutex> lockTimeOfDay(timeOfDayLock);
             stream::write<float32_t>(writer, timeOfDayInSeconds);
             stream::write<std::uint8_t>(writer, moonPhase);
             writer.flush();
@@ -2668,7 +2668,7 @@ for(bool didAnything = false; !destructing; didAnything ? static_cast<void>(didA
         IndirectBlockChunk &ibc = *chunkIter;
         if(chunkIter.is_locked())
         chunkIter.unlock();
-        std::unique_lock<std::mutex> indirectBlockChunkLock(ibc.chunkLock);
+        std::unique_lock<Mutex> indirectBlockChunkLock(ibc.chunkLock);
         if(!ibc.chunk)
         continue;
         if(!ibc.chunk.unique()) // more than one reference : in use
@@ -2704,7 +2704,7 @@ for(bool didAnything = false; !destructing; didAnything ? static_cast<void>(didA
                 StreamWorldGuard streamWorldGuard(writer, *this, lock_manager);
                 std::vector<WrappedEntity *> entities;
                 {
-                    std::unique_lock<std::recursive_mutex> lockChunk(chunk->getChunkVariables().entityListLock);
+                    std::unique_lock<RecursiveMutex> lockChunk(chunk->getChunkVariables().entityListLock);
                     WrappedEntity::ChunkListType &chunkEntityList = chunk->getChunkVariables().entityList;
                     for(auto i = chunkEntityList.begin(); i != chunkEntityList.end(); ++i)
                     {

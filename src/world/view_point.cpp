@@ -205,11 +205,11 @@ struct ViewPoint::Implementation final
     };
     struct MeshCache final
     {
-        std::mutex lock;
+        Mutex lock;
         std::unordered_map<PositionI, MeshCacheEntry> meshesMap;
         void clearOutside(PositionI minCorner, VectorI maxCorner)
         {
-            std::unique_lock<std::mutex> lockIt(lock);
+            std::unique_lock<Mutex> lockIt(lock);
             for(auto i = meshesMap.begin(); i != meshesMap.end();)
             {
                 auto position = std::get<0>(*i);
@@ -229,12 +229,12 @@ struct ViewPoint::Implementation final
         }
         void set(PositionI position, MeshCacheEntry entry)
         {
-            std::unique_lock<std::mutex> lockIt(lock);
+            std::unique_lock<Mutex> lockIt(lock);
             meshesMap[position] = std::move(entry);
         }
         MeshCacheEntry get(PositionI position)
         {
-            std::unique_lock<std::mutex> lockIt(lock);
+            std::unique_lock<Mutex> lockIt(lock);
             auto iter = meshesMap.find(position);
             if(iter == meshesMap.end())
                 return MeshCacheEntry();
@@ -246,7 +246,7 @@ struct ViewPoint::Implementation final
     std::int32_t viewDistance;
     std::list<std::thread> generateSubchunkMeshesThreads;
     std::thread generateMeshesThread;
-    std::recursive_mutex theLock;
+    RecursiveMutex theLock;
     bool shuttingDown;
 #ifndef USE_PER_CHUNK_BUFFER
     std::shared_ptr<Meshes> blockRenderMeshes;
@@ -260,7 +260,7 @@ struct ViewPoint::Implementation final
     std::unordered_set<PositionI> queuedSubchunks;
     std::unordered_set<PositionI> renderingSubchunks;
     std::unordered_map<PositionI, std::size_t> chunkInvalidSubchunkCountMap;
-    std::mutex subchunkQueueLock;
+    Mutex subchunkQueueLock;
     const std::shared_ptr<MeshCache> meshCache;
     static float distanceFromInterval(float minimum, float maximum, float position)
     {
@@ -282,7 +282,7 @@ struct ViewPoint::Implementation final
     }
     void generateSubchunkMeshesFn(TLS &tls)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<RecursiveMutex> lockIt(theLock);
         while(!shuttingDown)
         {
             lockIt.unlock();
@@ -304,7 +304,7 @@ struct ViewPoint::Implementation final
     }
     std::shared_ptr<Meshes> getOrMakeMeshes()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<RecursiveMutex> lockIt(theLock);
         std::shared_ptr<Meshes> retval;
         if(!nextBlockRenderMeshes.empty())
         {
@@ -320,7 +320,7 @@ struct ViewPoint::Implementation final
     void generateMeshesFn(TLS &tls)
     {
         auto lastDumpMeshStatsTime = std::chrono::steady_clock::now();
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<RecursiveMutex> lockIt(theLock);
         std::shared_ptr<Meshes> cachedMeshes = nullptr;
         while(!shuttingDown)
         {
@@ -457,7 +457,7 @@ struct ViewPoint::Implementation final
     }
     void queueSubchunk(PositionI subchunkBase,
                        float distanceFromPlayer,
-                       std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+                       std::unique_lock<Mutex> &lockedSubchunkQueueLock)
     {
         if(renderingSubchunks.count(subchunkBase) != 0)
             return;
@@ -476,11 +476,11 @@ struct ViewPoint::Implementation final
     }
     void queueSubchunk(PositionI subchunkBase, float distanceFromPlayer)
     {
-        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        std::unique_lock<Mutex> lockIt(subchunkQueueLock);
         queueSubchunk(subchunkBase, distanceFromPlayer, lockIt);
     }
     bool getQueuedSubchunk(PositionI &subchunkBase,
-                           std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+                           std::unique_lock<Mutex> &lockedSubchunkQueueLock)
     {
         if(subchunkRenderPriorityQueue.empty())
             return false;
@@ -493,11 +493,11 @@ struct ViewPoint::Implementation final
     }
     bool getQueuedSubchunk(PositionI &subchunkBase)
     {
-        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        std::unique_lock<Mutex> lockIt(subchunkQueueLock);
         return getQueuedSubchunk(subchunkBase, lockIt);
     }
     void finishedRenderingSubchunk(PositionI subchunkBase,
-                                   std::unique_lock<std::mutex> &lockedSubchunkQueueLock)
+                                   std::unique_lock<Mutex> &lockedSubchunkQueueLock)
     {
         renderingSubchunks.erase(subchunkBase);
         auto iter =
@@ -512,7 +512,7 @@ struct ViewPoint::Implementation final
     }
     void finishedRenderingSubchunk(PositionI subchunkBase)
     {
-        std::unique_lock<std::mutex> lockIt(subchunkQueueLock);
+        std::unique_lock<Mutex> lockIt(subchunkQueueLock);
         finishedRenderingSubchunk(subchunkBase, lockIt);
     }
     static bool generateSubchunkMeshes(WorldLockManager &lock_manager,
@@ -602,7 +602,7 @@ struct ViewPoint::Implementation final
                              PositionF playerPosition)
     {
         PositionI chunkPosition = cbi.position();
-        std::unique_lock<std::mutex> cachedChunkMeshesLock(
+        std::unique_lock<Mutex> cachedChunkMeshesLock(
             cbi.chunk->getChunkVariables().cachedMeshesLock);
         if(meshes)
         {
@@ -730,13 +730,13 @@ struct ViewPoint::Implementation final
                 });
         }
         {
-            std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
+            std::unique_lock<Mutex> lockIt(world.viewPointsLock);
             myPositionInViewPointsList = world.viewPoints.insert(world.viewPoints.end(), viewPoint);
         }
     }
     ~Implementation()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<RecursiveMutex> lockIt(theLock);
         shuttingDown = true;
         lockIt.unlock();
         generateMeshesThread.join();
@@ -745,7 +745,7 @@ struct ViewPoint::Implementation final
             generateSubchunkMeshesThread.join();
         }
         {
-            std::unique_lock<std::mutex> lockIt(world.viewPointsLock);
+            std::unique_lock<Mutex> lockIt(world.viewPointsLock);
             world.viewPoints.erase(myPositionInViewPointsList);
         }
     }
@@ -755,7 +755,7 @@ struct ViewPoint::Implementation final
                 Mesh additionalObjects)
     {
         Transform cameraToWorld = inverse(worldToCamera);
-        std::unique_lock<std::recursive_mutex> lockViewPoint(theLock);
+        std::unique_lock<RecursiveMutex> lockViewPoint(theLock);
         typedef std::unordered_map<std::thread::id, std::shared_ptr<BlockLightingCache>>
             LightingCacheMapType;
         std::shared_ptr<LightingCacheMapType> pLightingCacheMap =
@@ -863,7 +863,7 @@ struct ViewPoint::Implementation final
 #endif
                     BlockIterator cbi = world.getBlockIterator(chunkPosition, lock_manager.tls);
                     lock_manager.clear();
-                    std::unique_lock<std::recursive_mutex> lockChunk(
+                    std::unique_lock<RecursiveMutex> lockChunk(
                         cbi.chunk->getChunkVariables().entityListLock);
                     for(WrappedEntity &entity : cbi.chunk->getChunkVariables().entityList)
                     {
@@ -1011,7 +1011,7 @@ struct ViewPoint::Implementation final
     }
     void handleViewChange()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(theLock);
+        std::unique_lock<RecursiveMutex> lockIt(theLock);
         PositionI minChunkPosition =
             BlockChunk::getChunkBasePosition((PositionI)position - VectorI(viewDistance));
         PositionI maxChunkPosition =
@@ -1022,40 +1022,40 @@ struct ViewPoint::Implementation final
 
 PositionF ViewPoint::getPosition()
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     return implementation->position;
 }
 
 int32_t ViewPoint::getViewDistance()
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     return implementation->viewDistance;
 }
 
 void ViewPoint::setPosition(PositionF newPosition)
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     implementation->position = newPosition;
     implementation->handleViewChange();
 }
 
 void ViewPoint::setViewDistance(std::int32_t newViewDistance)
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     implementation->viewDistance = newViewDistance;
     implementation->handleViewChange();
 }
 
 void ViewPoint::getPositionAndViewDistance(PositionF &position, std::int32_t &viewDistance)
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     position = implementation->position;
     viewDistance = implementation->viewDistance;
 }
 
 void ViewPoint::setPositionAndViewDistance(PositionF position, std::int32_t viewDistance)
 {
-    std::unique_lock<std::recursive_mutex> lockIt(implementation->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(implementation->theLock);
     implementation->position = position;
     implementation->viewDistance = viewDistance;
     implementation->handleViewChange();

@@ -22,8 +22,7 @@
 #define RW_LOCK_H_INCLUDED
 
 #include <atomic>
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include <cassert>
 #include <utility>
 #include "util/cpu_relax.h"
@@ -71,8 +70,8 @@ public:
         return lock.unlock();
     }
 #else
-    std::mutex stateLock;
-    std::condition_variable stateCond;
+    Mutex stateLock;
+    ConditionVariable stateCond;
     std::size_t writerWaitingCount = 0;
     std::size_t readerWaitingCount = 0;
     static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
@@ -80,7 +79,7 @@ public:
 public:
     void reader_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         if(writerWaitingCount > 0 || readerCount == readerCountForWriterLocked)
         {
             readerWaitingCount++;
@@ -94,7 +93,7 @@ public:
     }
     bool reader_try_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock, std::try_to_lock);
+        std::unique_lock<Mutex> lockIt(stateLock, std::try_to_lock);
         if(!lockIt.owns_lock())
             return false;
         if(writerWaitingCount > 0 || readerCount == readerCountForWriterLocked)
@@ -106,7 +105,7 @@ public:
     }
     void reader_unlock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         assert(readerCount != readerCountForWriterLocked && readerCount > 0);
         readerCount--;
         if(readerCount == 0 && writerWaitingCount > 0)
@@ -114,7 +113,7 @@ public:
     }
     void writer_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         if(readerCount != 0)
         {
             writerWaitingCount++;
@@ -128,7 +127,7 @@ public:
     }
     bool writer_try_lock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock, std::try_to_lock);
+        std::unique_lock<Mutex> lockIt(stateLock, std::try_to_lock);
         if(!lockIt.owns_lock())
             return false;
         if(readerCount != 0)
@@ -138,7 +137,7 @@ public:
     }
     void writer_unlock()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         assert(readerCount == readerCountForWriterLocked);
         readerCount = 0;
         if(readerWaitingCount > 0 || writerWaitingCount > 0)

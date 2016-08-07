@@ -28,7 +28,7 @@
 #include <sstream>
 #include "render/text.h"
 #include "texture/texture_atlas.h"
-#include <mutex>
+#include "util/lock.h"
 
 namespace programmerjake
 {
@@ -43,14 +43,14 @@ class UiItem : public Element
 
 private:
     std::shared_ptr<ItemStack> itemStack;
-    std::recursive_mutex *itemStackLock;
+    RecursiveMutex *itemStackLock;
 
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
         return itemStack;
     }
-    std::recursive_mutex *getItemStackLock() const
+    RecursiveMutex *getItemStackLock() const
     {
         return itemStackLock;
     }
@@ -59,7 +59,7 @@ public:
            float minY,
            float maxY,
            std::shared_ptr<ItemStack> itemStack,
-           std::recursive_mutex *itemStackLock = nullptr)
+           RecursiveMutex *itemStackLock = nullptr)
         : Element(minX, maxX, minY, maxY), itemStack(itemStack), itemStackLock(itemStackLock)
     {
     }
@@ -70,9 +70,9 @@ protected:
         float backgroundZ = interpolate<float>(0.95f, minZ, maxZ);
         assert(backgroundZ / minZ > ItemDescriptor::maxRenderZ / ItemDescriptor::minRenderZ);
         float scale = backgroundZ / ItemDescriptor::maxRenderZ;
-        std::unique_lock<std::recursive_mutex> theLock;
+        std::unique_lock<RecursiveMutex> theLock;
         if(itemStackLock)
-            theLock = std::unique_lock<std::recursive_mutex>(*itemStackLock);
+            theLock = std::unique_lock<RecursiveMutex>(*itemStackLock);
         ItemStack is = *itemStack;
         if(itemStackLock)
             theLock.unlock();
@@ -116,14 +116,14 @@ class UiItemWithBorder : public Element
 
 private:
     std::shared_ptr<ItemStack> itemStack;
-    std::recursive_mutex *itemStackLock;
+    RecursiveMutex *itemStackLock;
 
 public:
     std::shared_ptr<ItemStack> getItemStack() const
     {
         return itemStack;
     }
-    std::recursive_mutex *getItemStackLock() const
+    RecursiveMutex *getItemStackLock() const
     {
         return itemStackLock;
     }
@@ -134,7 +134,7 @@ public:
                      float maxY,
                      std::shared_ptr<ItemStack> itemStack,
                      std::function<bool()> isSelected,
-                     std::recursive_mutex *itemStackLock = nullptr)
+                     RecursiveMutex *itemStackLock = nullptr)
         : Element(minX, maxX, minY, maxY),
           itemStack(itemStack),
           itemStackLock(itemStackLock),
@@ -171,9 +171,9 @@ protected:
         float backgroundZ = interpolate<float>(0.95f, minZ, maxZ);
         assert(backgroundZ / minZ > ItemDescriptor::maxRenderZ / ItemDescriptor::minRenderZ);
         float scale = backgroundZ / ItemDescriptor::maxRenderZ;
-        std::unique_lock<std::recursive_mutex> theLock;
+        std::unique_lock<RecursiveMutex> theLock;
         if(itemStackLock)
-            theLock = std::unique_lock<std::recursive_mutex>(*itemStackLock);
+            theLock = std::unique_lock<RecursiveMutex>(*itemStackLock);
         ItemStack is = *itemStack;
         if(itemStackLock)
             theLock.unlock();
@@ -224,7 +224,7 @@ public:
                std::shared_ptr<ItemStack> itemStack,
                std::function<bool()> isSelected,
                std::function<void()> onSelect,
-               std::recursive_mutex *itemStackLock = nullptr)
+               RecursiveMutex *itemStackLock = nullptr)
         : UiItemWithBorder(minX, maxX, minY, maxY, itemStack, isSelected, itemStackLock),
           onSelect(onSelect)
     {

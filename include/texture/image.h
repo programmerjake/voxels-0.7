@@ -25,7 +25,7 @@
 #include <cwchar>
 #include <string>
 #include <stdexcept>
-#include <mutex>
+#include "util/lock.h"
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -245,7 +245,7 @@ private:
         std::uint32_t texture;
         bool textureValid;
         std::uint64_t textureGraphicsContextId;
-        std::mutex lock;
+        Mutex lock;
         data_t(std::uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
             : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false), textureGraphicsContextId(0), lock()
         {

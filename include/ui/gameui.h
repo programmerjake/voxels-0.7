@@ -32,7 +32,7 @@
 #include "texture/texture_atlas.h"
 #include "world/view_point.h"
 #include "ui/dynamic_label.h"
-#include <mutex>
+#include "util/lock.h"
 #include <sstream>
 #include <deque>
 #include <vector>
@@ -88,7 +88,7 @@ private:
     const Entity *playerEntity;
     std::shared_ptr<Ui> dialog = nullptr;
     std::shared_ptr<Ui> newDialog = nullptr;
-    std::mutex newDialogLock;
+    Mutex newDialogLock;
     int pressForwardCount = 0;
     int pressLeftCount = 0;
     int pressBackwardCount = 0;
@@ -279,7 +279,7 @@ public:
         }
         if(!dialog)
         {
-            std::unique_lock<std::mutex> lockIt(newDialogLock);
+            std::unique_lock<Mutex> lockIt(newDialogLock);
             if(newDialog != nullptr)
             {
                 dialog = newDialog;
@@ -346,7 +346,7 @@ public:
             remove(dialog);
             dialog = nullptr;
             Display::grabMouse(!gameInput->paused.get());
-            std::unique_lock<std::mutex> lockIt(newDialogLock);
+            std::unique_lock<Mutex> lockIt(newDialogLock);
             newDialog = nullptr;
         }
         if(playingAudio && !playingAudio->isPlaying())
@@ -380,7 +380,7 @@ public:
     bool setDialog(std::shared_ptr<Ui> newDialog)
     {
         assert(newDialog);
-        std::unique_lock<std::mutex> lockIt(newDialogLock);
+        std::unique_lock<Mutex> lockIt(newDialogLock);
         if(this->newDialog)
             return false;
         this->newDialog = newDialog;
@@ -389,7 +389,7 @@ public:
     void changeDialog(std::shared_ptr<Ui> nextDialog)
     {
         assert(nextDialog);
-        std::unique_lock<std::mutex> lockIt(newDialogLock);
+        std::unique_lock<Mutex> lockIt(newDialogLock);
         this->newDialog = nextDialog;
     }
     virtual bool handleTouchUp(TouchUpEvent &event) override

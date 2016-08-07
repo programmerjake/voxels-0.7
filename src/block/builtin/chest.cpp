@@ -136,7 +136,7 @@ void Chest::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &l
         {
             std::shared_ptr<ChestData> data = static_cast<ChestBlockData *>(b.data.get())->data;
             lock_manager.clear();
-            std::unique_lock<std::recursive_mutex> lockIt(data->lock);
+            std::unique_lock<RecursiveMutex> lockIt(data->lock);
             Blocks::builtin::Chest::ChestData::ItemsType items = data->items;
             data->items = Blocks::builtin::Chest::ChestData::ItemsType();
             lockIt.unlock();

@@ -30,7 +30,7 @@
 #include <memory>
 #include <atomic>
 #include <array>
-#include <mutex>
+#include "util/lock.h"
 #include <cstdint>
 #include <cwchar>
 #include <string>
@@ -108,9 +108,9 @@ private:
     {
         InitialChunkGenerateStruct(const InitialChunkGenerateStruct &) = delete;
         InitialChunkGenerateStruct &operator =(const InitialChunkGenerateStruct &) = delete;
-        std::mutex lock;
-        std::condition_variable initialGenerationDoneCond;
-        std::condition_variable generatorWaitDoneCond;
+        Mutex lock;
+        ConditionVariable initialGenerationDoneCond;
+        ConditionVariable generatorWaitDoneCond;
         std::size_t count;
         bool generatorWait = true;
         std::atomic_bool *abortFlag;
@@ -129,7 +129,7 @@ private:
         explicit ThreadPauseGuard(World &world)
             : world(world)
         {
-            std::unique_lock<std::mutex> lockIt(world.stateLock);
+            std::unique_lock<Mutex> lockIt(world.stateLock);
             while(world.isPaused && !world.destructing)
             {
                 world.stateCond.wait(lockIt);
@@ -138,11 +138,11 @@ private:
         }
         ~ThreadPauseGuard()
         {
-            std::unique_lock<std::mutex> lockIt(world.stateLock);
+            std::unique_lock<Mutex> lockIt(world.stateLock);
             world.unpausedThreadCount--;
             world.stateCond.notify_all();
         }
-        void checkForPause(std::unique_lock<std::mutex> &lockedStateLock)
+        void checkForPause(std::unique_lock<Mutex> &lockedStateLock)
         {
             if(world.isPaused && !world.destructing)
             {
@@ -157,7 +157,7 @@ private:
         }
         void checkForPause()
         {
-            std::unique_lock<std::mutex> lockedStateLock(world.stateLock);
+            std::unique_lock<Mutex> lockedStateLock(world.stateLock);
             checkForPause(lockedStateLock);
         }
     };
@@ -185,12 +185,12 @@ public:
         }
         result_type operator ()() const
         {
-            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            std::lock_guard<Mutex> lockIt(world.randomGeneratorLock);
             return world.randomGenerator();
         }
         void discard(unsigned long long count) const
         {
-            std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
+            std::lock_guard<Mutex> lockIt(world.randomGeneratorLock);
             world.randomGenerator.discard(count);
         }
     };
@@ -727,37 +727,37 @@ public:
     }
     float getTimeOfDayInSeconds()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds;
     }
     float getTimeOfDayInDays()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds / dayDurationInSeconds;
     }
     bool isDaytime()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= timeOfDayDayStart && timeOfDayInSeconds < timeOfDayDuskStart;
     }
     bool isDusk()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= timeOfDayDuskStart && timeOfDayInSeconds < timeOfDayNightStart;
     }
     bool isNight()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= timeOfDayNightStart && timeOfDayInSeconds < timeOfDayDawnStart;
     }
     bool isDawn()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= timeOfDayDawnStart && timeOfDayInSeconds < dayDurationInSeconds;
     }
     float getLightingParameter()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         float t = 1;
         if(timeOfDayInSeconds < timeOfDayDuskStart)
         {
@@ -787,17 +787,17 @@ public:
     }
     void setTimeOfDayInSeconds(float v)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         timeOfDayInSeconds = v - dayDurationInSeconds * std::floor(v / dayDurationInSeconds);
     }
     void setTimeOfDayInDays(float v)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         timeOfDayInSeconds = dayDurationInSeconds * (v - std::floor(v));
     }
     void setTimeOfDayInSeconds(float v, int newMoonPhase)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         timeOfDayInSeconds = v - dayDurationInSeconds * std::floor(v / dayDurationInSeconds);
         moonPhase = newMoonPhase % moonPhaseCount;
         if(moonPhase < 0)
@@ -805,7 +805,7 @@ public:
     }
     void setTimeOfDayInDays(float v, int newMoonPhase)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         timeOfDayInSeconds = dayDurationInSeconds * (v - std::floor(v));
         moonPhase = newMoonPhase % moonPhaseCount;
         if(moonPhase < 0)
@@ -813,7 +813,7 @@ public:
     }
     void advanceTimeOfDay(double deltaTime) /// @param deltaTime the time to advance in seconds
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         double newTimeOfDayInSeconds = timeOfDayInSeconds + deltaTime;
         double newTimeInDays = newTimeOfDayInSeconds / dayDurationInSeconds;
         timeOfDayInSeconds = dayDurationInSeconds * static_cast<float>(newTimeInDays - std::floor(newTimeInDays));
@@ -821,18 +821,18 @@ public:
     }
     int getMoonPhase()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return moonPhase;
     }
     void getTimeOfDayInSeconds(float &timeOfDayInSeconds, int &moonPhase)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         timeOfDayInSeconds = this->timeOfDayInSeconds;
         moonPhase = this->moonPhase;
     }
     int getVisibleMoonPhase()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         int retval = moonPhase;
         if(timeOfDayInSeconds < 300.0f) // switch phases at noon
             retval = (retval + moonPhaseCount - 1) % moonPhaseCount;
@@ -840,12 +840,12 @@ public:
     }
     bool canSleepInBed()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         return timeOfDayInSeconds >= 627.05f && timeOfDayInSeconds <= 1172.9f;
     }
     bool handleSleepInBed()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
+        std::unique_lock<RecursiveMutex> lockIt(timeOfDayLock);
         if(!canSleepInBed())
             return false;
         advanceTimeOfDay(dayDurationInSeconds - timeOfDayInSeconds);
@@ -875,12 +875,12 @@ public:
     }
     bool paused()
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         return isPaused;
     }
     void paused(bool newPaused, WorldLockManager &lockManager)
     {
-        std::unique_lock<std::mutex> lockIt(stateLock);
+        std::unique_lock<Mutex> lockIt(stateLock);
         if(newPaused == isPaused)
         {
             return;
@@ -902,7 +902,7 @@ public:
 private:
     // private variables
     rc4_random_engine randomGenerator;
-    std::mutex randomGeneratorLock;
+    Mutex randomGeneratorLock;
     WorldRandomNumberGenerator wrng;
     std::uint64_t entityRunCount = 0; // number of times all entities have moved
     std::shared_ptr<PhysicsWorld> physicsWorld;
@@ -914,16 +914,16 @@ private:
     std::thread moveEntitiesThread;
     std::list<std::thread> chunkGeneratingThreads;
     std::atomic_bool destructing, lightingStable;
-    std::mutex viewPointsLock;
+    Mutex viewPointsLock;
     std::list<ViewPoint *> viewPoints;
     bool waitingForMoveEntities = false;
     double moveEntitiesDeltaTime = 1 / 60.0;
-    std::recursive_mutex timeOfDayLock;
+    RecursiveMutex timeOfDayLock;
     float timeOfDayInSeconds = 0.0;
     int moonPhase = 0;
     std::shared_ptr<PlayerList> playerList;
-    std::mutex stateLock;
-    std::condition_variable stateCond;
+    Mutex stateLock;
+    ConditionVariable stateCond;
     bool isPaused = false;
     std::size_t unpausedThreadCount = 0;
     std::thread chunkUnloaderThread;

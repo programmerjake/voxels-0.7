@@ -22,8 +22,7 @@
 #ifndef UTIL_SEMAPHORE_H_
 #define UTIL_SEMAPHORE_H_
 
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include <cstdint>
 #include <type_traits>
 #include <atomic>
@@ -39,8 +38,8 @@ class Semaphore final
 
 private:
     std::atomic_size_t atomicCount;
-    std::mutex stateLock;
-    std::condition_variable stateCond;
+    Mutex stateLock;
+    ConditionVariable stateCond;
 
 public:
     explicit Semaphore(std::size_t count);

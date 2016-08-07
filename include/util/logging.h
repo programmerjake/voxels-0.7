@@ -22,7 +22,7 @@
 #define LOGGING_H_INCLUDED
 
 #include <sstream>
-#include <mutex>
+#include "util/lock.h"
 #include <iostream>
 #include <memory>
 #include <string>
@@ -46,8 +46,8 @@ private:
     bool inPostFunction = false;
     std::wostringstream ss;
 public:
-    std::recursive_mutex *const theLock;
-    LogStream(std::recursive_mutex *theLock, std::function<void(std::wstring)> *postFunction)
+    RecursiveMutex *const theLock;
+    LogStream(RecursiveMutex *theLock, std::function<void(std::wstring)> *postFunction)
         : postFunction(postFunction),
           ss(),
           theLock(theLock)
@@ -56,17 +56,17 @@ public:
     void setPostFunction(std::function<void(std::wstring)> newPostFunction)
     {
         assert(newPostFunction != nullptr);
-        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
+        std::unique_lock<RecursiveMutex> lockIt(*theLock);
         *postFunction = newPostFunction;
     }
     std::function<void(std::wstring)> getPostFunction()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
+        std::unique_lock<RecursiveMutex> lockIt(*theLock);
         return *postFunction;
     }
     bool isInPostFunction() const
     {
-        std::unique_lock<std::recursive_mutex> lockIt(*theLock);
+        std::unique_lock<RecursiveMutex> lockIt(*theLock);
         return inPostFunction;
     }
     template <typename T>

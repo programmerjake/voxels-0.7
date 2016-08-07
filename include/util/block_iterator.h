@@ -44,60 +44,23 @@ class BlockIterator final
 {
     friend class World;
     friend class ViewPoint;
-    std::shared_ptr<BlockChunk> chunk;
-    BlockChunkMap *chunks;
+    BlockChunk *chunk;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
-    void getChunk(TLS &tls, WorldLockManager *plock_manager)
+    void getChunk(WorldLockManager &lock_manager) noexcept
     {
-        if(plock_manager)
-            plock_manager->clear();
-        chunk = (*chunks)[currentBasePosition].getOrLoad(tls);
+        assert(lock_manager.lockedBlockChunkList);
+        chunk = lock_manager.lockedBlockChunkList->getBlockChunks().at(currentBasePosition);
     }
-    BlockChunkSubchunk &getSubchunk() const
-    {
-        VectorI currentSubchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
-        return chunk->subchunks[currentSubchunkIndex.x][currentSubchunkIndex.y][currentSubchunkIndex.z];
-    }
-    BlockChunkSubchunk &getBiomeSubchunk() const
-    {
-        VectorI currentSubchunkIndex = BlockChunk::getSubchunkIndexFromChunkRelativePosition(currentRelativePosition);
-        return chunk->subchunks[currentSubchunkIndex.x][0][currentSubchunkIndex.z];
-    }
-    void updateLock(WorldLockManager &lock_manager) const
-    {
-        if(lock_manager.needLock)
-            lock_manager.block_biome_lock.set(getSubchunk().lock);
-    }
-    template <typename T>
-    void updateLock(WorldLockManager &lock_manager, T beginV, T endV) const
-    {
-        if(lock_manager.needLock)
-            lock_manager.block_biome_lock.set(getSubchunk().lock, beginV, endV);
-        else
-            lock_all(beginV, endV);
-    }
-    bool tryUpdateLock(WorldLockManager &lock_manager) const
-    {
-        if(lock_manager.needLock)
-            return lock_manager.block_biome_lock.try_set(getSubchunk().lock);
-        return true;
-    }
-    BlockIterator(std::shared_ptr<BlockChunk> chunk, BlockChunkMap *chunks, PositionI currentBasePosition, VectorI currentRelativePosition)
-        : chunk(chunk), chunks(chunks), currentBasePosition(currentBasePosition), currentRelativePosition(currentRelativePosition)
-    {
-    }
+
 public:
-    BlockIterator(BlockChunkMap *chunks, PositionI position, TLS &tls)
-        : chunk(), chunks(chunks), currentBasePosition(BlockChunk::getChunkBasePosition(position)), currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
+    BlockIterator(PositionI position, WorldLockManager &lock_manager) noexcept
+        : chunk(),
+          currentBasePosition(BlockChunk::getChunkBasePosition(position)),
+          currentRelativePosition(BlockChunk::getChunkRelativePosition(position))
     {
-        assert(chunks != nullptr);
-        getChunk(tls, nullptr);
+        getChunk(lock_manager);
     }
-    BlockIterator(const BlockIterator &) = default;
-    BlockIterator(BlockIterator &&) = default;
-    BlockIterator &operator =(const BlockIterator &) = default;
-    BlockIterator &operator =(BlockIterator &&) = default;
     PositionI position() const
     {
         return currentBasePosition + currentRelativePosition;
@@ -108,7 +71,7 @@ public:
         {
             currentRelativePosition.x = BlockChunk::chunkSizeX - 1;
             currentBasePosition.x -= BlockChunk::chunkSizeX;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
         else
             currentRelativePosition.x--;
@@ -119,7 +82,7 @@ public:
         {
             currentRelativePosition.y = BlockChunk::chunkSizeY - 1;
             currentBasePosition.y -= BlockChunk::chunkSizeY;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
         else
             currentRelativePosition.y--;
@@ -130,7 +93,7 @@ public:
         {
             currentRelativePosition.z = BlockChunk::chunkSizeZ - 1;
             currentBasePosition.z -= BlockChunk::chunkSizeZ;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
         else
             currentRelativePosition.z--;
@@ -141,7 +104,7 @@ public:
         {
             currentRelativePosition.x = 0;
             currentBasePosition.x += BlockChunk::chunkSizeX;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
         else
             currentRelativePosition.x++;
@@ -152,7 +115,7 @@ public:
         {
             currentRelativePosition.y = 0;
             currentBasePosition.y += BlockChunk::chunkSizeY;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
         else
             currentRelativePosition.y++;
@@ -163,7 +126,6 @@ public:
         {
             currentRelativePosition.z = 0;
             currentBasePosition.z += BlockChunk::chunkSizeZ;
-            getChunk(lock_manager.tls, &lock_manager);
         }
         else
             currentRelativePosition.z++;
@@ -224,7 +186,7 @@ public:
         {
             currentBasePosition += deltaBasePosition;
             currentRelativePosition -= deltaBasePosition;
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
     }
     void moveTo(VectorI pos, WorldLockManager &lock_manager)
@@ -241,47 +203,80 @@ public:
         {
             currentBasePosition = BlockChunk::getChunkBasePosition(pos);
             currentRelativePosition = BlockChunk::getChunkRelativePosition(pos);
-            getChunk(lock_manager.tls, &lock_manager);
+            getChunk(lock_manager);
         }
     }
+
 private:
-    BlockChunkBlock &getBlock() const
+    BlockChunkBlock &getBlock() const noexcept
     {
-        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+        return chunk->blocks[currentRelativePosition.x][currentRelativePosition
+                                                            .y][currentRelativePosition.z];
     }
-    BlockChunkBlock &getBlock(WorldLockManager &lock_manager) const
+    BlockChunkColumn &getColumn() const noexcept
     {
-        updateLock(lock_manager);
-        return chunk->blocks[currentRelativePosition.x][currentRelativePosition.y][currentRelativePosition.z];
+        return chunk->columns[currentRelativePosition.x][currentRelativePosition.z];
     }
-    BlockChunkBiome &getBiome() const
-    {
-        return chunk->biomes[currentRelativePosition.x][currentRelativePosition.z];
-    }
+
 public:
-    Block get(WorldLockManager &lock_manager) const
+    Block get(WorldLockManager &lock_manager) const noexcept
     {
-        BlockChunkBlock &blockChunkBlock = getBlock(lock_manager);
-        return BlockChunk::getBlockFromArray(BlockChunk::getSubchunkRelativePosition(currentRelativePosition), blockChunkBlock, getSubchunk());
+        return getBlock().getBlock();
     }
-    const BiomeProperties &getBiomeProperties(WorldLockManager &lock_manager) const
+    const BiomeProperties &getBiomeProperties(WorldLockManager &lock_manager) const noexcept
     {
-        updateLock(lock_manager);
-        return getBiome().biomeProperties;
+        return getColumn().biomeProperties;
     }
-    BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const
+    BlockUpdateIterator updatesBegin(WorldLockManager &lock_manager) const noexcept
     {
-        updateLock(lock_manager);
-        return BlockUpdateIterator(getSubchunk().blockOptionalData.getUpdateListHead(BlockChunk::getSubchunkRelativePosition(currentRelativePosition)));
+        auto &block = getBlock();
+        if(!block.extraData)
+            return BlockUpdateIterator();
+        return BlockUpdateIterator(block.extraData->blockUpdates.begin(),
+                                   block.extraData.get(),
+                                   chunk->blockUpdateListHead);
     }
-    BlockUpdateIterator updatesEnd(WorldLockManager &) const
+    BlockUpdateIterator updatesEnd(WorldLockManager &lock_manager) const noexcept
     {
-        return BlockUpdateIterator();
+        auto &block = getBlock();
+        if(!block.extraData)
+            return BlockUpdateIterator();
+        return BlockUpdateIterator(
+            block.extraData->blockUpdates.end(), block.extraData.get(), chunk->blockUpdateListHead);
     }
-    BlockChunkInvalidateCountType getInvalidateCount(WorldLockManager &lock_manager) const
+    class Updates final
     {
-        updateLock(lock_manager);
-        return getSubchunk().invalidateCount;
+        friend class BlockIterator;
+        Updates(const Updates &) = delete;
+        Updates &operator=(const Updates &) = delete;
+
+    private:
+        const BlockIterator *blockIterator;
+        WorldLockManager &lock_manager;
+        constexpr Updates(const BlockIterator *blockIterator, WorldLockManager &lock_manager)
+            : blockIterator(blockIterator), lock_manager(lock_manager)
+        {
+        }
+
+    public:
+        Updates(Updates &&) = default;
+        typedef BlockUpdateIterator iterator;
+        BlockUpdateIterator begin() const noexcept
+        {
+            return blockIterator->updatesBegin(lock_manager);
+        }
+        BlockUpdateIterator end() const noexcept
+        {
+            return blockIterator->updatesBegin(lock_manager);
+        }
+        bool empty() const noexcept
+        {
+            return begin() == end();
+        }
+    };
+    Updates updates(WorldLockManager &lock_manager) const noexcept
+    {
+        return Updates(this, lock_manager);
     }
 };
 }

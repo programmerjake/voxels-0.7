@@ -44,7 +44,7 @@ std::size_t Semaphore::getCount()
     std::size_t retval = atomicCount.load(std::memory_order_relaxed);
     if(retval != 0)
         return retval;
-    std::unique_lock<std::mutex> lockedState(stateLock);
+    std::unique_lock<Mutex> lockedState(stateLock);
     return atomicCount.load(std::memory_order_relaxed);
 }
 
@@ -58,7 +58,7 @@ bool Semaphore::try_lock(std::size_t lockCount)
         if(atomicCount.compare_exchange_strong(expected, expected - lockCount, std::memory_order_acq_rel))
             return true;
     }
-    std::unique_lock<std::mutex> lockedState(stateLock, std::try_to_lock);
+    std::unique_lock<Mutex> lockedState(stateLock, std::try_to_lock);
     if(!lockedState.owns_lock())
         return false;
     std::size_t count = atomicCount.exchange(0, std::memory_order_acq_rel);
@@ -82,7 +82,7 @@ void Semaphore::lock(std::size_t lockCount)
         if(atomicCount.compare_exchange_strong(expected, expected - lockCount, std::memory_order_acq_rel))
             return;
     }
-    std::unique_lock<std::mutex> lockedState(stateLock);
+    std::unique_lock<Mutex> lockedState(stateLock);
     std::size_t count = atomicCount.exchange(0, std::memory_order_acq_rel);
     while(lockCount > 0)
     {
@@ -117,7 +117,7 @@ void Semaphore::unlock(std::size_t unlockCount)
             return;
     }
 
-    std::unique_lock<std::mutex> lockedState(stateLock);
+    std::unique_lock<Mutex> lockedState(stateLock);
     std::size_t count = atomicCount.exchange(0, std::memory_order_acq_rel);
     if(count <= 0)
     {
@@ -145,8 +145,8 @@ void printMessageHelper(T &&arg1, Args &&... args)
 template <typename... Args>
 void printMessage(Args &&... args)
 {
-    static std::mutex lock;
-    std::unique_lock<std::mutex> lockIt(lock);
+    static Mutex lock;
+    std::unique_lock<Mutex> lockIt(lock);
     printMessageHelper(std::forward<Args>(args)...);
 }
 
@@ -154,8 +154,8 @@ initializer init1([]()
                   {
                       Semaphore semaphore(10);
                       std::vector<std::thread> threads;
-                      std::condition_variable cond;
-                      std::mutex lock;
+                      ConditionVariable cond;
+                      Mutex lock;
                       for(std::size_t i = 0; i < 100; i++)
                       {
                           threads.push_back(std::thread([&semaphore, i, &cond, &lock]()

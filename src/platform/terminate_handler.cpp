@@ -21,7 +21,7 @@
 #include "platform/terminate_handler.h"
 #include "util/util.h"
 #include <cerrno>
-#include <mutex>
+#include "util/lock.h"
 #include <thread>
 
 #if _WIN64 || _WIN32
@@ -64,8 +64,8 @@ void setOrGetTerminationHandlerFn(std::function<void()> &handler, bool setHandle
 {
     // don't free because otherwise we or the handler function
     // might be called after our static variables are destructed
-    static std::mutex *handlerLock = new std::mutex();
-    std::unique_lock<std::mutex> lockIt(*handlerLock);
+    static Mutex *handlerLock = new Mutex();
+    std::unique_lock<Mutex> lockIt(*handlerLock);
     static std::function<void()> *currentHandler = nullptr;
     if(setHandler)
     {

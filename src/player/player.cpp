@@ -72,7 +72,7 @@ void PlayerEntity::moveStep(Entity &entity,
     bool didWarp = false;
     BlockEffects blockEffects = entity.physicsObject->getBlockEffects();
     {
-        std::unique_lock<std::recursive_mutex> lockIt(player->positionLock);
+        std::unique_lock<RecursiveMutex> lockIt(player->positionLock);
         if(player->warpToLastPositionCount > 0)
         {
             lastPosition = player->lastPosition;
@@ -309,7 +309,7 @@ void PlayerEntity::makeData(Entity &entity, World &world, WorldLockManager &lock
         return;
     }
     player->playerEntity = &entity;
-    std::unique_lock<std::recursive_mutex> lockIt(player->positionLock);
+    std::unique_lock<RecursiveMutex> lockIt(player->positionLock);
     if(player->warpToLastPositionCount > 0)
     {
         PositionF lastPosition = player->lastPosition;
@@ -448,14 +448,14 @@ bool Player::removeBlock(RayCasting::Collision collision,
 
 void PlayerList::addPlayer(std::shared_ptr<Player> player)
 {
-    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    std::unique_lock<RecursiveMutex> theLock(playersLock);
     assert(players.count(player->name) == 0);
     players.emplace(player->name, player);
 }
 
 void PlayerList::removePlayer(std::wstring name)
 {
-    std::unique_lock<std::recursive_mutex> theLock(playersLock);
+    std::unique_lock<RecursiveMutex> theLock(playersLock);
     players.erase(name);
 }
 
@@ -485,12 +485,12 @@ void Player::write(stream::Writer &writer)
 {
     PositionF lastPosition;
     {
-        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
+        std::unique_lock<RecursiveMutex> lockIt(positionLock);
         lastPosition = this->lastPosition;
     }
     stream::write<PositionF>(writer, lastPosition);
     stream::write<std::wstring>(writer, name);
-    std::unique_lock<std::recursive_mutex> lockIt(itemsLock);
+    std::unique_lock<RecursiveMutex> lockIt(itemsLock);
     ItemStackArray<9, 4> itemsCopy = items;
     std::size_t currentItemIndexCopy = currentItemIndex;
     lockIt.unlock();
@@ -563,7 +563,7 @@ Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pwo
                          });
     gameInput->hotBarMoveLeft.bind([this](EventArguments &)
                                    {
-                                       std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+                                       std::unique_lock<RecursiveMutex> theLock(itemsLock);
                                        currentItemIndex =
                                            (currentItemIndex + items.itemStacks.size() - 1)
                                            % items.itemStacks.size();
@@ -571,7 +571,7 @@ Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pwo
                                    });
     gameInput->hotBarMoveRight.bind([this](EventArguments &)
                                     {
-                                        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+                                        std::unique_lock<RecursiveMutex> theLock(itemsLock);
                                         currentItemIndex =
                                             (currentItemIndex + 1) % items.itemStacks.size();
                                         return Event::ReturnType::Propagate;
@@ -579,7 +579,7 @@ Player::Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pwo
     gameInput->hotBarSelect.bind(
         [this](EventArguments &argsIn)
         {
-            std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+            std::unique_lock<RecursiveMutex> theLock(itemsLock);
             HotBarSelectEventArguments &args = dynamic_cast<HotBarSelectEventArguments &>(argsIn);
             currentItemIndex = (args.newSelection % items.itemStacks.size()
                                 + items.itemStacks.size()) % items.itemStacks.size();

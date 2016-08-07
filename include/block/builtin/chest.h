@@ -23,7 +23,7 @@
 
 #include "block/builtin/full_block.h"
 #include "item/item.h"
-#include <mutex>
+#include "util/lock.h"
 #include "texture/texture_atlas.h"
 #include <cassert>
 #include "util/util.h"
@@ -55,7 +55,7 @@ class Chest final : public FullBlock
 private:
     struct ChestData final
     {
-        std::recursive_mutex lock;
+        RecursiveMutex lock;
         typedef ItemStackArray<9, 3> ItemsType;
         ItemsType items;
         ChestData()
@@ -71,7 +71,7 @@ private:
         }
         void write(stream::Writer &writer)
         {
-            std::unique_lock<std::recursive_mutex> lockIt(lock);
+            std::unique_lock<RecursiveMutex> lockIt(lock);
             auto items = this->items;
             lockIt.unlock();
 

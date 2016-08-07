@@ -23,8 +23,7 @@
 #include "util/string_cast.h"
 #include <cstdlib>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include <chrono>
 #include "platform/platform.h"
 #include "platform/thread_priority.h"
@@ -48,13 +47,13 @@ private:
     bool done;
     const double maxFrameTime;
     bool needNextFrame;
-    std::mutex stateLock;
-    std::condition_variable stateCond;
+    Mutex stateLock;
+    ConditionVariable stateCond;
     void frameReaderThreadFn()
     {
         using std::swap;
         auto lastTime = std::chrono::steady_clock::now();
-        std::unique_lock<std::mutex> theLock(stateLock);
+        std::unique_lock<Mutex> theLock(stateLock);
         while(!done)
         {
             theLock.unlock();
@@ -105,7 +104,7 @@ public:
     }
     ~BufferedVideoInput()
     {
-        std::unique_lock<std::mutex> theLock(stateLock);
+        std::unique_lock<Mutex> theLock(stateLock);
         done = true;
         stateCond.notify_all();
         theLock.unlock();
@@ -113,13 +112,13 @@ public:
     }
     virtual void getSize(int &width, int &height) override
     {
-        std::unique_lock<std::mutex> theLock(stateLock);
+        std::unique_lock<Mutex> theLock(stateLock);
         width = buffer.width();
         height = buffer.height();
     }
     virtual void readFrameIntoImage(Image &dest) override
     {
-        std::unique_lock<std::mutex> theLock(stateLock);
+        std::unique_lock<Mutex> theLock(stateLock);
         dest = buffer;
         needNextFrame = true;
         stateCond.notify_all();

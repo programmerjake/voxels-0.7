@@ -39,13 +39,12 @@
 #include <chrono>
 #include <atomic>
 #include <thread>
-#include <mutex>
+#include "util/lock.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <functional>
 #include <deque>
-#include <condition_variable>
 #include <cctype>
 #include "platform/audio.h"
 #include "platform/thread_priority.h"
@@ -475,8 +474,8 @@ static atomic_bool runningGraphics(false), runningSDL(false), runningAudio(false
 static atomic_int SDLUseCount(0);
 static atomic_bool addedAtExits(false);
 #if 0
-static std::mutex renderThreadLock;
-static std::condition_variable renderThreadCond;
+static Mutex renderThreadLock;
+static ConditionVariable renderThreadCond;
 static std::thread renderThread;
 static std::atomic_bool renderThreadRunning(false);
 struct RenderThreadFunction final
@@ -486,7 +485,7 @@ struct RenderThreadFunction final
     RenderThreadFunction(RenderThreadFunction &&) = default;
     RenderThreadFunction &operator =(RenderThreadFunction &&) = default;
     std::function<void()> fn;
-    std::condition_variable *cond = nullptr;
+    ConditionVariable *cond = nullptr;
     enum State
     {
         Waiting,
@@ -494,7 +493,7 @@ struct RenderThreadFunction final
         Aborted
     };
     State *state;
-    RenderThreadFunction(std::function<void()> fn, std::condition_variable *cond, State *state)
+    RenderThreadFunction(std::function<void()> fn, ConditionVariable *cond, State *state)
         : fn(fn), cond(cond), state(state)
     {
     }
@@ -503,7 +502,7 @@ static std::deque<RenderThreadFunction> renderThreadFnQueue;
 
 static void renderThreadRunFn()
 {
-    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    std::unique_lock<Mutex> lockIt(renderThreadLock);
     for(;;)
     {
         while(renderThreadFnQueue.empty())
@@ -544,7 +543,7 @@ static void renderThreadRunFn()
 
 static void stopRenderThread()
 {
-    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    std::unique_lock<Mutex> lockIt(renderThreadLock);
     if(!renderThreadRunning)
         return;
     renderThreadFnQueue.push_back(RenderThreadFunction(nullptr, nullptr, nullptr));
@@ -555,7 +554,7 @@ static void stopRenderThread()
 static bool runOnRenderThread(std::function<void()> fn)
 {
     assert(fn != nullptr);
-    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    std::unique_lock<Mutex> lockIt(renderThreadLock);
     if(!renderThreadRunning)
     {
         if(!renderThreadRunning.exchange(true))
@@ -564,7 +563,7 @@ static bool runOnRenderThread(std::function<void()> fn)
         }
     }
     RenderThreadFunction::State state = RenderThreadFunction::Waiting;
-    std::condition_variable cond;
+    ConditionVariable cond;
     renderThreadFnQueue.push_back(RenderThreadFunction(fn, &cond, &state));
     while(state == RenderThreadFunction::Waiting)
         cond.wait(lockIt);
@@ -577,7 +576,7 @@ class RunOnRenderThreadStatus final
 {
 private:
     RenderThreadFunction::State state = RenderThreadFunction::Waiting;
-    std::condition_variable cond;
+    ConditionVariable cond;
     bool did_wait = true;
 public:
     RunOnRenderThreadStatus(const RunOnRenderThreadStatus &) = delete;
@@ -593,7 +592,7 @@ public:
     {
         if(did_wait)
             return true;
-        std::unique_lock<std::mutex> lockIt(renderThreadLock, std::try_to_lock);
+        std::unique_lock<Mutex> lockIt(renderThreadLock, std::try_to_lock);
         if(!lockIt.owns_lock())
             return false;
         if(state == RenderThreadFunction::Waiting)
@@ -605,7 +604,7 @@ public:
     {
         if(did_wait)
             return;
-        std::unique_lock<std::mutex> lockIt(renderThreadLock);
+        std::unique_lock<Mutex> lockIt(renderThreadLock);
         while(state == RenderThreadFunction::Waiting)
             cond.wait(lockIt);
         did_wait = true;
@@ -621,7 +620,7 @@ public:
 static void runOnRenderThreadAsync(std::function<void()> fn)
 {
     assert(fn != nullptr);
-    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    std::unique_lock<Mutex> lockIt(renderThreadLock);
     if(!renderThreadRunning)
     {
         if(!renderThreadRunning.exchange(true))
@@ -635,7 +634,7 @@ static void runOnRenderThreadAsync(std::function<void()> fn)
 static void runOnRenderThreadAsync(std::function<void()> fn, RunOnRenderThreadStatus &status)
 {
     assert(fn != nullptr);
-    std::unique_lock<std::mutex> lockIt(renderThreadLock);
+    std::unique_lock<Mutex> lockIt(renderThreadLock);
     if(!renderThreadRunning)
     {
         if(!renderThreadRunning.exchange(true))
@@ -1587,8 +1586,8 @@ static std::shared_ptr<PlatformEvent> makeEvent(SDL_Event &SDLEvent)
     return nullptr;
 }
 
-static std::mutex synchronousEventLock;
-static std::condition_variable synchronousEventCond;
+static Mutex synchronousEventLock;
+static ConditionVariable synchronousEventCond;
 static SDL_Event *synchronousEvent = nullptr;
 
 static int SDLCALL myEventFilterFunction(void *userData, SDL_Event *event)
@@ -1602,7 +1601,7 @@ static int SDLCALL myEventFilterFunction(void *userData, SDL_Event *event)
     {
         if(std::this_thread::get_id() == mainThreadId)
             return 1;
-        std::unique_lock<std::mutex> lockIt(synchronousEventLock);
+        std::unique_lock<Mutex> lockIt(synchronousEventLock);
         assert(synchronousEvent == nullptr);
         synchronousEvent = event;
         while(synchronousEvent)
@@ -1618,7 +1617,7 @@ static int SDLCALL myEventFilterFunction(void *userData, SDL_Event *event)
 
 static std::shared_ptr<PlatformEvent> getSynchronousEvent()
 {
-    std::unique_lock<std::mutex> lockIt(synchronousEventLock);
+    std::unique_lock<Mutex> lockIt(synchronousEventLock);
     if(synchronousEvent)
     {
         auto retval = makeEvent(*synchronousEvent);
@@ -4257,12 +4256,12 @@ static void getExtensions()
 }
 
 static std::vector<std::uint32_t> *freeTextures = nullptr;
-static std::mutex freeTexturesLock;
+static Mutex freeTexturesLock;
 
 std::uint32_t allocateTexture()
 {
     std::uint32_t retval;
-    std::unique_lock<std::mutex> lockIt(freeTexturesLock);
+    std::unique_lock<Mutex> lockIt(freeTexturesLock);
     if(freeTextures == nullptr)
         freeTextures = new std::vector<std::uint32_t>();
     if(freeTextures->empty())
@@ -4281,7 +4280,7 @@ void freeTexture(std::uint32_t texture)
 {
     if(texture == 0)
         return;
-    std::unique_lock<std::mutex> lockIt(freeTexturesLock);
+    std::unique_lock<Mutex> lockIt(freeTexturesLock);
     if(freeTextures == nullptr)
         freeTextures = new std::vector<std::uint32_t>();
     freeTextures->push_back(texture);

@@ -132,7 +132,7 @@ void Furnace::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager 
         {
             std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(b.data.get())->data;
             lock_manager.clear();
-            std::unique_lock<std::recursive_mutex> lockIt(data->lock);
+            std::unique_lock<RecursiveMutex> lockIt(data->lock);
             ItemStack inputStack = data->inputStack;
             data->inputStack = ItemStack();
             ItemStack outputStack = data->outputStack;

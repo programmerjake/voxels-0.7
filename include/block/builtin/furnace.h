@@ -24,7 +24,7 @@
 #include "block/builtin/full_block.h"
 #include "item/item.h"
 #include "entity/builtin/tile.h"
-#include <mutex>
+#include "util/lock.h"
 #include "texture/texture_atlas.h"
 #include <cassert>
 #include "util/util.h"
@@ -58,7 +58,7 @@ private:
     struct FurnaceData final
     {
         std::atomic_bool hasEntity;
-        std::recursive_mutex lock;
+        RecursiveMutex lock;
         ItemStack outputStack;
         ItemStack inputStack;
         ItemStack fuelStack;
@@ -153,7 +153,7 @@ private:
         }
         void write(stream::Writer &writer)
         {
-            std::unique_lock<std::recursive_mutex> lockIt(lock);
+            std::unique_lock<RecursiveMutex> lockIt(lock);
             ItemStack outputStack = this->outputStack;
             ItemStack inputStack = this->inputStack;
             ItemStack fuelStack = this->fuelStack;
@@ -240,7 +240,7 @@ private:
     {
         delete tileEntity;
     }
-    void handleSmelt(std::shared_ptr<FurnaceData> data, std::unique_lock<std::recursive_mutex> &lockIt, World &world, WorldLockManager &lock_manager, double deltaTime, bool hasFuel) const
+    void handleSmelt(std::shared_ptr<FurnaceData> data, std::unique_lock<RecursiveMutex> &lockIt, World &world, WorldLockManager &lock_manager, double deltaTime, bool hasFuel) const
     {
         if(!data->canProgressSmeltIgnoringFuel())
         {
@@ -266,7 +266,7 @@ private:
         assert(b.data != nullptr);
         std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(b.data.get())->data;
         lock_manager.clear();
-        std::unique_lock<std::recursive_mutex> lockIt(data->lock);
+        std::unique_lock<RecursiveMutex> lockIt(data->lock);
         if(data->burnTimeLeft < deltaTime)
         {
             double deltaTimeLeft = deltaTime;

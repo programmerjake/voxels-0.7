@@ -37,12 +37,11 @@
 #include <iostream>
 #include <cmath>
 #include <tuple>
-#include <mutex>
+#include "util/lock.h"
 #include "util/cached_variable.h"
 #include "util/logging.h"
 #include "util/object_counter.h"
 #include "util/ordered_weak_ptr.h"
-#include "util/lock.h"
 #include "util/util.h"
 #include "util/tls.h"
 

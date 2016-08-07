@@ -47,8 +47,7 @@
 
 #include "stream/stream.h"
 #include <iostream>
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include <thread>
 #include <cstdlib>
 #include "util/util.h"

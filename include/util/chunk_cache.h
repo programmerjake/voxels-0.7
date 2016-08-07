@@ -27,7 +27,7 @@
 #include <cstdio>
 #include <memory>
 #include <unordered_map>
-#include <mutex>
+#include "util/lock.h"
 
 namespace programmerjake
 {
@@ -70,7 +70,7 @@ private:
     std::shared_ptr<stream::Writer> writer;
     std::unordered_map<PositionI, std::size_t> startingChunksMap;
     std::vector<FileChunkState> fileChunks;
-    std::mutex theLock;
+    Mutex theLock;
 };
 
 }

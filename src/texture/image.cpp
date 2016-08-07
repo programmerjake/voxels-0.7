@@ -227,15 +227,15 @@ void Image::copyRect(int destLeft, int destTop, int destW, int destH, Image src,
         destH = (int)data->h - destTop;
     if(destW <= 0 || destH <= 0)
         return;
-    std::unique_lock<std::mutex> destLock(data->lock, std::defer_lock);
-    std::unique_lock<std::mutex> srcLock;
+    std::unique_lock<Mutex> destLock(data->lock, std::defer_lock);
+    std::unique_lock<Mutex> srcLock;
     if(src.data == data)
     {
         destLock.lock();
     }
     else
     {
-        srcLock = std::unique_lock<std::mutex>(src.data->lock, std::defer_lock);
+        srcLock = std::unique_lock<Mutex>(src.data->lock, std::defer_lock);
         std::lock(srcLock, destLock);
     }
     setRowOrder(RowOrder::TopToBottom);

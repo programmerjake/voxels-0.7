@@ -24,7 +24,7 @@
 #include <type_traits>
 #include <atomic>
 #include <unordered_map>
-#include <mutex>
+#include "util/lock.h"
 #include "util/logging.h"
 #include "platform/stack_trace.h"
 #include <vector>
@@ -59,13 +59,13 @@ void log_alloc(std::size_t count)
     {
         if(count >= (1 << 10)) // ignore small allocations
         {
-            static std::mutex allocationsMapLock;
+            static Mutex allocationsMapLock;
             typedef std::unordered_map<StackTrace, std::size_t> AllocationsMapType;
             static AllocationsMapType allocationsMap;
             static std::size_t byteCount = 0;
             const std::size_t dumpByteCount = 1 << 27; // 128 MiB
             StackTrace trace = StackTrace::make();
-            std::unique_lock<std::mutex> lockIt(allocationsMapLock);
+            std::unique_lock<Mutex> lockIt(allocationsMapLock);
             allocationsMap[std::move(trace)] += count;
             byteCount += count;
             if(byteCount >= dumpByteCount && !getDebugLog().isInPostFunction())

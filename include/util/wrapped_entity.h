@@ -26,7 +26,7 @@
 #include "util/intrusive_list.h"
 #include "entity/entity_struct.h"
 #include "util/object_counter.h"
-#include <mutex>
+#include "util/lock.h"
 
 namespace programmerjake
 {

@@ -232,6 +232,15 @@ std::cv_status Mutex::releaseKeyedEvent(void *handle,
 {
     return static_cast<KeyedEvent *>(handle)->doWait(key, timeout, false);
 }
+
+Mutex::threadIdValue Mutex::getCurrentThreadId() noexcept
+{
+    static atomicThreadId nextThreadId(emptyThreadId + 1);
+    static thread_local threadIdValue retval = nextThreadId.fetch_add(1, std::memory_order_relaxed);
+    assert(retval != emptyThreadId);
+    return retval;
+}
+
 void Mutex::checkpoint() noexcept
 {
     static std::mutex lock;
@@ -252,6 +261,7 @@ void Mutex::checkpoint() noexcept
             break;
     }
 }
+
 namespace
 {
 void test()
@@ -392,6 +402,11 @@ std::cv_status Mutex::releaseKeyedEvent(void *handle,
     if(status != STATUS_SUCCESS)
         handleNtapiError(status);
     return std::cv_status::no_timeout;
+}
+
+Mutex::threadIdValue Mutex::getCurrentThreadId() noexcept
+{
+    return ::GetCurrentThreadId();
 }
 }
 }

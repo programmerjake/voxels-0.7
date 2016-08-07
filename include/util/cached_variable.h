@@ -24,7 +24,7 @@
 #include <atomic>
 #include <cstdint>
 #include "util/spin_lock.h"
-#include <mutex> // for lock_guard
+#include "util/lock.h" // for lock_guard
 
 namespace programmerjake
 {

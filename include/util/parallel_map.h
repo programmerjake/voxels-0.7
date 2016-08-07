@@ -26,7 +26,7 @@
 #include <tuple>
 #include <stdexcept>
 #include <cstddef>
-#include <mutex>
+#include "util/lock.h"
 #include <memory>
 #include "util/util.h"
 
@@ -75,7 +75,7 @@ private:
 
     size_type bucket_count = 0;
     Node **buckets = nullptr;
-    std::shared_ptr<std::recursive_mutex> bucket_locks = nullptr;
+    std::shared_ptr<RecursiveMutex> bucket_locks = nullptr;
     hasher the_hasher;
     key_equal the_comparer;
 
@@ -136,7 +136,7 @@ private:
         size_type bucket_index;
         size_type bucket_count;
         Node **buckets;
-        std::shared_ptr<std::recursive_mutex> bucket_locks;
+        std::shared_ptr<RecursiveMutex> bucket_locks;
         bool locked;
         iterator_imp(Node *node, size_type bucket_index, const parallel_map *parent_map, bool locked)
             : node(node), bucket_index(bucket_index), bucket_count(parent_map->bucket_count), buckets(parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(locked)
@@ -204,7 +204,7 @@ private:
         {
             unlock();
         }
-        std::recursive_mutex &get_lock()
+        RecursiveMutex &get_lock()
         {
             return bucket_locks.get()[bucket_index];
         }
@@ -449,7 +449,7 @@ public:
         buckets = new Node *[bucket_count];
         for(size_type i = 0; i < bucket_count; i++)
             buckets[i] = nullptr;
-        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
+        bucket_locks = std::shared_ptr<RecursiveMutex>(new RecursiveMutex[bucket_count], [](RecursiveMutex *v)
         {
             delete []v;
         });
@@ -464,7 +464,7 @@ public:
         buckets = new Node *[bucket_count];
         for(size_type i = 0; i < bucket_count; i++)
             buckets[i] = nullptr;
-        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
+        bucket_locks = std::shared_ptr<RecursiveMutex>(new RecursiveMutex[bucket_count], [](RecursiveMutex *v)
         {
             delete []v;
         });
@@ -491,7 +491,7 @@ public:
     {
         for(size_type i = 0; i < bucket_count; i++)
         {
-            std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[i]);
+            std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[i]);
             while(buckets[i] != nullptr)
             {
                 Node *delete_me = buckets[i];
@@ -514,7 +514,7 @@ public:
             delete []buckets;
             bucket_count = r.bucket_count;
             buckets = new Node *[bucket_count];
-            bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
+            bucket_locks = std::shared_ptr<RecursiveMutex>(new RecursiveMutex[bucket_count], [](RecursiveMutex *v)
             {
                 delete []v;
             });
@@ -574,7 +574,7 @@ public:
     iterator find(const key_type &key)
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -590,7 +590,7 @@ public:
         const key_type &key = std::get<0>(kv_pair);
         size_type key_hash = (size_type)the_hasher(key);
         size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -609,7 +609,7 @@ public:
     const_iterator find(const key_type &key) const
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -624,7 +624,7 @@ public:
     {
         size_type key_hash = (size_type)the_hasher(key);
         size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -642,7 +642,7 @@ public:
     {
         size_type key_hash = (size_type)the_hasher(key);
         size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -656,7 +656,7 @@ public:
     {
         size_type key_hash = (size_type)the_hasher(key);
         size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *retval = buckets[current_hash]; retval != nullptr; retval = retval->hash_next)
         {
             if(the_comparer(std::get<0>(retval->value), key))
@@ -669,7 +669,7 @@ public:
     size_type erase(const key_type &key)
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         Node **pnode = &buckets[current_hash];
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
         {
@@ -694,9 +694,9 @@ public:
 
         iterator retval = iterator(std::move(position.imp));
         ++retval;
-        std::unique_lock<std::recursive_mutex> lock_it;
+        std::unique_lock<RecursiveMutex> lock_it;
         if(retval.get_bucket_index() != current_hash || retval == end())
-            lock_it = std::unique_lock<std::recursive_mutex>(bucket_locks.get()[current_hash]);
+            lock_it = std::unique_lock<RecursiveMutex>(bucket_locks.get()[current_hash]);
         else if(!retval.is_locked())
             retval.lock();
         for(Node **pnode = &buckets[current_hash]; *pnode != nullptr; pnode = &(*pnode)->hash_next)
@@ -714,10 +714,10 @@ public:
     {
         return find(key) != end() ? 1 : 0;
     }
-    std::unique_lock<std::recursive_mutex> bucket_lock(const key_type &key)
+    std::unique_lock<RecursiveMutex> bucket_lock(const key_type &key)
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
-        return std::unique_lock<std::recursive_mutex>(bucket_locks.get()[current_hash]);
+        return std::unique_lock<RecursiveMutex>(bucket_locks.get()[current_hash]);
     }
     class node_ptr final
     {
@@ -840,7 +840,7 @@ public:
         size_type key_hash = (size_type)the_hasher(key);
         pnode->cachedHash = key_hash;
         size_type current_hash = key_hash % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         for(Node *pretval = buckets[current_hash]; pretval != nullptr; pretval = pretval->hash_next)
         {
             if(the_comparer(std::get<0>(pretval->value), key))
@@ -885,7 +885,7 @@ public:
     node_ptr extract(const key_type &key)
     {
         size_type current_hash = (size_type)the_hasher(key) % bucket_count;
-        std::unique_lock<std::recursive_mutex> lock_it(bucket_locks.get()[current_hash]);
+        std::unique_lock<RecursiveMutex> lock_it(bucket_locks.get()[current_hash]);
         Node **pnode = &buckets[current_hash];
         for(Node *node = *pnode; node != nullptr; pnode = &node->hash_next, node = *pnode)
         {

@@ -30,8 +30,7 @@
 #include <limits>
 #include "stream/stream.h"
 #include "util/util.h"
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include <thread>
 #include <functional>
 #include "platform/thread_name.h"
@@ -680,14 +679,14 @@ class StreamBufferingAudioDecoder final : public AudioDecoder
     std::list<std::vector<float>> fullBuffers;
     std::list<std::vector<float>> emptyBuffers;
     std::size_t fullBufferCount = 0, emptyBufferCount = 0;
-    std::mutex buffersListsLock;
-    std::condition_variable readerCond;
-    std::condition_variable writerCond;
+    Mutex buffersListsLock;
+    ConditionVariable readerCond;
+    ConditionVariable writerCond;
     bool done;
     std::thread decoderThread;
     void decoderThreadFn()
     {
-        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        std::unique_lock<Mutex> lockIt(buffersListsLock);
         while(!done)
         {
             while(!done && emptyBufferCount == 0)
@@ -749,7 +748,7 @@ public:
     }
     ~StreamBufferingAudioDecoder()
     {
-        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        std::unique_lock<Mutex> lockIt(buffersListsLock);
         done = true;
         writerCond.notify_all();
         lockIt.unlock();
@@ -770,7 +769,7 @@ public:
     virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
     {
         std::uint64_t retval = 0;
-        std::unique_lock<std::mutex> lockIt(buffersListsLock);
+        std::unique_lock<Mutex> lockIt(buffersListsLock);
         for(; samplesCount > 0; samplesCount--, retval++)
         {
             if(leftoversCurrentLocation + channelCountValue > leftovers.size())

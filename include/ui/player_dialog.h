@@ -134,7 +134,7 @@ protected:
     {
         return destItemStack->transfer(*sourceItemStack, transferCount);
     }
-    std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(VectorF position)
+    std::pair<std::shared_ptr<ItemStack>, RecursiveMutex *> getItemStackFromPosition(VectorF position)
     {
         position /= -position.z;
         for(std::shared_ptr<Element> e : *this)
@@ -146,9 +146,9 @@ protected:
                 continue;
             if(!canSelectItemStack(item))
                 continue;
-            return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(item->getItemStack(), item->getItemStackLock());
+            return std::pair<std::shared_ptr<ItemStack>, RecursiveMutex *>(item->getItemStack(), item->getItemStackLock());
         }
-        return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(nullptr, nullptr);
+        return std::pair<std::shared_ptr<ItemStack>, RecursiveMutex *>(nullptr, nullptr);
     }
     virtual void addElements()
     {
@@ -247,14 +247,14 @@ public:
         if(isTouchSelection)
             return true;
         VectorF position = Display::transformMouseTo3D(event.x, event.y);
-        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        std::pair<std::shared_ptr<ItemStack>, RecursiveMutex *> itemStack = getItemStackFromPosition(position);
         if(std::get<0>(itemStack) == nullptr)
             return true;
-        std::unique_lock<std::recursive_mutex> theLock;
+        std::unique_lock<RecursiveMutex> theLock;
         if(plock_manager)
             plock_manager->clear();
         if(std::get<1>(itemStack) != nullptr)
-            theLock = std::unique_lock<std::recursive_mutex>(*std::get<1>(itemStack));
+            theLock = std::unique_lock<RecursiveMutex>(*std::get<1>(itemStack));
         if(selectedItem == nullptr)
         {
             if(!std::get<0>(itemStack)->good())
@@ -338,14 +338,14 @@ protected:
     {
         if(selectedItem && !isTouchSelection)
             return;
-        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        std::pair<std::shared_ptr<ItemStack>, RecursiveMutex *> itemStack = getItemStackFromPosition(position);
         if(std::get<0>(itemStack) == nullptr)
             return;
-        std::unique_lock<std::recursive_mutex> theLock;
+        std::unique_lock<RecursiveMutex> theLock;
         if(plock_manager)
             plock_manager->clear();
         if(std::get<1>(itemStack) != nullptr)
-            theLock = std::unique_lock<std::recursive_mutex>(*std::get<1>(itemStack));
+            theLock = std::unique_lock<RecursiveMutex>(*std::get<1>(itemStack));
         if(selectedItem == nullptr)
         {
             if(!std::get<0>(itemStack)->good())

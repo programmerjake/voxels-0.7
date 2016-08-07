@@ -35,7 +35,7 @@ void operator <<(LogStream &os, post_t)
 {
     LogStream *logStream = dynamic_cast<LogStream *>(&os);
     assert(logStream != nullptr);
-    std::unique_lock<std::recursive_mutex> lockIt(*logStream->theLock);
+    std::unique_lock<RecursiveMutex> lockIt(*logStream->theLock);
     try
     {
         logStream->inPostFunction = true;
@@ -52,7 +52,7 @@ void operator <<(LogStream &os, post_t)
 
 LogStream &getDebugLog(TLS &tls)
 {
-    static std::recursive_mutex theLock;
+    static RecursiveMutex theLock;
     static std::function<void(std::wstring)> postFunction = defaultDebugLogPostFunction;
     struct TheLogStreamTag
     {

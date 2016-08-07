@@ -31,7 +31,7 @@
 #include <cassert>
 #include <memory>
 #include <atomic>
-#include <mutex>
+#include "util/lock.h"
 #include <iterator>
 #include <unordered_map>
 #include "util/intrusive_list.h"
@@ -190,7 +190,7 @@ private:
     Player(std::wstring name, ui::GameUi *gameUi, std::shared_ptr<World> pworld);
     PositionF lastPosition;
     int warpToLastPositionCount = 0;
-    std::recursive_mutex positionLock;
+    RecursiveMutex positionLock;
     Entity *playerEntity;
     std::shared_ptr<GameInputMonitoring> gameInputMonitoring;
     ui::GameUi *gameUi;
@@ -208,7 +208,7 @@ public:
     const std::wstring name;
     std::size_t currentItemIndex = 0;
     ItemStackArray<9, 4> items;
-    std::recursive_mutex itemsLock;
+    RecursiveMutex itemsLock;
     Entity *getPlayerEntity() const
     {
         return playerEntity;
@@ -223,7 +223,7 @@ public:
     }
     void warpToPosition(PositionF position)
     {
-        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
+        std::unique_lock<RecursiveMutex> lockIt(positionLock);
         lastPosition = position;
         warpToLastPositionCount = 2; // extra overlap so we don't have issues with a data-race
     }
@@ -247,7 +247,7 @@ public:
     }
     PositionF getPosition()
     {
-        std::unique_lock<std::recursive_mutex> lockIt(positionLock);
+        std::unique_lock<RecursiveMutex> lockIt(positionLock);
         return lastPosition;
     }
     VectorF getViewDirectionXZ() const
@@ -361,7 +361,7 @@ public:
     {
         if(!item.good())
             return 1;
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        std::unique_lock<RecursiveMutex> theLock(itemsLock);
         unsigned addedCount = items.itemStacks[currentItemIndex][0].insert(item);
         if(addedCount > 0)
             return addedCount;
@@ -373,7 +373,7 @@ public:
     }
     const ItemStack getSelectedItemStack()
     {
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        std::unique_lock<RecursiveMutex> theLock(itemsLock);
         return items.itemStacks[currentItemIndex][0];
     }
     Item getSelectedItem()
@@ -382,7 +382,7 @@ public:
     }
     Item removeSelectedItem()
     {
-        std::unique_lock<std::recursive_mutex> theLock(itemsLock);
+        std::unique_lock<RecursiveMutex> theLock(itemsLock);
         Item retval = getSelectedItem();
         int removedCount = getSelectedItemStackReference().remove(retval);
         if(removedCount > 0)
@@ -415,7 +415,7 @@ class PlayerList final
 private:
     typedef std::unordered_map<std::wstring, std::shared_ptr<Player>> ListType;
     ListType players;
-    std::recursive_mutex playersLock;
+    RecursiveMutex playersLock;
     void addPlayer(std::shared_ptr<Player> player);
     void removePlayer(std::wstring name);
     ListType::iterator begin()
@@ -440,7 +440,7 @@ class LockedPlayers final
     friend class PlayerList;
 
 private:
-    std::unique_lock<std::recursive_mutex> theLock;
+    std::unique_lock<RecursiveMutex> theLock;
     PlayerList &players;
     LockedPlayers(PlayerList &players) : theLock(players.playersLock), players(players)
     {

@@ -31,7 +31,7 @@
 #include <openssl/conf.h>
 #include <openssl/rand.h>
 #include <iostream>
-#include <mutex>
+#include "util/lock.h"
 #include <thread>
 #include <cstdlib>
 #include <new> // for std::bad_alloc
@@ -82,7 +82,7 @@ struct OpenSSLCallbacks final
     ~OpenSSLCallbacks() = delete;
     struct dynlock final
     {
-        std::mutex lock;
+        Mutex lock;
         dynlock()
             : lock()
         {
@@ -109,11 +109,11 @@ struct OpenSSLCallbacks final
     }
     struct MutexArray final
     {
-        std::mutex *const array;
+        Mutex *const array;
         MutexArray(const MutexArray &) = delete;
         MutexArray &operator =(const MutexArray &) = delete;
         MutexArray(std::size_t count)
-            : array(new std::mutex[count])
+            : array(new Mutex[count])
         {
         }
         ~MutexArray()

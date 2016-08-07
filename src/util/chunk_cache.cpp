@@ -53,7 +53,7 @@ ChunkCache::~ChunkCache()
 
 bool ChunkCache::hasChunk(PositionI chunkBasePosition)
 {
-    std::unique_lock<std::mutex> lockIt(theLock);
+    std::unique_lock<Mutex> lockIt(theLock);
     return startingChunksMap.count(chunkBasePosition) != 0;
 }
 
@@ -61,7 +61,7 @@ void ChunkCache::getChunk(PositionI chunkBasePosition, std::vector<std::uint8_t>
 {
     try
     {
-        std::unique_lock<std::mutex> lockIt(theLock);
+        std::unique_lock<Mutex> lockIt(theLock);
         auto iter = startingChunksMap.find(chunkBasePosition);
         if(iter == startingChunksMap.end())
             throw stream::IOException("ChunkCache: chunk not found");
@@ -88,7 +88,7 @@ void ChunkCache::getChunk(PositionI chunkBasePosition, std::vector<std::uint8_t>
 void ChunkCache::setChunk(PositionI chunkBasePosition, const std::vector<std::uint8_t> &buffer)
 {
     getDebugLog() << "stored chunk at " << chunkBasePosition << " with buffer of length " << buffer.size() << postnl;
-    std::unique_lock<std::mutex> lockIt(theLock);
+    std::unique_lock<Mutex> lockIt(theLock);
     static_assert(NullChunk == std::size_t(), "invalid value for NullChunk");
     std::size_t &startingChunkIndex = startingChunksMap[chunkBasePosition];
     std::size_t prevChunkIndex = NullChunk;

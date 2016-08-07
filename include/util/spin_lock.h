@@ -23,8 +23,7 @@
 
 #include <atomic>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
+#include "util/lock.h"
 #include "util/cpu_relax.h"
 
 namespace programmerjake
@@ -57,8 +56,8 @@ struct blocking_spin_lock final
 {
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
     std::atomic_ulong waitingCount;
-    std::condition_variable cond;
-    std::mutex lockMutex;
+    ConditionVariable cond;
+    Mutex lockMutex;
     blocking_spin_lock()
         : waitingCount(0), cond(), lockMutex()
     {
@@ -78,7 +77,7 @@ struct blocking_spin_lock final
         {
             if(count++ >= skipCount)
             {
-                std::unique_lock<std::mutex> lockIt(lockMutex);
+                std::unique_lock<Mutex> lockIt(lockMutex);
                 cond.wait(lockIt);
                 count = skipCount;
             }

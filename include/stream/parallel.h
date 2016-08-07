@@ -25,9 +25,7 @@
 #include <memory>
 #include "util/util.h"
 #include "util/lock.h"
-#include <mutex>
 #include <vector>
-#include <condition_variable>
 
 namespace programmerjake
 {
@@ -176,8 +174,8 @@ public:
 class SerializedParallel : public Parallel
 {
 private:
-    std::recursive_mutex globalLock;
-    std::condition_variable_any globalCond;
+    RecursiveMutex globalLock;
+    ConditionVariableAny globalCond;
     struct Region final
     {
         std::uint64_t start;
@@ -209,7 +207,7 @@ private:
 #error finish
     };
 protected:
-    std::uint64_t getRequiredSize(std::unique_lock<std::mutex> &theGlobalLock)
+    std::uint64_t getRequiredSize(std::unique_lock<Mutex> &theGlobalLock)
     {
         ignore_unused_variable_warning(theGlobalLock);
         std::uint64_t requiredSize = 0;
@@ -235,7 +233,7 @@ protected:
         }
         return requiredSize;
     }
-    bool trySetPublicSize(std::uint64_t newSize, std::unique_lock<std::mutex> &theGlobalLock)
+    bool trySetPublicSize(std::uint64_t newSize, std::unique_lock<Mutex> &theGlobalLock)
     {
         if(newSize >= getRequiredSize(theGlobalLock))
         {
@@ -244,7 +242,7 @@ protected:
         }
         return false;
     }
-    void setPublicSize(std::uint64_t newSize, std::unique_lock<std::mutex> &theGlobalLock)
+    void setPublicSize(std::uint64_t newSize, std::unique_lock<Mutex> &theGlobalLock)
     {
         settingPublicSize = true;
         try
@@ -261,7 +259,7 @@ protected:
         }
         settingPublicSize = false;
     }
-    virtual void internalResize(std::uint64_t newSize, std::unique_lock<std::mutex> &theGlobalLock) = 0;
+    virtual void internalResize(std::uint64_t newSize, std::unique_lock<Mutex> &theGlobalLock) = 0;
     virtual void checkReadSectionImplemented(std::uint64_t sectionStart, std::uint64_t sectionSize) const
     {
     }
@@ -271,8 +269,8 @@ protected:
     virtual void checkResizeImplemented(std::uint64_t newSize)
     {
     }
-    virtual std::size_t internalReadSection(std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<std::mutex> &theGlobalLock) = 0;
-    virtual std::size_t internalWriteSection(const std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<std::mutex> &theGlobalLock) = 0;
+    virtual std::size_t internalReadSection(std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<Mutex> &theGlobalLock) = 0;
+    virtual std::size_t internalWriteSection(const std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<Mutex> &theGlobalLock) = 0;
 public:
     explicit SerializedParallel(std::uint64_t initialSize)
         : globalLock(),
@@ -281,17 +279,17 @@ public:
     }
     virtual std::uint64_t size() override final
     {
-        std::unique_lock<std::mutex> lockIt(globalLock);
+        std::unique_lock<Mutex> lockIt(globalLock);
         return publicSize;
     }
     virtual void resize(std::uint64_t newSize)
     {
-        std::unique_lock<std::mutex> lockIt(globalLock);
+        std::unique_lock<Mutex> lockIt(globalLock);
         internalResize(newSize, lockIt);
     }
     virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart, std::uint64_t sectionSize)
     {
-        std::unique_lock<std::mutex> lockIt(globalLock);
+        std::unique_lock<Mutex> lockIt(globalLock);
         checkReadSectionImplemented(sectionStart, sectionSize);
     }
     virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart, std::uint64_t sectionSize)
