@@ -38,19 +38,14 @@ struct WrappedEntity final
     WrappedEntity &operator =(const WrappedEntity &) = delete;
     ObjectCounter<WrappedEntity, 0> objectCounter;
     Entity entity;
-    intrusive_list_members<WrappedEntity> subchunkListMembers;
-    typedef intrusive_list<WrappedEntity, &WrappedEntity::subchunkListMembers> SubchunkListType;
-    intrusive_list_members<WrappedEntity> chunkListMembers;
-    typedef intrusive_list<WrappedEntity, &WrappedEntity::chunkListMembers> ChunkListType;
-    BlockChunkSubchunk *currentSubchunk = nullptr;
     BlockChunk *currentChunk = nullptr;
     std::uint64_t lastEntityRunCount = 0;
     WrappedEntity()
-        : objectCounter(), entity(), subchunkListMembers(), chunkListMembers()
+        : objectCounter(), entity()
     {
     }
     WrappedEntity(Entity e)
-        : objectCounter(), entity(e), subchunkListMembers(), chunkListMembers()
+        : objectCounter(), entity(e)
     {
     }
     void verify() const; // in block_chunk.cpp

@@ -35,7 +35,7 @@
 #include "util/tls.h"
 #include "util/checked_array.h"
 
-#if defined(TEST_WIN32_KEYED_EVENT_MUTEX_MAIN)
+#if defined(TEST_WIN32_KEYED_EVENT_MUTEX_MAIN) || (1 && defined(__CDT_PARSER__))
 #define TEST_WIN32_KEYED_EVENT_MUTEX
 #endif
 
@@ -52,7 +52,6 @@ class Mutex final
     Mutex &operator=(const Mutex &) = delete;
 
 private:
-    static_assert(sizeof(std::size_t) == sizeof(std::atomic_size_t), "");
     static_assert(alignof(std::atomic_size_t) >= 2, "");
     static constexpr std::size_t KeyedEventHandleCount = (1 << 4) + 1;
     static checked_array<void *, KeyedEventHandleCount> makeGlobalKeyedEvents() noexcept;
@@ -188,81 +187,168 @@ public:
     }
 };
 
-#if 1
-#warning finish ConditionVariable
-#else
 class ConditionVariable final
 {
     ConditionVariable(const ConditionVariable &) = delete;
     ConditionVariable &operator=(const ConditionVariable &) = delete;
 
 private:
+    struct Waiter final
+    {
+        Waiter *prev = nullptr;
+        Waiter *next = nullptr;
+        void insert(Waiter *&waiterListHead, Waiter *&waiterListTail) noexcept
+        {
+            assert(prev == nullptr);
+            assert(next == nullptr);
+            assert(waiterListHead != this);
+            next = waiterListHead;
+            if(next)
+            {
+                assert(next->prev == nullptr);
+                next->prev = this;
+            }
+            else
+            {
+                assert(waiterListTail == nullptr);
+                waiterListTail = this;
+            }
+            waiterListHead = this;
+        }
+        void remove(Waiter *&waiterListHead, Waiter *&waiterListTail) noexcept
+        {
+            assert(prev != nullptr || waiterListHead == this);
+            assert(next != nullptr || waiterListTail == this);
+            assert(prev != next);
+            if(prev)
+            {
+                assert(prev->next == this);
+                prev->next = next;
+            }
+            else
+            {
+                waiterListHead = next;
+            }
+            if(next)
+            {
+                assert(next->prev == this);
+                next->prev = prev;
+            }
+            else
+            {
+                waiterListTail = prev;
+            }
+        }
+        bool inList(Waiter *waiterListHead, Waiter *waiterListTail) const noexcept
+        {
+            return waiterListHead == this || prev != nullptr || next != nullptr;
+        }
+    };
+
+private:
     Mutex lock;
-#error finish
+    Waiter *waiterListHead;
+    Waiter *waiterListTail;
     template <typename Duration>
-    static std::uint64_t convertToNTTime(
+    static std::int64_t convertToNTTime(
         const std::chrono::time_point<std::chrono::system_clock, Duration> &time) noexcept
     {
-        auto duration = time - std::chrono::system_clock::from_time_t(0);
-        std::chrono::seconds seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
-        duration -= seconds;
-        ::timespec retval;
-        retval.tv_sec = static_cast<std::time_t>(seconds.count());
-        retval.tv_nsec =
-            static_cast<long>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
-        if(retval.tv_nsec < 0)
-        {
-            retval.tv_nsec += 1000000000L;
-            retval.tv_sec--;
-        }
-        else if(retval.tv_nsec >= 1000000000L)
-        {
-            retval.tv_nsec -= 1000000000L;
-            retval.tv_sec++;
-        }
-        return retval;
+        std::chrono::duration<std::int64_t, std::ratio<1, 1000LL * 1000LL * 1000LL / 100>>
+            duration = std::chrono::
+                duration_cast<std::chrono::duration<std::int64_t,
+                                                    std::ratio<1, 1000LL * 1000LL * 1000LL / 100>>>(
+                    time - std::chrono::system_clock::from_time_t(0));
+        duration += std::chrono::seconds(11644473600LL);
+        return duration.count();
     }
     template <typename Rep, typename Period>
-    static ::timespec convertToTimespec(const std::chrono::duration<Rep, Period> &time) noexcept
+    static std::int64_t convertToNTTime(const std::chrono::duration<Rep, Period> &time) noexcept
     {
-        return convertToTimespec(time + std::chrono::system_clock::now());
+        return convertToNTTime(time + std::chrono::system_clock::now());
     }
     template <
         typename Clock,
         typename Duration,
         typename =
             typename std::enable_if<!std::is_same<Clock, std::chrono::system_clock>::value>::type>
-    static ::timespec convertToTimespec(
+    static std::int64_t convertToNTTime(
         const std::chrono::time_point<Clock, Duration> &time) noexcept
     {
-        return convertToTimespec(time - Clock::now());
+        return convertToNTTime(time - Clock::now());
+    }
+    std::cv_status waitImp(std::unique_lock<Mutex> &theLock, const std::int64_t *timeout) noexcept
+    {
+        Waiter waiter;
+        lock.lock();
+        theLock.unlock();
+        waiter.insert(waiterListHead, waiterListTail);
+        lock.unlock();
+        Mutex::waitForKeyedEvent(static_cast<void *>(&waiter), timeout);
+        std::cv_status retval = std::cv_status::no_timeout;
+        if(timeout)
+        {
+            lock.lock();
+            if(waiter.inList(waiterListHead, waiterListTail))
+            {
+                retval = std::cv_status::timeout;
+                waiter.remove(waiterListHead, waiterListTail);
+            }
+            lock.unlock();
+        }
+        theLock.lock();
+        return retval;
+    }
+    void notifyImp(bool notifyAll) noexcept
+    {
+        lock.lock();
+        if(waiterListHead != nullptr)
+        {
+            do
+            {
+                auto waiter = waiterListHead;
+                waiter->remove(waiterListHead, waiterListTail);
+                Mutex::releaseKeyedEvent(static_cast<void *>(&waiter), nullptr);
+            } while(notifyAll && waiterListHead != nullptr);
+        }
+        lock.unlock();
+    }
+    std::cv_status timedWait(std::unique_lock<Mutex> &theLock, std::int64_t timeout) noexcept
+    {
+        return waitImp(theLock, &timeout);
+    }
+    bool haveAnyWaiters() noexcept
+    {
+        lock.lock();
+        if(waiterListHead)
+        {
+            lock.unlock();
+            return true;
+        }
+        lock.unlock();
+        return false;
     }
 
 public:
-    constexpr ConditionVariable() = default;
+    constexpr ConditionVariable() noexcept : lock(),
+                                             waiterListHead(nullptr),
+                                             waiterListTail(nullptr)
+    {
+    }
     ~ConditionVariable()
     {
-        int error = ::pthread_cond_destroy(&condition);
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
+        assert(!haveAnyWaiters());
     }
     void notify_one() noexcept
     {
-        int error = ::pthread_cond_signal(&condition);
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
+        notifyImp(false);
     }
     void notify_all() noexcept
     {
-        int error = ::pthread_cond_broadcast(&condition);
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
+        notifyImp(true);
     }
     void wait(std::unique_lock<Mutex> &theLock) noexcept
     {
-        int error = ::pthread_cond_wait(&condition, &theLock.mutex()->mutex);
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
+        waitImp(theLock, nullptr);
     }
     template <typename Fn>
     void wait(std::unique_lock<Mutex> &theLock, Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
@@ -274,25 +360,29 @@ public:
     std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
                             const std::chrono::duration<Rep, Period> &time) noexcept
     {
-        auto timespec = convertToTimespec(time);
-        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-        if(error == ETIMEDOUT)
-            return std::cv_status::timeout;
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
-        return std::cv_status::no_timeout;
+        return timedWait(theLock, convertToNTTime(time));
     }
     template <typename Clock, typename Duration>
     std::cv_status wait_until(std::unique_lock<Mutex> &theLock,
                               const std::chrono::time_point<Clock, Duration> &time) noexcept
     {
-        auto timespec = convertToTimespec(time);
-        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-        if(error == ETIMEDOUT)
-            return std::cv_status::timeout;
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
-        return std::cv_status::no_timeout;
+        return timedWait(theLock, convertToNTTime(time));
+    }
+    template <typename Rep, typename Period, typename Fn>
+    std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
+                            const std::chrono::duration<Rep, Period> &time,
+                            Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        if(!static_cast<bool>(fn()))
+        {
+            auto ntTime = convertToNTTime(time);
+            do
+            {
+                if(timedWait(theLock, ntTime) == std::cv_status::timeout)
+                    return static_cast<bool>(fn());
+            } while(!static_cast<bool>(fn()));
+        }
+        return true;
     }
     template <typename Clock, typename Duration, typename Fn>
     bool wait_until(std::unique_lock<Mutex> &theLock,
@@ -301,21 +391,16 @@ public:
     {
         if(!static_cast<bool>(fn()))
         {
-            auto timespec = convertToTimespec(time);
+            auto ntTime = convertToNTTime(time);
             do
             {
-                int error =
-                    ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-                if(error == ETIMEDOUT)
+                if(timedWait(theLock, ntTime) == std::cv_status::timeout)
                     return static_cast<bool>(fn());
-                if(error != 0)
-                    Mutex::handlePThreadsError(error);
             } while(!static_cast<bool>(fn()));
         }
         return true;
     }
 };
-#endif
 }
 }
 #elif defined(__linux) || defined(__APPLE__) // pthreads is fast enough
@@ -417,6 +502,15 @@ private:
     {
         return convertToTimespec(time - Clock::now());
     }
+    std::cv_status timedWait(std::unique_lock<Mutex> &theLock, const ::timespec &timespec) noexcept
+    {
+        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
+        if(error == ETIMEDOUT)
+            return std::cv_status::timeout;
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+        return std::cv_status::no_timeout;
+    }
 
 public:
     constexpr ConditionVariable() = default;
@@ -454,25 +548,29 @@ public:
     std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
                             const std::chrono::duration<Rep, Period> &time) noexcept
     {
-        auto timespec = convertToTimespec(time);
-        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-        if(error == ETIMEDOUT)
-            return std::cv_status::timeout;
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
-        return std::cv_status::no_timeout;
+        return timedWait(theLock, convertToTimespec(time));
     }
     template <typename Clock, typename Duration>
     std::cv_status wait_until(std::unique_lock<Mutex> &theLock,
                               const std::chrono::time_point<Clock, Duration> &time) noexcept
     {
-        auto timespec = convertToTimespec(time);
-        int error = ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-        if(error == ETIMEDOUT)
-            return std::cv_status::timeout;
-        if(error != 0)
-            Mutex::handlePThreadsError(error);
-        return std::cv_status::no_timeout;
+        return timedWait(theLock, convertToTimespec(time));
+    }
+    template <typename Rep, typename Period, typename Fn>
+    std::cv_status wait_for(std::unique_lock<Mutex> &theLock,
+                            const std::chrono::duration<Rep, Period> &time,
+                            Fn fn) noexcept(noexcept(static_cast<bool>(fn())))
+    {
+        if(!static_cast<bool>(fn()))
+        {
+            auto timespec = convertToTimespec(time);
+            do
+            {
+                if(timedWait(theLock, timespec) == std::cv_status::timeout)
+                    return static_cast<bool>(fn());
+            } while(!static_cast<bool>(fn()));
+        }
+        return true;
     }
     template <typename Clock, typename Duration, typename Fn>
     bool wait_until(std::unique_lock<Mutex> &theLock,
@@ -484,12 +582,8 @@ public:
             auto timespec = convertToTimespec(time);
             do
             {
-                int error =
-                    ::pthread_cond_timedwait(&condition, &theLock.mutex()->mutex, &timespec);
-                if(error == ETIMEDOUT)
+                if(timedWait(theLock, timespec) == std::cv_status::timeout)
                     return static_cast<bool>(fn());
-                if(error != 0)
-                    Mutex::handlePThreadsError(error);
             } while(!static_cast<bool>(fn()));
         }
         return true;
