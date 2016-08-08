@@ -583,26 +583,34 @@ struct BlockChunk final
 };
 
 class World;
+class BlockChunks;
 
 class IndirectBlockChunk final
 {
     friend class World;
     friend class BlockChunk;
+    friend class BlockChunks;
+    friend class BlockIterator;
     IndirectBlockChunk(const IndirectBlockChunk &) = delete;
     IndirectBlockChunk &operator=(const IndirectBlockChunk &) = delete;
 
 private:
-    std::unique_ptr<BlockChunk> chunk;
+    std::shared_ptr<BlockChunk> chunk;
     std::function<void(BlockChunk &chunk)> loadFn;
     bool loading = false;
-    void setUnloaded(std::function<void(BlockChunk &chunk)> newLoadFn,
+    bool setUnloaded(std::function<void(BlockChunk &chunk)> newLoadFn,
                      std::unique_lock<Mutex> &lockIt) // called by World
     {
         assert(chunk);
         assert(newLoadFn);
         assert(!loading);
-        chunk.reset();
-        loadFn = newLoadFn;
+        if(chunk.unique())
+        {
+            chunk.reset();
+            loadFn = newLoadFn;
+            return true;
+        }
+        return false;
     }
     static bool &getIgnoreReferencesFromThreadFlag(TLS &tls)
     {
@@ -635,26 +643,30 @@ public:
     {
         return chunk != nullptr;
     }
-    void ensureLoaded(TLS &tls, std::unique_lock<Mutex> &lockIt)
+    std::shared_ptr<BlockChunk> ensureLoaded(TLS &tls, std::unique_lock<Mutex> &lockIt)
     {
         assert(lockIt.owns_lock() && lockIt.mutex() == &chunkLock);
         if(chunk != nullptr)
-            return;
+            return chunk;
         if(!loading)
         {
             loading = true;
             assert(loadFn);
-            auto newChunk = std::unique_ptr<BlockChunk>(new BlockChunk(this));
+            lockIt.unlock();
+            std::shared_ptr<BlockChunk> newChunk;
             try
             {
+                newChunk = std::make_shared<BlockChunk>(this);
                 loadFn(*newChunk);
             }
             catch(...)
             {
+                lockIt.lock();
                 loading = false;
                 chunkCond.notify_all();
                 throw;
             }
+            lockIt.lock();
             chunk = std::move(newChunk);
             loadFn = nullptr;
             loading = false;
@@ -667,6 +679,7 @@ public:
             if(chunk == nullptr)
                 throw std::runtime_error("ensureLoaded failed while waiting");
         }
+        return chunk;
     }
 };
 
@@ -699,6 +712,10 @@ struct BlockChunkLockOrderLess final
     {
         return operator()(a.getBasePosition(), b.getBasePosition());
     }
+    bool operator()(const IndirectBlockChunk &a, const IndirectBlockChunk &b) const noexcept
+    {
+        return operator()(a.basePosition, b.basePosition);
+    }
     bool operator()(const BlockChunk *a, const BlockChunk *b) const noexcept
     {
         if(!a)
@@ -706,6 +723,14 @@ struct BlockChunkLockOrderLess final
         if(!b)
             return false;
         return operator()(a->getBasePosition(), b->getBasePosition());
+    }
+    bool operator()(const IndirectBlockChunk *a, const IndirectBlockChunk *b) const noexcept
+    {
+        if(!a)
+            return b != nullptr;
+        if(!b)
+            return false;
+        return operator()(a->basePosition, b->basePosition);
     }
 };
 
@@ -723,38 +748,46 @@ struct BlockChunkLockOrderGreater final
     {
         return BlockChunkLockOrderLess()(b, a);
     }
+    bool operator()(const IndirectBlockChunk &a, const IndirectBlockChunk &b) const noexcept
+    {
+        return BlockChunkLockOrderLess()(b, a);
+    }
+    bool operator()(const IndirectBlockChunk *a, const IndirectBlockChunk *b) const noexcept
+    {
+        return BlockChunkLockOrderLess()(b, a);
+    }
 };
 
-class LockedBlockChunkList final
+class LockedIndirectBlockChunkList final
 {
-    LockedBlockChunkList(const LockedBlockChunkList &) = delete;
-    LockedBlockChunkList &operator=(const LockedBlockChunkList &) = delete;
+    LockedIndirectBlockChunkList(const LockedIndirectBlockChunkList &) = delete;
+    LockedIndirectBlockChunkList &operator=(const LockedIndirectBlockChunkList &) = delete;
 
 public:
-    typedef std::map<PositionI, BlockChunk *, BlockChunkLockOrderLess> ListType;
+    typedef std::map<PositionI, IndirectBlockChunk *, BlockChunkLockOrderLess> ListType;
 
 public:
-    static ListType makeList(std::initializer_list<BlockChunk *> listIn)
+    static ListType makeList(std::initializer_list<IndirectBlockChunk *> listIn,
+                             ListType retval = ListType())
     {
-        ListType retval;
         for(auto blockChunk : listIn)
         {
             assert(blockChunk);
             bool insertSucceeded =
-                std::get<1>(retval.emplace(blockChunk->getBasePosition(), blockChunk));
+                std::get<1>(retval.emplace(blockChunk->basePosition, blockChunk));
             static_cast<void>(insertSucceeded);
             assert(insertSucceeded);
         }
         return retval;
     }
-    static ListType makeList(const std::vector<BlockChunk *> &listIn)
+    static ListType makeList(const std::vector<IndirectBlockChunk *> &listIn,
+                             ListType retval = ListType())
     {
-        ListType retval;
         for(auto blockChunk : listIn)
         {
             assert(blockChunk);
             bool insertSucceeded =
-                std::get<1>(retval.emplace(blockChunk->getBasePosition(), blockChunk));
+                std::get<1>(retval.emplace(blockChunk->basePosition, blockChunk));
             static_cast<void>(insertSucceeded);
             assert(insertSucceeded);
         }
@@ -762,42 +795,42 @@ public:
     }
 
 private:
-    ListType blockChunks;
+    ListType chunkList;
     bool locked;
 
 private:
-    static void unlockList(const ListType &blockChunks) noexcept
+    static void unlockList(const ListType &chunkList) noexcept
     {
-        for(auto &blockChunk : blockChunks)
+        for(auto &chunk : chunkList)
         {
-            std::get<1>(blockChunk)->getLock().unlock();
+            std::get<1>(chunk)->chunkLock.unlock();
         }
     }
-    static void lockList(const ListType &blockChunks) noexcept
+    static void lockList(const ListType &chunkList) noexcept
     {
-        for(auto &blockChunk : blockChunks)
+        for(auto &chunk : chunkList)
         {
-            std::get<1>(blockChunk)->getLock().lock();
+            std::get<1>(chunk)->chunkLock.lock();
         }
     }
     template <std::size_t retryCount = 5>
-    static bool tryLockList(const ListType &blockChunks) noexcept
+    static bool tryLockList(const ListType &chunkList) noexcept
     {
-        for(ListType::const_iterator i = blockChunks.begin(); i != blockChunks.end(); ++i)
+        for(ListType::const_iterator i = chunkList.begin(); i != chunkList.end(); ++i)
         {
             bool locked = false;
             for(std::size_t j = 0; j < retryCount; j++)
             {
-                if(!std::get<1>(*i)->getLock().try_lock())
+                if(!std::get<1>(*i)->chunkLock.try_lock())
                     continue;
                 locked = true;
                 break;
             }
             if(!locked)
             {
-                for(ListType::const_iterator j = blockChunks.begin(); j != i; ++j)
+                for(ListType::const_iterator j = chunkList.begin(); j != i; ++j)
                 {
-                    std::get<1>(*j)->getLock().unlock();
+                    std::get<1>(*j)->chunkLock.unlock();
                 }
                 return false;
             }
@@ -806,93 +839,93 @@ private:
     }
 
 public:
-    LockedBlockChunkList() : blockChunks(), locked(false)
+    LockedIndirectBlockChunkList() : chunkList(), locked(false)
     {
     }
-    LockedBlockChunkList(LockedBlockChunkList &&rt) : blockChunks(), locked(rt.locked)
+    LockedIndirectBlockChunkList(LockedIndirectBlockChunkList &&rt) : chunkList(), locked(rt.locked)
     {
-        blockChunks.swap(rt.blockChunks);
+        chunkList.swap(rt.chunkList);
         rt.locked = false;
     }
-    LockedBlockChunkList(ListType blockChunks, std::defer_lock_t)
-        : blockChunks(std::move(blockChunks)), locked(false)
+    LockedIndirectBlockChunkList(ListType chunkList, std::defer_lock_t)
+        : chunkList(std::move(chunkList)), locked(false)
     {
-        assert(!this->blockChunks.empty());
+        assert(!this->chunkList.empty());
     }
-    explicit LockedBlockChunkList(ListType blockChunks)
-        : LockedBlockChunkList(std::move(blockChunks), std::defer_lock)
+    explicit LockedIndirectBlockChunkList(ListType chunkList)
+        : LockedIndirectBlockChunkList(std::move(chunkList), std::defer_lock)
     {
         lock();
     }
-    LockedBlockChunkList(ListType blockChunks, std::try_to_lock_t)
-        : LockedBlockChunkList(std::move(blockChunks), std::defer_lock)
+    LockedIndirectBlockChunkList(ListType chunkList, std::try_to_lock_t)
+        : LockedIndirectBlockChunkList(std::move(chunkList), std::defer_lock)
     {
         try_lock();
     }
-    LockedBlockChunkList(ListType blockChunks, std::adopt_lock_t)
-        : LockedBlockChunkList(std::move(blockChunks), std::defer_lock)
+    LockedIndirectBlockChunkList(ListType chunkList, std::adopt_lock_t)
+        : LockedIndirectBlockChunkList(std::move(chunkList), std::defer_lock)
     {
         locked = true;
     }
-    ~LockedBlockChunkList()
+    ~LockedIndirectBlockChunkList()
     {
         if(locked)
         {
-            unlockList(blockChunks);
+            unlockList(chunkList);
         }
     }
-    LockedBlockChunkList &operator=(LockedBlockChunkList &&rt) noexcept
+    LockedIndirectBlockChunkList &operator=(LockedIndirectBlockChunkList &&rt) noexcept
     {
         assert(this != &rt);
         if(locked)
         {
-            unlockList(blockChunks);
+            unlockList(chunkList);
             locked = false;
         }
         swap(rt);
         return *this;
     }
-    void swap(LockedBlockChunkList &other) noexcept
+    void swap(LockedIndirectBlockChunkList &other) noexcept
     {
         using std::swap;
         swap(locked, other.locked);
-        blockChunks.swap(other.blockChunks);
+        chunkList.swap(other.chunkList);
     }
     void lock() noexcept
     {
         assert(!locked);
-        assert(!blockChunks.empty());
-        lockList(blockChunks);
+        assert(!chunkList.empty());
+        lockList(chunkList);
         locked = true;
     }
     bool try_lock() noexcept
     {
         assert(!locked);
-        assert(!blockChunks.empty());
-        locked = tryLockList(blockChunks);
+        assert(!chunkList.empty());
+        locked = tryLockList(chunkList);
         return locked;
     }
     void unlock() noexcept
     {
         assert(locked);
-        assert(!blockChunks.empty());
-        unlockList(blockChunks);
+        assert(!chunkList.empty());
+        unlockList(chunkList);
         locked = false;
     }
     ListType release() noexcept
     {
         ListType retval;
         locked = false;
-        retval.swap(blockChunks);
+        retval.swap(chunkList);
         return retval;
     }
-    const ListType &getBlockChunks() const noexcept
+    const ListType &getChunkList() const noexcept
     {
-        return blockChunks;
+        return chunkList;
     }
-    ListType &getBlockChunks() noexcept
+    ListType &getChunkList() noexcept
     {
-        return blockChunks;
+        return chunkList;
     }
     bool owns_lock() const noexcept
     {
@@ -903,13 +936,73 @@ public:
         return owns_lock();
     }
 };
+
+class BlockChunks final
+{
+private:
+    struct Slice final
+    {
+        Mutex lock;
+        std::unordered_map<PositionI, IndirectBlockChunk> map;
+    };
+    checked_array<Slice, 17> slices;
+    std::size_t getSliceIndex(const PositionI &position) noexcept
+    {
+        return std::hash<PositionI>()(position) % slices.size();
+    }
+
+public:
+    IndirectBlockChunk &getOrMake(const PositionI &position)
+    {
+        Slice &slice = slices[getSliceIndex(position)];
+        std::unique_lock<Mutex> lockIt(slice.lock);
+        return slice.map[position];
+    }
+    template <bool loadChunks>
+    LockedIndirectBlockChunkList lockChunks(const PositionI *positions,
+                                            std::size_t positionCount,
+                                            TLS &tls)
+    {
+        LockedIndirectBlockChunkList::ListType chunkList;
+        for(std::size_t i = 0; i < positionCount; i++)
+        {
+            chunkList = LockedIndirectBlockChunkList::makeList({&getOrMake(positions[i])},
+                                                               std::move(chunkList));
+        }
+        if(loadChunks)
+        {
+            std::vector<std::shared_ptr<BlockChunk>> blockChunks;
+            blockChunks.reserve(positionCount);
+            for(auto iter = chunkList.begin(); iter != chunkList.end(); ++iter)
+            {
+                std::unique_lock<Mutex> lockIt(std::get<1>(*iter)->chunkLock);
+                blockChunks.push_back(std::get<1>(*iter)->ensureLoaded(tls, lockIt));
+            }
+            return LockedIndirectBlockChunkList(std::move(chunkList));
+        }
+        else
+            return LockedIndirectBlockChunkList(std::move(chunkList));
+    }
+    std::vector<IndirectBlockChunk *> getAll(
+        std::vector<IndirectBlockChunk *> retval = std::vector<IndirectBlockChunk *>())
+    {
+        retval.clear();
+        for(Slice &slice : slices)
+        {
+            std::unique_lock<Mutex> lockIt(slice.lock);
+            retval.reserve(retval.size() + slice.map.size());
+            retval.insert(retval.end(), slice.map.begin(), slice.map.end());
+        }
+        return retval;
+    }
+};
 }
 }
 
 namespace std
 {
-inline void swap(programmerjake::voxels::LockedBlockChunkList &a,
-                 programmerjake::voxels::LockedBlockChunkList &b) noexcept
+inline void swap(programmerjake::voxels::LockedIndirectBlockChunkList &a,
+                 programmerjake::voxels::LockedIndirectBlockChunkList &b) noexcept
 {
     a.swap(b);
 }

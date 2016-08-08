@@ -25,7 +25,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-class LockedBlockChunkList;
+class LockedIndirectBlockChunkList;
 class TLS;
 struct WorldLockManager final
 {
@@ -35,7 +35,7 @@ struct WorldLockManager final
     {
     }
     TLS &tls;
-    LockedBlockChunkList *lockedBlockChunkList;
+    LockedIndirectBlockChunkList *lockedBlockChunkList;
 };
 }
 }

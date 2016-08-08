@@ -50,7 +50,8 @@ class BlockIterator final
     void getChunk(WorldLockManager &lock_manager) noexcept
     {
         assert(lock_manager.lockedBlockChunkList);
-        chunk = lock_manager.lockedBlockChunkList->getBlockChunks().at(currentBasePosition);
+        chunk = lock_manager.lockedBlockChunkList->getChunkList().at(currentBasePosition)->chunk.get();
+        assert(chunk);
     }
 
 public:

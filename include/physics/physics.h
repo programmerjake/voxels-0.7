@@ -357,11 +357,7 @@ public:
         : theLockImp(), theLock(theLockImp), chunks(), objects(), eventsQueue(), eventsSet(), changedObjects()
     {
     }
-    BlockChunkMap chunks; // not locked by theLock
-    BlockIterator getBlockIterator(PositionI pos, TLS &tls)
-    {
-        return BlockIterator(&chunks, pos, tls);
-    }
+    BlockChunks chunks; // not locked by theLock
 private:
     static BlockShape getBlockShape(BlockIterator bi, WorldLockManager &lock_manager)
     {
@@ -369,8 +365,7 @@ private:
     }
     BlockShape getBlockShape(PositionI pos, WorldLockManager &lock_manager)
     {
-        BlockIterator bi = getBlockIterator(pos, lock_manager.tls);
-        return getBlockShape(bi, lock_manager);
+        return getBlockShape(BlockIterator(pos, lock_manager), lock_manager);
     }
     void setObjectToBlockShape(std::shared_ptr<PhysicsObject> &object, BlockShape shape, PositionI pos)
     {
@@ -392,8 +387,7 @@ private:
     }
     void setObjectToBlockEffectRegion(std::shared_ptr<PhysicsObject> &object, PositionI pos, WorldLockManager &lock_manager)
     {
-        BlockIterator bi = getBlockIterator(pos, lock_manager.tls);
-        setObjectToBlockEffectRegion(object, bi, lock_manager);
+        setObjectToBlockEffectRegion(object, BlockIterator(pos, lock_manager), lock_manager);
     }
     void setObjectToBlockEffectRegion(std::shared_ptr<PhysicsObject> &object, BlockIterator bi, WorldLockManager &lock_manager)
     {

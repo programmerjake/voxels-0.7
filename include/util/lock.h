@@ -46,10 +46,12 @@ namespace voxels
 {
 class ConditionVariable;
 class RecursiveMutex;
+class SharedMutex;
 class Mutex final
 {
     friend class ConditionVariable;
     friend class RecursiveMutex;
+    friend class SharedMutex;
     Mutex(const Mutex &) = delete;
     Mutex &operator=(const Mutex &) = delete;
 
@@ -495,6 +497,140 @@ public:
         baseLock.unlockImp<true>(&nestCount, &owner);
     }
 };
+
+#if 0
+class SharedMutex final
+{
+    SharedMutex(const SharedMutex &) = delete;
+    SharedMutex &operator=(const SharedMutex &) = delete;
+
+private:
+    Mutex stateLock;
+    struct State final
+    {
+        std::size_t sharedWaitCount = 0;
+        std::size_t exclusiveWaitCount = 0;
+        std::size_t state = emptyState;
+        static constexpr std::size_t emptyState = 0;
+        static constexpr std::size_t exclusiveState = -1;
+    };
+    union
+    {
+        State state;
+        alignas(2) char waitLocations[3];
+    };
+    void *getExclusiveWaitLocation() noexcept
+    {
+        return &waitLocations[0];
+    }
+    void *getSharedWaitLocation() noexcept
+    {
+        return &waitLocations[2];
+    }
+
+public:
+    constexpr SharedMutex() noexcept : stateLock(), state()
+    {
+    }
+    ~SharedMutex()
+    {
+        assert(state.state == State::emptyState);
+        assert(state.sharedWaitCount == 0);
+        assert(state.exclusiveWaitCount == 0);
+    }
+    void lock() noexcept
+    {
+        bool first = true;
+        while(true)
+        {
+            stateLock.lock();
+            if(state.state == State::emptyState && (!first || state.sharedWaitCount == 0))
+            {
+                state.state = State::exclusiveState;
+                stateLock.unlock();
+                return;
+            }
+            state.exclusiveWaitCount++;
+            stateLock.unlock();
+            first = false;
+            Mutex::waitForKeyedEvent(getExclusiveWaitLocation(), nullptr);
+        }
+    }
+    bool try_lock() noexcept
+    {
+        if(!stateLock.try_lock())
+            return false;
+        if(state.state == State::emptyState)
+        {
+            state.state = State::exclusiveState;
+            stateLock.unlock();
+            return true;
+        }
+        stateLock.unlock();
+        return false;
+    }
+    void unlock() noexcept
+    {
+        stateLock.lock();
+        assert(state.state == State::exclusiveState);
+        state.state = State::emptyState;
+        if(state.sharedWaitCount > 0)
+        {
+            while(state.sharedWaitCount-- != 0)
+                Mutex::releaseKeyedEvent(getSharedWaitLocation(), nullptr);
+        }
+        else if(state.exclusiveWaitCount > 0)
+        {
+            state.exclusiveWaitCount--;
+            Mutex::releaseKeyedEvent(getExclusiveWaitLocation(), nullptr);
+        }
+        stateLock.unlock();
+    }
+    void lock_shared() noexcept
+    {
+        bool first = true;
+        while(true)
+        {
+            stateLock.lock();
+            if(state.state != State::exclusiveState && (!first || state.exclusiveWaitCount == 0))
+            {
+                state.state++;
+                stateLock.unlock();
+                return;
+            }
+            state.sharedWaitCount++;
+            stateLock.unlock();
+            first = false;
+            Mutex::waitForKeyedEvent(getSharedWaitLocation(), nullptr);
+        }
+    }
+    bool try_lock_shared() noexcept
+    {
+        if(!stateLock.try_lock())
+            return false;
+        if(state.state != State::exclusiveState && state.exclusiveWaitCount == 0)
+        {
+            state.state++;
+            stateLock.unlock();
+            return true;
+        }
+        stateLock.unlock();
+        return false;
+    }
+    void unlock_shared() noexcept
+    {
+        stateLock.lock();
+        assert(state.state != State::exclusiveState);
+        state.state--;
+        if(state.state == State::emptyState && state.exclusiveWaitCount > 0)
+        {
+            state.exclusiveWaitCount--;
+            Mutex::releaseKeyedEvent(getExclusiveWaitLocation(), nullptr);
+        }
+        stateLock.unlock();
+    }
+};
+#endif
 }
 }
 #elif defined(__linux) || defined(__APPLE__) // pthreads is fast enough
@@ -505,10 +641,12 @@ namespace voxels
 {
 class ConditionVariable;
 class RecursiveMutex;
+class SharedMutex;
 class Mutex final
 {
     friend class ConditionVariable;
     friend class RecursiveMutex;
+    friend class SharedMutex;
     Mutex(const Mutex &) = delete;
     Mutex &operator=(const Mutex &) = delete;
 
@@ -748,11 +886,184 @@ public:
         return true;
     }
 };
+
+#if 0
+class SharedMutex final
+{
+    SharedMutex(const SharedMutex &) = delete;
+    SharedMutex &operator=(const SharedMutex &) = delete;
+
+private:
+    ::pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+
+public:
+    constexpr SharedMutex() = default;
+    ~SharedMutex()
+    {
+        int error = ::pthread_rwlock_destroy(&rwlock);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void lock() noexcept
+    {
+        int error = ::pthread_rwlock_wrlock(&rwlock);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    bool try_lock() noexcept
+    {
+        int error = ::pthread_rwlock_trywrlock(&rwlock);
+        if(error == 0)
+            return true;
+        if(error != EBUSY)
+            Mutex::handlePThreadsError(error);
+        return false;
+    }
+    void unlock() noexcept
+    {
+        int error = ::pthread_rwlock_unlock(&rwlock);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    void lock_shared() noexcept
+    {
+        int error = ::pthread_rwlock_rdlock(&rwlock);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+    bool try_lock_shared() noexcept
+    {
+        int error = ::pthread_rwlock_tryrdlock(&rwlock);
+        if(error == 0)
+            return true;
+        if(error != EBUSY)
+            Mutex::handlePThreadsError(error);
+        return false;
+    }
+    void unlock_shared() noexcept
+    {
+        int error = ::pthread_rwlock_unlock(&rwlock);
+        if(error != 0)
+            Mutex::handlePThreadsError(error);
+    }
+};
+#endif
 }
 }
 #else
 #error implement Mutex and ConditionVariable
 #endif
+
+namespace programmerjake
+{
+namespace voxels
+{
+template <typename MutexType>
+class SharedLock final
+{
+public:
+    typedef MutexType mutex_type;
+    SharedLock() noexcept : mutexPointer(nullptr), locked(false)
+    {
+    }
+    SharedLock(SharedLock &&rt) noexcept : mutexPointer(rt.mutexPointer), locked(rt.locked)
+    {
+        rt.mutexPointer = nullptr;
+        rt.locked = false;
+    }
+    explicit SharedLock(mutex_type &m) noexcept(noexcept(std::declval<SharedLock &>().lock()))
+        : SharedLock(m, std::defer_lock)
+    {
+        lock();
+    }
+    SharedLock(mutex_type &m, std::defer_lock_t) noexcept : mutexPointer(std::addressof(m)),
+                                                            locked(false)
+    {
+    }
+    SharedLock(mutex_type &m, std::try_to_lock_t) noexcept(noexcept(std::declval<SharedLock &>().try_lock()))
+        : SharedLock(m, std::defer_lock)
+    {
+        try_lock();
+    }
+    SharedLock(mutex_type &m, std::adopt_lock_t) noexcept : SharedLock(m, std::defer_lock)
+    {
+        locked = true;
+    }
+    ~SharedLock()
+    {
+        if(locked)
+            unlock();
+    }
+    SharedLock &operator=(SharedLock &&rt) noexcept
+    {
+        if(locked)
+            unlock();
+        swap(rt);
+        return *this;
+    }
+    void lock() noexcept(noexcept(std::declval<mutex_type &>().lock_shared()))
+    {
+        assert(mutexPointer);
+        assert(!locked);
+        mutexPointer->shared_lock();
+        locked = true;
+    }
+    bool try_lock() noexcept(noexcept(std::declval<mutex_type &>().try_lock_shared()))
+    {
+        assert(mutexPointer);
+        assert(!locked);
+        locked = mutexPointer->try_lock_shared();
+        return locked;
+    }
+    void unlock() noexcept
+    {
+        assert(mutexPointer);
+        assert(locked);
+        mutexPointer->unlock_shared();
+        locked = false;
+    }
+    void swap(SharedLock &rt) noexcept
+    {
+        using std::swap;
+        swap(mutexPointer, rt.mutexPointer);
+        swap(locked, rt.locked);
+    }
+    mutex_type *release() noexcept
+    {
+        auto retval = mutexPointer;
+        mutexPointer = nullptr;
+        locked = false;
+        return retval;
+    }
+    mutex_type *mutex() const noexcept
+    {
+        return mutexPointer;
+    }
+    bool owns_lock() const noexcept
+    {
+        return locked;
+    }
+    explicit operator bool() const noexcept
+    {
+        return owns_lock();
+    }
+
+private:
+    mutex_type *mutexPointer;
+    bool locked;
+};
+}
+}
+
+namespace std
+{
+template <typename MutexType>
+void swap(programmerjake::voxels::SharedLock<MutexType> &a,
+          programmerjake::voxels::SharedLock<MutexType> &b) noexcept
+{
+    a.swap(b);
+}
+}
 
 namespace programmerjake
 {
