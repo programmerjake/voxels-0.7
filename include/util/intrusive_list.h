@@ -40,26 +40,91 @@ template <typename T>
 class intrusive_list_members
 {
     intrusive_list_members(const intrusive_list_members &) = delete;
-    const intrusive_list_members &operator =(const intrusive_list_members &) = delete;
+    const intrusive_list_members &operator=(const intrusive_list_members &) = delete;
     template <typename T2, intrusive_list_members<T2> T2::*member>
     friend class intrusive_list;
+
 private:
     T *next;
     T *prev;
-public:
-    constexpr intrusive_list_members()
-        : next(nullptr), prev(nullptr)
+
+private:
+    bool isInList(const T *head) const noexcept
     {
+        return this == head || next != nullptr || prev != nullptr;
     }
-    constexpr bool is_linked() const
+    template <intrusive_list_members<T> T::*member>
+    void insert(T *self, T *&head, T *&tail, T *followingNode) noexcept
     {
-        return next != nullptr;
+        assert(this != head && this != tail && next == nullptr && prev == nullptr && &(self->*member) == this);
+        if(followingNode)
+        {
+            prev = (followingNode->*member).prev;
+            next = followingNode;
+            if(prev == nullptr)
+            {
+                assert(head == followingNode);
+                head = self;
+            }
+            else
+            {
+                (prev->*member).next = self;
+            }
+            (followingNode->*member).prev = self;
+        }
+        else
+        {
+            prev = tail;
+            next = nullptr;
+            if(prev == nullptr)
+            {
+                assert(head == nullptr);
+                head = self;
+            }
+            else
+            {
+                (prev->*member).next = self;
+            }
+            tail = self;
+        }
+    }
+    template <intrusive_list_members<T> T::*member>
+    T *remove(T *&head, T *&tail) noexcept // returns node following this node
+    {
+        if(prev == nullptr)
+        {
+            assert(this == head);
+            head = next;
+        }
+        else
+        {
+            (prev->*member).next = next;
+        }
+        if(next == nullptr)
+        {
+            assert(this == tail);
+            tail = prev;
+        }
+        else
+        {
+            (next->*member).prev = prev;
+        }
+        prev = nullptr;
+        T *retval = next;
+        next = nullptr;
+        return retval;
+    }
+
+public:
+    constexpr intrusive_list_members() : next(nullptr), prev(nullptr)
+    {
     }
     ~intrusive_list_members()
     {
-//        assert(!is_linked());
+        assert(next == nullptr && prev == nullptr);
     }
 };
+
 template <typename T, intrusive_list_members<T> T::*member>
 class intrusive_list
 {
@@ -71,78 +136,46 @@ public:
     typedef const T &const_reference;
     typedef T *pointer;
     typedef const T *const_pointer;
+
 private:
     std::size_t elementCount;
     std::function<void(T *)> deleter;
-    alignas(T) char endOfListElement[sizeof(T)];
-    T *getEndOfListElement()
-    {
-        return reinterpret_cast<T *>(endOfListElement);
-    }
-    const T *getEndOfListElement() const
-    {
-        return reinterpret_cast<const T *>(endOfListElement);
-    }
-    intrusive_list_members<T> *getEndOfListMember()
-    {
-        return &(getEndOfListElement()->*member);
-    }
-    const intrusive_list_members<T> *getEndOfListMember() const
-    {
-        return &(getEndOfListElement()->*member);
-    }
+    T *head;
+    T *tail;
     void deleteNode(T *node) noexcept
     {
-        deleter(node);
+        if(deleter)
+            deleter(node);
     }
+
 public:
     explicit intrusive_list(std::function<void(T *)> deleter)
-        : elementCount(0), deleter(std::move(deleter)), endOfListElement {0}
+        : elementCount(0), deleter(std::move(deleter)), head(nullptr), tail(nullptr)
     {
-        if(this->deleter == nullptr)
-        {
-            this->deleter = [](T *)
-            {
-            };
-        }
-        getEndOfListMember()->next = getEndOfListElement();
-        getEndOfListMember()->prev = getEndOfListElement();
     }
     ~intrusive_list()
     {
         clear();
     }
     intrusive_list(intrusive_list &&rt)
+        : elementCount(rt.elementCount), deleter(rt.deleter), head(rt.head), tail(rt.tail)
     {
-        (rt.getEndOfListMember()->next->*member).prev = getEndOfListElement();
-        (rt.getEndOfListMember()->prev->*member).next = getEndOfListElement();
-        getEndOfListMember()->next = rt.getEndOfListMember()->next;
-        getEndOfListMember()->prev = rt.getEndOfListMember()->prev;
-        rt.getEndOfListMember()->next = rt.getEndOfListElement();
-        rt.getEndOfListMember()->prev = rt.getEndOfListElement();
-        elementCount = rt.elementCount;
+        rt.head = nullptr;
+        rt.tail = nullptr;
         rt.elementCount = 0;
-        deleter = rt.deleter;
     }
-    const intrusive_list &operator =(intrusive_list &&rt)
+    intrusive_list &operator=(intrusive_list rt)
     {
-        clear();
-        (rt.getEndOfListMember()->next->*member).prev = getEndOfListElement();
-        (rt.getEndOfListMember()->prev->*member).next = getEndOfListElement();
-        getEndOfListMember()->next = rt.getEndOfListMember()->next;
-        getEndOfListMember()->prev = rt.getEndOfListMember()->prev;
-        rt.getEndOfListMember()->next = rt.getEndOfListElement();
-        rt.getEndOfListMember()->prev = rt.getEndOfListElement();
-        elementCount = rt.elementCount;
-        rt.elementCount = 0;
-        deleter = rt.deleter;
+        swap(rt);
         return *this;
     }
-    void swap(intrusive_list &rt)
+    void swap(intrusive_list &rt) noexcept
     {
-        intrusive_list v = std::move(rt);
-        rt = std::move(*this);
-        *this = std::move(v);
+        using std::swap;
+        swap(elementCount, rt.elementCount);
+        swap(deleter, rt.deleter);
+        swap(head, rt.head);
+        swap(tail, rt.tail);
     }
     void clear()
     {
@@ -157,153 +190,166 @@ public:
     {
         return elementCount == 0;
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator : public std::iterator<std::bidirectional_iterator_tag, T>
+    class const_iterator;
+    class iterator final
     {
-GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
+        friend class const_iterator;
+
     private:
         T *node;
-        constexpr iterator(T *node)
-            : node(node)
+        intrusive_list *list;
+        constexpr iterator(T *node, intrusive_list *list) : node(node), list(list)
         {
         }
+
     public:
-        constexpr iterator()
-            : iterator(nullptr)
+        typedef std::bidirectional_iterator_tag iterator_category;
+        typedef T value_type;
+        typedef std::ptrdiff_t difference_type;
+        typedef T *pointer;
+        typedef T &reference;
+        constexpr iterator() : node(nullptr), list(nullptr)
         {
         }
-        T &operator *() const
+        T &operator*() const
         {
             return *node;
         }
-        T *operator ->() const
+        T *operator->() const
         {
             return node;
         }
-        constexpr bool operator ==(iterator rt) const
+        constexpr bool operator==(iterator rt) const
         {
             return node == rt.node;
         }
-        constexpr bool operator !=(iterator rt) const
+        constexpr bool operator!=(iterator rt) const
         {
             return node != rt.node;
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             node = (node->*member).next;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
-            operator ++();
+            operator++();
             return *this;
         }
-        const iterator &operator --()
+        const iterator &operator--()
         {
-            node = (node->*member).prev;
+            if(node)
+                node = (node->*member).prev;
+            else
+                node = list->tail;
             return *this;
         }
-        iterator operator --(int)
+        iterator operator--(int)
         {
             iterator retval = *this;
-            operator --();
+            operator--();
             return *this;
         }
     };
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class const_iterator : public std::iterator<std::bidirectional_iterator_tag, const T>
+    class const_iterator final
     {
-GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
+
     private:
         const T *node;
-        constexpr const_iterator(const T *node)
-            : node(node)
+        const intrusive_list *list;
+        constexpr const_iterator(const T *node, const intrusive_list *list) : node(node), list(list)
         {
         }
+
     public:
-        constexpr const_iterator()
-            : const_iterator(nullptr)
+        typedef std::bidirectional_iterator_tag iterator_category;
+        typedef T value_type;
+        typedef std::ptrdiff_t difference_type;
+        typedef const T *pointer;
+        typedef const T &reference;
+        constexpr const_iterator() : const_iterator(nullptr)
         {
         }
-        const_iterator(const typename intrusive_list::iterator &rt)
-            : const_iterator(rt.operator ->())
+        const_iterator(const iterator rt) : node(rt.node), list(rt.list)
         {
         }
-        constexpr const T &operator *() const
+        constexpr const T &operator*() const
         {
             return *node;
         }
-        constexpr const T *operator ->() const
+        constexpr const T *operator->() const
         {
             return node;
         }
-        constexpr bool operator ==(const_iterator rt) const
+        constexpr bool operator==(const_iterator rt) const
         {
             return node == rt.node;
         }
-        constexpr bool operator !=(const_iterator rt) const
+        constexpr bool operator!=(const_iterator rt) const
         {
             return node != rt.node;
         }
-        constexpr bool operator ==(iterator rt) const
+        constexpr bool operator==(iterator rt) const
         {
             return *this == const_iterator(rt);
         }
-        constexpr bool operator !=(iterator rt) const
+        constexpr bool operator!=(iterator rt) const
         {
             return *this != const_iterator(rt);
         }
-        const const_iterator &operator ++()
+        const const_iterator &operator++()
         {
             node = (node->*member).next;
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             const_iterator retval = *this;
-            operator ++();
+            operator++();
             return *this;
         }
-        const const_iterator &operator --()
+        const const_iterator &operator--()
         {
-            node = (node->*member).prev;
+            if(node)
+                node = (node->*member).prev;
+            else
+                node = list->tail;
             return *this;
         }
-        const_iterator operator --(int)
+        const_iterator operator--(int)
         {
             const_iterator retval = *this;
-            operator --();
+            operator--();
             return *this;
         }
     };
     iterator begin()
     {
-        return iterator(getEndOfListMember()->next);
+        return iterator(head, this);
     }
     iterator end()
     {
-        return iterator(getEndOfListElement());
+        return iterator(nullptr, this);
     }
     const_iterator begin() const
     {
-        return const_iterator(getEndOfListMember()->next);
+        return const_iterator(head, this);
     }
     const_iterator end() const
     {
-        return const_iterator(getEndOfListElement());
+        return const_iterator(nullptr, this);
     }
     const_iterator cbegin() const
     {
-        return const_iterator(getEndOfListMember()->next);
+        return const_iterator(head, this);
     }
     const_iterator cend() const
     {
-        return const_iterator(getEndOfListElement());
+        return const_iterator(nullptr, this);
     }
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
@@ -334,62 +380,49 @@ GCC_PRAGMA(diagnostic pop)
     T &front() const
     {
         assert(!empty());
-        return *getEndOfListMember()->next;
+        return *head;
     }
     T &back() const
     {
         assert(!empty());
-        return *getEndOfListMember()->prev;
+        return *tail;
     }
     iterator to_iterator(T *node)
     {
         assert(node != nullptr);
-        assert((node->*member).is_linked());
-        return iterator(node);
+        if(head == node || (node->*member).next != nullptr || (node->*member).prev != nullptr)
+            return iterator(node, this);
+        return end();
     }
     const_iterator to_iterator(const T *node) const
     {
         assert(node != nullptr);
-        assert((node->*member).is_linked());
-        return iterator(node);
+        if(head == node || (node->*member).next != nullptr || (node->*member).prev != nullptr)
+            return const_iterator(node, this);
+        return end();
     }
     iterator insert(const_iterator pos, T *node)
     {
         assert(node != nullptr);
-        assert(!(node->*member).is_linked());
+        assert(to_iterator(node) == end());
         elementCount++;
-        T *pos_node = const_cast<T *>(pos.node);
-        T *prev_node = (pos_node->*member).prev;
-        (node->*member).prev = prev_node;
-        (node->*member).next = pos_node;
-        (prev_node->*member).next = node;
-        (pos_node->*member).prev = node;
-        return iterator(node);
+        (node->*member).template insert<member>(node, head, tail, const_cast<T *>(pos.node));
+        return iterator(node, this);
     }
     iterator erase(const_iterator pos)
     {
         assert(pos != cend());
         T *node = const_cast<T *>(pos.node);
-        T *prev_node = (node->*member).prev;
-        T *next_node = (node->*member).next;
-        (node->*member).next = nullptr;
-        (node->*member).prev = nullptr;
-        (prev_node->*member).next = next_node;
-        (next_node->*member).prev = prev_node;
+        T *next_node = (node->*member).template remove<member>(head, tail);
         elementCount--;
         deleteNode(node);
-        return iterator(next_node);
+        return iterator(next_node, this);
     }
     T *detach(const_iterator pos)
     {
         assert(pos != cend());
         T *node = const_cast<T *>(pos.node);
-        T *prev_node = (node->*member).prev;
-        T *next_node = (node->*member).next;
-        (node->*member).next = nullptr;
-        (node->*member).prev = nullptr;
-        (prev_node->*member).next = next_node;
-        (next_node->*member).prev = prev_node;
+        (node->*member).template remove<member>(head, tail);
         elementCount--;
         return node;
     }
@@ -426,7 +459,10 @@ GCC_PRAGMA(diagnostic pop)
     {
         splice(pos, other, it);
     }
-    void splice(const_iterator pos, intrusive_list &other, const_iterator first, const_iterator last)
+    void splice(const_iterator pos,
+                intrusive_list &other,
+                const_iterator first,
+                const_iterator last)
     {
         const_iterator i = first;
         while(i != last)
@@ -437,7 +473,10 @@ GCC_PRAGMA(diagnostic pop)
             i = next;
         }
     }
-    void splice(const_iterator pos, intrusive_list &&other, const_iterator first, const_iterator last)
+    void splice(const_iterator pos,
+                intrusive_list &&other,
+                const_iterator first,
+                const_iterator last)
     {
         splice(pos, other, first, last);
     }

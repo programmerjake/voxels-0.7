@@ -39,6 +39,7 @@
 #include <functional>
 #include <utility>
 #include "util/tls.h"
+#include "util/intrusive_list.h"
 #include <map>
 
 namespace programmerjake
@@ -56,172 +57,66 @@ struct BlockChunkEntity final
 class BlockUpdateIterator;
 class BlockUpdateInChunkIterator;
 struct BlockChunkBlockExtraData;
+class World;
 class BlockUpdate final
 {
+    friend struct BlockChunk;
     friend struct BlockChunkBlockExtraData;
     friend class BlockUpdateIterator;
     friend class BlockUpdateInChunkIterator;
+    friend class World;
 
 private:
-    BlockUpdate *chunkPrev;
-    BlockUpdate *chunkNext;
+    intrusive_list_members<BlockUpdate> blockUpdatesInChunkListMembers;
+
+public:
+    typedef intrusive_list<BlockUpdate, &BlockUpdate::blockUpdatesInChunkListMembers>
+        BlockUpdatesInChunkList;
+
+private:
     PositionI position;
     float timeLeft;
     BlockUpdateKind kind;
-    constexpr bool isEmpty(BlockUpdate *blockUpdatesInChunkListHead) const noexcept
-    {
-        return chunkPrev == nullptr && chunkNext == nullptr && this != blockUpdatesInChunkListHead;
-    }
-    void insert(BlockUpdate *&blockUpdatesInChunkListHead,
-                BlockUpdate *&blockUpdatesInChunkListTail) noexcept
-    {
-        assert(chunkPrev == nullptr);
-        assert(chunkNext == nullptr);
-        assert(blockUpdatesInChunkListHead != this);
-        chunkNext = blockUpdatesInChunkListHead;
-        if(chunkNext)
-        {
-            assert(chunkNext->chunkPrev == nullptr);
-            chunkNext->chunkPrev = this;
-        }
-        else
-        {
-            assert(blockUpdatesInChunkListTail == nullptr);
-            blockUpdatesInChunkListTail = this;
-        }
-        blockUpdatesInChunkListHead = this;
-    }
-    void remove(BlockUpdate *&blockUpdatesInChunkListHead,
-                BlockUpdate *&blockUpdatesInChunkListTail) noexcept
-    {
-        assert(chunkPrev != nullptr || blockUpdatesInChunkListHead == this);
-        assert(chunkNext != nullptr || blockUpdatesInChunkListTail == this);
-        assert(chunkPrev != chunkNext);
-        if(chunkPrev)
-        {
-            assert(chunkPrev->chunkNext == this);
-            chunkPrev->chunkNext = chunkNext;
-        }
-        else
-        {
-            blockUpdatesInChunkListHead = chunkNext;
-        }
-        if(chunkNext)
-        {
-            assert(chunkNext->chunkPrev == this);
-            chunkNext->chunkPrev = chunkPrev;
-        }
-        else
-        {
-            blockUpdatesInChunkListTail = chunkPrev;
-        }
-    }
-    constexpr BlockUpdate() : chunkPrev(nullptr), chunkNext(nullptr), position(), timeLeft(), kind()
-    {
-    }
     constexpr BlockUpdate(BlockUpdateKind kind, PositionI position, float timeLeft)
-        : chunkPrev(nullptr), chunkNext(nullptr), position(position), timeLeft(timeLeft), kind(kind)
+        : blockUpdatesInChunkListMembers(), position(position), timeLeft(timeLeft), kind(kind)
     {
     }
+    bool isEmpty(const BlockChunk &blockChunk) const noexcept;
 
 public:
-    constexpr PositionI getPosition() const
+    constexpr BlockUpdate() : blockUpdatesInChunkListMembers(), position(), timeLeft(), kind()
+    {
+    }
+    PositionI getPosition() const noexcept
     {
         return position;
     }
-    constexpr float getTimeLeft() const
+    float getTimeLeft() const noexcept
     {
         return timeLeft;
     }
-    constexpr BlockUpdateKind getKind() const
+    BlockUpdateKind getKind() const noexcept
     {
         return kind;
     }
 };
 
-class BlockUpdateInChunkIterator final
-{
-public:
-    typedef std::bidirectional_iterator_tag iterator_category;
-    typedef BlockUpdate value_type;
-    typedef std::ptrdiff_t difference_type;
-    typedef BlockUpdate *pointer;
-    typedef BlockUpdate &reference;
-
-private:
-    BlockUpdate *node;
-
-public:
-    constexpr BlockUpdate &operator*() const noexcept
-    {
-        return *node;
-    }
-    constexpr BlockUpdate *operator->() const noexcept
-    {
-        return &operator*();
-    }
-    constexpr BlockUpdate *get() const noexcept
-    {
-        return node;
-    }
-
-private:
-    explicit constexpr BlockUpdateInChunkIterator(BlockUpdate *node) : node(node)
-    {
-    }
-
-public:
-    constexpr BlockUpdateInChunkIterator() : node(nullptr)
-    {
-    }
-    BlockUpdateInChunkIterator operator++(int)
-    {
-        BlockUpdateInChunkIterator retval = *this;
-        node = node->chunkNext;
-        return retval;
-    }
-    BlockUpdateInChunkIterator &operator++()
-    {
-        node = node->chunkNext;
-        return *this;
-    }
-    BlockUpdateInChunkIterator operator--(int)
-    {
-        BlockUpdateInChunkIterator retval = *this;
-        node = node->chunkPrev;
-        return retval;
-    }
-    BlockUpdateInChunkIterator &operator--()
-    {
-        node = node->chunkPrev;
-        return *this;
-    }
-    constexpr bool operator==(const BlockUpdateInChunkIterator &r) const noexcept
-    {
-        return node == r.node;
-    }
-    constexpr bool operator!=(const BlockUpdateInChunkIterator &r) const noexcept
-    {
-        return node != r.node;
-    }
-};
+struct BlockChunkBlock;
 
 struct BlockChunkBlockExtraData final
 {
+    const VectorI position;
+    intrusive_list_members<BlockChunkBlockExtraData> particleGeneratingBlockListMembers;
+    typedef intrusive_list<BlockChunkBlockExtraData,
+                           &BlockChunkBlockExtraData::particleGeneratingBlockListMembers>
+        ParticleGeneratingBlockList;
     typedef enum_array<BlockUpdate, BlockUpdateKind> BlockUpdates;
     BlockUpdates blockUpdates;
     BlockDataPointer<BlockData> data;
-    bool isEmpty(BlockUpdate *blockUpdatesInChunkListHead) const noexcept
+    explicit BlockChunkBlockExtraData(VectorI position) : position(position)
     {
-        if(data)
-            return false;
-        for(const auto &blockUpdate : blockUpdates)
-        {
-            if(!blockUpdate.isEmpty(blockUpdatesInChunkListHead))
-                return false;
-        }
-        return true;
     }
+    bool isEmpty(const BlockChunk &blockChunk) const noexcept;
 };
 
 class BlockIterator;
@@ -240,7 +135,7 @@ public:
 private:
     BlockChunkBlockExtraData::BlockUpdates::iterator iter;
     BlockChunkBlockExtraData *blockExtraData;
-    BlockUpdate *blockUpdatesInChunkListHead;
+    const BlockChunk *blockChunk;
 
 public:
     constexpr BlockUpdate &operator*() const noexcept
@@ -259,41 +154,37 @@ public:
 private:
     BlockUpdateIterator(BlockChunkBlockExtraData::BlockUpdates::iterator iter,
                         BlockChunkBlockExtraData *blockExtraData,
-                        BlockUpdate *blockUpdatesInChunkListHead)
-        : iter(iter),
-          blockExtraData(blockExtraData),
-          blockUpdatesInChunkListHead(blockUpdatesInChunkListHead)
+                        const BlockChunk *blockChunk) noexcept : iter(iter),
+                                                                 blockExtraData(blockExtraData),
+                                                                 blockChunk(blockChunk)
     {
-        while(this->iter != blockExtraData->blockUpdates.end()
-              && this->iter->isEmpty(blockUpdatesInChunkListHead))
+        while(this->iter != blockExtraData->blockUpdates.end() && this->iter->isEmpty(*blockChunk))
         {
             ++this->iter;
         }
     }
 
 public:
-    constexpr BlockUpdateIterator()
-        : iter(), blockExtraData(nullptr), blockUpdatesInChunkListHead(nullptr)
+    constexpr BlockUpdateIterator() : iter(), blockExtraData(nullptr), blockChunk(nullptr)
     {
     }
-    BlockUpdateIterator operator++(int)
+    BlockUpdateIterator operator++(int) noexcept
     {
         auto retval = *this;
         operator++();
         return retval;
     }
-    BlockUpdateIterator &operator++()
+    BlockUpdateIterator &operator++() noexcept
     {
         assert(iter < blockExtraData->blockUpdates.end());
         ++iter;
-        while(iter != blockExtraData->blockUpdates.end()
-              && iter->isEmpty(blockUpdatesInChunkListHead))
+        while(iter != blockExtraData->blockUpdates.end() && iter->isEmpty(*blockChunk))
         {
             ++iter;
         }
         return *this;
     }
-    BlockUpdateIterator operator--(int)
+    BlockUpdateIterator operator--(int) noexcept
     {
         auto retval = *this;
         operator--();
@@ -303,7 +194,7 @@ public:
     {
         assert(iter > blockExtraData->blockUpdates.begin());
         --iter;
-        while(iter->isEmpty(blockUpdatesInChunkListHead))
+        while(iter->isEmpty(*blockChunk))
         {
             assert(iter > blockExtraData->blockUpdates.begin());
             --iter;
@@ -560,29 +451,51 @@ struct BlockChunk final
     BlockChunk *nextLockedChunk;
     checked_array<checked_array<BlockChunkColumn, chunkSizeZ>, chunkSizeX> columns;
     BlocksArray blocks;
-    BlockUpdate *blockUpdateListHead;
-    BlockUpdate *blockUpdateListTail;
+    BlockUpdate::BlockUpdatesInChunkList blockUpdates;
     enum_array<std::size_t, BlockUpdatePhase> blockUpdatesPerPhase;
     std::chrono::steady_clock::time_point lastBlockUpdateTime;
     static constexpr std::chrono::steady_clock::time_point invalidLastBlockUpdateTime =
         std::chrono::steady_clock::time_point::min();
     std::list<BlockChunkEntity> entities;
+    BlockChunkBlockExtraData::ParticleGeneratingBlockList particleGeneratingBlockList;
     IndirectBlockChunk *const indirectBlockChunk;
+    void invalidate()
+    {
+    }
     explicit BlockChunk(IndirectBlockChunk *indirectBlockChunk)
         : nextLockedChunk(nullptr),
           columns(),
           blocks(),
-          blockUpdateListHead(nullptr),
-          blockUpdateListTail(nullptr),
+          blockUpdates(nullptr),
           blockUpdatesPerPhase(),
           lastBlockUpdateTime(invalidLastBlockUpdateTime),
           entities(),
+          particleGeneratingBlockList(nullptr),
           indirectBlockChunk(indirectBlockChunk)
     {
     }
 };
 
-class World;
+inline bool BlockUpdate::isEmpty(const BlockChunk &blockChunk) const noexcept
+{
+    return blockChunk.blockUpdates.to_iterator(this) == blockChunk.blockUpdates.end();
+}
+
+inline bool BlockChunkBlockExtraData::isEmpty(const BlockChunk &blockChunk) const noexcept
+{
+    if(data)
+        return false;
+    if(blockChunk.particleGeneratingBlockList.to_iterator(this)
+       != blockChunk.particleGeneratingBlockList.end())
+        return false;
+    for(const auto &blockUpdate : blockUpdates)
+    {
+        if(!blockUpdate.isEmpty(blockChunk))
+            return false;
+    }
+    return true;
+}
+
 class BlockChunks;
 
 class IndirectBlockChunk final
@@ -956,7 +869,10 @@ public:
     {
         Slice &slice = slices[getSliceIndex(position)];
         std::unique_lock<Mutex> lockIt(slice.lock);
-        return slice.map[position];
+        auto iter = slice.map.find(position);
+        if(iter != slice.map.end())
+            return std::get<1>(*iter);
+        return std::get<1>(*std::get<0>(slice.map.emplace(std::piecewise_construct, std::make_tuple(position), std::make_tuple(position))));
     }
     template <bool loadChunks>
     LockedIndirectBlockChunkList lockChunks(const PositionI *positions,
@@ -991,7 +907,10 @@ public:
         {
             std::unique_lock<Mutex> lockIt(slice.lock);
             retval.reserve(retval.size() + slice.map.size());
-            retval.insert(retval.end(), slice.map.begin(), slice.map.end());
+            for(auto &chunk : slice.map)
+            {
+                retval.push_back(&std::get<1>(chunk));
+            }
         }
         return retval;
     }

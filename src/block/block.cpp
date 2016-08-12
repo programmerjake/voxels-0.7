@@ -97,7 +97,7 @@ PackedBlock::PackedBlock(const Block &b)
 {
 }
 
-BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd)
+BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd) noexcept
     : index()
 {
     if(bd == nullptr)

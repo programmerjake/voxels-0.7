@@ -21,6 +21,8 @@
 #ifndef WORLD_LOCK_MANAGER_H_INCLUDED
 #define WORLD_LOCK_MANAGER_H_INCLUDED
 
+#include <cassert>
+
 namespace programmerjake
 {
 namespace voxels
@@ -36,6 +38,10 @@ struct WorldLockManager final
     }
     TLS &tls;
     LockedIndirectBlockChunkList *lockedBlockChunkList;
+    void clearAndCheckLocks() noexcept
+    {
+        assert(lockedBlockChunkList == nullptr);
+    }
 };
 }
 }

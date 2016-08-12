@@ -104,8 +104,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 int minZ = ifloor(fMin.z);
                 int maxZ = iceil(fMax.z);
                 std::shared_ptr<PhysicsObject> objectB;
-                BlockIterator bix =
-                    getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                BlockIterator bix(PositionI(minX, minY, minZ, position.d), lock_manager);
                 for(int xPosition = minX; xPosition <= maxX;
                     xPosition++, bix.moveTowardPX(lock_manager))
                 {
@@ -325,8 +324,7 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
                 std::shared_ptr<PhysicsObject> objectB;
                 std::shared_ptr<PhysicsObject> objectBForEffectRegion;
                 BlockEffects newBlockEffects(nullptr);
-                BlockIterator bix =
-                    getBlockIterator(PositionI(minX, minY, minZ, position.d), lock_manager.tls);
+                BlockIterator bix(PositionI(minX, minY, minZ, position.d), lock_manager);
                 for(int xPosition = minX; xPosition <= maxX;
                     xPosition++, bix.moveTowardPX(lock_manager))
                 {

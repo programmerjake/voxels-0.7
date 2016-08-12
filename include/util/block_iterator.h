@@ -40,21 +40,24 @@ namespace voxels
 {
 class World;
 class ViewPoint;
+class PhysicsWorld;
 class BlockIterator final
 {
     friend class World;
     friend class ViewPoint;
+    friend class PhysicsWorld;
+
+private:
     BlockChunk *chunk;
     PositionI currentBasePosition;
     VectorI currentRelativePosition;
     void getChunk(WorldLockManager &lock_manager) noexcept
     {
         assert(lock_manager.lockedBlockChunkList);
-        chunk = lock_manager.lockedBlockChunkList->getChunkList().at(currentBasePosition)->chunk.get();
+        chunk =
+            lock_manager.lockedBlockChunkList->getChunkList().at(currentBasePosition)->chunk.get();
         assert(chunk);
     }
-
-public:
     BlockIterator(PositionI position, WorldLockManager &lock_manager) noexcept
         : chunk(),
           currentBasePosition(BlockChunk::getChunkBasePosition(position)),
@@ -62,6 +65,8 @@ public:
     {
         getChunk(lock_manager);
     }
+
+public:
     PositionI position() const
     {
         return currentBasePosition + currentRelativePosition;
@@ -233,9 +238,8 @@ public:
         auto &block = getBlock();
         if(!block.extraData)
             return BlockUpdateIterator();
-        return BlockUpdateIterator(block.extraData->blockUpdates.begin(),
-                                   block.extraData.get(),
-                                   chunk->blockUpdateListHead);
+        return BlockUpdateIterator(
+            block.extraData->blockUpdates.begin(), block.extraData.get(), chunk);
     }
     BlockUpdateIterator updatesEnd(WorldLockManager &lock_manager) const noexcept
     {
@@ -243,7 +247,15 @@ public:
         if(!block.extraData)
             return BlockUpdateIterator();
         return BlockUpdateIterator(
-            block.extraData->blockUpdates.end(), block.extraData.get(), chunk->blockUpdateListHead);
+            block.extraData->blockUpdates.end(), block.extraData.get(), chunk);
+    }
+    BlockUpdateIterator updateFor(BlockUpdateKind kind, WorldLockManager &lock_manager)
+    {
+        auto &block = getBlock();
+        if(!block.extraData)
+            return BlockUpdateIterator();
+        return BlockUpdateIterator(
+            block.extraData->blockUpdates.find(kind), block.extraData.get(), chunk);
     }
     class Updates final
     {

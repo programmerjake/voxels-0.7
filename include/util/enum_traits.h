@@ -39,93 +39,91 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct enum_iterator : public std::iterator<std::random_access_iterator_tag, const T>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     T value;
-    constexpr enum_iterator()
-        : value()
+    constexpr enum_iterator() : value()
     {
     }
-    constexpr enum_iterator(T value)
-        : value(value)
+    constexpr enum_iterator(T value) : value(value)
     {
     }
-    constexpr const T operator *() const
+    constexpr const T operator*() const
     {
         return value;
     }
-    friend constexpr enum_iterator<T> operator +(std::ptrdiff_t a, enum_iterator b)
+    friend constexpr enum_iterator<T> operator+(std::ptrdiff_t a, enum_iterator b)
     {
         return enum_iterator<T>(static_cast<T>(a + static_cast<std::ptrdiff_t>(b.value)));
     }
-    constexpr enum_iterator<T> operator +(std::ptrdiff_t b) const
+    constexpr enum_iterator<T> operator+(std::ptrdiff_t b) const
     {
         return enum_iterator<T>(static_cast<T>(static_cast<std::ptrdiff_t>(value) + b));
     }
-    constexpr enum_iterator<T> operator -(std::ptrdiff_t b) const
+    constexpr enum_iterator<T> operator-(std::ptrdiff_t b) const
     {
         return enum_iterator<T>(static_cast<T>(static_cast<std::ptrdiff_t>(value) - b));
     }
-    constexpr std::ptrdiff_t operator -(enum_iterator b) const
+    constexpr std::ptrdiff_t operator-(enum_iterator b) const
     {
         return static_cast<std::ptrdiff_t>(value) - static_cast<std::ptrdiff_t>(b.value);
     }
-    constexpr const T operator [](std::ptrdiff_t b) const
+    constexpr const T operator[](std::ptrdiff_t b) const
     {
         return static_cast<T>(static_cast<std::ptrdiff_t>(value) + b);
     }
-    const enum_iterator & operator +=(std::ptrdiff_t b)
+    const enum_iterator &operator+=(std::ptrdiff_t b)
     {
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + b);
         return *this;
     }
-    const enum_iterator & operator -=(std::ptrdiff_t b)
+    const enum_iterator &operator-=(std::ptrdiff_t b)
     {
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - b);
         return *this;
     }
-    const enum_iterator & operator ++()
+    const enum_iterator &operator++()
     {
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + 1);
         return *this;
     }
-    const enum_iterator & operator --()
+    const enum_iterator &operator--()
     {
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - 1);
         return *this;
     }
-    enum_iterator operator ++(int)
+    enum_iterator operator++(int)
     {
         T retval = value;
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) + 1);
         return enum_iterator(retval);
     }
-    enum_iterator operator --(int)
+    enum_iterator operator--(int)
     {
         T retval = value;
         value = static_cast<T>(static_cast<std::ptrdiff_t>(value) - 1);
         return enum_iterator(retval);
     }
-    constexpr bool operator ==(enum_iterator b) const
+    constexpr bool operator==(enum_iterator b) const
     {
         return value == b.value;
     }
-    constexpr bool operator !=(enum_iterator b) const
+    constexpr bool operator!=(enum_iterator b) const
     {
         return value != b.value;
     }
-    constexpr bool operator >=(enum_iterator b) const
+    constexpr bool operator>=(enum_iterator b) const
     {
         return value >= b.value;
     }
-    constexpr bool operator <=(enum_iterator b) const
+    constexpr bool operator<=(enum_iterator b) const
     {
         return value <= b.value;
     }
-    constexpr bool operator >(enum_iterator b) const
+    constexpr bool operator>(enum_iterator b) const
     {
         return value > b.value;
     }
-    constexpr bool operator <(enum_iterator b) const
+    constexpr bool operator<(enum_iterator b) const
     {
         return value < b.value;
     }
@@ -136,100 +134,97 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <>
 struct enum_iterator<bool> : public std::iterator<std::random_access_iterator_tag, const bool>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     unsigned char value;
-    constexpr enum_iterator()
-        : value(0)
+    constexpr enum_iterator() : value(0)
     {
     }
-    constexpr enum_iterator(bool value)
-        : value(value ? 1 : 0)
+    constexpr enum_iterator(bool value) : value(value ? 1 : 0)
     {
     }
     struct int_construct_t
     {
     };
-    constexpr enum_iterator(int value, int_construct_t)
-        : value(value)
+    constexpr enum_iterator(int value, int_construct_t) : value(value)
     {
     }
-    constexpr const bool operator *() const
+    constexpr const bool operator*() const
     {
         return value != 0;
     }
-    friend constexpr enum_iterator<bool> operator +(std::ptrdiff_t a, enum_iterator b)
+    friend constexpr enum_iterator<bool> operator+(std::ptrdiff_t a, enum_iterator b)
     {
         return enum_iterator<bool>(a + b.value, int_construct_t());
     }
-    constexpr enum_iterator<bool> operator +(std::ptrdiff_t b) const
+    constexpr enum_iterator<bool> operator+(std::ptrdiff_t b) const
     {
         return enum_iterator<bool>(value + b, int_construct_t());
     }
-    constexpr enum_iterator<bool> operator -(std::ptrdiff_t b) const
+    constexpr enum_iterator<bool> operator-(std::ptrdiff_t b) const
     {
         return enum_iterator<bool>(value - b, int_construct_t());
     }
-    constexpr std::ptrdiff_t operator -(enum_iterator b) const
+    constexpr std::ptrdiff_t operator-(enum_iterator b) const
     {
         return static_cast<std::ptrdiff_t>(value) - static_cast<std::ptrdiff_t>(b.value);
     }
-    constexpr const bool operator [](std::ptrdiff_t b) const
+    constexpr const bool operator[](std::ptrdiff_t b) const
     {
-        return operator +(b).operator *();
+        return operator+(b).operator*();
     }
-    const enum_iterator & operator +=(std::ptrdiff_t b)
+    const enum_iterator &operator+=(std::ptrdiff_t b)
     {
         value += b;
         return *this;
     }
-    const enum_iterator & operator -=(std::ptrdiff_t b)
+    const enum_iterator &operator-=(std::ptrdiff_t b)
     {
         value -= b;
         return *this;
     }
-    const enum_iterator & operator ++()
+    const enum_iterator &operator++()
     {
         value++;
         return *this;
     }
-    const enum_iterator & operator --()
+    const enum_iterator &operator--()
     {
         value--;
         return *this;
     }
-    enum_iterator operator ++(int)
+    enum_iterator operator++(int)
     {
         enum_iterator retval = *this;
         value++;
         return retval;
     }
-    enum_iterator operator --(int)
+    enum_iterator operator--(int)
     {
         enum_iterator retval = *this;
         value--;
         return retval;
     }
-    constexpr bool operator ==(enum_iterator b) const
+    constexpr bool operator==(enum_iterator b) const
     {
         return value == b.value;
     }
-    constexpr bool operator !=(enum_iterator b) const
+    constexpr bool operator!=(enum_iterator b) const
     {
         return value != b.value;
     }
-    constexpr bool operator >=(enum_iterator b) const
+    constexpr bool operator>=(enum_iterator b) const
     {
         return value >= b.value;
     }
-    constexpr bool operator <=(enum_iterator b) const
+    constexpr bool operator<=(enum_iterator b) const
     {
         return value <= b.value;
     }
-    constexpr bool operator >(enum_iterator b) const
+    constexpr bool operator>(enum_iterator b) const
     {
         return value > b.value;
     }
-    constexpr bool operator <(enum_iterator b) const
+    constexpr bool operator<(enum_iterator b) const
     {
         return value < b.value;
     }
@@ -259,7 +254,8 @@ struct enum_traits_default
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
-struct enum_traits<T, typename std::enable_if<std::is_enum<T>::value>::type> : public enum_traits_default<T, T::enum_first, T::enum_last>
+struct enum_traits<T, typename std::enable_if<std::is_enum<T>::value>::type>
+    : public enum_traits_default<T, T::enum_first, T::enum_last>
 {
 };
 GCC_PRAGMA(diagnostic pop)
@@ -285,9 +281,7 @@ struct enum_traits<bool, void>
     }
 };
 
-#define DEFINE_ENUM_LIMITS(first, last) \
-enum_first = first, \
-enum_last = last,
+#define DEFINE_ENUM_LIMITS(first, last) enum_first = first, enum_last = last,
 
 template <typename T, typename BT>
 struct enum_struct
@@ -296,8 +290,7 @@ struct enum_struct
     typedef BT base_type;
     static_assert(std::is_integral<base_type>::value, "base type must be an integral type");
     base_type value;
-    explicit constexpr enum_struct(base_type value)
-        : value(value)
+    explicit constexpr enum_struct(base_type value) : value(value)
     {
     }
     enum_struct() = default;
@@ -309,22 +302,30 @@ struct enum_struct
     {
         return static_cast<std::ptrdiff_t>(value);
     }
-    constexpr bool operator ==(enum_struct rt) const
+    constexpr bool operator==(enum_struct rt) const
     {
         return value == rt.value;
     }
-    constexpr bool operator !=(enum_struct rt) const
+    constexpr bool operator!=(enum_struct rt) const
     {
         return value != rt.value;
     }
 };
 
 #define DEFINE_ENUM_STRUCT_LIMITS(first, last) \
-static constexpr type enum_first() {return first();} \
-static constexpr type enum_last() {return last();}
+    static constexpr type enum_first()         \
+    {                                          \
+        return first();                        \
+    }                                          \
+    static constexpr type enum_last()          \
+    {                                          \
+        return last();                         \
+    }
 
 template <typename T>
-struct enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>
+struct enum_traits<T,
+                   typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>,
+                                                           T>::value>::type>
 {
     typedef T type;
     typedef typename T::base_type rwtype;
@@ -345,48 +346,70 @@ struct enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typ
 };
 
 template <typename T>
-constexpr T enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>::minimum;
+constexpr T
+    enum_traits<T,
+                typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>,
+                                                        T>::value>::type>::minimum;
 
 template <typename T>
-constexpr T enum_traits<T, typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>, T>::value>::type>::maximum;
+constexpr T
+    enum_traits<T,
+                typename std::enable_if<std::is_base_of<enum_struct<T, typename T::base_type>,
+                                                        T>::value>::type>::maximum;
 
 template <typename T, typename EnumT>
 struct enum_array
 {
     typedef T value_type;
     typedef EnumT index_type;
-    typedef value_type * iterator;
-    typedef const value_type * const_iterator;
-    typedef value_type * pointer;
-    typedef const value_type * const_pointer;
+    typedef value_type *iterator;
+    typedef const value_type *const_iterator;
+    typedef value_type *pointer;
+    typedef const value_type *const_pointer;
     value_type elements[enum_traits<index_type>::size()];
-    value_type & operator [](index_type index)
+    value_type &operator[](index_type index)
     {
-        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
-    const value_type & operator [](index_type index) const
+    const value_type &operator[](index_type index) const
     {
-        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
-    value_type & at(index_type index)
+    value_type &at(index_type index)
     {
-        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
-    const value_type & at(index_type index) const
+    const value_type &at(index_type index) const
     {
-        assert(index >= enum_traits<index_type>::minimum && index <= enum_traits<index_type>::maximum);
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
         return elements[enum_iterator<index_type>(index) - enum_traits<index_type>::begin()];
     }
-    static constexpr std::size_t size()
+    iterator find(index_type index)
+    {
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
+        return elements + (enum_iterator<index_type>(index) - enum_traits<index_type>::begin());
+    }
+    const_iterator find(index_type index) const
+    {
+        assert(index >= enum_traits<index_type>::minimum
+               && index <= enum_traits<index_type>::maximum);
+        return elements + (enum_iterator<index_type>(index) - enum_traits<index_type>::begin());
+    }
+    constexpr std::size_t size() const
     {
         return enum_traits<index_type>::size();
     }
     iterator begin()
     {
-        return &elements[0];
+        return elements;
     }
     iterator end()
     {
@@ -394,7 +417,7 @@ struct enum_array
     }
     const_iterator begin() const
     {
-        return &elements[0];
+        return elements;
     }
     const_iterator end() const
     {
@@ -402,7 +425,7 @@ struct enum_array
     }
     const_iterator cbegin() const
     {
-        return &elements[0];
+        return elements;
     }
     const_iterator cend() const
     {
