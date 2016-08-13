@@ -3163,11 +3163,11 @@ void init()
     glyphMesh.image = td.image;
     float startX = 0;
     float startY = 0;
-    bool haveStart = false;
     bool haveLastPoint = false;
     float lastX = 0;
     float lastY = 0;
     TextureCoord tc(td.minU, td.minV);
+    bool haveStart = false;
     for(const VectorFontVertex &v : vectorFontVertices)
     {
         assert(glyphNumber < vectorCharMesh().size());
@@ -3226,6 +3226,7 @@ void init()
             break;
         }
     }
+    static_cast<void>(haveStart);
     assert(glyphNumber == vectorCharMesh().size());
     for(size_t i = 0; i < vectorCharMesh().size(); i++)
     {

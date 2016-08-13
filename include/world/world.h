@@ -54,6 +54,7 @@
 #include "util/rc4_random_engine.h"
 #include "util/util.h"
 #include "util/tls.h"
+#include "util/world_lock_manager.h"
 
 namespace programmerjake
 {
@@ -76,6 +77,7 @@ class World final : public std::enable_shared_from_this<World>
 {
     GCC_PRAGMA(diagnostic pop)
     friend class ViewPoint;
+    friend class WorldLock;
     World(const World &) = delete;
     const World &operator=(const World &) = delete;
 
@@ -542,7 +544,7 @@ public:
         maxCorner.y = BlockChunk::chunkSizeY - 1;
         VectorI adjustedMinCorner = minCorner - VectorI(1, 0, 1);
         VectorI adjustedMaxCorner = maxCorner + VectorI(1, 0, 1);
-        BlockIterator biX = getBlockIterator(minCorner, lock_manager);
+        BlockIterator biX(minCorner, lock_manager);
         for(VectorI p = minCorner; p.x <= maxCorner.x; p.x++, biX.moveTowardPX(lock_manager))
         {
             BlockIterator biXZ = biX;
@@ -670,67 +672,6 @@ public:
         }
         invalidateBlockRange(blockIterator, adjustedMinCorner, adjustedMaxCorner, lock_manager);
         lightingStable = false;
-    }
-    /** @brief set a block range
-     *
-     * except for the order of setting blocks, this is equivalent to:
-     * @code
-     * template <typename T>
-     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager,
-     *const T &newBlocks, VectorI newBlocksOrigin)
-     * {
-     *     for(PositionI pos = minCorner; pos.x <= maxCorner.x; pos.x++)
-     *     {
-     *         for(pos.y = minCorner.y; pos.y <= maxCorner.y; pos.y++)
-     *         {
-     *             for(pos.z = minCorner.z; pos.z <= maxCorner.z; pos.z++)
-     *             {
-     *                 BlockIterator bi = getBlockIterator(pos);
-     *                 VectorI newBlocksPosition = pos - minCorner + newBlocksOrigin;
-     *                 Block newBlock =
-     *newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
-     *                 setBlock(bi, lock_manager, newBlock);
-     *             }
-     *         }
-     *     }
-     * }
-     * @endcode
-     *
-     * @param minCorner the minimum corner of the block range to set. sets blocks in the range
-     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
-     *maxCorner.z
-     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range
-     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
-     *maxCorner.z
-     * @param lock_manager this thread's <code>WorldLockManager</code>
-     * @param newBlocks the array of new blocks
-     * @param newBlocksOrigin the minimum corner in the array of new blocks
-     *
-     *
-     */
-    template <typename T>
-    void setBlockRange(PositionI minCorner,
-                       VectorI maxCorner,
-                       WorldLockManager &lock_manager,
-                       const T &newBlocks,
-                       VectorI newBlocksOrigin)
-    {
-        setBlockRange(getBlockIterator(minCorner, lock_manager),
-                      minCorner,
-                      maxCorner,
-                      lock_manager,
-                      newBlocks,
-                      newBlocksOrigin);
-    }
-    /** @brief create a <code>BlockIterator</code>
-     *
-     * @param position the position to create a <code>BlockIterator</code> for
-     * @return the new <code>BlockIterator</code>
-     *
-     */
-    BlockIterator getBlockIterator(PositionI position, WorldLockManager &lock_manager) const
-    {
-        return BlockIterator(position, lock_manager);
     }
     /** @brief add a new entity to this world
      *

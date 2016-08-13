@@ -19,70 +19,10 @@
  *
  */
 #include "util/block_chunk.h"
-#include "util/wrapped_entity.h"
-#include "util/logging.h"
-#include "platform/platform.h"
-#include <cassert>
-#include "util/tls.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-BlockChunkChunkVariables::~BlockChunkChunkVariables()
-{
-    TLS &tls = TLS::getSlow();
-    while(blockUpdateListHead != nullptr)
-    {
-        BlockUpdate *deleteMe = blockUpdateListHead;
-        blockUpdateListHead = blockUpdateListHead->chunk_next;
-        BlockUpdate::free(deleteMe, tls);
-    }
-}
-
-BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlockChunk)
-    : BasicBlockChunk(basePosition),
-    objectCounter(),
-    indirectBlockChunk(indirectBlockChunk)
-{
-    assert(indirectBlockChunk);
-#ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
-    for(int x = 0; x < subchunkCountX; x++)
-    {
-        for(int y = 0; y < subchunkCountY; y++)
-        {
-            for(int z = 0; z < subchunkCountZ; z++)
-            {
-                BlockChunkSubchunk &subchunk = subchunks[x][y][z];
-                subchunk.lockImp.chunkSemaphore = indirectBlockChunk->chunkVariables.semaphore;
-            }
-        }
-    }
-#endif
-}
-
-BlockChunk::~BlockChunk()
-{
-    for(int x = 0; x < subchunkCountX; x++)
-    {
-        for(int y = 0; y < subchunkCountY; y++)
-        {
-            for(int z = 0; z < subchunkCountZ; z++)
-            {
-                BlockChunkSubchunk &subchunk = subchunks[x][y][z];
-                subchunk.entityList.clear();
-            }
-        }
-    }
-}
-
-void WrappedEntity::verify() const
-{
-    assert(currentSubchunk != nullptr && currentChunk != nullptr);
-    assert(subchunkListMembers.is_linked());
-    assert(chunkListMembers.is_linked());
-    assert(currentSubchunk >= &currentChunk->subchunks[0][0][0] && currentSubchunk <= &currentChunk->subchunks[BlockChunk::subchunkCountX - 1][BlockChunk::subchunkCountY - 1][BlockChunk::subchunkCountZ - 1]);
-}
-
 }
 }

@@ -21,19 +21,37 @@
 
 #include "util/world_lock_manager.h"
 #include "util/logging.h"
+#include "util/block_chunk.h"
+#include "world/world.h"
 
 namespace programmerjake
 {
 namespace voxels
 {
-
-void WorldLockManager::handleLockedForTooLong(
-    std::chrono::high_resolution_clock::duration lockedDuration)
+void WorldLock::unlock(WorldLockManager &lock_manager) noexcept
 {
-    float floatDuration = std::chrono::duration_cast<std::chrono::duration<float>>(lockedDuration).count();
-    getDebugLog() << L"WorldLockManager locked for too long: " << floatDuration << postnl;
+    assert(lock_manager.lockedBlockChunkList);
+    delete lock_manager.lockedBlockChunkList;
+    lock_manager.lockedBlockChunkList = nullptr;
 }
 
-}
+WorldLock::WorldLock(WorldLockManager &lock_manager,
+                     World &world,
+                     const PositionI *positions,
+                     std::size_t positionCount)
+    : WorldLock(lock_manager, world.physicsWorld->chunks, positions, positionCount)
+{
 }
 
+WorldLock::WorldLock(WorldLockManager &lock_manager,
+                     BlockChunks &blockChunks,
+                     const PositionI *positions,
+                     std::size_t positionCount)
+    : lock_manager(&lock_manager)
+{
+    assert(!lock_manager.lockedBlockChunkList);
+    lock_manager.lockedBlockChunkList = new LockedIndirectBlockChunkList(
+        blockChunks.lockChunks<true>(positions, positionCount, lock_manager.tls));
+}
+}
+}

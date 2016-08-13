@@ -69,6 +69,8 @@ void PlayerEntity::moveStep(Entity &entity,
         return;
     }
     PositionF lastPosition = entity.physicsObject->getPosition();
+    PositionI lastPositionI(lastPosition);
+    auto worldLock = WorldLock::make(lock_manager, lastPositionI - VectorI(50), lastPositionI + VectorI(50));
     bool didWarp = false;
     BlockEffects blockEffects = entity.physicsObject->getBlockEffects();
     {
@@ -168,7 +170,7 @@ void PlayerEntity::moveStep(Entity &entity,
             {
                 PositionI pos = c.blockPosition;
                 bool good = true;
-                BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
+                BlockIterator bi = world.getBlockIterator(pos, lock_manager);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
                 if(good)
@@ -220,7 +222,7 @@ void PlayerEntity::moveStep(Entity &entity,
                     player->destructingTime = 0;
                 }
                 bool good = true;
-                BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
+                BlockIterator bi = world.getBlockIterator(pos, lock_manager);
                 Block b = bi.get(lock_manager);
                 good = good && b.good();
                 if(good && gotAttackDown)
@@ -406,7 +408,7 @@ bool Player::placeBlock(RayCasting::Collision collision,
 {
     if(!b.good())
         return false;
-    BlockIterator bi = world.getBlockIterator(collision.blockPosition, lock_manager.tls);
+    BlockIterator bi = world.getBlockIterator(collision.blockPosition, lock_manager);
     Block oldBlock = bi.get(lock_manager);
     if(!oldBlock.good())
         return false;
@@ -430,7 +432,7 @@ bool Player::removeBlock(RayCasting::Collision collision,
 {
     PositionI pos = collision.blockPosition;
     bool good = true;
-    BlockIterator bi = world.getBlockIterator(pos, lock_manager.tls);
+    BlockIterator bi = world.getBlockIterator(pos, lock_manager);
     Block b = bi.get(lock_manager);
     good = good && b.good();
     if(good)

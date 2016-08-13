@@ -227,7 +227,7 @@ public:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
         if(plock_manager)
-            plock_manager->clear();
+            plock_manager->clearAndCheckLocks();
         backgroundImageElement->image = backgroundImage;
         Ui::render(renderer, minZ, maxZ, hasFocus);
     }
@@ -252,7 +252,7 @@ public:
             return true;
         std::unique_lock<RecursiveMutex> theLock;
         if(plock_manager)
-            plock_manager->clear();
+            plock_manager->clearAndCheckLocks();
         if(std::get<1>(itemStack) != nullptr)
             theLock = std::unique_lock<RecursiveMutex>(*std::get<1>(itemStack));
         if(selectedItem == nullptr)
@@ -343,7 +343,7 @@ protected:
             return;
         std::unique_lock<RecursiveMutex> theLock;
         if(plock_manager)
-            plock_manager->clear();
+            plock_manager->clearAndCheckLocks();
         if(std::get<1>(itemStack) != nullptr)
             theLock = std::unique_lock<RecursiveMutex>(*std::get<1>(itemStack));
         if(selectedItem == nullptr)
