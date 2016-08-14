@@ -32,21 +32,27 @@ namespace Items
 {
 namespace builtin
 {
-
 class GenericLadder : public ItemImage
 {
 public:
-    GenericLadder(std::wstring name, TextureDescriptor td, const Blocks::builtin::GenericLadder *block)
+    GenericLadder(std::wstring name,
+                  TextureDescriptor td,
+                  const Blocks::builtin::GenericLadder *block)
         : ItemImage(name, td, block)
     {
     }
+
 protected:
     const Blocks::builtin::GenericLadder *getBlock() const
     {
         return dynamic_cast<const Blocks::builtin::GenericLadder *>(ItemImage::getBlock());
     }
+
 public:
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         const Blocks::builtin::GenericLadder *block = getBlock();
         if(block == nullptr)
@@ -56,7 +62,8 @@ public:
         {
             if(c.type == RayCasting::Collision::Type::Block && c.blockFace != BlockFaceOrNone::None)
             {
-                BlockDescriptorPointer newDescriptor = block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
+                BlockDescriptorPointer newDescriptor =
+                    block->getDescriptor(getOppositeBlockFace(toBlockFace(c.blockFace)));
                 if(newDescriptor != nullptr)
                 {
                     if(player.placeBlock(c, world, lock_manager, Block(newDescriptor)))
@@ -71,11 +78,14 @@ public:
 class Ladder final : public GenericLadder
 {
     friend class global_instance_maker<Ladder>;
+
 private:
     Ladder()
-        : GenericLadder(L"builtin.ladder", TextureAtlas::Ladder.td(), Blocks::builtin::Ladder::pointer())
+        : GenericLadder(
+              L"builtin.ladder", TextureAtlas::Ladder.td(), Blocks::builtin::Ladder::pointer())
     {
     }
+
 public:
     static const Ladder *pointer()
     {
@@ -93,7 +103,6 @@ public:
     {
     }
 };
-
 }
 }
 }

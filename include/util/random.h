@@ -53,24 +53,33 @@ ResultType GenerateInt(RE &re, ResultType minV, ResultType maxV)
 {
     typedef typename std::make_unsigned<typename RE::result_type>::type unsigned_RE_result_type;
     typedef typename std::make_unsigned<ResultType>::type unsigned_result_type;
-    typedef typename std::conditional<(std::numeric_limits<unsigned_result_type>::digits > std::numeric_limits<unsigned_RE_result_type>::digits), unsigned_result_type, unsigned_RE_result_type>::type intermediate_type;
+    typedef typename std::conditional<(std::numeric_limits<unsigned_result_type>::digits
+                                       > std::numeric_limits<unsigned_RE_result_type>::digits),
+                                      unsigned_result_type,
+                                      unsigned_RE_result_type>::type intermediate_type;
     assert(maxV >= minV);
     if(maxV <= minV)
         return minV;
-    intermediate_type inputRangeSizeMinusOne = (intermediate_type)re.max() - (intermediate_type)re.min();
+    intermediate_type inputRangeSizeMinusOne =
+        (intermediate_type)re.max() - (intermediate_type)re.min();
     assert(inputRangeSizeMinusOne > 0);
     intermediate_type outputRangeSizeMinusOne = (intermediate_type)maxV - (intermediate_type)minV;
     if(inputRangeSizeMinusOne == outputRangeSizeMinusOne)
     {
-        return (ResultType)((intermediate_type)minV + (intermediate_type)re() - (intermediate_type)re.min());
+        return (ResultType)((intermediate_type)minV + (intermediate_type)re()
+                            - (intermediate_type)re.min());
     }
     else if(inputRangeSizeMinusOne > outputRangeSizeMinusOne)
     {
-        // don't add 1 to inputRangeSizeMinusOne because that might overflow; so we use a roundabout method
-        intermediate_type outputRangeSize = outputRangeSizeMinusOne + 1; // outputRangeSize is at least 2 because we check for minV == maxV above
+        // don't add 1 to inputRangeSizeMinusOne because that might overflow; so we use a roundabout
+        // method
+        intermediate_type outputRangeSize =
+            outputRangeSizeMinusOne
+            + 1; // outputRangeSize is at least 2 because we check for minV == maxV above
         intermediate_type scaleFactor = inputRangeSizeMinusOne / outputRangeSize;
         intermediate_type ignoreMin = scaleFactor * outputRangeSize - 1;
-        if(inputRangeSizeMinusOne % outputRangeSize == outputRangeSizeMinusOne) // if it divides exactly
+        if(inputRangeSizeMinusOne % outputRangeSize
+           == outputRangeSizeMinusOne) // if it divides exactly
         {
             scaleFactor++; // adjust scale factor back to true quotient
             ignoreMin += outputRangeSize;

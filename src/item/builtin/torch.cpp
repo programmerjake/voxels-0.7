@@ -32,10 +32,10 @@ namespace Recipes
 {
 namespace builtin
 {
-
 class TorchRecipe final : public PatternRecipe<1, 2>
 {
     friend class global_instance_maker<TorchRecipe>;
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -44,15 +44,15 @@ protected:
         output = RecipeOutput(ItemStack(Item(Items::builtin::Torch::descriptor()), 4));
         return true;
     }
+
 private:
     TorchRecipe()
-        : PatternRecipe(checked_array<Item, 1 * 2>
-        {
-            Item(Items::builtin::Coal::descriptor()),
-            Item(Items::builtin::Stick::descriptor()),
-        })
+        : PatternRecipe(checked_array<Item, 1 * 2>{
+              Item(Items::builtin::Coal::descriptor()), Item(Items::builtin::Stick::descriptor()),
+          })
     {
     }
+
 public:
     static const TorchRecipe *pointer()
     {
@@ -67,6 +67,7 @@ public:
 class TorchRecipe2 final : public PatternRecipe<1, 2>
 {
     friend class global_instance_maker<TorchRecipe2>;
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -75,15 +76,16 @@ protected:
         output = RecipeOutput(ItemStack(Item(Items::builtin::Torch::descriptor()), 4));
         return true;
     }
+
 private:
     TorchRecipe2()
-        : PatternRecipe(checked_array<Item, 1 * 2>
-        {
-            Item(Items::builtin::Charcoal::descriptor()),
-            Item(Items::builtin::Stick::descriptor()),
-        })
+        : PatternRecipe(checked_array<Item, 1 * 2>{
+              Item(Items::builtin::Charcoal::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+          })
     {
     }
+
 public:
     static const TorchRecipe2 *pointer()
     {
@@ -98,6 +100,7 @@ public:
 class RedstoneTorchRecipe final : public PatternRecipe<1, 2>
 {
     friend class global_instance_maker<RedstoneTorchRecipe>;
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -106,15 +109,16 @@ protected:
         output = RecipeOutput(ItemStack(Item(Items::builtin::RedstoneTorch::descriptor()), 1));
         return true;
     }
+
 private:
     RedstoneTorchRecipe()
-        : PatternRecipe(checked_array<Item, 1 * 2>
-        {
-            Item(Items::builtin::RedstoneDust::descriptor()),
-            Item(Items::builtin::Stick::descriptor()),
-        })
+        : PatternRecipe(checked_array<Item, 1 * 2>{
+              Item(Items::builtin::RedstoneDust::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+          })
     {
     }
+
 public:
     static const RedstoneTorchRecipe *pointer()
     {
@@ -125,7 +129,6 @@ public:
         return pointer();
     }
 };
-
 }
 }
 }

@@ -39,7 +39,12 @@ class ImageElement : public Element
 public:
     TextureDescriptor image;
     ColorF colorizeColor;
-    ImageElement(TextureDescriptor image, float minX, float maxX, float minY, float maxY, ColorF colorizeColor = colorizeIdentity())
+    ImageElement(TextureDescriptor image,
+                 float minX,
+                 float maxX,
+                 float minY,
+                 float maxY,
+                 ColorF colorizeColor = colorizeIdentity())
         : Element(minX, maxX, minY, maxY), image(image), colorizeColor(colorizeColor)
     {
     }
@@ -47,16 +52,21 @@ public:
     {
         return false;
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
         if(image)
         {
             renderer << Generate::quadrilateral(image,
-                                                VectorF(minX * minZ, minY * minZ, -minZ), colorizeColor,
-                                                VectorF(maxX * minZ, minY * minZ, -minZ), colorizeColor,
-                                                VectorF(maxX * minZ, maxY * minZ, -minZ), colorizeColor,
-                                                VectorF(minX * minZ, maxY * minZ, -minZ), colorizeColor);
+                                                VectorF(minX * minZ, minY * minZ, -minZ),
+                                                colorizeColor,
+                                                VectorF(maxX * minZ, minY * minZ, -minZ),
+                                                colorizeColor,
+                                                VectorF(maxX * minZ, maxY * minZ, -minZ),
+                                                colorizeColor,
+                                                VectorF(minX * minZ, maxY * minZ, -minZ),
+                                                colorizeColor);
         }
     }
 };

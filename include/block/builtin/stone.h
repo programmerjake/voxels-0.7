@@ -36,6 +36,7 @@ namespace builtin
 class Stone final : public StoneBlock
 {
     friend class global_instance_maker<Stone>;
+
 public:
     static const Stone *pointer()
     {
@@ -45,13 +46,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    Stone()
-        : StoneBlock(L"builtin.stone", TextureAtlas::Stone.td())
+    Stone() : StoneBlock(L"builtin.stone", TextureAtlas::Stone.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 1.5f;
@@ -60,7 +66,8 @@ public:
     {
         return ToolLevel_Wood;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override

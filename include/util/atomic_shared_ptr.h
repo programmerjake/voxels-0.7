@@ -46,8 +46,7 @@ private:
     static no fn(...);
 
 public:
-    static constexpr bool value =
-        sizeof(yes) == sizeof(fn(static_cast<const T *>(nullptr)));
+    static constexpr bool value = sizeof(yes) == sizeof(fn(static_cast<const T *>(nullptr)));
 };
 #endif // DOXYGEN
 /** @brief replacement for <code>std::atomic<std::shared_ptr<T>></code>
@@ -229,7 +228,8 @@ public:
     }
     std::shared_ptr<T> load() const
     {
-        atomic_shared_ptr_mutex_holder mutex_holder(const_cast<void *>(reinterpret_cast<const void *>(this)));
+        atomic_shared_ptr_mutex_holder mutex_holder(
+            const_cast<void *>(reinterpret_cast<const void *>(this)));
         mutex_holder.lock();
         std::shared_ptr<T> retval = value;
         mutex_holder.unlock();

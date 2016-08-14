@@ -29,12 +29,12 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 template <typename T>
 class ordered_weak_ptr final
 {
     template <typename U>
     friend class ordered_weak_ptr;
+
 private:
     std::weak_ptr<T> v;
     std::intptr_t compareValue;
@@ -48,9 +48,9 @@ private:
     {
         return reinterpret_cast<std::intptr_t>(v.get());
     }
+
 public:
-    constexpr ordered_weak_ptr()
-        : v(), compareValue(0)
+    constexpr ordered_weak_ptr() : v(), compareValue(0)
     {
     }
     template <typename U>
@@ -69,21 +69,21 @@ public:
     {
     }
     template <typename U>
-    const ordered_weak_ptr &operator =(const ordered_weak_ptr<U> &r)
+    const ordered_weak_ptr &operator=(const ordered_weak_ptr<U> &r)
     {
         v = r.v;
         compareValue = r.compareValue;
         return *this;
     }
     template <typename U>
-    const ordered_weak_ptr &operator =(const std::weak_ptr<U> &r)
+    const ordered_weak_ptr &operator=(const std::weak_ptr<U> &r)
     {
         v = r;
         compareValue = getCompareValue(r);
         return *this;
     }
     template <typename U>
-    const ordered_weak_ptr &operator =(const std::shared_ptr<U> &r)
+    const ordered_weak_ptr &operator=(const std::shared_ptr<U> &r)
     {
         v = r;
         compareValue = getCompareValue(r);
@@ -113,32 +113,32 @@ public:
         return v.lock();
     }
     template <typename U>
-    constexpr bool operator ==(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator==(const ordered_weak_ptr<U> &r) const
     {
         return compareValue == r.compareValue;
     }
     template <typename U>
-    constexpr bool operator !=(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator!=(const ordered_weak_ptr<U> &r) const
     {
         return compareValue != r.compareValue;
     }
     template <typename U>
-    constexpr bool operator <=(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator<=(const ordered_weak_ptr<U> &r) const
     {
         return compareValue <= r.compareValue;
     }
     template <typename U>
-    constexpr bool operator >=(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator>=(const ordered_weak_ptr<U> &r) const
     {
         return compareValue >= r.compareValue;
     }
     template <typename U>
-    constexpr bool operator <(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator<(const ordered_weak_ptr<U> &r) const
     {
         return compareValue < r.compareValue;
     }
     template <typename U>
-    constexpr bool operator >(const ordered_weak_ptr<U> &r) const
+    constexpr bool operator>(const ordered_weak_ptr<U> &r) const
     {
         return compareValue > r.compareValue;
     }
@@ -147,14 +147,14 @@ public:
         return static_cast<std::size_t>(compareValue);
     }
 };
-
 }
 }
 
 namespace std
 {
 template <typename T>
-void swap(programmerjake::voxels::ordered_weak_ptr<T> &l, programmerjake::voxels::ordered_weak_ptr<T> &r)
+void swap(programmerjake::voxels::ordered_weak_ptr<T> &l,
+          programmerjake::voxels::ordered_weak_ptr<T> &r)
 {
     l.swap(r);
 }
@@ -162,7 +162,7 @@ void swap(programmerjake::voxels::ordered_weak_ptr<T> &l, programmerjake::voxels
 template <typename T>
 struct hash<programmerjake::voxels::ordered_weak_ptr<T>> final
 {
-    size_t operator ()(const programmerjake::voxels::ordered_weak_ptr<T> &v) const
+    size_t operator()(const programmerjake::voxels::ordered_weak_ptr<T> &v) const
     {
         return v.hash();
     }

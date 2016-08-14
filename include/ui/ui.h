@@ -34,10 +34,13 @@ namespace ui
 class Ui : public Container
 {
     bool done;
+
 public:
     ColorF background;
     explicit Ui(ColorF background = GrayscaleF(0.4))
-        : Container(-Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY()), done(false), background(background)
+        : Container(-Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY()),
+          done(false),
+          background(background)
     {
     }
     static std::shared_ptr<Ui> get(std::shared_ptr<Element> element)
@@ -87,6 +90,7 @@ public:
     }
     virtual bool handlePause(PauseEvent &event) override;
     virtual bool handleResume(ResumeEvent &event) override;
+
 protected:
     virtual void clear(Renderer &renderer);
 };

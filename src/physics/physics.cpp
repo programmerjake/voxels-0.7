@@ -155,7 +155,8 @@ void PhysicsWorld::runToTime(double stopTime, WorldLockManager &lock_manager)
             struct OverallHashTableTLSTag
             {
             };
-            thread_local_variable<checked_array<HashNode *, bigHashPrime>, OverallHashTableTLSTag> overallHashTableTLS(lock_manager.tls);
+            thread_local_variable<checked_array<HashNode *, bigHashPrime>, OverallHashTableTLSTag>
+                overallHashTableTLS(lock_manager.tls);
             auto &overallHashTable = overallHashTableTLS.get();
             overallHashTable.fill(nullptr);
             struct FreeListHeadTag

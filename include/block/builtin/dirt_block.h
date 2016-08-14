@@ -37,24 +37,38 @@ class DirtBlock : public FullBlock
 private:
     enum_array<Mesh, BlockFace> meshGrassFace;
     Mesh meshGrassCenter;
+
 protected:
     DirtBlock(std::wstring name,
-              bool isFaceBlockedNX, bool isFaceBlockedPX,
-              bool isFaceBlockedNY, bool isFaceBlockedPY,
-              bool isFaceBlockedNZ, bool isFaceBlockedPZ,
-              TextureDescriptor nxDirt, TextureDescriptor pxDirt,
-              TextureDescriptor nyDirt, TextureDescriptor pyDirt,
-              TextureDescriptor nzDirt, TextureDescriptor pzDirt,
-              TextureDescriptor nxGrass, TextureDescriptor pxGrass,
-              TextureDescriptor nyGrass, TextureDescriptor pyGrass,
-              TextureDescriptor nzGrass, TextureDescriptor pzGrass)
-        : FullBlock(name, LightProperties(Lighting(), Lighting::makeMaxLight()),
+              bool isFaceBlockedNX,
+              bool isFaceBlockedPX,
+              bool isFaceBlockedNY,
+              bool isFaceBlockedPY,
+              bool isFaceBlockedNZ,
+              bool isFaceBlockedPZ,
+              TextureDescriptor nxDirt,
+              TextureDescriptor pxDirt,
+              TextureDescriptor nyDirt,
+              TextureDescriptor pyDirt,
+              TextureDescriptor nzDirt,
+              TextureDescriptor pzDirt,
+              TextureDescriptor nxGrass,
+              TextureDescriptor pxGrass,
+              TextureDescriptor nyGrass,
+              TextureDescriptor pyGrass,
+              TextureDescriptor nzGrass,
+              TextureDescriptor pzGrass)
+        : FullBlock(name,
+                    LightProperties(Lighting(), Lighting::makeMaxLight()),
                     RayCasting::BlockCollisionMaskGround,
-                    isFaceBlockedNX, isFaceBlockedPX,
-                    isFaceBlockedNY, isFaceBlockedPY,
-                    isFaceBlockedNZ, isFaceBlockedPZ),
-        meshGrassFace(),
-        meshGrassCenter()
+                    isFaceBlockedNX,
+                    isFaceBlockedPX,
+                    isFaceBlockedNY,
+                    isFaceBlockedPY,
+                    isFaceBlockedNZ,
+                    isFaceBlockedPZ),
+          meshGrassFace(),
+          meshGrassCenter()
     {
         meshFace[BlockFace::NX] = makeFaceMeshNX(nxDirt);
         meshFace[BlockFace::PX] = makeFaceMeshPX(pxDirt);
@@ -71,29 +85,52 @@ protected:
     }
     DirtBlock(std::wstring name,
               bool areFacesBlocked,
-              TextureDescriptor nxDirt, TextureDescriptor pxDirt,
-              TextureDescriptor nyDirt, TextureDescriptor pyDirt,
-              TextureDescriptor nzDirt, TextureDescriptor pzDirt,
-              TextureDescriptor nxGrass, TextureDescriptor pxGrass,
-              TextureDescriptor nyGrass, TextureDescriptor pyGrass,
-              TextureDescriptor nzGrass, TextureDescriptor pzGrass)
+              TextureDescriptor nxDirt,
+              TextureDescriptor pxDirt,
+              TextureDescriptor nyDirt,
+              TextureDescriptor pyDirt,
+              TextureDescriptor nzDirt,
+              TextureDescriptor pzDirt,
+              TextureDescriptor nxGrass,
+              TextureDescriptor pxGrass,
+              TextureDescriptor nyGrass,
+              TextureDescriptor pyGrass,
+              TextureDescriptor nzGrass,
+              TextureDescriptor pzGrass)
         : DirtBlock(name,
-                    areFacesBlocked, areFacesBlocked,
-                    areFacesBlocked, areFacesBlocked,
-                    areFacesBlocked, areFacesBlocked,
-                    nxDirt, pxDirt,
-                    nyDirt, pyDirt,
-                    nzDirt, pzDirt,
-                    nxGrass, pxGrass,
-                    nyGrass, pyGrass,
-                    nzGrass, pzGrass)
+                    areFacesBlocked,
+                    areFacesBlocked,
+                    areFacesBlocked,
+                    areFacesBlocked,
+                    areFacesBlocked,
+                    areFacesBlocked,
+                    nxDirt,
+                    pxDirt,
+                    nyDirt,
+                    pyDirt,
+                    nzDirt,
+                    pzDirt,
+                    nxGrass,
+                    pxGrass,
+                    nyGrass,
+                    pyGrass,
+                    nzGrass,
+                    pzGrass)
     {
     }
-    virtual ColorF getGrassShading(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual ColorF getGrassShading(const Block &block,
+                                   BlockIterator blockIterator,
+                                   WorldLockManager &lock_manager) const
     {
         return blockIterator.getBiomeProperties(lock_manager).getGrassColor();
     }
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
+    virtual void renderDynamic(
+        const Block &block,
+        Mesh &dest,
+        BlockIterator blockIterator,
+        WorldLockManager &lock_manager,
+        RenderLayer rl,
+        const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
     {
         if(rl != RenderLayer::Opaque)
         {
@@ -141,7 +178,9 @@ protected:
             dest.append(transform(tform, blockMesh));
         }
     }
-    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual bool drawsAnythingDynamic(const Block &block,
+                                      BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         for(BlockFace bf : enum_traits<BlockFace>())
         {
@@ -169,6 +208,7 @@ protected:
         }
         return false;
     }
+
 public:
     virtual ToolLevel getToolLevel() const override
     {

@@ -33,20 +33,21 @@ namespace Decorators
 {
 namespace builtin
 {
-
 class CoalOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<CoalOreVeinDecorator>;
+
 private:
-    CoalOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.coal_ore_vein", 17, 0, 128, 20, 800)
+    CoalOreVeinDecorator() : MineralVeinDecorator(L"builtin.coal_ore_vein", 17, 0, 128, 20, 800)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::CoalOre::descriptor());
     }
+
 public:
     static const CoalOreVeinDecorator *pointer()
     {
@@ -61,16 +62,18 @@ public:
 class IronOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<IronOreVeinDecorator>;
+
 private:
-    IronOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.iron_ore_vein", 9, 0, 64, 20, 700)
+    IronOreVeinDecorator() : MineralVeinDecorator(L"builtin.iron_ore_vein", 9, 0, 64, 20, 700)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::IronOre::descriptor());
     }
+
 public:
     static const IronOreVeinDecorator *pointer()
     {
@@ -85,16 +88,18 @@ public:
 class GoldOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<GoldOreVeinDecorator>;
+
 private:
-    GoldOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.gold_ore_vein", 9, 0, 32, 2, 600)
+    GoldOreVeinDecorator() : MineralVeinDecorator(L"builtin.gold_ore_vein", 9, 0, 32, 2, 600)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::GoldOre::descriptor());
     }
+
 public:
     static const GoldOreVeinDecorator *pointer()
     {
@@ -109,16 +114,19 @@ public:
 class RedstoneOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<RedstoneOreVeinDecorator>;
+
 private:
     RedstoneOreVeinDecorator()
         : MineralVeinDecorator(L"builtin.redstone_ore_vein", 8, 0, 16, 8, 700)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::RedstoneOre::descriptor());
     }
+
 public:
     static const RedstoneOreVeinDecorator *pointer()
     {
@@ -133,16 +141,18 @@ public:
 class DiamondOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<DiamondOreVeinDecorator>;
+
 private:
-    DiamondOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.diamond_ore_vein", 8, 0, 16, 1, 500)
+    DiamondOreVeinDecorator() : MineralVeinDecorator(L"builtin.diamond_ore_vein", 8, 0, 16, 1, 500)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::DiamondOre::descriptor());
     }
+
 public:
     static const DiamondOreVeinDecorator *pointer()
     {
@@ -157,16 +167,19 @@ public:
 class LapisLazuliOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<LapisLazuliOreVeinDecorator>;
+
 private:
     LapisLazuliOreVeinDecorator()
         : MineralVeinDecorator(L"builtin.lapis_lazuli_ore_vein", 7, 0, 32, 1, 650)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::LapisLazuliOre::descriptor());
     }
+
 public:
     static const LapisLazuliOreVeinDecorator *pointer()
     {
@@ -181,16 +194,18 @@ public:
 class EmeraldOreVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<EmeraldOreVeinDecorator>;
+
 private:
-    EmeraldOreVeinDecorator()
-        : MineralVeinDecorator(L"builtin.emerald_ore_vein", 1, 0, 16, 0, 400)
+    EmeraldOreVeinDecorator() : MineralVeinDecorator(L"builtin.emerald_ore_vein", 1, 0, 16, 0, 400)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::RedstoneOre::descriptor());
     }
+
 public:
     static const EmeraldOreVeinDecorator *pointer()
     {
@@ -201,7 +216,6 @@ public:
         return pointer();
     }
 };
-
 }
 }
 }

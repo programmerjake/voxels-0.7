@@ -46,21 +46,19 @@ namespace Blocks
 {
 namespace builtin
 {
-
 class Chest final : public FullBlock
 {
     Chest(const Chest &) = delete;
-    Chest &operator =(const Chest &) = delete;
+    Chest &operator=(const Chest &) = delete;
     friend class ui::builtin::ChestUi;
+
 private:
     struct ChestData final
     {
         std::recursive_mutex lock;
         typedef ItemStackArray<9, 3> ItemsType;
         ItemsType items;
-        ChestData()
-            : lock(),
-            items()
+        ChestData() : lock(), items()
         {
         }
         static std::shared_ptr<ChestData> read(stream::Reader &reader)
@@ -81,13 +79,14 @@ private:
     struct ChestBlockData final : BlockData
     {
         std::shared_ptr<ChestData> data;
-        ChestBlockData(std::shared_ptr<ChestData> data)
-            : data(data)
+        ChestBlockData(std::shared_ptr<ChestData> data) : data(data)
         {
         }
     };
+
 public:
     const BlockFace facing;
+
 private:
     static TextureDescriptor getFaceTexture(BlockFace facing, BlockFace face)
     {
@@ -125,14 +124,25 @@ private:
         return retval;
     }
     Chest(BlockFace facing)
-        : FullBlock(makeName(facing), LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround,
-                    true, true, true, true, true, true,
-                    getFaceTexture(facing, BlockFace::NX), getFaceTexture(facing, BlockFace::PX),
-                    getFaceTexture(facing, BlockFace::NY), getFaceTexture(facing, BlockFace::PY),
-                    getFaceTexture(facing, BlockFace::NZ), getFaceTexture(facing, BlockFace::PZ),
+        : FullBlock(makeName(facing),
+                    LightProperties(Lighting(), Lighting::makeMaxLight()),
+                    RayCasting::BlockCollisionMaskGround,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    getFaceTexture(facing, BlockFace::NX),
+                    getFaceTexture(facing, BlockFace::PX),
+                    getFaceTexture(facing, BlockFace::NY),
+                    getFaceTexture(facing, BlockFace::PY),
+                    getFaceTexture(facing, BlockFace::NZ),
+                    getFaceTexture(facing, BlockFace::PZ),
                     RenderLayer::Opaque),
-                    facing(facing)
+          facing(facing)
     {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
     }
     ~Chest()
     {
@@ -140,8 +150,7 @@ private:
     struct ChestMaker final
     {
         enum_array<Chest *, BlockFace> chests;
-        ChestMaker()
-            : chests()
+        ChestMaker() : chests()
         {
             for(BlockFace facing : enum_traits<BlockFace>())
             {
@@ -156,6 +165,7 @@ private:
                 delete v;
         }
     };
+
 public:
     static const Chest *pointer(BlockFace facing = BlockFace::NX)
     {
@@ -169,8 +179,16 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual bool onUse(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const override;
     virtual float getHardness() const override
     {
         return 2.5f;
@@ -179,15 +197,25 @@ public:
     {
         return ToolLevel_None;
     }
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const override
     {
-        if(block.data == nullptr)
+        if(kind == BlockUpdateKind::UpdateNotify && block.data == nullptr)
         {
-            world.setBlock(blockIterator, lock_manager, Block(this, block.lighting, BlockDataPointer<ChestBlockData>(new ChestBlockData(std::make_shared<ChestData>()))));
+            world.setBlock(blockIterator,
+                           lock_manager,
+                           Block(this,
+                                 block.lighting,
+                                 BlockDataPointer<ChestBlockData>(
+                                     new ChestBlockData(std::make_shared<ChestData>()))));
             return;
         }
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> blockData) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> blockData) const override
     {
         stream::write<bool>(writer, blockData == nullptr);
         if(blockData == nullptr)
@@ -205,7 +233,6 @@ public:
         return BlockDataPointer<ChestBlockData>(new ChestBlockData(chestData));
     }
 };
-
 }
 }
 }

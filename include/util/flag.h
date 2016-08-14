@@ -36,12 +36,12 @@ private:
     mutable std::condition_variable_any cond;
     std::atomic_bool value;
     mutable std::atomic_size_t waitingCount;
+
 public:
-    flag(bool value = false)
-        : lock(), cond(), value(value), waitingCount(0)
+    flag(bool value = false) : lock(), cond(), value(value), waitingCount(0)
     {
     }
-    const flag &operator =(bool v)
+    const flag &operator=(bool v)
     {
         if(value.exchange(v) != v)
         {
@@ -51,7 +51,7 @@ public:
 
         return *this;
     }
-    const flag &operator =(const flag &r)
+    const flag &operator=(const flag &r)
     {
         return *this = (bool)r;
     }
@@ -72,7 +72,7 @@ public:
         bool retval = value;
         return retval;
     }
-    bool operator !() const
+    bool operator!() const
     {
         bool retval = value;
         return !retval;

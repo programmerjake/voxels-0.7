@@ -29,24 +29,26 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 class XorShift128Plus final
 {
 public:
     typedef std::uint_fast64_t result_type;
+
 private:
     result_type state0, state1;
+
 public:
     static constexpr result_type default_seed = static_cast<result_type>(0x7AB5E995C32E4511ULL);
     explicit XorShift128Plus(result_type seedValue = default_seed) noexcept
-        : state0(seedValue), state1(seedValue ^ static_cast<result_type>(0x123897C7232F503FULL))
+        : state0(seedValue),
+          state1(seedValue ^ static_cast<result_type>(0x123897C7232F503FULL))
     {
     }
     void seed(result_type seedValue = default_seed) noexcept
     {
         *this = XorShift128Plus(seedValue);
     }
-    result_type operator ()() noexcept
+    result_type operator()() noexcept
     {
         auto temp = state0;
         state0 = state1;
@@ -60,7 +62,7 @@ public:
     {
         for(unsigned long long i = 0; i < count; i++)
         {
-            operator ()();
+            operator()();
         }
     }
     static constexpr result_type min() noexcept
@@ -71,16 +73,15 @@ public:
     {
         return 0xFFFFFFFFFFFFFFFFULL;
     }
-    friend bool operator ==(const XorShift128Plus &l, const XorShift128Plus &r)
+    friend bool operator==(const XorShift128Plus &l, const XorShift128Plus &r)
     {
         return l.state0 == r.state0 && l.state1 == r.state1;
     }
-    friend bool operator !=(const XorShift128Plus &l, const XorShift128Plus &r)
+    friend bool operator!=(const XorShift128Plus &l, const XorShift128Plus &r)
     {
         return l.state0 != r.state0 || l.state1 != r.state1;
     }
 };
-
 }
 }
 

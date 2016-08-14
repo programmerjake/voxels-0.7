@@ -38,7 +38,7 @@
 #else
 #include <GL/gl.h>
 #endif
-#if (defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
+#if(defined(_WIN64) || defined(_WIN32)) && !defined(_MSC_VER)
 #include <GL/glext.h>
 #else
 #ifndef APIENTRY

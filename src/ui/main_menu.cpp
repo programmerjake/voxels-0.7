@@ -258,19 +258,18 @@ std::shared_ptr<Element> MainMenu::setupSettingsMenu()
     add(fontCheckBox);
     CheckBox &fontCheckBoxR = *fontCheckBox;
     fontCheckBox->checked.set(Text::getDefaultFont() == Text::getVectorFont());
-    fontCheckBox->checked.onChange.bind(
-        [&fontCheckBoxR](EventArguments &) -> Event::ReturnType
-        {
-            if(fontCheckBoxR.checked.get())
-            {
-                Text::setDefaultFont(Text::getVectorFont());
-            }
-            else
-            {
-                Text::setDefaultFont(Text::getBitmappedFont8x8());
-            }
-            return Event::ReturnType::Propagate;
-        });
+    fontCheckBox->checked.onChange.bind([&fontCheckBoxR](EventArguments &) -> Event::ReturnType
+                                        {
+                                            if(fontCheckBoxR.checked.get())
+                                            {
+                                                Text::setDefaultFont(Text::getVectorFont());
+                                            }
+                                            else
+                                            {
+                                                Text::setDefaultFont(Text::getBitmappedFont8x8());
+                                            }
+                                            return Event::ReturnType::Propagate;
+                                        });
 #endif
     std::shared_ptr<CheckBox> fullScreenCheckBox =
         std::make_shared<CheckBox>(L"Full Screen", -0.8f, 0.8f, -0.65f, -0.4f);

@@ -35,7 +35,8 @@ class VideoInputDevice;
 class VideoInput
 {
     VideoInput(const VideoInput &) = delete;
-    VideoInput &operator =(const VideoInput &) = delete;
+    VideoInput &operator=(const VideoInput &) = delete;
+
 public:
     const VideoInputDevice *const videoInputDevice;
     explicit VideoInput(const VideoInputDevice *videoInputDevice)
@@ -62,15 +63,18 @@ public:
 class VideoInputDevice
 {
     VideoInputDevice(const VideoInputDevice &) = delete;
-    VideoInputDevice &operator =(const VideoInputDevice &) = delete;
+    VideoInputDevice &operator=(const VideoInputDevice &) = delete;
+
 public:
     const std::wstring name;
-    VideoInputDevice(std::wstring name)
-        : name(name)
+    VideoInputDevice(std::wstring name) : name(name)
     {
     }
     virtual ~VideoInputDevice() = default;
-    virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight, int requestedFrameRate) const = 0; /// can only have one VideoInput at a time
+    virtual std::unique_ptr<VideoInput> makeVideoInput(
+        int requestedWidth,
+        int requestedHeight,
+        int requestedFrameRate) const = 0; /// can only have one VideoInput at a time
     std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight) const
     {
         return makeVideoInput(requestedWidth, requestedHeight, -1);
@@ -82,7 +86,6 @@ public:
 };
 
 const std::vector<const VideoInputDevice *> &getVideoInputDeviceList();
-
 }
 }
 

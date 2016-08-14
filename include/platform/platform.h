@@ -170,7 +170,7 @@ enum class KeyboardKey : std::uint8_t
 
     DEFINE_ENUM_LIMITS(Unknown, PrintScreen)
 
-    DQuote = SQuote,
+        DQuote = SQuote,
     Underline = Dash,
     Tilde = BQuote,
     LBrace = LBracket,
@@ -245,8 +245,9 @@ struct hash<programmerjake::voxels::KeyboardKey>
 private:
     typedef std::underlying_type<programmerjake::voxels::KeyboardKey>::type int_type;
     hash<int_type> hasher;
+
 public:
-    size_t operator ()(programmerjake::voxels::KeyboardKey v) const
+    size_t operator()(programmerjake::voxels::KeyboardKey v) const
     {
         return hasher(static_cast<int_type>(v));
     }
@@ -258,8 +259,9 @@ struct hash<programmerjake::voxels::KeyboardModifiers>
 private:
     typedef std::underlying_type<programmerjake::voxels::KeyboardModifiers>::type int_type;
     hash<int_type> hasher;
+
 public:
-    size_t operator ()(programmerjake::voxels::KeyboardModifiers v) const
+    size_t operator()(programmerjake::voxels::KeyboardModifiers v) const
     {
         return hasher(static_cast<int_type>(v));
     }
@@ -271,8 +273,9 @@ struct hash<programmerjake::voxels::MouseButton>
 private:
     typedef std::underlying_type<programmerjake::voxels::MouseButton>::type int_type;
     hash<int_type> hasher;
+
 public:
-    size_t operator ()(programmerjake::voxels::MouseButton v) const
+    size_t operator()(programmerjake::voxels::MouseButton v) const
     {
         return hasher(static_cast<int_type>(v));
     }
@@ -288,7 +291,7 @@ class MeshBuffer;
 
 namespace Display
 {
-    void render(const MeshBuffer &m, RenderLayer rl);
+void render(const MeshBuffer &m, RenderLayer rl);
 }
 
 class MeshBuffer final
@@ -299,13 +302,12 @@ private:
     static bool impIsEmpty(std::shared_ptr<MeshBufferImp> mesh);
     static std::size_t impTriangleCapacity(std::shared_ptr<MeshBufferImp> mesh);
     static std::size_t impVertexCapacity(std::shared_ptr<MeshBufferImp> mesh);
-    MeshBuffer(std::shared_ptr<MeshBufferImp> imp, Matrix tform)
-        : imp(std::move(imp)), tform(tform)
+    MeshBuffer(std::shared_ptr<MeshBufferImp> imp, Matrix tform) : imp(std::move(imp)), tform(tform)
     {
     }
+
 public:
-    MeshBuffer()
-        : imp(), tform(Matrix::identity())
+    MeshBuffer() : imp(), tform(Matrix::identity())
     {
     }
     MeshBuffer(std::size_t triangleCount, std::size_t vertexCount);
@@ -346,42 +348,42 @@ inline MeshBuffer transform(const Transform &m, const MeshBuffer &meshBuffer)
 
 namespace Display
 {
-    std::wstring title();
-    void title(std::wstring newTitle);
-    void handleEvents(std::shared_ptr<EventHandler> eventHandler);
-    void flip(float fps);
-    void flip();
-    double instantaneousFPS();
-    double frameDeltaTime();
-    float averageFPS();
-    double timer();
-    double realtimeTimer();
-    int width();
-    int height();
-    float scaleX();
-    float scaleY();
-    void initFrame();
-    void initOverlay();
-    bool grabMouse();
-    void grabMouse(bool g);
-    VectorF transformMouseTo3D(float x, float y, float depth = 1.0f);
-    VectorF transformTouchTo3D(float x, float y, float depth = 1.0f);
-    VectorF transform3DToMouse(VectorF pos);
-    VectorF transform3DToTouch(VectorF pos);
-    void render(const Mesh & m, Matrix tform, RenderLayer rl);
-    void clear(ColorF color = RGBAF(0, 0, 0, 0));
-    float screenRefreshRate();
-    bool fullScreen();
-    void fullScreen(bool fs);
-    bool needTouchControls();
-    float getTouchControlSize(); /// never returns a value > 0.3
-    namespace Text
-    {
-        bool active();
-        void start(float minX, float maxX, float minY, float maxY);
-        void stop();
-    }
-    bool paused();
+std::wstring title();
+void title(std::wstring newTitle);
+void handleEvents(std::shared_ptr<EventHandler> eventHandler);
+void flip(float fps);
+void flip();
+double instantaneousFPS();
+double frameDeltaTime();
+float averageFPS();
+double timer();
+double realtimeTimer();
+int width();
+int height();
+float scaleX();
+float scaleY();
+void initFrame();
+void initOverlay();
+bool grabMouse();
+void grabMouse(bool g);
+VectorF transformMouseTo3D(float x, float y, float depth = 1.0f);
+VectorF transformTouchTo3D(float x, float y, float depth = 1.0f);
+VectorF transform3DToMouse(VectorF pos);
+VectorF transform3DToTouch(VectorF pos);
+void render(const Mesh &m, Matrix tform, RenderLayer rl);
+void clear(ColorF color = RGBAF(0, 0, 0, 0));
+float screenRefreshRate();
+bool fullScreen();
+void fullScreen(bool fs);
+bool needTouchControls();
+float getTouchControlSize(); /// never returns a value > 0.3
+namespace Text
+{
+bool active();
+void start(float minX, float maxX, float minY, float maxY);
+void stop();
+}
+bool paused();
 }
 
 void startGraphics();
@@ -410,10 +412,12 @@ public:
 class DynamicLinkLibrary final
 {
     DynamicLinkLibrary(const DynamicLinkLibrary &) = delete;
-    DynamicLinkLibrary &operator =(const DynamicLinkLibrary &) = delete;
+    DynamicLinkLibrary &operator=(const DynamicLinkLibrary &) = delete;
+
 private:
     void *handle;
     void destroy();
+
 public:
     /** loads a dynamic link library
      *
@@ -429,12 +433,11 @@ public:
         if(handle != nullptr)
             destroy();
     }
-    DynamicLinkLibrary(DynamicLinkLibrary &&rt)
-        : handle(rt.handle)
+    DynamicLinkLibrary(DynamicLinkLibrary &&rt) : handle(rt.handle)
     {
         rt.handle = nullptr;
     }
-    DynamicLinkLibrary &operator =(DynamicLinkLibrary &&rt)
+    DynamicLinkLibrary &operator=(DynamicLinkLibrary &&rt)
     {
         if(handle != nullptr)
             destroy();
@@ -453,12 +456,11 @@ public:
     {
         return handle != nullptr;
     }
-    bool operator !() const /// returns true if this DynamicLinkLibrary is empty
+    bool operator!() const /// returns true if this DynamicLinkLibrary is empty
     {
         return handle == nullptr;
     }
 };
-
 }
 }
 

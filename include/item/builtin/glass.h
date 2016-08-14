@@ -36,8 +36,10 @@ namespace builtin
 class Glass final : public ItemBlock
 {
     friend class global_instance_maker<Glass>;
+
 private:
     Glass();
+
 public:
     static const Glass *pointer()
     {

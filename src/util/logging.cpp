@@ -25,13 +25,12 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 void defaultDebugLogPostFunction(std::wstring str)
 {
     platformPostLogMessage(str);
 }
 
-void operator <<(LogStream &os, post_t)
+void operator<<(LogStream &os, post_t)
 {
     LogStream *logStream = dynamic_cast<LogStream *>(&os);
     assert(logStream != nullptr);
@@ -62,6 +61,5 @@ LogStream &getDebugLog(TLS &tls)
         theLogStream.get().reset(new LogStream(&theLock, &postFunction));
     return *theLogStream.get();
 }
-
 }
 }

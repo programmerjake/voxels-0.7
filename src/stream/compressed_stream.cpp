@@ -47,12 +47,12 @@ int copyit(z_streamp s, int)
 
 voidpf myalloc(voidpf, uInt items, uInt size)
 {
-    return (voidpf)new(std::nothrow) char[items * size];
+    return (voidpf) new(std::nothrow) char[items * size];
 }
 
 void myfree(voidpf, voidpf address)
 {
-    delete [](char *)address;
+    delete[](char *)address;
 }
 
 z_streamp getStream(const std::shared_ptr<void> &ptr)
@@ -80,7 +80,7 @@ void freeDeflateStream(z_streamp stream)
     deflateEnd(stream);
     delete stream;
 }
-void deflateDeleter(void * stream)
+void deflateDeleter(void *stream)
 {
     freeDeflateStream((z_streamp)stream);
 }
@@ -105,7 +105,7 @@ void freeInflateStream(z_streamp stream)
     inflateEnd(stream);
     delete stream;
 }
-void inflateDeleter(void * stream)
+void inflateDeleter(void *stream)
 {
     freeInflateStream((z_streamp)stream);
 }
@@ -113,13 +113,12 @@ void inflateDeleter(void * stream)
 
 namespace stream
 {
-
 CompressWriter::CompressWriter(Writer &writer)
     : pwriter(),
-    writer(writer),
-    state(std::shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter)),
-    buffer(),
-    compressedBuffer()
+      writer(writer),
+      state(std::shared_ptr<void>((void *)makeDeflateStream(), deflateDeleter)),
+      buffer(),
+      compressedBuffer()
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);
@@ -134,7 +133,8 @@ void CompressWriter::writeCompressedBuffer()
     if(s->avail_out == bufferSize)
         return;
     uint16_t size = (bufferSize - s->avail_out) & 0xFFFF;
-    assert(bufferSize - s->avail_out == size || (size == 0 && bufferSize - s->avail_out == 0x10000));
+    assert(bufferSize - s->avail_out == size
+           || (size == 0 && bufferSize - s->avail_out == 0x10000));
     stream::write<uint16_t>(writer, size);
     writer.writeBytes(&compressedBuffer[0], bufferSize - s->avail_out);
     s->next_out = &compressedBuffer[0];
@@ -198,10 +198,10 @@ void CompressWriter::writeBuffer()
 
 ExpandReader::ExpandReader(Reader &reader)
     : preader(),
-    reader(reader),
-    state(std::shared_ptr<void>(makeInflateStream(), inflateDeleter)),
-    buffer(),
-    compressedBuffer()
+      reader(reader),
+      state(std::shared_ptr<void>(makeInflateStream(), inflateDeleter)),
+      buffer(),
+      compressedBuffer()
 {
     buffer.reserve(bufferSize);
     compressedBuffer.resize(bufferSize);
@@ -273,7 +273,6 @@ void ExpandReader::readBuffer()
         }
     }
 }
-
 }
 }
 }

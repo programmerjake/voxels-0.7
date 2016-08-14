@@ -36,14 +36,13 @@ namespace programmerjake
 {
 namespace voxels
 {
-/** 
+/**
  * @class ImageLoadError image.h "texture/image.h"
  */
 class ImageLoadError final : public std::runtime_error
 {
 public:
-    explicit ImageLoadError(const std::string &arg)
-        : std::runtime_error(arg)
+    explicit ImageLoadError(const std::string &arg) : std::runtime_error(arg)
     {
     }
 };
@@ -52,11 +51,12 @@ struct SerializedImages;
 
 /** copy-on-write Image class
  * @class Image image.h "texture/image.h"
- * 
+ *
  */
 class Image final
 {
     friend struct SerializedImages;
+
 public:
     /** load an image resource
      * @param resourceName the file name of the image resource to load
@@ -73,19 +73,17 @@ public:
      */
     explicit Image(ColorI c);
     /// create a new empty Image
-    Image() noexcept
-        : data()
+    Image() noexcept : data()
     {
     }
     /// create a new empty Image
-    Image(std::nullptr_t) noexcept
-        : Image()
+    Image(std::nullptr_t) noexcept : Image()
     {
     }
 
     /** @brief set a pixel
      *
-     * Set the pixel at (x, y) to the color c. If (x, y) 
+     * Set the pixel at (x, y) to the color c. If (x, y)
      * is outside this Image, then do nothing.
      * @param x the zero-based number of pixels from the left of the pixel to set
      * @param y the zero-based number of pixels from the top of the pixel to set
@@ -137,31 +135,31 @@ public:
     /** check if this Image is empty
      * @return true if this Image is empty
      */
-    bool operator !() const
+    bool operator!() const
     {
         return data == nullptr;
     }
-    friend bool operator ==(Image l, Image r)
+    friend bool operator==(Image l, Image r)
     {
         return l.data == r.data;
     }
-    friend bool operator !=(Image l, Image r)
+    friend bool operator!=(Image l, Image r)
     {
         return l.data != r.data;
     }
-    friend bool operator ==(std::nullptr_t, Image r)
+    friend bool operator==(std::nullptr_t, Image r)
     {
         return nullptr == r.data;
     }
-    friend bool operator !=(std::nullptr_t, Image r)
+    friend bool operator!=(std::nullptr_t, Image r)
     {
         return nullptr != r.data;
     }
-    friend bool operator ==(Image l, std::nullptr_t)
+    friend bool operator==(Image l, std::nullptr_t)
     {
         return l.data == nullptr;
     }
-    friend bool operator !=(Image l, std::nullptr_t)
+    friend bool operator!=(Image l, std::nullptr_t)
     {
         return l.data != nullptr;
     }
@@ -173,7 +171,8 @@ public:
      */
     std::size_t getDataSize() const
     {
-        return static_cast<std::size_t>(data->w) * static_cast<std::size_t>(data->h) * BytesPerPixel;
+        return static_cast<std::size_t>(data->w) * static_cast<std::size_t>(data->h)
+               * BytesPerPixel;
     }
     enum class RowOrder
     {
@@ -232,26 +231,42 @@ public:
      * @pre both this Image and src are not empty
      * @see getDataSize
      */
-    void copyRect(int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop);
+    void copyRect(
+        int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop);
     static constexpr std::size_t BytesPerPixel = 4;
+
 private:
     struct data_t
     {
         data_t(const data_t &) = delete;
-        data_t &operator =(const data_t &) = delete;
-        std::uint8_t * const data;
+        data_t &operator=(const data_t &) = delete;
+        std::uint8_t *const data;
         const unsigned w, h;
         RowOrder rowOrder;
         std::uint32_t texture;
         bool textureValid;
         std::uint64_t textureGraphicsContextId;
         std::mutex lock;
-        data_t(std::uint8_t * data, unsigned w, unsigned h, RowOrder rowOrder)
-            : data(data), w(w), h(h), rowOrder(rowOrder), texture(0), textureValid(false), textureGraphicsContextId(0), lock()
+        data_t(std::uint8_t *data, unsigned w, unsigned h, RowOrder rowOrder)
+            : data(data),
+              w(w),
+              h(h),
+              rowOrder(rowOrder),
+              texture(0),
+              textureValid(false),
+              textureGraphicsContextId(0),
+              lock()
         {
         }
-        data_t(std::uint8_t * data, std::shared_ptr<data_t> rt)
-            : data(data), w(rt->w), h(rt->h), rowOrder(rt->rowOrder), texture(0), textureValid(false), textureGraphicsContextId(0), lock()
+        data_t(std::uint8_t *data, std::shared_ptr<data_t> rt)
+            : data(data),
+              w(rt->w),
+              h(rt->h),
+              rowOrder(rt->rowOrder),
+              texture(0),
+              textureValid(false),
+              textureGraphicsContextId(0),
+              lock()
         {
         }
         ~data_t();

@@ -65,6 +65,7 @@ public:
 #else
 private:
     typedef checked_array_helper<T, N> array_helper;
+
 public:
     typename array_helper::array_type m_data; // public for initialization
 #endif
@@ -79,11 +80,11 @@ public:
     typedef const_pointer const_iterator;
     typedef std::reverse_iterator<iterator> reverse_iterator;
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-    constexpr const T &operator [](std::size_t pos) const
+    constexpr const T &operator[](std::size_t pos) const
     {
         return constexpr_assert(pos < N), array_helper::deref(m_data, pos);
     }
-    T &operator [](std::size_t pos)
+    T &operator[](std::size_t pos)
     {
         assert(pos < N);
         return array_helper::deref(m_data, pos);
@@ -182,12 +183,14 @@ public:
         for(std::size_t i = 0; i < N; i++)
             array_helper::deref(m_data, i) = value;
     }
+
 private:
     static constexpr bool is_swap_noexcept()
     {
         using std::swap;
         return noexcept(std::swap(std::declval<T &>(), std::declval<T &>()));
     }
+
 public:
     void swap(checked_array &other) noexcept(is_swap_noexcept())
     {
@@ -202,7 +205,9 @@ public:
 namespace std
 {
 template <typename T, size_t N>
-void swap(programmerjake::voxels::checked_array<T, N> &a, programmerjake::voxels::checked_array<T, N> &b) noexcept(noexcept(swap(declval<T &>(), declval<T &>())))
+void swap(programmerjake::voxels::checked_array<T, N> &a,
+          programmerjake::voxels::checked_array<T, N> &b) noexcept(noexcept(swap(declval<T &>(),
+                                                                                 declval<T &>())))
 {
     a.swap(b);
 }

@@ -118,7 +118,8 @@ inline std::wstring string_cast<std::wstring>(std::string str)
                     i++;
                     value <<= 6;
                     value |= 0x3F & static_cast<unsigned char>(str[i]);
-                    if(i + 1 < str.size() && (static_cast<unsigned char>(str[i + 1]) & 0xC0) == 0x80)
+                    if(i + 1 < str.size()
+                       && (static_cast<unsigned char>(str[i + 1]) & 0xC0) == 0x80)
                     {
                         i++;
                         value <<= 6;

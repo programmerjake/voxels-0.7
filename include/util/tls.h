@@ -49,15 +49,17 @@ class TLS final
     template <typename T, typename VariableTag>
     friend class thread_local_variable;
     TLS(const TLS &) = delete;
-    TLS &operator =(const TLS &) = delete;
+    TLS &operator=(const TLS &) = delete;
     void *operator new(std::size_t) = delete;
     void *operator new[](std::size_t) = delete;
     void operator delete(void *) = delete;
     void operator delete(void *, std::size_t) = delete;
     void operator delete[](void *) = delete;
     void operator delete[](void *, std::size_t) = delete;
+
 private:
     static TLS *&getTlsSlowHelper();
+
 public:
 #ifdef USE_BUILTIN_TLS
     static TLS &getSlow()
@@ -73,6 +75,7 @@ public:
     static TLS &getSlow();
     TLS();
     ~TLS();
+
 private:
     static const std::size_t tls_memory_size;
     static std::atomic_size_t next_variable_position;
@@ -101,20 +104,22 @@ template <typename T, typename VariableTag>
 class thread_local_variable final
 {
     thread_local_variable(const thread_local_variable &) = delete;
-    thread_local_variable &operator =(const thread_local_variable &) = delete;
+    thread_local_variable &operator=(const thread_local_variable &) = delete;
     void *operator new(std::size_t) = delete;
     void *operator new[](std::size_t) = delete;
     void operator delete(void *) = delete;
     void operator delete(void *, std::size_t) = delete;
     void operator delete[](void *) = delete;
     void operator delete[](void *, std::size_t) = delete;
+
 private:
     struct wrapper final
     {
         T value;
-        char constructed; // use char instead of bool because we don't have to worry about specific values of bool then
-        template <typename ...Args>
-        explicit wrapper(Args &&...args)
+        char constructed; // use char instead of bool because we don't have to worry about specific
+                          // values of bool then
+        template <typename... Args>
+        explicit wrapper(Args &&... args)
             : value(std::forward<Args>(args)...), constructed()
         {
             constructed = 1; // after value construction
@@ -134,7 +139,8 @@ private:
     static thread_local_variable_slot_getter thread_local_variable_slot_getter_v;
     static wrapper &get_wrapper(TLS &tls)
     {
-        return *reinterpret_cast<wrapper *>(tls.memory + TLS::get_memory_slot<wrapper, VariableTag>());
+        return *reinterpret_cast<wrapper *>(tls.memory
+                                            + TLS::get_memory_slot<wrapper, VariableTag>());
     }
     static void destructor_fn(TLS &tls)
     {
@@ -148,12 +154,14 @@ private:
     }
 #endif
     wrapper *variable = nullptr;
+
 public:
-    template <typename ...Args>
-    explicit thread_local_variable(TLS &tls, Args &&...args)
+    template <typename... Args>
+    explicit thread_local_variable(TLS &tls, Args &&... args)
     {
 #ifndef USE_BUILTIN_TLS
-        thread_local_variable_slot_getter_v.link_in_helper(); // to generate the thread_local_variable_slot_getter
+        thread_local_variable_slot_getter_v
+            .link_in_helper(); // to generate the thread_local_variable_slot_getter
         wrapper &w = get_wrapper(tls);
         if(!w.constructed)
         {
@@ -171,7 +179,8 @@ public:
     explicit thread_local_variable(TLS &tls)
     {
 #ifndef USE_BUILTIN_TLS
-        thread_local_variable_slot_getter_v.link_in_helper(); // to generate the thread_local_variable_slot_getter
+        thread_local_variable_slot_getter_v
+            .link_in_helper(); // to generate the thread_local_variable_slot_getter
         wrapper &w = get_wrapper(tls);
         if(!w.constructed)
         {
@@ -194,7 +203,8 @@ public:
 
 #ifndef USE_BUILTIN_TLS
 template <typename T, typename VariableTag>
-typename thread_local_variable<T, VariableTag>::thread_local_variable_slot_getter thread_local_variable<T, VariableTag>::thread_local_variable_slot_getter_v;
+typename thread_local_variable<T, VariableTag>::thread_local_variable_slot_getter
+    thread_local_variable<T, VariableTag>::thread_local_variable_slot_getter_v;
 #else
 #endif
 }

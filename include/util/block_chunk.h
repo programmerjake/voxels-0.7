@@ -238,6 +238,9 @@ public:
     }
 };
 
+static constexpr int BlockChunkSubchunkShiftXYZ = 4;
+static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = 1 << BlockChunkSubchunkShiftXYZ;
+
 struct BlockChunkBlock final
 {
     typedef Lighting::LightValueType LightValueType;
@@ -247,13 +250,13 @@ struct BlockChunkBlock final
     LightValueType indirectArtificalLight : lightBitWidth;
     bool hasOptionalData : 1;
     static constexpr int blockKindBitWidth = 32 - 1 - 3 * lightBitWidth;
-    unsigned blockKind : blockKindBitWidth;
+    unsigned long blockKind : blockKindBitWidth;
     BlockChunkBlock()
         : directSkylight(0),
           indirectSkylight(0),
           indirectArtificalLight(0),
           hasOptionalData(false),
-          blockKind((static_cast<unsigned>(1) << blockKindBitWidth) - 1)
+          blockKind((static_cast<unsigned long>(1) << blockKindBitWidth) - 1)
     {
     }
     void invalidate()
@@ -280,10 +283,6 @@ class BlockOptionalData final
     friend class BlockOptionalDataHashTable;
     BlockOptionalData(const BlockOptionalData &) = delete;
     BlockOptionalData &operator=(const BlockOptionalData &) = delete;
-
-public:
-    static constexpr int BlockChunkSubchunkShiftXYZ = 3;
-    static constexpr std::int32_t BlockChunkSubchunkSizeXYZ = 1 << BlockChunkSubchunkShiftXYZ;
 
 private:
     BlockOptionalData *hashNext = nullptr;
@@ -376,10 +375,6 @@ public:
 
 class BlockOptionalDataHashTable final
 {
-public:
-    static constexpr std::int32_t BlockChunkSubchunkSizeXYZ =
-        BlockOptionalData::BlockChunkSubchunkSizeXYZ;
-
 private:
     checked_array<BlockOptionalData *, (1 << 8)> table;
     static std::thread::id getThreadId(TLS &tls)
@@ -814,7 +809,7 @@ struct BlockChunk final
     BlockChunk &operator=(const BlockChunk &) = delete;
     static_assert(BlockChunkBlock::blockKindBitWidth >= 3 * subchunkShiftXYZ,
                   "BlockChunkBlock::blockKindBitWidth is too small");
-    static_assert(BlockOptionalData::BlockChunkSubchunkShiftXYZ == subchunkShiftXYZ,
+    static_assert(BlockChunkSubchunkShiftXYZ == subchunkShiftXYZ,
                   "BlockOptionalData::BlockChunkSubchunkShiftXYZ is wrong value");
     ObjectCounter<BlockChunk, 0> objectCounter;
     explicit BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlockChunk);

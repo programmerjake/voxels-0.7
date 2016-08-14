@@ -44,6 +44,7 @@ public:
     {
         return level == 0;
     }
+
 protected:
     const unsigned level;
     const bool falling;
@@ -57,12 +58,14 @@ protected:
     {
         return false;
     }
+
 public:
     virtual float getSideHeight(Dimension d) const
     {
         return interpolate<float>((float)level / (float)getMaxLevel(d), 0.95f, 0.01f);
     }
     virtual Item getFilledBucket() const = 0;
+
 private:
     TextureDescriptor td;
     static std::wstring makeName(std::wstring baseName, unsigned level, bool falling)
@@ -71,15 +74,43 @@ private:
         ss << baseName << L"(level=" << level << L",falling=" << std::boolalpha << falling << L")";
         return ss.str();
     }
+
 protected:
     const BlockUpdateKind fluidUpdateKind;
+
 protected:
-    Fluid(std::wstring baseName, unsigned level, bool falling, LightProperties lightProperties, TextureDescriptor td, BlockUpdateKind fluidUpdateKind)
-        : BlockDescriptor(makeName(baseName, level, falling), BlockShape(nullptr), lightProperties, RayCasting::BlockCollisionMaskFluid, false, false, false, false, false, false), level(level), falling(falling), td(td), fluidUpdateKind(fluidUpdateKind)
+    Fluid(std::wstring baseName,
+          unsigned level,
+          bool falling,
+          LightProperties lightProperties,
+          TextureDescriptor td,
+          BlockUpdateKind fluidUpdateKind)
+        : BlockDescriptor(makeName(baseName, level, falling),
+                          BlockShape(nullptr),
+                          lightProperties,
+                          RayCasting::BlockCollisionMaskFluid,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false),
+          level(level),
+          falling(falling),
+          td(td),
+          fluidUpdateKind(fluidUpdateKind)
     {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
+        handledUpdateKinds[fluidUpdateKind] = true;
     }
+
 private:
-    void getCornersLiquidHeight(float &nxnz, float &nxpz, float &pxnz, float &pxpz, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    void getCornersLiquidHeight(float &nxnz,
+                                float &nxpz,
+                                float &pxnz,
+                                float &pxpz,
+                                BlockIterator blockIterator,
+                                WorldLockManager &lock_manager) const
     {
         checked_array<checked_array<checked_array<float, 3>, 2>, 3> fluidHeights;
         for(int dx = -1; dx <= 1; dx++)
@@ -95,7 +126,8 @@ private:
                     if(descriptor == nullptr || !isSameKind(descriptor))
                         fluidHeights[dx + 1][dy][dz + 1] = -1;
                     else
-                        fluidHeights[dx + 1][dy][dz + 1] = descriptor->getSideHeight(blockIterator.position().d);
+                        fluidHeights[dx + 1][dy][dz + 1] =
+                            descriptor->getSideHeight(blockIterator.position().d);
                 }
             }
         }
@@ -140,12 +172,14 @@ private:
                         }
                     }
                 }
-foundHeight:
+            foundHeight:
                 ;
             }
         }
     }
-    bool shouldDrawBlockFace(BlockIterator blockIterator, WorldLockManager &lock_manager, BlockFace bf) const
+    bool shouldDrawBlockFace(BlockIterator blockIterator,
+                             WorldLockManager &lock_manager,
+                             BlockFace bf) const
     {
         BlockIterator bi = blockIterator;
         bi.moveToward(bf, lock_manager);
@@ -166,6 +200,7 @@ foundHeight:
             return true;
         return false;
     }
+
 protected:
     virtual ColorF getColorizeColor(BlockIterator bi, WorldLockManager &lock_manager) const
     {
@@ -174,7 +209,13 @@ protected:
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
+    virtual void renderDynamic(
+        const Block &block,
+        Mesh &dest,
+        BlockIterator blockIterator,
+        WorldLockManager &lock_manager,
+        RenderLayer rl,
+        const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const override
     {
         if(rl != RenderLayer::Translucent)
         {
@@ -217,47 +258,71 @@ protected:
                 {
                 case BlockFace::NX:
                     blockMesh.append(Generate::quadrilateral(nx,
-                                                p0, colorizeColor,
-                                                p4, colorizeColor,
-                                                p6, colorizeColor,
-                                                p2, colorizeColor));
+                                                             p0,
+                                                             colorizeColor,
+                                                             p4,
+                                                             colorizeColor,
+                                                             p6,
+                                                             colorizeColor,
+                                                             p2,
+                                                             colorizeColor));
                     break;
                 case BlockFace::PX:
                     blockMesh.append(Generate::quadrilateral(px,
-                                                p5, colorizeColor,
-                                                p1, colorizeColor,
-                                                p3, colorizeColor,
-                                                p7, colorizeColor));
+                                                             p5,
+                                                             colorizeColor,
+                                                             p1,
+                                                             colorizeColor,
+                                                             p3,
+                                                             colorizeColor,
+                                                             p7,
+                                                             colorizeColor));
                     break;
                 case BlockFace::NY:
                     blockMesh.append(Generate::quadrilateral(ny,
-                                                p0, colorizeColor,
-                                                p1, colorizeColor,
-                                                p5, colorizeColor,
-                                                p4, colorizeColor));
+                                                             p0,
+                                                             colorizeColor,
+                                                             p1,
+                                                             colorizeColor,
+                                                             p5,
+                                                             colorizeColor,
+                                                             p4,
+                                                             colorizeColor));
                     break;
                 case BlockFace::PY:
                 {
                     blockMesh.append(Generate::quadrilateral(py,
-                                                p6, colorizeColor,
-                                                p7, colorizeColor,
-                                                p3, colorizeColor,
-                                                p2, colorizeColor));
+                                                             p6,
+                                                             colorizeColor,
+                                                             p7,
+                                                             colorizeColor,
+                                                             p3,
+                                                             colorizeColor,
+                                                             p2,
+                                                             colorizeColor));
                     break;
                 }
                 case BlockFace::NZ:
                     blockMesh.append(Generate::quadrilateral(nz,
-                                                p1, colorizeColor,
-                                                p0, colorizeColor,
-                                                p2, colorizeColor,
-                                                p3, colorizeColor));
+                                                             p1,
+                                                             colorizeColor,
+                                                             p0,
+                                                             colorizeColor,
+                                                             p2,
+                                                             colorizeColor,
+                                                             p3,
+                                                             colorizeColor));
                     break;
                 case BlockFace::PZ:
                     blockMesh.append(Generate::quadrilateral(pz,
-                                                p4, colorizeColor,
-                                                p5, colorizeColor,
-                                                p7, colorizeColor,
-                                                p6, colorizeColor));
+                                                             p4,
+                                                             colorizeColor,
+                                                             p5,
+                                                             colorizeColor,
+                                                             p7,
+                                                             colorizeColor,
+                                                             p6,
+                                                             colorizeColor));
                     break;
                 }
             }
@@ -270,7 +335,9 @@ protected:
             dest.append(transform(tform, blockMesh));
         }
     }
-    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual bool drawsAnythingDynamic(const Block &block,
+                                      BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         for(BlockFace bf : enum_traits<BlockFace>())
         {
@@ -279,25 +346,42 @@ protected:
         }
         return false;
     }
+
 public:
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block,
+                                                  BlockIterator blockIterator,
+                                                  WorldLockManager &lock_manager,
+                                                  World &world,
+                                                  RayCasting::Ray ray) const
     {
         float height = getSideHeight(blockIterator.position().d);
         if(ray.dimension() != blockIterator.position().d)
             return RayCasting::Collision(world);
-        std::tuple<bool, float, BlockFace> collision = ray.getAABoxEnterFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
+        std::tuple<bool, float, BlockFace> collision =
+            ray.getAABoxEnterFace((VectorF)blockIterator.position(),
+                                  (VectorF)blockIterator.position() + VectorF(1, height, 1));
         if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
         {
-            collision = ray.getAABoxExitFace((VectorF)blockIterator.position(), (VectorF)blockIterator.position() + VectorF(1, height, 1));
+            collision =
+                ray.getAABoxExitFace((VectorF)blockIterator.position(),
+                                     (VectorF)blockIterator.position() + VectorF(1, height, 1));
             if(!std::get<0>(collision) || std::get<1>(collision) < RayCasting::Ray::eps)
                 return RayCasting::Collision(world);
             std::get<1>(collision) = RayCasting::Ray::eps;
-            return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
+            return RayCasting::Collision(
+                world, std::get<1>(collision), blockIterator.position(), BlockFaceOrNone::None);
         }
-        return RayCasting::Collision(world, std::get<1>(collision), blockIterator.position(), toBlockFaceOrNone(std::get<2>(collision)));
+        return RayCasting::Collision(world,
+                                     std::get<1>(collision),
+                                     blockIterator.position(),
+                                     toBlockFaceOrNone(std::get<2>(collision)));
     }
+
 private:
-    void setBlock(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, Block newBlock) const
+    void setBlock(World &world,
+                  BlockIterator blockIterator,
+                  WorldLockManager &lock_manager,
+                  Block newBlock) const
     {
         Block prevBlock = blockIterator.get(lock_manager);
         newBlock.lighting = prevBlock.lighting;
@@ -306,7 +390,9 @@ private:
             world.setBlock(blockIterator, lock_manager, newBlock);
         }
     }
-    bool getIsFalling(BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned newLevel) const
+    bool getIsFalling(BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      unsigned newLevel) const
     {
         BlockIterator bi = blockIterator;
         bi.moveTowardNY(lock_manager);
@@ -324,12 +410,19 @@ private:
         }
         return b.descriptor->isReplaceableByFluid();
     }
+
 public:
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const override
     {
         if(kind == BlockUpdateKind::UpdateNotify)
         {
-            for(BlockUpdateIterator i = blockIterator.updatesBegin(lock_manager); i != blockIterator.updatesEnd(lock_manager); i++)
+            for(BlockUpdateIterator i = blockIterator.updatesBegin(lock_manager);
+                i != blockIterator.updatesEnd(lock_manager);
+                i++)
             {
                 if(i->getKind() == fluidUpdateKind)
                 {
@@ -339,7 +432,10 @@ public:
                     }
                 }
             }
-            world.rescheduleBlockUpdate(blockIterator, lock_manager, fluidUpdateKind, BlockUpdateKindDefaultPeriod(fluidUpdateKind));
+            world.rescheduleBlockUpdate(blockIterator,
+                                        lock_manager,
+                                        fluidUpdateKind,
+                                        BlockUpdateKindDefaultPeriod(fluidUpdateKind));
             return;
         }
         if(kind == fluidUpdateKind)
@@ -357,7 +453,10 @@ public:
                 if(isSameKind(dynamic_cast<const Fluid *>(b.descriptor)))
                 {
                     newLevel = 1;
-                    setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                    setBlock(world,
+                             blockIterator,
+                             lock_manager,
+                             Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
                 }
                 else
                 {
@@ -411,55 +510,86 @@ public:
                     if(newLevel > maxLevel)
                         setBlock(world, blockIterator, lock_manager, Block(Air::descriptor()));
                     else
-                        setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                        setBlock(world,
+                                 blockIterator,
+                                 lock_manager,
+                                 Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
                 }
             }
             else
             {
-                setBlock(world, blockIterator, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
+                setBlock(world,
+                         blockIterator,
+                         lock_manager,
+                         Block(getBlockDescriptorForFluidLevel(newLevel, isFalling)));
             }
             if(!isFalling && newLevel < maxLevel)
             {
                 bi = blockIterator;
                 bi.moveTowardNX(lock_manager);
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr
+                   && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world,
+                             bi,
+                             lock_manager,
+                             Block(getBlockDescriptorForFluidLevel(
+                                 newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPX(lock_manager);
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr
+                   && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world,
+                             bi,
+                             lock_manager,
+                             Block(getBlockDescriptorForFluidLevel(
+                                 newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardNZ(lock_manager);
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr
+                   && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world,
+                             bi,
+                             lock_manager,
+                             Block(getBlockDescriptorForFluidLevel(
+                                 newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
                 bi = blockIterator;
                 bi.moveTowardPZ(lock_manager);
                 b = bi.get(lock_manager);
-                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
+                if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr
+                   && b.descriptor->isReplaceableByFluid())
                 {
                     b.descriptor->onReplace(world, b, bi, lock_manager);
-                    setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
+                    setBlock(world,
+                             bi,
+                             lock_manager,
+                             Block(getBlockDescriptorForFluidLevel(
+                                 newLevel + 1, getIsFalling(bi, lock_manager, newLevel + 1))));
                 }
             }
             bi = blockIterator;
             bi.moveTowardNY(lock_manager);
             b = bi.get(lock_manager);
-            if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr && b.descriptor->isReplaceableByFluid())
+            if(b.good() && dynamic_cast<const Fluid *>(b.descriptor) == nullptr
+               && b.descriptor->isReplaceableByFluid())
             {
                 b.descriptor->onReplace(world, b, bi, lock_manager);
-                setBlock(world, bi, lock_manager, Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
+                setBlock(
+                    world,
+                    bi,
+                    lock_manager,
+                    Block(getBlockDescriptorForFluidLevel(1, getIsFalling(bi, lock_manager, 1))));
             }
         }
     }
@@ -483,22 +613,30 @@ public:
     {
         return true;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override
     {
         handleToolDamage(tool);
     }
-    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    virtual bool canAttachBlock(Block b,
+                                BlockFace attachingFace,
+                                Block attachingBlock) const override
     {
         return false;
     }
-    virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const override
+    virtual BlockShape getEffectShape(BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const override
     {
         float nxnz, nxpz, pxnz, pxpz;
         getCornersLiquidHeight(nxnz, nxpz, pxnz, pxpz, blockIterator, lock_manager);
         float averageHeight = 0.25f * (nxnz + nxpz + pxnz + pxpz);
         if(averageHeight <= 0.01)
             averageHeight = 0.01;
-        return BlockShape(VectorF(0.5f, 0.5f * averageHeight, 0.5f), VectorF(0.5f, 0.5f * averageHeight, 0.5f));
+        return BlockShape(VectorF(0.5f, 0.5f * averageHeight, 0.5f),
+                          VectorF(0.5f, 0.5f * averageHeight, 0.5f));
     }
     virtual BlockEffects getEffects() const override
     {

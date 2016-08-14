@@ -32,25 +32,43 @@ namespace Blocks
 {
 namespace builtin
 {
-
-void Torch::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Torch::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Torch::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
 
 void Torch::onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Torch::descriptor())),
+                               bi.position() + VectorF(0.5));
 }
 
-void Torch::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void Torch::onDisattach(World &world,
+                        const Block &block,
+                        BlockIterator blockIterator,
+                        WorldLockManager &lock_manager,
+                        BlockUpdateKind blockUpdateKind) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Torch::descriptor())), blockIterator.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Torch::descriptor())),
+                               blockIterator.position() + VectorF(0.5));
     world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
-void Torch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+void Torch::generateParticles(World &world,
+                              Block b,
+                              BlockIterator bi,
+                              WorldLockManager &lock_manager,
+                              double currentTime,
+                              double deltaTime) const
 {
     const double generateSmokePerSecond = 1.0;
     double nextTime = currentTime + deltaTime;
@@ -62,10 +80,10 @@ void Torch::generateParticles(World &world, Block b, BlockIterator bi, WorldLock
     int generateSmokeCount = limit<int>((int)(nextSmokeCount - currentSmokeCount), 0, 10);
     for(int i = 0; i < generateSmokeCount; i++)
     {
-        Entities::builtin::particles::Smoke::addToWorld(world, lock_manager, bi.position() + headPosition);
+        Entities::builtin::particles::Smoke::addToWorld(
+            world, lock_manager, bi.position() + headPosition);
     }
 }
-
 }
 }
 }

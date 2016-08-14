@@ -36,10 +36,10 @@ namespace builtin
 {
 namespace particles
 {
-
 class Redstone final : public Particle
 {
     friend class global_instance_maker<Redstone>;
+
 private:
     static std::vector<TextureDescriptor> makeFrames()
     {
@@ -52,9 +52,11 @@ private:
         return std::move(retval);
     }
     Redstone()
-        : Particle(L"builtin.particles.redstone", makeFrames(), 4.0f, false, true, VectorF(0, 0.2f, 0))
+        : Particle(
+              L"builtin.particles.redstone", makeFrames(), 4.0f, false, true, VectorF(0, 0.2f, 0))
     {
     }
+
 protected:
     virtual ColorF colorizeColor(const ParticleData &dataIn) const override
     {
@@ -64,6 +66,7 @@ protected:
     {
         return 0.2f / std::uniform_real_distribution<float>(0.1f, 1.0f)(world.getRandomGenerator());
     }
+
 public:
     static const Redstone *pointer()
     {
@@ -78,18 +81,22 @@ public:
         VectorF v = VectorF::random(world.getRandomGenerator()) * 0.25f;
         return world.addEntity(descriptor(), position, v, lock_manager);
     }
-    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> dataIn, stream::Writer &writer) const override
+    virtual void write(PositionF position,
+                       VectorF velocity,
+                       std::shared_ptr<void> dataIn,
+                       stream::Writer &writer) const override
     {
         ParticleData data = getParticleData(dataIn);
         stream::write<ParticleData>(writer, data);
     }
-    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const override
+    virtual std::shared_ptr<void> read(PositionF position,
+                                       VectorF velocity,
+                                       stream::Reader &reader) const override
     {
         ParticleData data = stream::read<ParticleData>(reader);
         return std::shared_ptr<void>(new ParticleData(data));
     }
 };
-
 }
 }
 }

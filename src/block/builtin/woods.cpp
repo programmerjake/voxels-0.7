@@ -40,12 +40,11 @@ namespace
 class SmallOakTree : public TreeDescriptor
 {
     SmallOakTree(const SmallOakTree &) = delete;
-    SmallOakTree &operator =(const SmallOakTree &) = delete;
+    SmallOakTree &operator=(const SmallOakTree &) = delete;
+
 public:
     DecoratorDescriptorPointer decorator;
-    SmallOakTree()
-        : TreeDescriptor(L"builtin.small_oak", 1, true, 9),
-        decorator()
+    SmallOakTree() : TreeDescriptor(L"builtin.small_oak", 1, true, 9), decorator()
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
@@ -57,12 +56,19 @@ public:
             logs[i] = Block(Oak::descriptor()->getLogBlockDescriptor(i));
         }
         Block leaves = Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
-        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder for clearance block that is empty
-        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder for clearance block that is leaves
-        Block saplingReplace = Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block that can break saplings
+        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder
+                                                                           // for clearance block
+                                                                           // that is empty
+        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder
+                                                                             // for clearance block
+                                                                             // that is leaves
+        Block saplingReplace =
+            Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block
+                                                               // that can break saplings
         const int xzSize = 5;
         const int ySize = 10;
-        Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
+        Tree retval(
+            this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
         std::minstd_rand rg(seed);
         rg.discard(10);
         int trunkHeight = std::uniform_int_distribution<int>(4, 6)(rg);
@@ -75,7 +81,8 @@ public:
                 for(int z = -leavesRadius; z <= leavesRadius; z++)
                 {
                     VectorI pos(x, y, z);
-                    float adjustedRadius = leavesRadius - 0.5f * std::generate_canonical<float, 1000>(rg);
+                    float adjustedRadius =
+                        leavesRadius - 0.5f * std::generate_canonical<float, 1000>(rg);
                     if(absSquared(pos - leavesCenter) < adjustedRadius * adjustedRadius)
                         retval.setBlock(pos, leaves);
                 }
@@ -110,9 +117,12 @@ public:
      * @param treeBlock the block in the tree
      * @param canThrow if this can throw TreeDoesNotFitException
      * @return the selected block or an empty block for the original world block
-     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a dirt block is right above a sapling)
+     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a
+     *dirt block is right above a sapling)
      */
-    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock, bool canThrow) const override
+    virtual Block selectBlock(Block originalWorldBlock,
+                              Block treeBlock,
+                              bool canThrow) const override
     {
         if(!originalWorldBlock.good())
         {
@@ -126,14 +136,16 @@ public:
         {
             if(!canThrow)
                 return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
-            const Blocks::builtin::Sapling *saplingDescriptor = dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
+            const Blocks::builtin::Sapling *saplingDescriptor =
+                dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
             if(saplingDescriptor != nullptr)
             {
                 if(saplingDescriptor->getWoodDescriptor() == Oak::pointer())
                     return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
                 throw TreeDoesNotFitException();
             }
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -143,7 +155,8 @@ public:
         {
             if(!canThrow)
                 return Block();
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block();
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -151,7 +164,8 @@ public:
         }
         if(dynamic_cast<const Blocks::builtin::Stone *>(treeBlock.descriptor) != 0)
         {
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor() && canThrow)
                 throw TreeDoesNotFitException();
@@ -163,7 +177,8 @@ public:
         {
             if(!canThrow)
                 return treeBlock;
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return treeBlock;
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -193,15 +208,15 @@ public:
 class LargeOakTree : public TreeDescriptor
 {
     LargeOakTree(const LargeOakTree &) = delete;
-    LargeOakTree &operator =(const LargeOakTree &) = delete;
+    LargeOakTree &operator=(const LargeOakTree &) = delete;
+
 public:
     DecoratorDescriptorPointer decorator;
-    LargeOakTree()
-        : TreeDescriptor(L"builtin.large_oak", 1, true, 1),
-        decorator()
+    LargeOakTree() : TreeDescriptor(L"builtin.large_oak", 1, true, 1), decorator()
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
+
 private:
     static void generateLeafGroup(VectorI position, int radius, Tree &tree)
     {
@@ -248,12 +263,11 @@ private:
                 delta += VectorI(std::uniform_int_distribution<int>(-1, 1)(rg),
                                  0,
                                  std::uniform_int_distribution<int>(-1, 1)(rg));
-            }
-            while(delta == VectorI(0));
+            } while(delta == VectorI(0));
             VectorI moveDirection = delta;
             delta.y = 1;
-            if(std::abs(moveDirection.x) > std::abs(moveDirection.y) &&
-               std::abs(moveDirection.x) > std::abs(moveDirection.z))
+            if(std::abs(moveDirection.x) > std::abs(moveDirection.y)
+               && std::abs(moveDirection.x) > std::abs(moveDirection.z))
             {
                 moveDirection = VectorI(moveDirection.x < 0 ? -1 : 1, 0, 0);
             }
@@ -268,7 +282,9 @@ private:
             position += moveDirection;
         }
     }
-    static bool isLogBlock(VectorI position, Tree &tree, const enum_array<Block, LogOrientation> &logs)
+    static bool isLogBlock(VectorI position,
+                           Tree &tree,
+                           const enum_array<Block, LogOrientation> &logs)
     {
         Block b = tree.getBlock(position);
         for(const Block &log : logs)
@@ -278,16 +294,18 @@ private:
         }
         return false;
     }
-    static LogOrientation getLogOrientation(VectorI position, Tree &tree, const enum_array<Block, LogOrientation> &logs)
+    static LogOrientation getLogOrientation(VectorI position,
+                                            Tree &tree,
+                                            const enum_array<Block, LogOrientation> &logs)
     {
-        if(isLogBlock(position - VectorI(0, 1, 0), tree, logs) ||
-           isLogBlock(position + VectorI(0, 1, 0), tree, logs))
+        if(isLogBlock(position - VectorI(0, 1, 0), tree, logs)
+           || isLogBlock(position + VectorI(0, 1, 0), tree, logs))
             return LogOrientation::Y;
-        if(isLogBlock(position - VectorI(1, 0, 0), tree, logs) ||
-           isLogBlock(position + VectorI(1, 0, 0), tree, logs))
+        if(isLogBlock(position - VectorI(1, 0, 0), tree, logs)
+           || isLogBlock(position + VectorI(1, 0, 0), tree, logs))
             return LogOrientation::X;
-        if(isLogBlock(position - VectorI(0, 0, 1), tree, logs) ||
-           isLogBlock(position + VectorI(0, 0, 1), tree, logs))
+        if(isLogBlock(position - VectorI(0, 0, 1), tree, logs)
+           || isLogBlock(position + VectorI(0, 0, 1), tree, logs))
             return LogOrientation::Z;
         return LogOrientation::AllBark;
     }
@@ -313,6 +331,7 @@ private:
             }
         }
     }
+
 public:
     virtual Tree generateTree(std::uint32_t seed) const override
     {
@@ -322,18 +341,26 @@ public:
             logs[i] = Block(Oak::descriptor()->getLogBlockDescriptor(i));
         }
         Block leaves = Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
-        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder for clearance block that is empty
-        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder for clearance block that is leaves
-        Block saplingReplace = Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block that can break saplings
+        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder
+                                                                           // for clearance block
+                                                                           // that is empty
+        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder
+                                                                             // for clearance block
+                                                                             // that is leaves
+        Block saplingReplace =
+            Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block
+                                                               // that can break saplings
         const int xzSize = 7;
         const int ySize = 17;
-        Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
+        Tree retval(
+            this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
         std::minstd_rand rg(seed);
         rg.discard(10);
         int trunkHeight = std::uniform_int_distribution<int>(5, 15)(rg);
         for(int y = 0; y < trunkHeight; y++)
         {
-            if((y >= (trunkHeight + 3) / 3 && y >= 5 && std::uniform_int_distribution<int>(0, 2)(rg) == 0) || y == trunkHeight - 1)
+            if((y >= (trunkHeight + 3) / 3 && y >= 5
+                && std::uniform_int_distribution<int>(0, 2)(rg) == 0) || y == trunkHeight - 1)
             {
                 generateBranch(VectorI(0, y, 0), retval, rg);
             }
@@ -365,9 +392,12 @@ public:
      * @param treeBlock the block in the tree
      * @param canThrow if this can throw TreeDoesNotFitException
      * @return the selected block or an empty block for the original world block
-     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a dirt block is right above a sapling)
+     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a
+     *dirt block is right above a sapling)
      */
-    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock, bool canThrow) const override
+    virtual Block selectBlock(Block originalWorldBlock,
+                              Block treeBlock,
+                              bool canThrow) const override
     {
         if(!originalWorldBlock.good())
         {
@@ -381,14 +411,16 @@ public:
         {
             if(!canThrow)
                 return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
-            const Blocks::builtin::Sapling *saplingDescriptor = dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
+            const Blocks::builtin::Sapling *saplingDescriptor =
+                dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
             if(saplingDescriptor != nullptr)
             {
                 if(saplingDescriptor->getWoodDescriptor() == Oak::pointer())
                     return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
                 throw TreeDoesNotFitException();
             }
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Oak::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -398,7 +430,8 @@ public:
         {
             if(!canThrow)
                 return Block();
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block();
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -406,7 +439,8 @@ public:
         }
         if(dynamic_cast<const Blocks::builtin::Stone *>(treeBlock.descriptor) != 0)
         {
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Oak::descriptor()->getLeavesBlockDescriptor(true));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor() && canThrow)
                 throw TreeDoesNotFitException();
@@ -418,7 +452,8 @@ public:
         {
             if(!canThrow)
                 return treeBlock;
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return treeBlock;
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -448,14 +483,16 @@ public:
 class BirchTree : public TreeDescriptor
 {
     BirchTree(const BirchTree &) = delete;
-    BirchTree &operator =(const BirchTree &) = delete;
+    BirchTree &operator=(const BirchTree &) = delete;
+
 public:
     DecoratorDescriptorPointer decorator;
     const bool isTallVariant;
     BirchTree(bool isTallVariant)
-        : TreeDescriptor(isTallVariant ? L"builtin.tall_birch" : L"builtin.birch", 1, !isTallVariant, 9),
-        decorator(),
-        isTallVariant(isTallVariant)
+        : TreeDescriptor(
+              isTallVariant ? L"builtin.tall_birch" : L"builtin.birch", 1, !isTallVariant, 9),
+          decorator(),
+          isTallVariant(isTallVariant)
     {
         decorator = new Decorators::builtin::TreeDecorator(this);
     }
@@ -467,13 +504,20 @@ public:
             logs[i] = Block(Birch::descriptor()->getLogBlockDescriptor(i));
         }
         Block leaves = Block(Birch::descriptor()->getLeavesBlockDescriptor(true));
-        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder for clearance block that is empty
-        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder for clearance block that is leaves
-        Block saplingReplace = Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block that can break saplings
+        Block emptyClearance = Block(Blocks::builtin::Dirt::descriptor()); // used as placeholder
+                                                                           // for clearance block
+                                                                           // that is empty
+        Block leavesClearance = Block(Blocks::builtin::Stone::descriptor()); // used as placeholder
+                                                                             // for clearance block
+                                                                             // that is leaves
+        Block saplingReplace =
+            Block(Blocks::builtin::Cobblestone::descriptor()); // used as placeholder for log block
+                                                               // that can break saplings
         const int tallVariantExtraHeight = 2;
         const int xzSize = 2;
         const int ySize = isTallVariant ? 8 + tallVariantExtraHeight : 8;
-        Tree retval(this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
+        Tree retval(
+            this, VectorI(-xzSize, 0, -xzSize), VectorI(xzSize * 2 + 1, ySize, xzSize * 2 + 1));
         std::minstd_rand rg(seed);
         rg.discard(10);
         int trunkHeight = std::uniform_int_distribution<int>(5, 7)(rg);
@@ -554,9 +598,12 @@ public:
      * @param treeBlock the block in the tree
      * @param canThrow if this can throw TreeDoesNotFitException
      * @return the selected block or an empty block for the original world block
-     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a dirt block is right above a sapling)
+     * @exception TreeDoesNotFitException throws an exception if the tree doesn't fit here (ex. a
+     *dirt block is right above a sapling)
      */
-    virtual Block selectBlock(Block originalWorldBlock, Block treeBlock, bool canThrow) const override
+    virtual Block selectBlock(Block originalWorldBlock,
+                              Block treeBlock,
+                              bool canThrow) const override
     {
         if(!originalWorldBlock.good())
         {
@@ -570,14 +617,16 @@ public:
         {
             if(!canThrow)
                 return Block(Birch::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
-            const Blocks::builtin::Sapling *saplingDescriptor = dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
+            const Blocks::builtin::Sapling *saplingDescriptor =
+                dynamic_cast<const Blocks::builtin::Sapling *>(originalWorldBlock.descriptor);
             if(saplingDescriptor != nullptr)
             {
                 if(saplingDescriptor->getWoodDescriptor() == Birch::pointer())
                     return Block(Birch::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
                 throw TreeDoesNotFitException();
             }
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Birch::descriptor()->getLogBlockDescriptor(LogOrientation::Y));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -587,7 +636,8 @@ public:
         {
             if(!canThrow)
                 return Block();
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block();
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();
@@ -595,7 +645,8 @@ public:
         }
         if(dynamic_cast<const Blocks::builtin::Stone *>(treeBlock.descriptor) != 0)
         {
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return Block(Birch::descriptor()->getLeavesBlockDescriptor(true));
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor() && canThrow)
                 throw TreeDoesNotFitException();
@@ -607,7 +658,8 @@ public:
         {
             if(!canThrow)
                 return treeBlock;
-            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor) != 0)
+            if(dynamic_cast<const Blocks::builtin::WoodLeaves *>(originalWorldBlock.descriptor)
+               != 0)
                 return treeBlock;
             if(originalWorldBlock.descriptor != Blocks::builtin::Air::descriptor())
                 throw TreeDoesNotFitException();

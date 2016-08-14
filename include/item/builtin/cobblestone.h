@@ -36,8 +36,10 @@ namespace builtin
 class Cobblestone final : public ItemBlock
 {
     friend class global_instance_maker<Cobblestone>;
+
 private:
     Cobblestone();
+
 public:
     static const Cobblestone *pointer()
     {

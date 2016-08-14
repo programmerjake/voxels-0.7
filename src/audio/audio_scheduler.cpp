@@ -30,37 +30,39 @@ namespace programmerjake
 {
 namespace voxels
 {
-float AudioScheduler::SongDescriptor::getSongTimeOfDayFactor(float timeOfDayFraction, float lengthOfDayInSeconds) const
+float AudioScheduler::SongDescriptor::getSongTimeOfDayFactor(float timeOfDayFraction,
+                                                             float lengthOfDayInSeconds) const
 {
     if(timeOfDayFocusAmount <= 0 || lengthOfDayInSeconds <= 0)
         return 1;
-    //auto &log = getDebugLog();
-    //log << "timeOfDayFraction: " << timeOfDayFraction << " focusedTimeOfDay: " << focusedTimeOfDay;
+    // auto &log = getDebugLog();
+    // log << "timeOfDayFraction: " << timeOfDayFraction << " focusedTimeOfDay: " <<
+    // focusedTimeOfDay;
     float x = timeOfDayFraction - focusedTimeOfDay;
     x -= std::floor(x);
-    //log << " x: " << x << "\n";
+    // log << " x: " << x << "\n";
     float durationFraction = static_cast<float>(duration / lengthOfDayInSeconds);
     if(durationFraction <= 1e-3)
         durationFraction = 1e-3;
-    //log << "durationFraction: " << durationFraction;
+    // log << "durationFraction: " << durationFraction;
     float start = x, end = x + durationFraction;
     float outputFactor = 1 / durationFraction;
     float integral = std::floor(end) - std::floor(start);
     start -= std::floor(start);
     end -= std::floor(end);
-    //log << " start: " << start << " end: " << end;
+    // log << " start: " << start << " end: " << end;
     float startBase = std::fabs(0.5f - start) * 2;
     float endBase = std::fabs(0.5f - end) * 2;
-    //log << " startBase: " << startBase << " endBase: " << endBase;
-    float v = std::pow(startBase, timeOfDayFocusAmount) * (0.5f - start) - std::pow(endBase, timeOfDayFocusAmount) * (0.5f - end);
-    //log << " v: " << v;
+    // log << " startBase: " << startBase << " endBase: " << endBase;
+    float v = std::pow(startBase, timeOfDayFocusAmount) * (0.5f - start)
+              - std::pow(endBase, timeOfDayFocusAmount) * (0.5f - end);
+    // log << " v: " << v;
     integral += v;
-    //log << " integral: " << integral << postnl;
+    // log << " integral: " << integral << postnl;
     return outputFactor * integral;
 }
 
-AudioScheduler::AudioScheduler()
-    : songs(), lastPlayedSongs(), doNotRepeatSongLength()
+AudioScheduler::AudioScheduler() : songs(), lastPlayedSongs(), doNotRepeatSongLength()
 {
     std::shared_ptr<stream::Reader> preader = getResourceReader(L"background-songs.txt");
     stream::ReaderIStream is(preader);
@@ -69,14 +71,14 @@ AudioScheduler::AudioScheduler()
     while(std::getline(is, line))
     {
         std::size_t firstNonSpace = line.find_first_not_of(spaceCharacters);
-		if (firstNonSpace != std::wstring::npos)
-			line.erase(0, firstNonSpace);
-		else
-			continue;
-		std::size_t lastNonSpace = line.find_last_not_of(spaceCharacters);
-		if (lastNonSpace != std::wstring::npos)
-			line.erase(lastNonSpace + 1);
-		if(line.empty())
+        if(firstNonSpace != std::wstring::npos)
+            line.erase(0, firstNonSpace);
+        else
+            continue;
+        std::size_t lastNonSpace = line.find_last_not_of(spaceCharacters);
+        if(lastNonSpace != std::wstring::npos)
+            line.erase(lastNonSpace + 1);
+        if(line.empty())
             continue;
         if(line[0] == L'#') // comment
             continue;
@@ -87,17 +89,24 @@ AudioScheduler::AudioScheduler()
         if(fileName.find_first_of(L"\\/:") != std::wstring::npos)
             throw std::runtime_error("invalid audio file name");
         SongDescriptor song;
-        if(!(ss >> song.creepiness) || !std::isfinite(song.creepiness) || song.creepiness < -10 || song.creepiness > 10)
+        if(!(ss >> song.creepiness) || !std::isfinite(song.creepiness) || song.creepiness < -10
+           || song.creepiness > 10)
             throw std::runtime_error("can't read creepiness amount");
-        if(!(ss >> song.timeOfDayFocusAmount) || !std::isfinite(song.timeOfDayFocusAmount) || song.timeOfDayFocusAmount < 0 || song.timeOfDayFocusAmount > 1000)
+        if(!(ss >> song.timeOfDayFocusAmount) || !std::isfinite(song.timeOfDayFocusAmount)
+           || song.timeOfDayFocusAmount < 0
+           || song.timeOfDayFocusAmount > 1000)
             throw std::runtime_error("can't read time of day focus amount");
         if(song.timeOfDayFocusAmount > 0)
-            if(!(ss >> song.focusedTimeOfDay) || !std::isfinite(song.focusedTimeOfDay) || song.focusedTimeOfDay < 0 || song.focusedTimeOfDay >= 1)
+            if(!(ss >> song.focusedTimeOfDay) || !std::isfinite(song.focusedTimeOfDay)
+               || song.focusedTimeOfDay < 0
+               || song.focusedTimeOfDay >= 1)
                 throw std::runtime_error("can't read focused time of day");
         enum_array<bool, Dimension> setDimensionFocusAmount = {};
         std::wstring dimensionName;
         float dimensionFocusAmount;
-        if(!(ss >> dimensionName >> dimensionFocusAmount) || !std::isfinite(dimensionFocusAmount) || dimensionFocusAmount < 0 || dimensionFocusAmount > 1)
+        if(!(ss >> dimensionName >> dimensionFocusAmount) || !std::isfinite(dimensionFocusAmount)
+           || dimensionFocusAmount < 0
+           || dimensionFocusAmount > 1)
             throw std::runtime_error("can't read dimension name and focus amount");
         while(dimensionName != L"*")
         {
@@ -114,7 +123,8 @@ AudioScheduler::AudioScheduler()
             }
             if(!found)
                 throw std::runtime_error("invalid dimension name");
-            if(!(ss >> dimensionName >> dimensionFocusAmount) || !std::isfinite(dimensionFocusAmount) || dimensionFocusAmount < 0)
+            if(!(ss >> dimensionName >> dimensionFocusAmount)
+               || !std::isfinite(dimensionFocusAmount) || dimensionFocusAmount < 0)
                 throw std::runtime_error("can't read dimension name and focus amount");
         }
         for(Dimension d : enum_traits<Dimension>())
@@ -137,10 +147,10 @@ AudioScheduler::AudioScheduler()
 }
 
 std::shared_ptr<PlayingAudio> AudioScheduler::next(float timeOfDayInSeconds,
-                                       float lengthOfDayInSeconds,
-                                       float relativeHeight,
-                                       Dimension dimension,
-                                       float playVolume)
+                                                   float lengthOfDayInSeconds,
+                                                   float relativeHeight,
+                                                   Dimension dimension,
+                                                   float playVolume)
 {
     assert(!songs.empty());
     std::size_t bestSong = 0;
@@ -153,7 +163,8 @@ std::shared_ptr<PlayingAudio> AudioScheduler::next(float timeOfDayInSeconds,
         const SongDescriptor &song = songs[i];
         float creepinessDifference = creepiness - song.creepiness;
         float songFactor = std::exp(-creepinessDifference * creepinessDifference);
-        songFactor *= song.getSongTimeOfDayFactor(timeOfDayInSeconds / lengthOfDayInSeconds, lengthOfDayInSeconds);
+        songFactor *= song.getSongTimeOfDayFactor(timeOfDayInSeconds / lengthOfDayInSeconds,
+                                                  lengthOfDayInSeconds);
         songFactor *= song.dimensionFocusAmounts[dimension];
         for(std::size_t v : lastPlayedSongs)
         {
@@ -163,7 +174,7 @@ std::shared_ptr<PlayingAudio> AudioScheduler::next(float timeOfDayInSeconds,
                 break;
             }
         }
-        //getDebugLog() << L"song " << i << " : " << songFactor << postnl;
+        // getDebugLog() << L"song " << i << " : " << songFactor << postnl;
         if(isFirst || songFactor > bestSongFactor)
         {
             isFirst = false;

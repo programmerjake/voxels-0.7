@@ -42,6 +42,7 @@ namespace builtin
 class Jungle final : public BiomeDescriptor
 {
     friend class global_instance_maker<Jungle>;
+
 public:
     static const Jungle *pointer()
     {
@@ -51,23 +52,32 @@ public:
     {
         return pointer();
     }
+
 private:
-    Jungle()
-        : BiomeDescriptor(L"builtin.jungle", 1, 1)
+    Jungle() : BiomeDescriptor(L"builtin.jungle", 1, 1)
     {
     }
+
 public:
-    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
+    virtual float getBiomeCorrespondence(float temperature,
+                                         float humidity,
+                                         PositionI pos,
+                                         RandomSource &randomSource) const override
     {
         return temperature * humidity;
     }
-    virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
+    virtual float getGroundHeight(PositionI columnBasePosition,
+                                  RandomSource &randomSource) const override
     {
         PositionF pos = (PositionF)columnBasePosition;
         pos.y = 0;
         return randomSource.getFBMValue(pos * 0.05f) + 3 + World::SeaLevel;
     }
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    virtual void makeGroundColumn(PositionI chunkBasePosition,
+                                  PositionI columnBasePosition,
+                                  BlocksGenerateArray &blocks,
+                                  RandomSource &randomSource,
+                                  int groundHeight) const override
     {
         for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
         {

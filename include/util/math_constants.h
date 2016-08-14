@@ -24,7 +24,7 @@
 #include <cmath>
 
 #ifndef M_SQRT3
-#define M_SQRT3     1.73205080756887729352 /* sqrt(3) */
+#define M_SQRT3 1.73205080756887729352 /* sqrt(3) */
 #endif // M_SQRT3
 
 // following constants copied from math.h in GNU C library
@@ -47,43 +47,43 @@
    <http://www.gnu.org/licenses/>.  */
 
 #ifndef M_E
-#define M_E         2.7182818284590452354  /* e */
+#define M_E 2.7182818284590452354 /* e */
 #endif
 #ifndef M_LOG2E
-#define M_LOG2E     1.4426950408889634074  /* log_2 e */
+#define M_LOG2E 1.4426950408889634074 /* log_2 e */
 #endif // M_LOG2E
 #ifndef M_LOG10E
-#define M_LOG10E    0.43429448190325182765 /* log_10 e */
+#define M_LOG10E 0.43429448190325182765 /* log_10 e */
 #endif // M_LOG10E
 #ifndef M_LN2
-#define M_LN2       0.69314718055994530942 /* log_e 2 */
+#define M_LN2 0.69314718055994530942 /* log_e 2 */
 #endif // M_LN2
 #ifndef M_LN10
-#define M_LN10      2.30258509299404568402 /* log_e 10 */
+#define M_LN10 2.30258509299404568402 /* log_e 10 */
 #endif // M_LN10
 #ifndef M_PI
-#define M_PI        3.14159265358979323846 /* pi */
+#define M_PI 3.14159265358979323846 /* pi */
 #endif // M_PI
 #ifndef M_PI_2
-#define M_PI_2      1.57079632679489661923 /* pi/2 */
+#define M_PI_2 1.57079632679489661923 /* pi/2 */
 #endif // M_PI_2
 #ifndef M_PI_4
-#define M_PI_4      0.78539816339744830962 /* pi/4 */
+#define M_PI_4 0.78539816339744830962 /* pi/4 */
 #endif // M_PI_4
 #ifndef M_1_PI
-#define M_1_PI      0.31830988618379067154 /* 1/pi */
+#define M_1_PI 0.31830988618379067154 /* 1/pi */
 #endif // M_1_PI
 #ifndef M_2_PI
-#define M_2_PI      0.63661977236758134308 /* 2/pi */
+#define M_2_PI 0.63661977236758134308 /* 2/pi */
 #endif // M_2_PI
 #ifndef M_2_SQRTPI
-#define M_2_SQRTPI  1.12837916709551257390 /* 2/sqrt(pi) */
+#define M_2_SQRTPI 1.12837916709551257390 /* 2/sqrt(pi) */
 #endif // M_2_SQRTPI
 #ifndef M_SQRT2
-#define M_SQRT2     1.41421356237309504880 /* sqrt(2) */
+#define M_SQRT2 1.41421356237309504880 /* sqrt(2) */
 #endif // M_SQRT2
 #ifndef M_SQRT1_2
-#define M_SQRT1_2   0.70710678118654752440 /* 1/sqrt(2) */
+#define M_SQRT1_2 0.70710678118654752440 /* 1/sqrt(2) */
 #endif // M_SQRT1_2
 
 #endif // MATH_CONSTANTS_H_INCLUDED

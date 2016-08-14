@@ -44,11 +44,12 @@ private:
     std::wstring currentEditingText = L"";
     std::size_t currentEditingCursorPosition = 0;
     std::size_t currentEditingSelectionLength = 0;
+
 public:
     MonitoredString text;
     Event enter;
     std::size_t cursorPosition;
-    std::function<std::wstring (std::wstring text)> filterTextFunction;
+    std::function<std::wstring(std::wstring text)> filterTextFunction;
     Text::TextProperties textProperties;
     float cursorBlinkPeriod = 1.0f;
     /** the cursorBlinkPeriod value that means do not blink.
@@ -82,6 +83,7 @@ public:
     virtual void reset() override;
     virtual void move(double deltaTime) override;
     virtual void handleFocusChange(bool gettingFocus) override;
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override;
 };

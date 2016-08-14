@@ -30,9 +30,7 @@ namespace Items
 {
 namespace builtin
 {
-
-Grass::Grass()
-    : ItemBlock(L"builtin.grass", makeMesh(), Blocks::builtin::Grass::descriptor())
+Grass::Grass() : ItemBlock(L"builtin.grass", makeMesh(), Blocks::builtin::Grass::descriptor())
 {
 }
 }

@@ -32,13 +32,14 @@ namespace Items
 {
 namespace builtin
 {
-
 Stone::Stone()
     : ItemBlock(L"builtin.stone", TextureAtlas::Stone.td(), Blocks::builtin::Stone::descriptor())
 {
 }
 Cobblestone::Cobblestone()
-    : ItemBlock(L"builtin.cobblestone", TextureAtlas::Cobblestone.td(), Blocks::builtin::Cobblestone::descriptor())
+    : ItemBlock(L"builtin.cobblestone",
+                TextureAtlas::Cobblestone.td(),
+                Blocks::builtin::Cobblestone::descriptor())
 {
 }
 }

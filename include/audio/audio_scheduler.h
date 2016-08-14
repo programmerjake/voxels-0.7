@@ -45,11 +45,11 @@ private:
         float creepiness;
         SongDescriptor()
             : song(),
-            duration(),
-            dimensionFocusAmounts(),
-            focusedTimeOfDay(),
-            timeOfDayFocusAmount(),
-            creepiness()
+              duration(),
+              dimensionFocusAmounts(),
+              focusedTimeOfDay(),
+              timeOfDayFocusAmount(),
+              creepiness()
         {
         }
         float getSongTimeOfDayFactor(float timeOfDayFraction, float lengthOfDayInSeconds) const;
@@ -57,12 +57,16 @@ private:
     std::vector<SongDescriptor> songs;
     std::vector<std::size_t> lastPlayedSongs;
     std::size_t doNotRepeatSongLength;
+
 public:
     AudioScheduler();
     /** @brief get next background song
-     * @param timeOfDayInSeconds the current time of day in seconds or 0 if there is no day/night cycle for `dimension`
-     * @param lengthOfDayInSeconds the length of a day in seconds or 0 if there is no day/night cycle for `dimension`
-     * @param relativeHeight the relative player height :<br/>0 to 1 : below ground<br/>1 or more : above ground
+     * @param timeOfDayInSeconds the current time of day in seconds or 0 if there is no day/night
+     * cycle for `dimension`
+     * @param lengthOfDayInSeconds the length of a day in seconds or 0 if there is no day/night
+     * cycle for `dimension`
+     * @param relativeHeight the relative player height :<br/>0 to 1 : below ground<br/>1 or more :
+     * above ground
      * @param dimension the dimension to get the song for
      * @param playVolume the volume to start the song playing at
      * @return the next background song

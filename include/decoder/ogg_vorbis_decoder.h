@@ -45,7 +45,10 @@ private:
     std::uint64_t curPos = 0;
     std::vector<float> buffer;
     std::size_t currentBufferPos = 0;
-    static std::size_t read_fn(void *dataPtr_in, std::size_t blockSize, std::size_t numBlocks, void *dataSource)
+    static std::size_t read_fn(void *dataPtr_in,
+                               std::size_t blockSize,
+                               std::size_t numBlocks,
+                               void *dataSource)
     {
         OggVorbisDecoder &decoder = *(OggVorbisDecoder *)dataSource;
         if(decoder.seekFailed)
@@ -56,7 +59,7 @@ private:
         std::size_t readCount = 0;
         try
         {
-            std::uint8_t * dataPtr = (std::uint8_t *)dataPtr_in;
+            std::uint8_t *dataPtr = (std::uint8_t *)dataPtr_in;
             for(std::size_t i = 0; i < numBlocks; i++, readCount++)
             {
                 std::size_t currentBlockSize = decoder.reader->readBytes(dataPtr, blockSize);
@@ -130,7 +133,8 @@ private:
         int currentSection;
         currentBufferPos = 0;
         float **pcmChannels = nullptr;
-        long sampleCountLong = ov_read_float(&ovf, &pcmChannels, buffer.size() / channels, &currentSection);
+        long sampleCountLong =
+            ov_read_float(&ovf, &pcmChannels, buffer.size() / channels, &currentSection);
         if(sampleCountLong < 0)
             sampleCountLong = 0;
         std::size_t sampleCount = sampleCountLong;
@@ -143,6 +147,7 @@ private:
             }
         }
     }
+
 public:
     OggVorbisDecoder(std::shared_ptr<stream::Reader> reader)
         : ovf(), reader(reader), samples(), channels(), sampleRate(), buffer()
@@ -201,7 +206,8 @@ public:
     {
         return channels;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t readCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(
+        float *data, std::uint64_t readCount) override // returns number of samples decoded
     {
         std::uint64_t retval = 0;
         std::size_t dataIndex = 0;

@@ -63,8 +63,8 @@ class ThreadUsageMonitor final
             lastTime = currentTime;
             if(constantState.usageDecaySpeed >= 0)
             {
-                float factor = std::exp(-std::chrono::duration_cast<std::chrono::duration<double>>(deltaTime)
-                    .count() * constantState.usageDecaySpeed);
+                float factor = std::exp(-std::chrono::duration_cast<std::chrono::duration<double>>(
+                                             deltaTime).count() * constantState.usageDecaySpeed);
                 averageUsage *= factor;
                 if(isUsed)
                     averageUsage += 1 - factor;

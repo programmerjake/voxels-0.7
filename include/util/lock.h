@@ -111,20 +111,21 @@ private:
     void (*lockFn)(void *pLock);
     bool (*try_lockFn)(void *pLock);
     void (*unlockFn)(void *pLock);
+
 public:
     template <typename T>
     explicit generic_lock_wrapper(T &theLock)
         : pLock(static_cast<void *>(std::addressof(theLock))), lockFn(), try_lockFn(), unlockFn()
     {
-        lockFn = [](void *pLock)->void
+        lockFn = [](void *pLock) -> void
         {
             static_cast<T *>(pLock)->lock();
         };
-        try_lockFn = [](void *pLock)->bool
+        try_lockFn = [](void *pLock) -> bool
         {
             return static_cast<T *>(pLock)->try_lock();
         };
-        unlockFn = [](void *pLock)->void
+        unlockFn = [](void *pLock) -> void
         {
             static_cast<T *>(pLock)->unlock();
         };
@@ -150,8 +151,7 @@ private:
     {
         std::multiset<std::size_t> lock_levels;
         std::unordered_map<const void *, std::size_t> locks;
-        variables_t()
-            : lock_levels(), locks()
+        variables_t() : lock_levels(), locks()
         {
         }
     };
@@ -164,6 +164,7 @@ private:
         return retval.get();
     }
     static void handleError(const char *what, std::size_t lock_level, const void *theLock);
+
 public:
     static void check_lock(std::size_t lock_level, const void *theLock)
     {
@@ -216,9 +217,9 @@ template <std::size_t level>
 class checked_lock final
 {
     std::mutex theLock;
+
 public:
-    checked_lock()
-        : theLock()
+    checked_lock() : theLock()
     {
     }
     static constexpr std::size_t lock_level = level;
@@ -268,9 +269,9 @@ template <std::size_t level>
 class checked_recursive_lock final
 {
     std::recursive_mutex theLock;
+
 public:
-    checked_recursive_lock()
-        : theLock()
+    checked_recursive_lock() : theLock()
     {
     }
     static constexpr std::size_t lock_level = level;
@@ -315,7 +316,6 @@ public:
             theLock.unlock();
     }
 };
-
 }
 }
 

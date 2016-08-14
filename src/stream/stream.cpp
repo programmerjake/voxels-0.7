@@ -63,7 +63,6 @@ namespace voxels
 {
 namespace stream
 {
-
 namespace
 {
 const size_t bufferSize = 1 << 15;
@@ -83,8 +82,7 @@ struct Pipe
     size_t readerPosition = 0;
     size_t bufferSizes[2];
     uint8_t buffers[2][bufferSize];
-    Pipe()
-        : lock(), cond(), bufferSizes{0, 0}
+    Pipe() : lock(), cond(), bufferSizes{0, 0}
     {
     }
 };
@@ -93,9 +91,9 @@ class PipeReader final : public Reader
 {
 private:
     shared_ptr<Pipe> pipe;
+
 public:
-    PipeReader(shared_ptr<Pipe> pipe)
-        : pipe(pipe)
+    PipeReader(shared_ptr<Pipe> pipe) : pipe(pipe)
     {
     }
     virtual ~PipeReader()
@@ -145,9 +143,9 @@ class PipeWriter final : public Writer
 {
 private:
     shared_ptr<Pipe> pipe;
+
 public:
-    PipeWriter(shared_ptr<Pipe> pipe)
-        : pipe(pipe)
+    PipeWriter(shared_ptr<Pipe> pipe) : pipe(pipe)
     {
     }
 
@@ -181,7 +179,8 @@ public:
             else
                 flush();
         }
-        pipe->buffers[pipe->writerBufferIndex()][pipe->bufferSizes[pipe->writerBufferIndex()]++] = v;
+        pipe->buffers[pipe->writerBufferIndex()][pipe->bufferSizes[pipe->writerBufferIndex()]++] =
+            v;
     }
 
     virtual void flush() override
@@ -209,8 +208,7 @@ public:
 };
 }
 
-StreamPipe::StreamPipe()
-    : readerInternal(), writerInternal()
+StreamPipe::StreamPipe() : readerInternal(), writerInternal()
 {
     shared_ptr<Pipe> pipe = make_shared<Pipe>();
     readerInternal = shared_ptr<Reader>(new PipeReader(pipe));
@@ -230,7 +228,7 @@ FILE *FileReader::openFile(std::wstring fileName, bool forWriteToo)
 {
     std::string str = string_cast<std::string>(std::move(fileName));
     errno = 0;
-MSVC_PRAGMA(warning(suppress : 4996))
+    MSVC_PRAGMA(warning(suppress : 4996))
     FILE *f = FILE_OPEN(str.c_str(), forWriteToo ? "r+b" : "rb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
@@ -264,7 +262,7 @@ void FileReader::seek(std::int64_t offset, SeekPosition seekPosition)
         UNREACHABLE();
     }
     errno = 0;
-MSVC_PRAGMA(warning(suppress : 4244))
+    MSVC_PRAGMA(warning(suppress : 4244))
     if(0 != FILE_SEEK(f, offset, whence))
         IOException::throwErrorFromErrno("fseek");
 }
@@ -286,7 +284,7 @@ std::size_t FileReader::readBytes(std::uint8_t *array, std::size_t maxCount)
 FILE *FileWriter::openFile(std::wstring fileName, bool forReadToo)
 {
     std::string str = string_cast<std::string>(std::move(fileName));
-MSVC_PRAGMA(warning(suppress : 4996))
+    MSVC_PRAGMA(warning(suppress : 4996))
     FILE *f = FILE_OPEN(str.c_str(), forReadToo ? "w+b" : "wb");
     if(f == nullptr)
         IOException::throwErrorFromErrno("fopen");
@@ -330,7 +328,7 @@ void FileWriter::seek(std::int64_t offset, SeekPosition seekPosition)
         UNREACHABLE();
     }
     errno = 0;
-MSVC_PRAGMA(warning(suppress : 4244))
+    MSVC_PRAGMA(warning(suppress : 4244))
     if(0 != FILE_SEEK(f, offset, whence))
         IOException::throwErrorFromErrno("fseek");
 }
@@ -372,7 +370,6 @@ initializer init1([]()
 });
 }
 #endif // 1
-
 }
 }
 }

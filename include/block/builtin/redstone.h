@@ -273,6 +273,8 @@ private:
           edgeAttachedStateNZ(edgeAttachedStateNZ),
           edgeAttachedStatePZ(edgeAttachedStatePZ)
     {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
+        handledUpdateKinds[BlockUpdateKind::Redstone] = true;
     }
     class RedstoneDustConstructor final
     {
@@ -567,7 +569,7 @@ public:
         {
             world.addBlockUpdate(blockIterator, lock_manager, BlockUpdateKind::Redstone, 0);
         }
-        else if(kind == BlockUpdateKind::Redstone || kind == BlockUpdateKind::RedstoneDust)
+        else if(kind == BlockUpdateKind::Redstone)
         {
             const RedstoneDust *newDescriptor =
                 calcOrientationAndSignalStrength(blockIterator, lock_manager);
@@ -585,8 +587,7 @@ public:
                         {
                             BlockIterator bi = blockIterator;
                             bi.moveBy(delta, lock_manager);
-                            world.addBlockUpdate(
-                                bi, lock_manager, BlockUpdateKind::Redstone, 0);
+                            world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::Redstone, 0);
                         }
                     }
                 }
@@ -733,6 +734,9 @@ private:
           isOn(isOn),
           nextIsOn(nextIsOn)
     {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
+        handledUpdateKinds[BlockUpdateKind::Redstone] = true;
+        handledUpdateKinds[BlockUpdateKind::SynchronousUpdateFinalize] = true;
     }
 
 public:
@@ -818,14 +822,13 @@ public:
         {
             world.addBlockUpdate(blockIterator, lock_manager, BlockUpdateKind::Redstone, 0);
         }
-        else if(kind == BlockUpdateKind::Redstone || kind == BlockUpdateKind::RedstoneDust)
+        else if(kind == BlockUpdateKind::Redstone)
         {
             const RedstoneTorch *newDescriptor =
                 calcSignalStrength(blockIterator, lock_manager, attachedToFace);
             if(newDescriptor != this)
             {
-                world.setBlock(
-                    blockIterator, lock_manager, Block(newDescriptor, block.lighting));
+                world.setBlock(blockIterator, lock_manager, Block(newDescriptor, block.lighting));
                 world.addBlockUpdate(blockIterator,
                                      lock_manager,
                                      BlockUpdateKind::SynchronousUpdateFinalize,

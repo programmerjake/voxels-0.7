@@ -50,13 +50,13 @@ struct WorldLightingProperties final
         : skyBrightness(skyBrightness), minBrightness(getZeroBrightnessLevel(d))
     {
     }
-    bool operator ==(const WorldLightingProperties &rt) const
+    bool operator==(const WorldLightingProperties &rt) const
     {
         return skyBrightness == rt.skyBrightness && minBrightness == rt.minBrightness;
     }
-    bool operator !=(const WorldLightingProperties &rt) const
+    bool operator!=(const WorldLightingProperties &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
 };
 }
@@ -68,7 +68,7 @@ template <>
 struct hash<programmerjake::voxels::WorldLightingProperties>
 {
     hash<float> hasher;
-    size_t operator ()(programmerjake::voxels::WorldLightingProperties wlp) const
+    size_t operator()(programmerjake::voxels::WorldLightingProperties wlp) const
     {
         return hasher(wlp.skyBrightness) + 3 * hasher(wlp.minBrightness);
     }
@@ -83,7 +83,8 @@ struct Lighting final
 {
     typedef std::uint_fast8_t LightValueType;
     static constexpr int lightBitWidth = 4;
-    static constexpr LightValueType maxLight = (static_cast<LightValueType>(1) << lightBitWidth) - 1;
+    static constexpr LightValueType maxLight =
+        (static_cast<LightValueType>(1) << lightBitWidth) - 1;
     static constexpr float toFloat(LightValueType v)
     {
         return static_cast<float>(static_cast<int>(v)) / static_cast<int>(maxLight);
@@ -95,6 +96,7 @@ struct Lighting final
     LightValueType directSkylight;
     LightValueType indirectSkylight;
     LightValueType indirectArtificalLight;
+
 private:
     template <typename T>
     static constexpr T constexpr_max(T a, T b)
@@ -106,29 +108,43 @@ private:
     {
         return (a < b) ? a : b;
     }
+
 public:
     constexpr float toFloat(float skyBrightness, float minBrightness) const
     {
-        return ensureInRange<float>(constexpr_max<float>(toFloat(indirectSkylight) - 1.0f + skyBrightness, toFloat(indirectArtificalLight)), 0, 1) * (1 - minBrightness) + minBrightness;
+        return ensureInRange<float>(
+                   constexpr_max<float>(toFloat(indirectSkylight) - 1.0f + skyBrightness,
+                                        toFloat(indirectArtificalLight)),
+                   0,
+                   1) * (1 - minBrightness)
+               + minBrightness;
     }
     float toFloat(WorldLightingProperties wlp) const
     {
         return toFloat(wlp.skyBrightness, wlp.minBrightness);
     }
-    constexpr Lighting()
-        : directSkylight(0), indirectSkylight(0), indirectArtificalLight(0)
+    constexpr Lighting() : directSkylight(0), indirectSkylight(0), indirectArtificalLight(0)
     {
     }
-    constexpr Lighting(LightValueType directSkylight, LightValueType indirectSkylight, LightValueType indirectArtificalLight)
-        : directSkylight(ensureInValidRange(directSkylight)), indirectSkylight(ensureInValidRange(constexpr_max(directSkylight, indirectSkylight))), indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
+    constexpr Lighting(LightValueType directSkylight,
+                       LightValueType indirectSkylight,
+                       LightValueType indirectArtificalLight)
+        : directSkylight(ensureInValidRange(directSkylight)),
+          indirectSkylight(ensureInValidRange(constexpr_max(directSkylight, indirectSkylight))),
+          indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
     {
     }
     enum MakeDirectOnlyType
     {
         MakeDirectOnly
     };
-    constexpr Lighting(LightValueType directSkylight, LightValueType indirectSkylight, LightValueType indirectArtificalLight, MakeDirectOnlyType)
-        : directSkylight(ensureInValidRange(directSkylight)), indirectSkylight(ensureInValidRange(indirectSkylight)), indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
+    constexpr Lighting(LightValueType directSkylight,
+                       LightValueType indirectSkylight,
+                       LightValueType indirectArtificalLight,
+                       MakeDirectOnlyType)
+        : directSkylight(ensureInValidRange(directSkylight)),
+          indirectSkylight(ensureInValidRange(indirectSkylight)),
+          indirectArtificalLight(ensureInValidRange(indirectArtificalLight))
     {
     }
     static constexpr Lighting makeSkyLighting()
@@ -149,43 +165,59 @@ public:
     }
     constexpr Lighting combine(Lighting r) const
     {
-        return Lighting(constexpr_max(directSkylight, r.directSkylight), constexpr_max(indirectSkylight, r.indirectSkylight), constexpr_max(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
+        return Lighting(constexpr_max(directSkylight, r.directSkylight),
+                        constexpr_max(indirectSkylight, r.indirectSkylight),
+                        constexpr_max(indirectArtificalLight, r.indirectArtificalLight),
+                        MakeDirectOnly);
     }
     constexpr Lighting minimize(Lighting r) const
     {
-        return Lighting(constexpr_min(directSkylight, r.directSkylight), constexpr_min(indirectSkylight, r.indirectSkylight), constexpr_min(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
+        return Lighting(constexpr_min(directSkylight, r.directSkylight),
+                        constexpr_min(indirectSkylight, r.indirectSkylight),
+                        constexpr_min(indirectArtificalLight, r.indirectArtificalLight),
+                        MakeDirectOnly);
     }
+
 private:
     static constexpr LightValueType sum(LightValueType a, LightValueType b)
     {
         return constexpr_min<LightValueType>(a + b, maxLight);
     }
+
 public:
     constexpr Lighting sum(Lighting r) const
     {
-        return Lighting(sum(directSkylight, r.directSkylight), sum(indirectSkylight, r.indirectSkylight), sum(indirectArtificalLight, r.indirectArtificalLight), MakeDirectOnly);
+        return Lighting(sum(directSkylight, r.directSkylight),
+                        sum(indirectSkylight, r.indirectSkylight),
+                        sum(indirectArtificalLight, r.indirectArtificalLight),
+                        MakeDirectOnly);
     }
+
 private:
     static constexpr LightValueType reduce(LightValueType a, LightValueType b)
     {
         return (a < b ? 0 : a - b);
     }
+
 public:
     constexpr Lighting reduce(Lighting r) const
     {
-        return Lighting(reduce(directSkylight, r.directSkylight), reduce(indirectSkylight, r.indirectSkylight), reduce(indirectArtificalLight, r.indirectArtificalLight));
+        return Lighting(reduce(directSkylight, r.directSkylight),
+                        reduce(indirectSkylight, r.indirectSkylight),
+                        reduce(indirectArtificalLight, r.indirectArtificalLight));
     }
     constexpr Lighting stripDirectSkylight() const
     {
         return Lighting(0, indirectSkylight, indirectArtificalLight);
     }
-    constexpr bool operator ==(Lighting r) const
+    constexpr bool operator==(Lighting r) const
     {
-        return directSkylight == r.directSkylight && indirectSkylight == r.indirectSkylight && indirectArtificalLight == r.indirectArtificalLight;
+        return directSkylight == r.directSkylight && indirectSkylight == r.indirectSkylight
+               && indirectArtificalLight == r.indirectArtificalLight;
     }
-    constexpr bool operator !=(Lighting r) const
+    constexpr bool operator!=(Lighting r) const
     {
-        return !operator ==(r);
+        return !operator==(r);
     }
     static Lighting read(stream::Reader &reader)
     {
@@ -193,7 +225,8 @@ public:
         static_assert(maxLightU8 == maxLight, "maxLight too big to fit in std::uint8_t");
         std::uint8_t directSkylight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
         std::uint8_t indirectSkylight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
-        std::uint8_t indirectArtificalLight = stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
+        std::uint8_t indirectArtificalLight =
+            stream::read_limited<std::uint8_t>(reader, 0, maxLightU8);
         return Lighting(directSkylight, indirectSkylight, indirectArtificalLight, MakeDirectOnly);
     }
     void write(stream::Writer &writer) const
@@ -210,19 +243,19 @@ struct PackedLighting final
 {
     typedef Lighting::LightValueType LightValueType;
     static constexpr int lightBitWidth = Lighting::lightBitWidth;
-LightValueType directSkylight:
-    lightBitWidth;
-LightValueType indirectSkylight:
-    lightBitWidth;
-LightValueType indirectArtificalLight:
-    lightBitWidth;
+    LightValueType directSkylight : lightBitWidth;
+    LightValueType indirectSkylight : lightBitWidth;
+    LightValueType indirectArtificalLight : lightBitWidth;
     constexpr explicit PackedLighting(Lighting l = Lighting())
-        : directSkylight(l.directSkylight), indirectSkylight(l.indirectSkylight), indirectArtificalLight(l.indirectArtificalLight)
+        : directSkylight(l.directSkylight),
+          indirectSkylight(l.indirectSkylight),
+          indirectArtificalLight(l.indirectArtificalLight)
     {
     }
     constexpr explicit operator Lighting() const
     {
-        return Lighting(directSkylight, indirectSkylight, indirectArtificalLight, Lighting::MakeDirectOnly);
+        return Lighting(
+            directSkylight, indirectSkylight, indirectArtificalLight, Lighting::MakeDirectOnly);
     }
 };
 
@@ -230,18 +263,20 @@ struct LightProperties final
 {
     Lighting emissiveValue;
     Lighting reduceValue;
-    constexpr LightProperties(Lighting emissiveValue = Lighting(0, 0, 0), Lighting reduceValue = Lighting(0, 1, 1))
+    constexpr LightProperties(Lighting emissiveValue = Lighting(0, 0, 0),
+                              Lighting reduceValue = Lighting(0, 1, 1))
         : emissiveValue(emissiveValue), reduceValue(reduceValue)
     {
     }
-    constexpr Lighting eval(Lighting nx, Lighting px, Lighting ny, Lighting py, Lighting nz, Lighting pz) const
+    constexpr Lighting eval(
+        Lighting nx, Lighting px, Lighting ny, Lighting py, Lighting nz, Lighting pz) const
     {
         return emissiveValue.combine(nx.stripDirectSkylight().reduce(reduceValue))
-               .combine(px.stripDirectSkylight().reduce(reduceValue))
-               .combine(ny.stripDirectSkylight().reduce(reduceValue))
-               .combine(py.reduce(reduceValue))
-               .combine(nz.stripDirectSkylight().reduce(reduceValue))
-               .combine(pz.stripDirectSkylight().reduce(reduceValue));
+            .combine(px.stripDirectSkylight().reduce(reduceValue))
+            .combine(ny.stripDirectSkylight().reduce(reduceValue))
+            .combine(py.reduce(reduceValue))
+            .combine(nz.stripDirectSkylight().reduce(reduceValue))
+            .combine(pz.stripDirectSkylight().reduce(reduceValue));
     }
     constexpr Lighting eval(Lighting inputLighting) const
     {
@@ -249,24 +284,29 @@ struct LightProperties final
     }
     constexpr Lighting createNewLighting(Lighting oldLighting) const
     {
-        return emissiveValue.combine(oldLighting.minimize(Lighting::makeMaxLight().reduce(reduceValue)));
+        return emissiveValue.combine(
+            oldLighting.minimize(Lighting::makeMaxLight().reduce(reduceValue)));
     }
     constexpr Lighting calculateTransmittedLighting(Lighting lighting) const
     {
         return lighting.reduce(reduceValue);
     }
-    template <typename ...Args>
-    constexpr Lighting calculateTransmittedLighting(Lighting lighting, Args ...args) const
+    template <typename... Args>
+    constexpr Lighting calculateTransmittedLighting(Lighting lighting, Args... args) const
     {
-        return calculateTransmittedLighting(lighting).combine(calculateTransmittedLighting(args...));
+        return calculateTransmittedLighting(lighting)
+            .combine(calculateTransmittedLighting(args...));
     }
     constexpr LightProperties compose(LightProperties inFrontValue) const
     {
-        return LightProperties(inFrontValue.emissiveValue.combine(inFrontValue.calculateTransmittedLighting(emissiveValue)), reduceValue.sum(inFrontValue.reduceValue));
+        return LightProperties(inFrontValue.emissiveValue.combine(
+                                   inFrontValue.calculateTransmittedLighting(emissiveValue)),
+                               reduceValue.sum(inFrontValue.reduceValue));
     }
     constexpr LightProperties combine(LightProperties other) const
     {
-        return LightProperties(other.emissiveValue.combine(emissiveValue), other.reduceValue.minimize(reduceValue));
+        return LightProperties(other.emissiveValue.combine(emissiveValue),
+                               other.reduceValue.minimize(reduceValue));
     }
     constexpr bool isTotallyTransparent() const
     {
@@ -279,30 +319,31 @@ struct BlockLighting final
     checked_array<checked_array<checked_array<float, 2>, 2>, 2> lightValues;
     constexpr ColorF eval(VectorF relativePosition) const
     {
-        return GrayscaleF(interpolate(relativePosition.x,
-                                      interpolate(relativePosition.y,
-                                              interpolate(relativePosition.z,
-                                                      lightValues[0][0][0],
-                                                      lightValues[0][0][1]),
-                                              interpolate(relativePosition.z,
-                                                      lightValues[0][1][0],
-                                                      lightValues[0][1][1])),
-                                      interpolate(relativePosition.y,
-                                              interpolate(relativePosition.z,
-                                                      lightValues[1][0][0],
-                                                      lightValues[1][0][1]),
-                                              interpolate(relativePosition.z,
-                                                      lightValues[1][1][0],
-                                                      lightValues[1][1][1]))));
+        return GrayscaleF(interpolate(
+            relativePosition.x,
+            interpolate(
+                relativePosition.y,
+                interpolate(relativePosition.z, lightValues[0][0][0], lightValues[0][0][1]),
+                interpolate(relativePosition.z, lightValues[0][1][0], lightValues[0][1][1])),
+            interpolate(
+                relativePosition.y,
+                interpolate(relativePosition.z, lightValues[1][0][0], lightValues[1][0][1]),
+                interpolate(relativePosition.z, lightValues[1][1][0], lightValues[1][1][1]))));
     }
+
 private:
-    float evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset);
+    float evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues,
+                     VectorI offset);
+
 public:
-    constexpr BlockLighting()
-        : lightValues{{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
+    constexpr BlockLighting() : lightValues{{{{{{0, 0}}, {{0, 0}}}}, {{{{0, 0}}, {{0, 0}}}}}}
     {
     }
-    BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp);
+    BlockLighting(
+        checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3>
+            blocks,
+        WorldLightingProperties wlp);
+
 private:
     static constexpr VectorF getLightVector()
     {
@@ -316,6 +357,7 @@ private:
     {
         return 0.4f + 0.6f * getNormalFactorHelper(dot(normal, getLightVector()));
     }
+
 public:
     constexpr ColorF lightVertex(VectorF relativePosition, ColorF vertexColor, VectorF normal) const
     {

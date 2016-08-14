@@ -42,11 +42,12 @@ class NetworkEvent final
 {
 public:
     NetworkEventType type;
+
 private:
     std::vector<std::uint8_t> bytes;
+
 public:
-    NetworkEvent(NetworkEventType type = NetworkEventType::Keepalive)
-        : type(type), bytes()
+    NetworkEvent(NetworkEventType type = NetworkEventType::Keepalive) : type(type), bytes()
     {
     }
     NetworkEvent(NetworkEventType type, const stream::MemoryWriter &writer)
@@ -57,11 +58,11 @@ public:
         : type(type), bytes(std::move(writer).getBuffer())
     {
     }
-    NetworkEvent(NetworkEventType type, const std::vector<std::uint8_t> & bytes)
+    NetworkEvent(NetworkEventType type, const std::vector<std::uint8_t> &bytes)
         : type(type), bytes(bytes)
     {
     }
-    NetworkEvent(NetworkEventType type, std::vector<std::uint8_t> && bytes)
+    NetworkEvent(NetworkEventType type, std::vector<std::uint8_t> &&bytes)
         : type(type), bytes(bytes)
     {
     }

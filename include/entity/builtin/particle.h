@@ -169,7 +169,8 @@ public:
         TextureDescriptor frame = frames[frameIndex];
 
         VectorF upVector = cameraToWorldMatrix.normalMatrix.applyNoTranslate(VectorF(0, extent, 0));
-        VectorF rightVector = cameraToWorldMatrix.normalMatrix.applyNoTranslate(VectorF(extent, 0, 0));
+        VectorF rightVector =
+            cameraToWorldMatrix.normalMatrix.applyNoTranslate(VectorF(extent, 0, 0));
         VectorF center = entity.physicsObject->getPosition();
 
         VectorF nxny = center - upVector - rightVector;

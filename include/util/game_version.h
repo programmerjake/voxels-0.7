@@ -31,28 +31,28 @@ namespace voxels
 {
 namespace GameVersion
 {
-    extern const std::wstring VERSION;
-    extern const std::uint32_t FILE_VERSION;
-    constexpr std::uint32_t NETWORK_VERSION = 0;
-    constexpr std::uint16_t port = 12345;
+extern const std::wstring VERSION;
+extern const std::uint32_t FILE_VERSION;
+constexpr std::uint32_t NETWORK_VERSION = 0;
+constexpr std::uint16_t port = 12345;
 #ifdef DEBUG_VERSION
-    const bool DEBUG = true;
+const bool DEBUG = true;
 #else
-    const bool DEBUG = false;
+const bool DEBUG = false;
 #endif
 #if defined(_WIN64) || defined(_WIN32)
-    const bool MOBILE = false;
+const bool MOBILE = false;
 #elif defined(__ANDROID__)
-    const bool MOBILE = true;
+const bool MOBILE = true;
 #elif defined(__APPLE__)
 #include "TargetConditionals.h"
 #if TARGET_OS_IPHONE
-    const bool MOBILE = true;
+const bool MOBILE = true;
 #else
-    const bool MOBILE = false;
+const bool MOBILE = false;
 #endif
 #elif defined(__linux) || defined(__unix) || defined(__posix)
-    const bool MOBILE = false;
+const bool MOBILE = false;
 #else
 #error unknown platform
 #endif

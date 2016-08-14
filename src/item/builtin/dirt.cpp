@@ -30,7 +30,6 @@ namespace Items
 {
 namespace builtin
 {
-
 Dirt::Dirt()
     : ItemBlock(L"builtin.dirt", TextureAtlas::Dirt.td(), Blocks::builtin::Dirt::descriptor())
 {

@@ -41,8 +41,7 @@ private:
     {
         friend class global_instance_maker<WaterConstructor>;
         checked_array<checked_array<Water *, 8>, 2> descriptors;
-        WaterConstructor()
-            : descriptors()
+        WaterConstructor() : descriptors()
         {
             for(int falling = 0; falling <= 1; falling++)
             {
@@ -64,9 +63,15 @@ private:
         }
     };
     Water(unsigned newLevel = 0, bool falling = false)
-        : Fluid(L"builtin.water", newLevel, falling, LightProperties(Lighting(0, 0, 0), Lighting(2, 3, 3)), TextureAtlas::WaterSide0.td(), BlockUpdateKind::Water)
+        : Fluid(L"builtin.water",
+                newLevel,
+                falling,
+                LightProperties(Lighting(0, 0, 0), Lighting(2, 3, 3)),
+                TextureAtlas::WaterSide0.td(),
+                BlockUpdateKind::Water)
     {
     }
+
 public:
     static const Water *pointer()
     {
@@ -80,10 +85,13 @@ public:
     {
         return Item(Items::builtin::WaterBucket::descriptor());
     }
+
 protected:
-    virtual const Fluid *getBlockDescriptorForFluidLevel(unsigned newLevel, bool falling) const override
+    virtual const Fluid *getBlockDescriptorForFluidLevel(unsigned newLevel,
+                                                         bool falling) const override
     {
-        return global_instance_maker<WaterConstructor>::getInstance()->descriptors[falling ? 1 : 0][newLevel];
+        return global_instance_maker<WaterConstructor>::getInstance()
+            ->descriptors[falling ? 1 : 0][newLevel];
     }
     virtual bool isSameKind(const Fluid *other) const override
     {
@@ -93,7 +101,8 @@ protected:
     {
         return bi.getBiomeProperties(lock_manager).getWaterColor();
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override

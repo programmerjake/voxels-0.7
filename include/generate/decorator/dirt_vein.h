@@ -37,16 +37,18 @@ namespace builtin
 class DirtVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<DirtVeinDecorator>;
+
 private:
-    DirtVeinDecorator()
-        : MineralVeinDecorator(L"builtin.dirt_vein", 33, 0, 256, 10, 900)
+    DirtVeinDecorator() : MineralVeinDecorator(L"builtin.dirt_vein", 33, 0, 256, 10, 900)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::Dirt::descriptor());
     }
+
 public:
     static const DirtVeinDecorator *pointer()
     {
@@ -60,16 +62,18 @@ public:
 class GravelVeinDecorator : public MineralVeinDecorator
 {
     friend class global_instance_maker<GravelVeinDecorator>;
+
 private:
-    GravelVeinDecorator()
-        : MineralVeinDecorator(L"builtin.gravel_vein", 33, 0, 256, 8, 900)
+    GravelVeinDecorator() : MineralVeinDecorator(L"builtin.gravel_vein", 33, 0, 256, 8, 900)
     {
     }
+
 protected:
     virtual Block getOreBlock() const override
     {
         return Block(Blocks::builtin::Gravel::descriptor());
     }
+
 public:
     static const GravelVeinDecorator *pointer()
     {

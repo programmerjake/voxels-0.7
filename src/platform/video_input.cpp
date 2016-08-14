@@ -40,7 +40,8 @@ namespace
 class BufferedVideoInput final : public VideoInput
 {
     BufferedVideoInput(const BufferedVideoInput &) = delete;
-    BufferedVideoInput &operator =(const BufferedVideoInput &) = delete;
+    BufferedVideoInput &operator=(const BufferedVideoInput &) = delete;
+
 private:
     std::unique_ptr<VideoInput> videoInput;
     std::thread frameReaderThread;
@@ -63,7 +64,8 @@ private:
             lastTime = currentTime;
             if(elapsedTime < std::chrono::duration<double>(maxFrameTime))
             {
-                auto waitTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(maxFrameTime)) - elapsedTime;
+                auto waitTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::duration<double>(maxFrameTime)) - elapsedTime;
                 std::this_thread::sleep_for(waitTime);
             }
             videoInput->readFrameIntoImage(buffer2);
@@ -78,18 +80,19 @@ private:
             needNextFrame = false;
         }
     }
+
 public:
     BufferedVideoInput(std::unique_ptr<VideoInput> videoInput, double maxFrameTime = 1.0 / 60.0)
         : VideoInput(videoInput->videoInputDevice),
-        videoInput(),
-        frameReaderThread(),
-        buffer(),
-        buffer2(),
-        done(false),
-        maxFrameTime(maxFrameTime),
-        needNextFrame(true),
-        stateLock(),
-        stateCond()
+          videoInput(),
+          frameReaderThread(),
+          buffer(),
+          buffer2(),
+          done(false),
+          maxFrameTime(maxFrameTime),
+          needNextFrame(true),
+          stateLock(),
+          stateCond()
     {
         int width, height;
         this->videoInput = std::move(videoInput);
@@ -97,11 +100,11 @@ public:
         buffer = Image(width, height);
         buffer2 = buffer;
         frameReaderThread = std::thread([this]()
-        {
-            setThreadPriority(ThreadPriority::Low);
-            setThreadName(L"Frame Reader");
-            frameReaderThreadFn();
-        });
+                                        {
+                                            setThreadPriority(ThreadPriority::Low);
+                                            setThreadName(L"Frame Reader");
+                                            frameReaderThreadFn();
+                                        });
     }
     ~BufferedVideoInput()
     {
@@ -148,19 +151,20 @@ class MyVideoInput final : public VideoInput
 {
     friend class MyVideoInputDevice;
     MyVideoInput(const MyVideoInput &) = delete;
-    MyVideoInput &operator =(const MyVideoInput &) = delete;
+    MyVideoInput &operator=(const MyVideoInput &) = delete;
+
 private:
     ::videoInput input;
     bool good;
     const int deviceId;
     int actualWidth, actualHeight;
     std::vector<std::uint8_t> buffer;
-    MyVideoInput(const VideoInputDevice *videoInputDevice, int deviceId, int requestedWidth, int requestedHeight, int requestedFrameRate)
-        : VideoInput(videoInputDevice),
-        input(),
-        good(true),
-        deviceId(deviceId),
-        buffer()
+    MyVideoInput(const VideoInputDevice *videoInputDevice,
+                 int deviceId,
+                 int requestedWidth,
+                 int requestedHeight,
+                 int requestedFrameRate)
+        : VideoInput(videoInputDevice), input(), good(true), deviceId(deviceId), buffer()
     {
         if(requestedFrameRate > 0)
             input.setIdealFramerate(deviceId, requestedFrameRate);
@@ -182,8 +186,11 @@ private:
         }
         actualWidth = input.getWidth(deviceId);
         actualHeight = input.getHeight(deviceId);
-        buffer.resize(static_cast<std::size_t>(actualWidth) * static_cast<std::size_t>(actualWidth) * Image::BytesPerPixel, 0);
+        buffer.resize(static_cast<std::size_t>(actualWidth) * static_cast<std::size_t>(actualWidth)
+                          * Image::BytesPerPixel,
+                      0);
     }
+
 public:
     virtual ~MyVideoInput()
     {
@@ -203,7 +210,8 @@ public:
         assert(good);
         if(input.isFrameNew(deviceId))
         {
-            static_assert(sizeof(std::uint8_t) == sizeof(unsigned char), "std::uint8_t is not unsigned char");
+            static_assert(sizeof(std::uint8_t) == sizeof(unsigned char),
+                          "std::uint8_t is not unsigned char");
             input.getPixels(deviceId, static_cast<unsigned char *>(&buffer[0]), false, false);
             for(std::size_t i = (std::size_t)actualWidth * (std::size_t)actualHeight; i > 0; i--)
             {
@@ -226,20 +234,25 @@ std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
 class MyVideoInputDevice final : public VideoInputDevice
 {
     friend std::vector<const VideoInputDevice *> makeVideoInputDeviceList();
+
 private:
     const int deviceId;
-    MyVideoInputDevice(int deviceId, std::wstring name)
-        : VideoInputDevice(name), deviceId(deviceId)
+    MyVideoInputDevice(int deviceId, std::wstring name) : VideoInputDevice(name), deviceId(deviceId)
     {
     }
+
 public:
-    virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth, int requestedHeight, int requestedFrameRate) const override
+    virtual std::unique_ptr<VideoInput> makeVideoInput(int requestedWidth,
+                                                       int requestedHeight,
+                                                       int requestedFrameRate) const override
     {
-        std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(new MyVideoInput(this, deviceId, requestedWidth, requestedHeight, requestedFrameRate));
+        std::unique_ptr<MyVideoInput> retval = std::unique_ptr<MyVideoInput>(
+            new MyVideoInput(this, deviceId, requestedWidth, requestedHeight, requestedFrameRate));
         if(!retval->good)
             return std::unique_ptr<VideoInput>();
         if(requestedFrameRate > 0)
-            return std::unique_ptr<VideoInput>(new BufferedVideoInput(std::move(retval), 1.0 / (double)requestedFrameRate));
+            return std::unique_ptr<VideoInput>(
+                new BufferedVideoInput(std::move(retval), 1.0 / (double)requestedFrameRate));
         return std::unique_ptr<VideoInput>(new BufferedVideoInput(std::move(retval)));
     }
 };

@@ -49,36 +49,77 @@ struct constexpr_assert_failure final
 };
 
 #ifndef NDEBUG
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #define assume(v) assert(v)
 #else
 #if defined(__GNUC__) || defined(__GNUG__)
 #define UNREACHABLE() __builtin_unreachable()
 #elif defined(__HP_cc) || defined(__HP_aCC)
 #warning UNREACHABLE() unsupported on Hewlett-Packard C/aC++
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #elif defined(__IBMC__) || defined(__IBMCPP__)
 #warning UNREACHABLE() unsupported on IBM XL C/C++
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #elif defined(_MSC_VER)
 #define UNREACHABLE() __assume(false)
 #elif defined(__PGI)
 #warning UNREACHABLE() unsupported on Portland Group PGCC/PGCPP
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #warning UNREACHABLE() unsupported on Oracle Solaris Studio
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #else
 #warning UNREACHABLE() unsupported on unknown compiler
-#define UNREACHABLE() do {assert(!"unreachable"); throw std::runtime_error("unreachable");} while(0)
+#define UNREACHABLE()                            \
+    do                                           \
+    {                                            \
+        assert(!"unreachable");                  \
+        throw std::runtime_error("unreachable"); \
+    } while(0)
 #endif
-#define assume(v) do {if(v) (void)0; else UNREACHABLE();} while(0)
+#define assume(v)          \
+    do                     \
+    {                      \
+        if(v)              \
+            (void)0;       \
+        else               \
+            UNREACHABLE(); \
+    } while(0)
 #endif
 
 #ifdef NDEBUG
 #define constexpr_assert(v) ((void)0)
 #else
-#define constexpr_assert(v) ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([](){assert(!#v);})))
+#define constexpr_assert(v)                                                         \
+    ((void)((v) ? 0 : throw ::programmerjake::voxels::constexpr_assert_failure([]() \
+                                                                               {    \
+        assert(!#v);                                                                \
+                                                                               })))
 #endif
 
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -173,10 +214,10 @@ class initializer
 private:
     void (*finalizeFn)();
     initializer(const initializer &rt) = delete;
-    void operator =(const initializer &rt) = delete;
+    void operator=(const initializer &rt) = delete;
+
 public:
-    initializer(void (*initFn)(), void (*finalizeFn)() = nullptr)
-        : finalizeFn(finalizeFn)
+    initializer(void (*initFn)(), void (*finalizeFn)() = nullptr) : finalizeFn(finalizeFn)
     {
         initFn();
     }
@@ -194,10 +235,10 @@ class finalizer
 private:
     void (*finalizeFn)();
     finalizer(const finalizer &rt) = delete;
-    void operator =(const finalizer &rt) = delete;
+    void operator=(const finalizer &rt) = delete;
+
 public:
-    finalizer(void (*finalizeFn)())
-        : finalizeFn(finalizeFn)
+    finalizer(void (*finalizeFn)()) : finalizeFn(finalizeFn)
     {
         assert(finalizeFn);
     }

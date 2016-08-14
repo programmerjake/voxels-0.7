@@ -37,16 +37,28 @@ namespace builtin
 class CraftingTable final : public FullBlock
 {
     friend class global_instance_maker<CraftingTable>;
+
 private:
     CraftingTable()
-        : FullBlock(L"builtin.crafting_table", LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround,
-                    true, true, true, true, true, true,
-                    TextureAtlas::WorkBenchSide0.td(), TextureAtlas::WorkBenchSide0.td(),
-                    TextureAtlas::OakPlank.td(), TextureAtlas::WorkBenchTop.td(),
-                    TextureAtlas::WorkBenchSide1.td(), TextureAtlas::WorkBenchSide1.td(),
+        : FullBlock(L"builtin.crafting_table",
+                    LightProperties(Lighting(), Lighting::makeMaxLight()),
+                    RayCasting::BlockCollisionMaskGround,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    true,
+                    TextureAtlas::WorkBenchSide0.td(),
+                    TextureAtlas::WorkBenchSide0.td(),
+                    TextureAtlas::OakPlank.td(),
+                    TextureAtlas::WorkBenchTop.td(),
+                    TextureAtlas::WorkBenchSide1.td(),
+                    TextureAtlas::WorkBenchSide1.td(),
                     RenderLayer::Opaque)
     {
     }
+
 public:
     static const CraftingTable *pointer()
     {
@@ -64,8 +76,16 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual bool onUse(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const override;
     virtual float getHardness() const override
     {
         return 2.5f;
@@ -78,7 +98,8 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Axe *>(tool.descriptor) != nullptr;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override

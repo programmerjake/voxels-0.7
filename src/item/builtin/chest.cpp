@@ -33,9 +33,12 @@ namespace builtin
 {
 Chest::Chest()
     : ItemBlock(L"builtin.chest",
-                TextureAtlas::ChestSide.td(), TextureAtlas::ChestSide.td(),
-                TextureAtlas::ChestTop.td(), TextureAtlas::ChestTop.td(),
-                TextureAtlas::ChestSide.td(), TextureAtlas::ChestFront.td(),
+                TextureAtlas::ChestSide.td(),
+                TextureAtlas::ChestSide.td(),
+                TextureAtlas::ChestTop.td(),
+                TextureAtlas::ChestTop.td(),
+                TextureAtlas::ChestSide.td(),
+                TextureAtlas::ChestFront.td(),
                 Blocks::builtin::Chest::descriptor())
 {
 }
@@ -44,7 +47,11 @@ Item Chest::onUse(Item item, World &world, WorldLockManager &lock_manager, Playe
     RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
     if(c.valid())
     {
-        if(player.placeBlock(c, world, lock_manager, Block(Blocks::builtin::Chest::descriptor(player.getViewDirectionXZBlockFaceIn()))))
+        if(player.placeBlock(
+               c,
+               world,
+               lock_manager,
+               Block(Blocks::builtin::Chest::descriptor(player.getViewDirectionXZBlockFaceIn()))))
             return getAfterPlaceItem();
     }
     return item;

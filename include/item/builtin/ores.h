@@ -34,15 +34,18 @@ namespace Items
 {
 namespace builtin
 {
-
 class CoalOre final : public ItemBlock
 {
     friend class global_instance_maker<CoalOre>;
+
 private:
     CoalOre()
-        : ItemBlock(L"builtin.coal_ore", TextureAtlas::CoalOre.td(), Blocks::builtin::CoalOre::descriptor())
+        : ItemBlock(L"builtin.coal_ore",
+                    TextureAtlas::CoalOre.td(),
+                    Blocks::builtin::CoalOre::descriptor())
     {
     }
+
 public:
     static const CoalOre *pointer()
     {
@@ -68,11 +71,15 @@ public:
 class IronOre final : public ItemBlock
 {
     friend class global_instance_maker<IronOre>;
+
 private:
     IronOre()
-        : ItemBlock(L"builtin.iron_ore", TextureAtlas::IronOre.td(), Blocks::builtin::IronOre::descriptor())
+        : ItemBlock(L"builtin.iron_ore",
+                    TextureAtlas::IronOre.td(),
+                    Blocks::builtin::IronOre::descriptor())
     {
     }
+
 public:
     static const IronOre *pointer()
     {
@@ -98,11 +105,15 @@ public:
 class GoldOre final : public ItemBlock
 {
     friend class global_instance_maker<GoldOre>;
+
 private:
     GoldOre()
-        : ItemBlock(L"builtin.gold_ore", TextureAtlas::GoldOre.td(), Blocks::builtin::GoldOre::descriptor())
+        : ItemBlock(L"builtin.gold_ore",
+                    TextureAtlas::GoldOre.td(),
+                    Blocks::builtin::GoldOre::descriptor())
     {
     }
+
 public:
     static const GoldOre *pointer()
     {
@@ -128,11 +139,15 @@ public:
 class LapisLazuliOre final : public ItemBlock
 {
     friend class global_instance_maker<LapisLazuliOre>;
+
 private:
     LapisLazuliOre()
-        : ItemBlock(L"builtin.lapis_lazuli_ore", TextureAtlas::LapisLazuliOre.td(), Blocks::builtin::LapisLazuliOre::descriptor())
+        : ItemBlock(L"builtin.lapis_lazuli_ore",
+                    TextureAtlas::LapisLazuliOre.td(),
+                    Blocks::builtin::LapisLazuliOre::descriptor())
     {
     }
+
 public:
     static const LapisLazuliOre *pointer()
     {
@@ -158,11 +173,15 @@ public:
 class DiamondOre final : public ItemBlock
 {
     friend class global_instance_maker<DiamondOre>;
+
 private:
     DiamondOre()
-        : ItemBlock(L"builtin.diamond_ore", TextureAtlas::DiamondOre.td(), Blocks::builtin::DiamondOre::descriptor())
+        : ItemBlock(L"builtin.diamond_ore",
+                    TextureAtlas::DiamondOre.td(),
+                    Blocks::builtin::DiamondOre::descriptor())
     {
     }
+
 public:
     static const DiamondOre *pointer()
     {
@@ -188,11 +207,15 @@ public:
 class RedstoneOre final : public ItemBlock
 {
     friend class global_instance_maker<RedstoneOre>;
+
 private:
     RedstoneOre()
-        : ItemBlock(L"builtin.redstone_ore", TextureAtlas::RedstoneOre.td(), Blocks::builtin::RedstoneOre::descriptor())
+        : ItemBlock(L"builtin.redstone_ore",
+                    TextureAtlas::RedstoneOre.td(),
+                    Blocks::builtin::RedstoneOre::descriptor())
     {
     }
+
 public:
     static const RedstoneOre *pointer()
     {
@@ -218,11 +241,15 @@ public:
 class EmeraldOre final : public ItemBlock
 {
     friend class global_instance_maker<EmeraldOre>;
+
 private:
     EmeraldOre()
-        : ItemBlock(L"builtin.emerald_ore", TextureAtlas::EmeraldOre.td(), Blocks::builtin::EmeraldOre::descriptor())
+        : ItemBlock(L"builtin.emerald_ore",
+                    TextureAtlas::EmeraldOre.td(),
+                    Blocks::builtin::EmeraldOre::descriptor())
     {
     }
+
 public:
     static const EmeraldOre *pointer()
     {
@@ -244,8 +271,6 @@ public:
     {
     }
 };
-
-
 }
 }
 }

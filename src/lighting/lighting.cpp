@@ -27,7 +27,8 @@ namespace programmerjake
 {
 namespace voxels
 {
-float BlockLighting::evalVertex(const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset)
+float BlockLighting::evalVertex(
+    const checked_array<checked_array<checked_array<float, 3>, 3>, 3> &blockValues, VectorI offset)
 {
     float retval = 0;
     for(int dx = 0; dx < 2; dx++)
@@ -88,10 +89,19 @@ void dump(const checked_array<T, N> &v)
     }
     std::cout << "}";
 }
-#define DUMP(v) do {std::cout << #v << std::endl; dump(v); std::cout << std::endl;} while(0)
+#define DUMP(v)                       \
+    do                                \
+    {                                 \
+        std::cout << #v << std::endl; \
+        dump(v);                      \
+        std::cout << std::endl;       \
+    } while(0)
 }
 #endif
-BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks, WorldLightingProperties wlp)
+BlockLighting::BlockLighting(
+    checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3>
+        blocks,
+    WorldLightingProperties wlp)
     : lightValues()
 {
     checked_array<checked_array<checked_array<bool, 3>, 3>, 3> isOpaque, setOpaque;
@@ -124,8 +134,8 @@ BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair
         setOpaque[1][y][1] = false;
     for(int z = 0; z < 3; z++)
         setOpaque[1][1][z] = false;
-    //DUMP(setOpaque);
-    //DUMP(isOpaque);
+    // DUMP(setOpaque);
+    // DUMP(isOpaque);
     for(int dx = -1; dx <= 1; dx += 2)
     {
         for(int dy = -1; dy <= 1; dy += 2)
@@ -140,7 +150,7 @@ BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair
             }
         }
     }
-    //DUMP(setOpaque);
+    // DUMP(setOpaque);
     for(int dx = -1; dx <= 1; dx += 2)
     {
         for(int dz = -1; dz <= 1; dz += 2)
@@ -155,7 +165,7 @@ BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair
             }
         }
     }
-    //DUMP(setOpaque);
+    // DUMP(setOpaque);
     for(int dy = -1; dy <= 1; dy += 2)
     {
         for(int dz = -1; dz <= 1; dz += 2)
@@ -208,7 +218,8 @@ BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair
             for(int dz = -1; dz <= 1; dz += 2)
             {
                 VectorI startPos = VectorI(dx, dy, dz) + VectorI(1);
-                for(VectorI propagateDir : {VectorI(-dx, 0, 0), VectorI(0, -dy, 0), VectorI(0, 0, -dz)})
+                for(VectorI propagateDir :
+                    {VectorI(-dx, 0, 0), VectorI(0, -dy, 0), VectorI(0, 0, -dz)})
                 {
                     VectorI p = startPos + propagateDir;
                     if(!isOpaque[p.x][p.y][p.z])
@@ -255,65 +266,76 @@ BlockLighting::BlockLighting(checked_array<checked_array<checked_array<std::pair
 #if defined(DEBUG_VERSION) && 0
 namespace
 {
-initializer init1([]()
-{
-    typedef std::pair<LightProperties, Lighting> LightPair;
-    const int cx = 2, cy = 2, cz = 2;
-    for(int i = 0; i <= 1; i++)
+initializer init1(
+    []()
     {
-        checked_array<checked_array<checked_array<LightPair, 3>, 3>, 3> blocks;
-        blocks[cx][cy][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
-        if(i != 0)
-            blocks[1][cy][cz] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        blocks[cx][1][cz] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        blocks[cx][cy][1] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        WorldLightingProperties wlp = WorldLightingProperties(1, Dimension::Overworld);
-        BlockLighting bl(blocks, wlp);
-        for(int x = 0; x <= 1; x++)
+        typedef std::pair<LightProperties, Lighting> LightPair;
+        const int cx = 2, cy = 2, cz = 2;
+        for(int i = 0; i <= 1; i++)
         {
-            for(int y = 0; y <= 1; y++)
+            checked_array<checked_array<checked_array<LightPair, 3>, 3>, 3> blocks;
+            blocks[cx][cy][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
+            if(i != 0)
+                blocks[1][cy][cz] =
+                    LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            blocks[cx][1][cz] =
+                LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            blocks[cx][cy][1] =
+                LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            WorldLightingProperties wlp = WorldLightingProperties(1, Dimension::Overworld);
+            BlockLighting bl(blocks, wlp);
+            for(int x = 0; x <= 1; x++)
             {
-                for(int z = 0; z <= 1; z++)
+                for(int y = 0; y <= 1; y++)
                 {
-                    std::cout << VectorI(x, y, z) << " " << bl.eval(VectorF(x, y, z)).r << std::endl;
+                    for(int z = 0; z <= 1; z++)
+                    {
+                        std::cout << VectorI(x, y, z) << " " << bl.eval(VectorF(x, y, z)).r
+                                  << std::endl;
+                    }
                 }
             }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
-    }
-    for(int i = 0; i <= 1; i++)
-    {
-        checked_array<checked_array<checked_array<LightPair, 3>, 3>, 3> blocks;
-        blocks[cx][0][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
-        blocks[cx][1][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
-        blocks[cx][2][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
-        if(i != 0)
+        for(int i = 0; i <= 1; i++)
         {
-            blocks[1][0][cz] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-            blocks[1][1][cz] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-            blocks[1][2][cz] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        }
-        blocks[cx][0][1] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        blocks[cx][1][1] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        blocks[cx][2][1] = LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
-        WorldLightingProperties wlp = WorldLightingProperties(1, Dimension::Overworld);
-        BlockLighting bl(blocks, wlp);
-        for(int x = 0; x <= 1; x++)
-        {
-            for(int y = 0; y <= 1; y++)
+            checked_array<checked_array<checked_array<LightPair, 3>, 3>, 3> blocks;
+            blocks[cx][0][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
+            blocks[cx][1][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
+            blocks[cx][2][cz] = LightPair(LightProperties(), Lighting::makeSkyLighting());
+            if(i != 0)
             {
-                for(int z = 0; z <= 1; z++)
+                blocks[1][0][cz] =
+                    LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                blocks[1][1][cz] =
+                    LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                blocks[1][2][cz] =
+                    LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            }
+            blocks[cx][0][1] =
+                LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            blocks[cx][1][1] =
+                LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            blocks[cx][2][1] =
+                LightPair(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+            WorldLightingProperties wlp = WorldLightingProperties(1, Dimension::Overworld);
+            BlockLighting bl(blocks, wlp);
+            for(int x = 0; x <= 1; x++)
+            {
+                for(int y = 0; y <= 1; y++)
                 {
-                    std::cout << VectorI(x, y, z) << " " << bl.eval(VectorF(x, y, z)).r << std::endl;
+                    for(int z = 0; z <= 1; z++)
+                    {
+                        std::cout << VectorI(x, y, z) << " " << bl.eval(VectorF(x, y, z)).r
+                                  << std::endl;
+                    }
                 }
             }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
-    }
-    exit(0);
-});
+        exit(0);
+    });
 }
 #endif
 }
 }
-

@@ -36,8 +36,10 @@ namespace builtin
 class Sand final : public ItemBlock
 {
     friend class global_instance_maker<Sand>;
+
 private:
     Sand();
+
 public:
     static const Sand *pointer()
     {
@@ -62,8 +64,10 @@ public:
 class Gravel final : public ItemBlock
 {
     friend class global_instance_maker<Gravel>;
+
 private:
     Gravel();
+
 public:
     static const Gravel *pointer()
     {

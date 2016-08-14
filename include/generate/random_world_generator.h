@@ -55,7 +55,9 @@ public:
     static constexpr RandomClass bedrockGeneratePositionStart =
         oreGeneratePositionStart + oreGeneratePositionSize;
     static constexpr RandomClass bedrockGeneratePositionSize = 1;
-    static constexpr std::size_t randomClassCount = bedrockGeneratePositionStart + bedrockGeneratePositionSize;
+    static constexpr std::size_t randomClassCount =
+        bedrockGeneratePositionStart + bedrockGeneratePositionSize;
+
 private:
     typedef XorShift128Plus random_generator;
 #if 0
@@ -192,9 +194,9 @@ public:
     static constexpr std::size_t RandomDataSize = 1 << RandomDataShift;
     typedef checked_array<std::uint32_t, RandomDataSize> ValueArraysType;
     std::unique_ptr<ValueArraysType> values;
+
 public:
-    RandomSource(World::SeedType seed)
-        : values(new ValueArraysType())
+    RandomSource(World::SeedType seed) : values(new ValueArraysType())
     {
         random_generator generator(seed);
         for(std::uint32_t &value : *values)
@@ -207,7 +209,7 @@ public:
     std::uint32_t getValueU(PositionI position, RandomClass randomClass) const
     {
         std::uint32_t hash = (std::uint32_t)std::hash<PositionI>()(position)
-               + (std::uint32_t)65537 * (std::uint32_t)randomClass;
+                             + (std::uint32_t)65537 * (std::uint32_t)randomClass;
         return values->at(hash % RandomDataSize) ^ hash;
     }
 #endif
@@ -218,8 +220,7 @@ public:
     float getValueBalancedF(PositionI position, RandomClass randomClass)
     {
         std::uint32_t v = getValueU(position, randomClass);
-        return (float)(std::int32_t)v
-               * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
+        return (float)(std::int32_t)v * (-1.0f / (float)std::numeric_limits<std::int32_t>::min());
     }
     float getValueCanonicalF(PositionI position, RandomClass randomClass)
     {
@@ -341,6 +342,21 @@ protected:
             throw GenerationAbortedException();
     }
 
+private:
+    static Lighting getBlockLighting(const BlocksGenerateArray &blocks,
+                                     const VectorI &relativePosition,
+                                     const PositionI &chunkBasePosition,
+                                     bool isTopFace)
+    {
+        if(relativePosition.x >= 0 && relativePosition.x < BlockChunk::chunkSizeX
+           && relativePosition.y >= 0
+           && relativePosition.y < BlockChunk::chunkSizeY
+           && relativePosition.z >= 0
+           && relativePosition.z < BlockChunk::chunkSizeZ)
+            return blocks[relativePosition.x][relativePosition.y][relativePosition.z].lighting;
+        return World::getDefaultBlockLighting(relativePosition + chunkBasePosition, isTopFace);
+    }
+
 public:
     virtual void generateChunk(PositionI chunkBasePosition,
                                World &world,
@@ -355,6 +371,57 @@ public:
             thread_local_variable<BlocksGenerateArray, blocks_tls_tag> blocks(lock_manager.tls);
             RandomSource randomSource(world.getWorldGeneratorSeed());
             generate(chunkBasePosition, blocks.get(), world, lock_manager, randomSource, abortFlag);
+            for(bool anyChange = true; anyChange;)
+            {
+                anyChange = false;
+                for(VectorI relativePosition(0, BlockChunk::chunkSizeY - 1, 0);
+                    relativePosition.y >= 0;
+                    relativePosition.y--)
+                {
+                    for(relativePosition.x = 0; relativePosition.x < BlockChunk::chunkSizeX;
+                        relativePosition.x++)
+                    {
+                        for(relativePosition.z = 0; relativePosition.z < BlockChunk::chunkSizeZ;
+                            relativePosition.z++)
+                        {
+                            auto &block =
+                                blocks.get()[relativePosition.x][relativePosition
+                                                                     .y][relativePosition.z];
+                            assert(block.good());
+                            Lighting newLighting = block.descriptor->lightProperties.eval(
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(-1, 0, 0),
+                                                 chunkBasePosition,
+                                                 false),
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(1, 0, 0),
+                                                 chunkBasePosition,
+                                                 false),
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(0, -1, 0),
+                                                 chunkBasePosition,
+                                                 false),
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(0, 1, 0),
+                                                 chunkBasePosition,
+                                                 true),
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(0, 0, -1),
+                                                 chunkBasePosition,
+                                                 false),
+                                getBlockLighting(blocks.get(),
+                                                 relativePosition + VectorI(0, 0, 1),
+                                                 chunkBasePosition,
+                                                 false));
+                            if(newLighting != block.lighting)
+                            {
+                                block.lighting = newLighting;
+                                anyChange = true;
+                            }
+                        }
+                    }
+                }
+            }
             world.setBlockRange(chunkBasePosition,
                                 chunkBasePosition + VectorI(BlockChunk::chunkSizeX - 1,
                                                             BlockChunk::chunkSizeY - 1,

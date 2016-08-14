@@ -36,8 +36,7 @@ namespace Printing
 class PrintingException : public std::runtime_error
 {
 public:
-    explicit PrintingException(std::string msg)
-        : runtime_error(msg)
+    explicit PrintingException(std::string msg) : runtime_error(msg)
     {
     }
 };
@@ -45,8 +44,7 @@ public:
 class PrintFailedException : public PrintingException
 {
 public:
-    explicit PrintFailedException(std::string msg)
-        : PrintingException(msg)
+    explicit PrintFailedException(std::string msg) : PrintingException(msg)
     {
     }
 };
@@ -58,16 +56,18 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
 class Printer : public std::enable_shared_from_this<Printer>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     Printer(const Printer &) = delete;
-    Printer &operator =(const Printer &) = delete;
+    Printer &operator=(const Printer &) = delete;
+
 public:
     const std::wstring id;
     const std::wstring name; // human-readable name. eg: "My Printer"
     const std::wstring type; // printer type. eg: "HP LaserJet 4000 Series"
     const std::wstring location; // printer location. eg: "Room 201"
     const bool isOnline;
-    explicit Printer(std::wstring id, std::wstring name, std::wstring type, std::wstring location, bool isOnline)
+    explicit Printer(
+        std::wstring id, std::wstring name, std::wstring type, std::wstring location, bool isOnline)
         : id(id), name(name), type(type), location(location), isOnline(isOnline)
     {
     }
@@ -85,7 +85,6 @@ public:
  * @throw PrintingException when the printer system fails
  */
 std::vector<std::shared_ptr<Printer>> getPrinterList();
-
 }
 }
 }

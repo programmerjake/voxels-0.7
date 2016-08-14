@@ -31,7 +31,6 @@ namespace Entities
 {
 namespace builtin
 {
-
 void EntityItem::ItemData::write(stream::Writer &writer) const
 {
     stream::write<float32_t>(writer, angle);
@@ -52,10 +51,15 @@ EntityItem::ItemData EntityItem::ItemData::read(stream::Reader &reader)
     std::weak_ptr<Player> ignorePlayer = Player::readReference(reader);
     bool followingPlayer = stream::read<bool>(reader);
     ItemStack itemStack = stream::read<ItemStack>(reader);
-    return ItemData(angle, bobPhase, timeLeft, ignorePlayerTime, ignorePlayer, followingPlayer, itemStack);
+    return ItemData(
+        angle, bobPhase, timeLeft, ignorePlayerTime, ignorePlayer, followingPlayer, itemStack);
 }
 
-std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const
+std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(
+    Entity &entity,
+    PositionF position,
+    VectorF velocity,
+    std::shared_ptr<PhysicsWorld> physicsWorld) const
 {
     std::shared_ptr<ItemData> data = getItemData(entity);
     assert(data);
@@ -63,16 +67,24 @@ std::shared_ptr<PhysicsObject> EntityItem::makePhysicsObject(Entity &entity, Pos
     {
         return PhysicsObject::makeEmpty(position, velocity, physicsWorld);
     }
-    PhysicsProperties pp = PhysicsProperties(PhysicsProperties::blockCollisionMask, PhysicsProperties::itemCollisionMask);
+    PhysicsProperties pp = PhysicsProperties(PhysicsProperties::blockCollisionMask,
+                                             PhysicsProperties::itemCollisionMask);
     pp.gravity = VectorF(0, -16, 0);
-    return PhysicsObject::makeCylinder(position, velocity,
-                                       true, false,
-                                       baseSize / 2, baseSize / 2 + extraHeight / 2,
-                                       pp, physicsWorld);
+    return PhysicsObject::makeCylinder(position,
+                                       velocity,
+                                       true,
+                                       false,
+                                       baseSize / 2,
+                                       baseSize / 2 + extraHeight / 2,
+                                       pp,
+                                       physicsWorld);
 }
 
 
-void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
+void EntityItem::moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const
 {
     std::shared_ptr<ItemData> data = getItemData(entity);
     constexpr float angleSpeed = 2 * M_PI / 7.5f;
@@ -91,7 +103,8 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
             continue;
         if(ignorePlayer(entity, player))
             continue;
-        if(closestPlayer == nullptr || absSquared(currentPlayerPosition - position) < distanceSquared)
+        if(closestPlayer == nullptr
+           || absSquared(currentPlayerPosition - position) < distanceSquared)
         {
             closestPlayer = player;
             playerPosition = currentPlayerPosition;
@@ -102,7 +115,8 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
     {
         data->followingPlayer = true;
         auto oldPhysicsObject = entity.physicsObject;
-        entity.physicsObject = PhysicsObject::makeEmpty(position, VectorF(0), entity.physicsObject->getWorld());
+        entity.physicsObject =
+            PhysicsObject::makeEmpty(position, VectorF(0), entity.physicsObject->getWorld());
         oldPhysicsObject->destroy();
     }
     if(data->followingPlayer && closestPlayer == nullptr)
@@ -142,10 +156,10 @@ void EntityItem::moveStep(Entity &entity, World &world, WorldLockManager &lock_m
             gravity = VectorF(0, 1, 0);
         }
         entity.physicsObject->setGravity(gravity);
-        //getDebugLog() << L"Entity " << (void *)&entity << L": pos:" << (VectorF)entity.physicsObject->getPosition() << postnl;
+        // getDebugLog() << L"Entity " << (void *)&entity << L": pos:" <<
+        // (VectorF)entity.physicsObject->getPosition() << postnl;
     }
 }
-
 }
 }
 }

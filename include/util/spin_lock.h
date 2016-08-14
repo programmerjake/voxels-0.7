@@ -59,8 +59,7 @@ struct blocking_spin_lock final
     std::atomic_ulong waitingCount;
     std::condition_variable cond;
     std::mutex lockMutex;
-    blocking_spin_lock()
-        : waitingCount(0), cond(), lockMutex()
+    blocking_spin_lock() : waitingCount(0), cond(), lockMutex()
     {
     }
     bool try_lock()

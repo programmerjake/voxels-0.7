@@ -40,17 +40,17 @@ struct post_t;
 class LogStream final
 {
     LogStream(const LogStream &) = delete;
-    LogStream &operator =(const LogStream &) = delete;
+    LogStream &operator=(const LogStream &) = delete;
+
 private:
     std::function<void(std::wstring)> *const postFunction;
     bool inPostFunction = false;
     std::wostringstream ss;
+
 public:
     std::recursive_mutex *const theLock;
     LogStream(std::recursive_mutex *theLock, std::function<void(std::wstring)> *postFunction)
-        : postFunction(postFunction),
-          ss(),
-          theLock(theLock)
+        : postFunction(postFunction), ss(), theLock(theLock)
     {
     }
     void setPostFunction(std::function<void(std::wstring)> newPostFunction)
@@ -70,17 +70,17 @@ public:
         return inPostFunction;
     }
     template <typename T>
-    friend LogStream &operator <<(LogStream &os, T &&v)
+    friend LogStream &operator<<(LogStream &os, T &&v)
     {
         os.ss << std::forward<T>(v);
         return os;
     }
-    friend void operator <<(LogStream &os, post_t);
+    friend void operator<<(LogStream &os, post_t);
 };
 
 struct post_t
 {
-    friend void operator <<(LogStream &os, post_t);
+    friend void operator<<(LogStream &os, post_t);
 };
 
 void defaultDebugLogPostFunction(std::wstring str);
@@ -91,7 +91,7 @@ constexpr post_t post{};
 
 struct postnl_t
 {
-    friend void operator <<(LogStream &os, postnl_t)
+    friend void operator<<(LogStream &os, postnl_t)
     {
         os << L"\n" << post;
     }
@@ -101,7 +101,7 @@ constexpr postnl_t postnl{};
 
 struct postr_t
 {
-    friend void operator <<(LogStream &os, postr_t)
+    friend void operator<<(LogStream &os, postr_t)
     {
         os << L"\r" << post;
     }

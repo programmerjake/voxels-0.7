@@ -34,7 +34,6 @@ namespace voxels
 {
 namespace ui
 {
-
 Edit::Edit(float minX, float maxX, float minY, float maxY)
     : Element(minX, maxX, minY, maxY),
       mouseButtons(),
@@ -46,11 +45,13 @@ Edit::Edit(float minX, float maxX, float minY, float maxY)
       filterTextFunction(nullptr),
       textProperties()
 {
-    text.onChange.bind2v([this]()
-    {
-        if(text.get().empty())
-            cursorPosition = 0;
-    }, Event::Propagate);
+    text.onChange.bind2v(
+        [this]()
+        {
+            if(text.get().empty())
+                cursorPosition = 0;
+        },
+        Event::Propagate);
 }
 
 bool Edit::handleTouchUp(TouchUpEvent &event)
@@ -336,9 +337,12 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
     filteredText.insert(currentCursorPosition, currentEditingText);
     filteredText += L" "; // for space for cursor
     float editStartX = Text::xPos(filteredText, currentCursorPosition, textProperties);
-    float editEndX = Text::xPos(filteredText, currentCursorPosition + currentEditingText.size(), textProperties);
-    float cursorX = Text::xPos(filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
-    float cursorY = Text::yPos(filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
+    float editEndX =
+        Text::xPos(filteredText, currentCursorPosition + currentEditingText.size(), textProperties);
+    float cursorX = Text::xPos(
+        filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
+    float cursorY = Text::yPos(
+        filteredText, currentCursorPosition + currentEditingCursorPosition, textProperties);
     float textWidth = Text::width(filteredText, textProperties);
     float textHeight = Text::height(filteredText, textProperties);
     if(textWidth <= 0.0f || textHeight <= 0.0f)
@@ -388,33 +392,51 @@ void Edit::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus)
         translatedUnderlineMinX = 0; // clip to text box bounds
     if(translatedUnderlineMaxX > visibleTextWidth)
         translatedUnderlineMaxX = visibleTextWidth; // clip to text box bounds
-    Transform textTransform = Transform::translate(0, -0.5f * textHeight, 0.0f).concat(Transform::scale(scale)).concat(Transform::translate(minX, controlCenterY, -1.0f));
-    Mesh mesh = Generate::quadrilateral(TextureAtlas::Blank.td(),
-                                        VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), backgroundColor,
-                                        VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), backgroundColor,
-                                        VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), backgroundColor,
-                                        VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), backgroundColor);
-    Mesh textMesh = transform(Transform::translate(-visibleTextLeft, 0, 0), Text::mesh(filteredText, textColor, textProperties));
+    Transform textTransform = Transform::translate(0, -0.5f * textHeight, 0.0f)
+                                  .concat(Transform::scale(scale))
+                                  .concat(Transform::translate(minX, controlCenterY, -1.0f));
+    Mesh mesh =
+        Generate::quadrilateral(TextureAtlas::Blank.td(),
+                                VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ),
+                                backgroundColor,
+                                VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ),
+                                backgroundColor,
+                                VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+                                backgroundColor,
+                                VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+                                backgroundColor);
+    Mesh textMesh = transform(Transform::translate(-visibleTextLeft, 0, 0),
+                              Text::mesh(filteredText, textColor, textProperties));
     textMesh = cutAndGetBack(textMesh, VectorF(1, 0, 0), -visibleTextWidth);
     textMesh = cutAndGetBack(textMesh, VectorF(-1, 0, 0), 0);
     mesh.append(transform(textTransform.concat(Transform::scale(textZ)), textMesh));
     if(currentEditingText != L"")
     {
-        mesh.append(transform(textTransform.concat(Transform::scale(underlineZ)),
-                              Generate::quadrilateral(TextureAtlas::Blank.td(),
-                                      VectorF(translatedUnderlineMinX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
-                                      VectorF(translatedUnderlineMaxX, translatedUnderlineMinY, 0.0f), editUnderlineColor,
-                                      VectorF(translatedUnderlineMaxX, translatedUnderlineMaxY, 0.0f), editUnderlineColor,
-                                      VectorF(translatedUnderlineMinX, translatedUnderlineMaxY, 0.0f), editUnderlineColor)));
+        mesh.append(transform(
+            textTransform.concat(Transform::scale(underlineZ)),
+            Generate::quadrilateral(TextureAtlas::Blank.td(),
+                                    VectorF(translatedUnderlineMinX, translatedUnderlineMinY, 0.0f),
+                                    editUnderlineColor,
+                                    VectorF(translatedUnderlineMaxX, translatedUnderlineMinY, 0.0f),
+                                    editUnderlineColor,
+                                    VectorF(translatedUnderlineMaxX, translatedUnderlineMaxY, 0.0f),
+                                    editUnderlineColor,
+                                    VectorF(translatedUnderlineMinX, translatedUnderlineMaxY, 0.0f),
+                                    editUnderlineColor)));
     }
     if(cursorOn)
     {
-        mesh.append(transform(textTransform.concat(Transform::scale(cursorZ)),
-                              Generate::quadrilateral(TextureAtlas::Blank.td(),
-                                      VectorF(cursorMinX - visibleTextLeft, cursorMinY, 0.0f), cursorColor,
-                                      VectorF(cursorMaxX - visibleTextLeft, cursorMinY, 0.0f), cursorColor,
-                                      VectorF(cursorMaxX - visibleTextLeft, cursorMaxY, 0.0f), cursorColor,
-                                      VectorF(cursorMinX - visibleTextLeft, cursorMaxY, 0.0f), cursorColor)));
+        mesh.append(transform(
+            textTransform.concat(Transform::scale(cursorZ)),
+            Generate::quadrilateral(TextureAtlas::Blank.td(),
+                                    VectorF(cursorMinX - visibleTextLeft, cursorMinY, 0.0f),
+                                    cursorColor,
+                                    VectorF(cursorMaxX - visibleTextLeft, cursorMinY, 0.0f),
+                                    cursorColor,
+                                    VectorF(cursorMaxX - visibleTextLeft, cursorMaxY, 0.0f),
+                                    cursorColor,
+                                    VectorF(cursorMinX - visibleTextLeft, cursorMaxY, 0.0f),
+                                    cursorColor)));
     }
     renderer << mesh;
 }
@@ -581,7 +603,6 @@ void Edit::handleKey(KeyboardKey key)
     }
     }
 }
-
 }
 }
 }

@@ -44,18 +44,20 @@ TLS *&TLS::getTlsSlowHelper()
 #else
     static pthread_key_t tls_key = 0;
     static pthread_once_t tls_key_once = PTHREAD_ONCE_INIT;
-    pthread_once(&tls_key_once, []()
-    {
-        if(0 != pthread_key_create(&tls_key, [](void *keyIn)
-        {
-            TLS **key = static_cast<TLS **>(keyIn);
-            delete key;
-        }))
-        {
-            assert(!"can't make TLS key");
-            throw std::runtime_error("can't make TLS key");
-        }
-    });
+    pthread_once(&tls_key_once,
+                 []()
+                 {
+                     if(0 != pthread_key_create(&tls_key,
+                                                [](void *keyIn)
+                                                {
+                                                    TLS **key = static_cast<TLS **>(keyIn);
+                                                    delete key;
+                                                }))
+                     {
+                         assert(!"can't make TLS key");
+                         throw std::runtime_error("can't make TLS key");
+                     }
+                 });
     TLS **key = static_cast<TLS **>(pthread_getspecific(tls_key));
     if(!key)
     {
@@ -74,8 +76,7 @@ TLS *&TLS::getTlsSlowHelper()
 std::atomic_size_t TLS::next_variable_position(0);
 const std::size_t TLS::tls_memory_size = 1 << 23;
 
-TLS::TLS()
-    : memory(new char[tls_memory_size])
+TLS::TLS() : memory(new char[tls_memory_size])
 {
     getTlsSlowHelper() = this;
     for(std::size_t i = 0; i < tls_memory_size; i++)
@@ -96,7 +97,7 @@ TLS::~TLS()
         delete destructor_list_head;
         destructor_list_head = next;
     }
-    delete []memory;
+    delete[] memory;
 }
 
 namespace
@@ -119,7 +120,8 @@ TLS &TLS::getSlow()
     if(ptls == nullptr)
     {
         ptls = &makeForgottenTLS();
-        getDebugLog() << "\n\nTLS::getSlow() : WARNING : forgot to make TLS instance in thread\n\n" << post;
+        getDebugLog() << "\n\nTLS::getSlow() : WARNING : forgot to make TLS instance in thread\n\n"
+                      << post;
     }
     return *ptls;
 }
@@ -127,7 +129,8 @@ TLS &TLS::getSlow()
 void TLS::add_destructor(destructor_fn fn)
 {
     assert(fn);
-    if(destructor_list_head == nullptr || destructor_list_head->destructors_used >= destructor_list_node::destructor_list_size)
+    if(destructor_list_head == nullptr
+       || destructor_list_head->destructors_used >= destructor_list_node::destructor_list_size)
     {
         destructor_list_node *new_node = new destructor_list_node;
         new_node->next = destructor_list_head;

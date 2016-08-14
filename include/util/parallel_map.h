@@ -34,7 +34,10 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename Key, typename T, typename Hash = std::hash<Key>, typename Pred = std::equal_to<Key>>
+template <typename Key,
+          typename T,
+          typename Hash = std::hash<Key>,
+          typename Pred = std::equal_to<Key>>
 class parallel_map
 {
 public:
@@ -49,6 +52,7 @@ public:
     typedef const value_type *const_pointer;
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
+
 private:
     struct Node
     {
@@ -138,12 +142,25 @@ private:
         Node **buckets;
         std::shared_ptr<std::recursive_mutex> bucket_locks;
         bool locked;
-        iterator_imp(Node *node, size_type bucket_index, const parallel_map *parent_map, bool locked)
-            : node(node), bucket_index(bucket_index), bucket_count(parent_map->bucket_count), buckets(parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(locked)
+        iterator_imp(Node *node,
+                     size_type bucket_index,
+                     const parallel_map *parent_map,
+                     bool locked)
+            : node(node),
+              bucket_index(bucket_index),
+              bucket_count(parent_map->bucket_count),
+              buckets(parent_map->buckets),
+              bucket_locks(parent_map->bucket_locks),
+              locked(locked)
         {
         }
         iterator_imp(const parallel_map *parent_map)
-            : node(nullptr), bucket_index(0), bucket_count(parent_map->bucket_count), buckets(parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(false)
+            : node(nullptr),
+              bucket_index(0),
+              bucket_count(parent_map->bucket_count),
+              buckets(parent_map->buckets),
+              bucket_locks(parent_map->bucket_locks),
+              locked(false)
         {
             lock();
             node = buckets[bucket_index];
@@ -165,19 +182,34 @@ private:
             }
         }
         constexpr iterator_imp()
-            : node(nullptr), bucket_index(0), bucket_count(0), buckets(nullptr), bucket_locks(nullptr), locked(false)
+            : node(nullptr),
+              bucket_index(0),
+              bucket_count(0),
+              buckets(nullptr),
+              bucket_locks(nullptr),
+              locked(false)
         {
         }
         iterator_imp(const iterator_imp &rt)
-            : node(rt.node), bucket_index(rt.bucket_index), bucket_count(rt.bucket_count), buckets(rt.buckets), bucket_locks(rt.bucket_locks), locked(false)
+            : node(rt.node),
+              bucket_index(rt.bucket_index),
+              bucket_count(rt.bucket_count),
+              buckets(rt.buckets),
+              bucket_locks(rt.bucket_locks),
+              locked(false)
         {
         }
         iterator_imp(iterator_imp &&rt)
-            : node(rt.node), bucket_index(rt.bucket_index), bucket_count(rt.bucket_count), buckets(rt.buckets), bucket_locks(rt.bucket_locks), locked(rt.locked)
+            : node(rt.node),
+              bucket_index(rt.bucket_index),
+              bucket_count(rt.bucket_count),
+              buckets(rt.buckets),
+              bucket_locks(rt.bucket_locks),
+              locked(rt.locked)
         {
             rt.locked = false;
         }
-        const iterator_imp &operator =(const iterator_imp &rt)
+        const iterator_imp &operator=(const iterator_imp &rt)
         {
             if(this == &rt)
                 return *this;
@@ -189,7 +221,7 @@ private:
             bucket_locks = rt.bucket_locks;
             return *this;
         }
-        const iterator_imp &operator =(iterator_imp &&rt)
+        const iterator_imp &operator=(iterator_imp &&rt)
         {
             using std::swap;
             swap(node, rt.node);
@@ -235,11 +267,11 @@ private:
             }
             return true;
         }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-        void operator ++()
+        GCC_PRAGMA(diagnostic push)
+        GCC_PRAGMA(diagnostic ignored "-Weffc++")
+        void operator++()
         {
-GCC_PRAGMA(diagnostic pop)
+            GCC_PRAGMA(diagnostic pop)
             if(node == nullptr)
                 return;
             lock();
@@ -261,41 +293,42 @@ GCC_PRAGMA(diagnostic pop)
                 node = buckets[bucket_index];
             }
         }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-        void operator ++(int)
+        GCC_PRAGMA(diagnostic push)
+        GCC_PRAGMA(diagnostic ignored "-Weffc++")
+        void operator++(int)
         {
-GCC_PRAGMA(diagnostic pop)
-            operator ++();
+            GCC_PRAGMA(diagnostic pop)
+            operator++();
         }
-        bool operator ==(const iterator_imp &rt) const
+        bool operator==(const iterator_imp &rt) const
         {
             return node == rt.node;
         }
-        bool operator !=(const iterator_imp &rt) const
+        bool operator!=(const iterator_imp &rt) const
         {
-            return !operator ==(rt);
+            return !operator==(rt);
         }
-        value_type &operator *()
+        value_type &operator*()
         {
             lock();
             return node->value;
         }
-        value_type *operator ->()
+        value_type *operator->()
         {
             lock();
             return &node->value;
         }
     };
+
 public:
     struct iterator final : public std::iterator<std::forward_iterator_tag, value_type>
     {
         friend class parallel_map;
         friend class const_iterator;
+
     private:
         iterator_imp imp;
-        constexpr iterator(iterator_imp imp)
-            : imp(std::move(imp))
+        constexpr iterator(iterator_imp imp) : imp(std::move(imp))
         {
         }
         Node *get_node()
@@ -306,6 +339,7 @@ public:
         {
             return imp.bucket_index;
         }
+
     public:
         constexpr iterator()
         {
@@ -326,28 +360,28 @@ public:
         {
             return imp.locked;
         }
-        typename parallel_map::value_type &operator *()
+        typename parallel_map::value_type &operator*()
         {
             return *imp;
         }
-        typename parallel_map::value_type *operator ->()
+        typename parallel_map::value_type *operator->()
         {
-            return &operator *();
+            return &operator*();
         }
-        bool operator ==(const iterator &rt) const
+        bool operator==(const iterator &rt) const
         {
             return imp == rt.imp;
         }
-        bool operator !=(const iterator &rt) const
+        bool operator!=(const iterator &rt) const
         {
             return imp != rt.imp;
         }
-        iterator &operator ++()
+        iterator &operator++()
         {
             ++imp;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
             ++imp;
@@ -357,10 +391,10 @@ public:
     struct const_iterator final : public std::iterator<std::forward_iterator_tag, const value_type>
     {
         friend class parallel_map;
+
     private:
         iterator_imp imp;
-        constexpr const_iterator(iterator_imp imp)
-            : imp(std::move(imp))
+        constexpr const_iterator(iterator_imp imp) : imp(std::move(imp))
         {
         }
         Node *get_node()
@@ -371,16 +405,15 @@ public:
         {
             return imp.bucket_index;
         }
+
     public:
         constexpr const_iterator()
         {
         }
-        constexpr const_iterator(const iterator &rt)
-            : imp(rt.imp)
+        constexpr const_iterator(const iterator &rt) : imp(rt.imp)
         {
         }
-        constexpr const_iterator(iterator &&rt)
-            : imp(std::move(rt.imp))
+        constexpr const_iterator(iterator &&rt) : imp(std::move(rt.imp))
         {
         }
         void lock()
@@ -399,60 +432,63 @@ public:
         {
             return imp.locked;
         }
-        const typename parallel_map::value_type &operator *()
+        const typename parallel_map::value_type &operator*()
         {
             return *imp;
         }
-        const typename parallel_map::value_type *operator ->()
+        const typename parallel_map::value_type *operator->()
         {
-            return &operator *();
+            return &operator*();
         }
-        friend bool operator ==(const iterator &l, const const_iterator &r)
+        friend bool operator==(const iterator &l, const const_iterator &r)
         {
             return const_iterator(l) == r;
         }
-        friend bool operator !=(const iterator &l, const const_iterator &r)
+        friend bool operator!=(const iterator &l, const const_iterator &r)
         {
             return const_iterator(l) != r;
         }
-        friend bool operator ==(const const_iterator &l, const iterator &r)
+        friend bool operator==(const const_iterator &l, const iterator &r)
         {
             return l == const_iterator(r);
         }
-        friend bool operator !=(const const_iterator &l, const iterator &r)
+        friend bool operator!=(const const_iterator &l, const iterator &r)
         {
             return l != const_iterator(r);
         }
-        friend bool operator ==(const const_iterator &l, const const_iterator &r)
+        friend bool operator==(const const_iterator &l, const const_iterator &r)
         {
             return l.imp == r.imp;
         }
-        friend bool operator !=(const const_iterator &l, const const_iterator &r)
+        friend bool operator!=(const const_iterator &l, const const_iterator &r)
         {
             return l.imp != r.imp;
         }
-        const_iterator &operator ++()
+        const_iterator &operator++()
         {
             ++imp;
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             iterator retval = *this;
             ++imp;
             return retval;
         }
     };
-    explicit parallel_map(size_type n, const hasher &hf = hasher(), const key_equal &eql = key_equal())
+    explicit parallel_map(size_type n,
+                          const hasher &hf = hasher(),
+                          const key_equal &eql = key_equal())
         : bucket_count(prime_ceiling(n)), the_hasher(hf), the_comparer(eql)
     {
         buckets = new Node *[bucket_count];
         for(size_type i = 0; i < bucket_count; i++)
             buckets[i] = nullptr;
-        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
-        {
-            delete []v;
-        });
+        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count],
+                                                             [](std::recursive_mutex *v)
+                                                             {
+                                                                 delete[] v;
+                                                             });
     }
     explicit parallel_map(const hasher &hf = hasher(), const key_equal &eql = key_equal())
         : parallel_map(8191, hf, eql)
@@ -464,10 +500,11 @@ public:
         buckets = new Node *[bucket_count];
         for(size_type i = 0; i < bucket_count; i++)
             buckets[i] = nullptr;
-        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
-        {
-            delete []v;
-        });
+        bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count],
+                                                             [](std::recursive_mutex *v)
+                                                             {
+                                                                 delete[] v;
+                                                             });
 
         for(const_iterator i = r.begin(); i != r.end(); ++i)
         {
@@ -477,15 +514,14 @@ public:
             buckets[current_hash] = new_node;
         }
     }
-    parallel_map(const parallel_map &r)
-        : parallel_map(r, r.bucket_count)
+    parallel_map(const parallel_map &r) : parallel_map(r, r.bucket_count)
     {
     }
     ~parallel_map()
     {
         clear();
 
-        delete []buckets;
+        delete[] buckets;
     }
     void clear()
     {
@@ -500,7 +536,7 @@ public:
             }
         }
     }
-    const parallel_map &operator =(const parallel_map &r)
+    const parallel_map &operator=(const parallel_map &r)
     {
         if(buckets == r.buckets)
         {
@@ -511,13 +547,15 @@ public:
 
         if(r.bucket_count != bucket_count)
         {
-            delete []buckets;
+            delete[] buckets;
             bucket_count = r.bucket_count;
             buckets = new Node *[bucket_count];
-            bucket_locks = std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count], [](std::recursive_mutex *v)
-            {
-                delete []v;
-            });
+            bucket_locks =
+                std::shared_ptr<std::recursive_mutex>(new std::recursive_mutex[bucket_count],
+                                                      [](std::recursive_mutex *v)
+                                                      {
+                                                          delete[] v;
+                                                      });
         }
 
         for(size_type i = 0; i < bucket_count; i++)
@@ -542,7 +580,7 @@ public:
         swap(buckets, r.buckets);
         swap(bucket_locks, r.bucket_locks);
     }
-    const parallel_map &operator =(parallel_map && r)
+    const parallel_map &operator=(parallel_map &&r)
     {
         swap(r);
         return *this;
@@ -596,7 +634,8 @@ public:
             if(the_comparer(std::get<0>(retval->value), key))
             {
                 lock_it.release();
-                return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)), false);
+                return std::pair<iterator, bool>(
+                    iterator(iterator_imp(retval, current_hash, this, true)), false);
             }
         }
 
@@ -604,7 +643,8 @@ public:
         retval->hash_next = buckets[current_hash];
         buckets[current_hash] = retval;
         lock_it.release();
-        return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)), true);
+        return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)),
+                                         true);
     }
     const_iterator find(const key_type &key) const
     {
@@ -620,7 +660,7 @@ public:
         }
         return cend();
     }
-    mapped_type &operator [](const key_type &key)
+    mapped_type &operator[](const key_type &key)
     {
         size_type key_hash = (size_type)the_hasher(key);
         size_type current_hash = key_hash % bucket_count;
@@ -650,7 +690,8 @@ public:
                 return std::get<1>(retval->value);
             }
         }
-        throw std::out_of_range("key doesn't exist in parallel_map<KeyType, ValueType>::at(const KeyType&)");
+        throw std::out_of_range(
+            "key doesn't exist in parallel_map<KeyType, ValueType>::at(const KeyType&)");
     }
     const mapped_type &at(const key_type &key) const
     {
@@ -664,7 +705,8 @@ public:
                 return std::get<1>(retval->value);
             }
         }
-        throw std::out_of_range("key doesn't exist in parallel_map<KeyType, ValueType>::at(const KeyType&)");
+        throw std::out_of_range(
+            "key doesn't exist in parallel_map<KeyType, ValueType>::at(const KeyType&)");
     }
     size_type erase(const key_type &key)
     {
@@ -722,6 +764,7 @@ public:
     class node_ptr final
     {
         friend class parallel_map;
+
     private:
         Node *node;
         void reset(Node *newNode)
@@ -740,17 +783,15 @@ public:
         {
             return node;
         }
+
     public:
-        constexpr node_ptr()
-            : node(nullptr)
+        constexpr node_ptr() : node(nullptr)
         {
         }
-        constexpr node_ptr(std::nullptr_t)
-            : node(nullptr)
+        constexpr node_ptr(std::nullptr_t) : node(nullptr)
         {
         }
-        node_ptr(node_ptr &&rt)
-            : node(rt.node)
+        node_ptr(node_ptr &&rt) : node(rt.node)
         {
             rt.node = nullptr;
         }
@@ -758,12 +799,12 @@ public:
         {
             reset();
         }
-        node_ptr &operator =(node_ptr &&rt)
+        node_ptr &operator=(node_ptr &&rt)
         {
             reset(rt.release());
             return *this;
         }
-        node_ptr &operator =(std::nullptr_t)
+        node_ptr &operator=(std::nullptr_t)
         {
             reset();
             return *this;
@@ -782,39 +823,39 @@ public:
         {
             return node != nullptr;
         }
-        bool operator !() const
+        bool operator!() const
         {
             return node == nullptr;
         }
-        typename parallel_map::value_type &operator *() const
+        typename parallel_map::value_type &operator*() const
         {
             return node->value;
         }
-        typename parallel_map::value_type *operator ->() const
+        typename parallel_map::value_type *operator->() const
         {
             return node->value;
         }
-        friend bool operator ==(std::nullptr_t, const node_ptr &v)
+        friend bool operator==(std::nullptr_t, const node_ptr &v)
         {
             return v.node == nullptr;
         }
-        friend bool operator ==(const node_ptr &v, std::nullptr_t)
+        friend bool operator==(const node_ptr &v, std::nullptr_t)
         {
             return v.node == nullptr;
         }
-        friend bool operator !=(std::nullptr_t, const node_ptr &v)
+        friend bool operator!=(std::nullptr_t, const node_ptr &v)
         {
             return v.node != nullptr;
         }
-        friend bool operator !=(const node_ptr &v, std::nullptr_t)
+        friend bool operator!=(const node_ptr &v, std::nullptr_t)
         {
             return v.node != nullptr;
         }
-        bool operator ==(const node_ptr &rt) const
+        bool operator==(const node_ptr &rt) const
         {
             return node == rt.node;
         }
-        bool operator !=(const node_ptr &rt) const
+        bool operator!=(const node_ptr &rt) const
         {
             return node != rt.node;
         }

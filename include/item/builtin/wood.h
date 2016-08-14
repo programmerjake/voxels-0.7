@@ -41,11 +41,12 @@ namespace builtin
 class Stick final : public ItemImage
 {
     friend class global_instance_maker<Stick>;
+
 private:
-    Stick()
-        : ItemImage(L"builtin.stick", TextureAtlas::Stick.td(), nullptr)
+    Stick() : ItemImage(L"builtin.stick", TextureAtlas::Stick.td(), nullptr)
     {
     }
+
 public:
     static const Stick *pointer()
     {
@@ -70,7 +71,8 @@ public:
 class WoodLog final : public ItemBlock
 {
     WoodLog(const WoodLog &) = delete;
-    WoodLog &operator =(const WoodLog &) = delete;
+    WoodLog &operator=(const WoodLog &) = delete;
+
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -80,20 +82,28 @@ private:
         retval += L")";
         return retval;
     }
+
 public:
     WoodLog(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
         : ItemBlock(makeName(woodDescriptor),
-                    woodDescriptor->getLogSideTexture(), woodDescriptor->getLogSideTexture(),
-                    woodDescriptor->getLogTopTexture(), woodDescriptor->getLogTopTexture(),
-                    woodDescriptor->getLogSideTexture(), woodDescriptor->getLogSideTexture(),
-                    block), woodDescriptor(woodDescriptor)
+                    woodDescriptor->getLogSideTexture(),
+                    woodDescriptor->getLogSideTexture(),
+                    woodDescriptor->getLogTopTexture(),
+                    woodDescriptor->getLogTopTexture(),
+                    woodDescriptor->getLogSideTexture(),
+                    woodDescriptor->getLogSideTexture(),
+                    block),
+          woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
     {
         return woodDescriptor;
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
         if(c.valid())
@@ -116,7 +126,10 @@ public:
                 logOrientation = LogOrientation::Z;
                 break;
             }
-            if(player.placeBlock(c, world, lock_manager, Block(woodDescriptor->getLogBlockDescriptor(logOrientation))))
+            if(player.placeBlock(c,
+                                 world,
+                                 lock_manager,
+                                 Block(woodDescriptor->getLogBlockDescriptor(logOrientation))))
                 return getAfterPlaceItem();
         }
         return item;
@@ -140,7 +153,8 @@ public:
 class WoodPlanks final : public ItemBlock
 {
     WoodPlanks(const WoodPlanks &) = delete;
-    WoodPlanks &operator =(const WoodPlanks &) = delete;
+    WoodPlanks &operator=(const WoodPlanks &) = delete;
+
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -150,10 +164,11 @@ private:
         retval += L")";
         return retval;
     }
+
 public:
     WoodPlanks(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
-        : ItemBlock(makeName(woodDescriptor),
-                    woodDescriptor->getPlanksTexture(), block), woodDescriptor(woodDescriptor)
+        : ItemBlock(makeName(woodDescriptor), woodDescriptor->getPlanksTexture(), block),
+          woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
@@ -175,7 +190,8 @@ public:
 class WoodLeaves final : public ItemBlock
 {
     WoodLeaves(const WoodLeaves &) = delete;
-    WoodLeaves &operator =(const WoodLeaves &) = delete;
+    WoodLeaves &operator=(const WoodLeaves &) = delete;
+
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -187,13 +203,19 @@ private:
     }
     static Mesh makeMesh(WoodDescriptorPointer woodDescriptor)
     {
-        return colorize(BiomeDescriptor::makeBiomeLeavesColor(0.5f, 0.5f), Generate::unitBox(woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
-                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture(),
-                                                                                             woodDescriptor->getLeavesTexture(), woodDescriptor->getLeavesTexture()));
+        return colorize(BiomeDescriptor::makeBiomeLeavesColor(0.5f, 0.5f),
+                        Generate::unitBox(woodDescriptor->getLeavesTexture(),
+                                          woodDescriptor->getLeavesTexture(),
+                                          woodDescriptor->getLeavesTexture(),
+                                          woodDescriptor->getLeavesTexture(),
+                                          woodDescriptor->getLeavesTexture(),
+                                          woodDescriptor->getLeavesTexture()));
     }
+
 public:
     WoodLeaves(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
-        : ItemBlock(makeName(woodDescriptor), makeMesh(woodDescriptor), block), woodDescriptor(woodDescriptor)
+        : ItemBlock(makeName(woodDescriptor), makeMesh(woodDescriptor), block),
+          woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const
@@ -211,7 +233,8 @@ public:
 class Sapling final : public ItemImage
 {
     Sapling(const Sapling &) = delete;
-    Sapling &operator =(const Sapling &) = delete;
+    Sapling &operator=(const Sapling &) = delete;
+
 private:
     const WoodDescriptorPointer woodDescriptor;
     static std::wstring makeName(WoodDescriptorPointer woodDescriptor)
@@ -221,9 +244,11 @@ private:
         retval += L")";
         return retval;
     }
+
 public:
     Sapling(WoodDescriptorPointer woodDescriptor, BlockDescriptorPointer block)
-        : ItemImage(makeName(woodDescriptor), woodDescriptor->getSaplingTexture(), block), woodDescriptor(woodDescriptor)
+        : ItemImage(makeName(woodDescriptor), woodDescriptor->getSaplingTexture(), block),
+          woodDescriptor(woodDescriptor)
     {
     }
     WoodDescriptorPointer getWoodDescriptor() const

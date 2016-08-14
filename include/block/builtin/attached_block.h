@@ -38,37 +38,76 @@ class AttachedBlock : public BlockDescriptor
 {
 public:
     const BlockFace attachedToFace;
-    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn) const = 0; /// @return nullptr if block can't attach to attachedToFaceIn
-    AttachedBlock(std::wstring name, BlockFace attachedToFace, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask,
-                  bool isFaceBlockedNX, bool isFaceBlockedPX,
-                  bool isFaceBlockedNY, bool isFaceBlockedPY,
-                  bool isFaceBlockedNZ, bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, lightProperties, blockRayCollisionMask,
-                          isFaceBlockedNX, isFaceBlockedPX,
-                          isFaceBlockedNY, isFaceBlockedPY,
-                          isFaceBlockedNZ, isFaceBlockedPZ), attachedToFace(attachedToFace)
+    virtual const AttachedBlock *getDescriptor(BlockFace attachedToFaceIn)
+        const = 0; /// @return nullptr if block can't attach to attachedToFaceIn
+    AttachedBlock(std::wstring name,
+                  BlockFace attachedToFace,
+                  BlockShape blockShape,
+                  LightProperties lightProperties,
+                  RayCasting::BlockCollisionMask blockRayCollisionMask,
+                  bool isFaceBlockedNX,
+                  bool isFaceBlockedPX,
+                  bool isFaceBlockedNY,
+                  bool isFaceBlockedPY,
+                  bool isFaceBlockedNZ,
+                  bool isFaceBlockedPZ)
+        : BlockDescriptor(name,
+                          blockShape,
+                          lightProperties,
+                          blockRayCollisionMask,
+                          isFaceBlockedNX,
+                          isFaceBlockedPX,
+                          isFaceBlockedNY,
+                          isFaceBlockedPY,
+                          isFaceBlockedNZ,
+                          isFaceBlockedPZ),
+          attachedToFace(attachedToFace)
     {
     }
-    AttachedBlock(std::wstring name, BlockFace attachedToFace, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isStaticMesh,
-                  bool isFaceBlockedNX, bool isFaceBlockedPX,
-                  bool isFaceBlockedNY, bool isFaceBlockedPY,
-                  bool isFaceBlockedNZ, bool isFaceBlockedPZ,
+    AttachedBlock(std::wstring name,
+                  BlockFace attachedToFace,
+                  BlockShape blockShape,
+                  LightProperties lightProperties,
+                  RayCasting::BlockCollisionMask blockRayCollisionMask,
+                  bool isStaticMesh,
+                  bool isFaceBlockedNX,
+                  bool isFaceBlockedPX,
+                  bool isFaceBlockedNY,
+                  bool isFaceBlockedPY,
+                  bool isFaceBlockedNZ,
+                  bool isFaceBlockedPZ,
                   Mesh meshCenter,
-                  Mesh meshFaceNX, Mesh meshFacePX,
-                  Mesh meshFaceNY, Mesh meshFacePY,
-                  Mesh meshFaceNZ, Mesh meshFacePZ,
+                  Mesh meshFaceNX,
+                  Mesh meshFacePX,
+                  Mesh meshFaceNY,
+                  Mesh meshFacePY,
+                  Mesh meshFaceNZ,
+                  Mesh meshFacePZ,
                   RenderLayer staticRenderLayer)
-        : BlockDescriptor(name, blockShape, lightProperties, blockRayCollisionMask, isStaticMesh,
-                          isFaceBlockedNX, isFaceBlockedPX,
-                          isFaceBlockedNY, isFaceBlockedPY,
-                          isFaceBlockedNZ, isFaceBlockedPZ,
+        : BlockDescriptor(name,
+                          blockShape,
+                          lightProperties,
+                          blockRayCollisionMask,
+                          isStaticMesh,
+                          isFaceBlockedNX,
+                          isFaceBlockedPX,
+                          isFaceBlockedNY,
+                          isFaceBlockedPY,
+                          isFaceBlockedNZ,
+                          isFaceBlockedPZ,
                           meshCenter,
-                          meshFaceNX, meshFacePX,
-                          meshFaceNY, meshFacePY,
-                          meshFaceNZ, meshFacePZ,
-                          staticRenderLayer), attachedToFace(attachedToFace)
+                          meshFaceNX,
+                          meshFacePX,
+                          meshFaceNY,
+                          meshFacePY,
+                          meshFaceNZ,
+                          meshFacePZ,
+                          staticRenderLayer),
+          attachedToFace(attachedToFace)
     {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
     }
+
 protected:
     ThreeStateBool isAttached(Block b, BlockIterator bi, WorldLockManager &lock_manager) const
     {
@@ -76,13 +115,24 @@ protected:
         Block attachedToBlock = bi.get(lock_manager);
         if(!attachedToBlock.good())
             return ThreeStateBool::Unknown;
-        return toThreeStateBool(attachedToBlock.descriptor->canAttachBlock(attachedToBlock, getOppositeBlockFace(attachedToFace), b));
+        return toThreeStateBool(attachedToBlock.descriptor->canAttachBlock(
+            attachedToBlock, getOppositeBlockFace(attachedToFace), b));
     }
-    virtual void onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const = 0;
+    virtual void onDisattach(World &world,
+                             const Block &block,
+                             BlockIterator blockIterator,
+                             WorldLockManager &lock_manager,
+                             BlockUpdateKind blockUpdateKind) const = 0;
+
 public:
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const override
     {
-        if(!toBool(isAttached(block, blockIterator, lock_manager), true))
+        if(kind == BlockUpdateKind::UpdateNotify
+           && !toBool(isAttached(block, blockIterator, lock_manager), true))
         {
             onDisattach(world, block, blockIterator, lock_manager, kind);
         }

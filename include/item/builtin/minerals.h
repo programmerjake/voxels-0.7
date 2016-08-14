@@ -32,15 +32,15 @@ namespace Items
 {
 namespace builtin
 {
-
 class Coal final : public ItemImage
 {
     friend class global_instance_maker<Coal>;
+
 private:
-    Coal()
-        : ItemImage(L"builtin.coal", TextureAtlas::Coal.td(), nullptr)
+    Coal() : ItemImage(L"builtin.coal", TextureAtlas::Coal.td(), nullptr)
     {
     }
+
 public:
     static const Coal *pointer()
     {
@@ -66,11 +66,12 @@ public:
 class Charcoal final : public ItemImage
 {
     friend class global_instance_maker<Charcoal>;
+
 private:
-    Charcoal()
-        : ItemImage(L"builtin.charcoal", TextureAtlas::Charcoal.td(), nullptr)
+    Charcoal() : ItemImage(L"builtin.charcoal", TextureAtlas::Charcoal.td(), nullptr)
     {
     }
+
 public:
     static const Charcoal *pointer()
     {
@@ -96,11 +97,12 @@ public:
 class IronIngot final : public ItemImage
 {
     friend class global_instance_maker<IronIngot>;
+
 private:
-    IronIngot()
-        : ItemImage(L"builtin.iron_ingot", TextureAtlas::IronIngot.td(), nullptr)
+    IronIngot() : ItemImage(L"builtin.iron_ingot", TextureAtlas::IronIngot.td(), nullptr)
     {
     }
+
 public:
     static const IronIngot *pointer()
     {
@@ -122,11 +124,12 @@ public:
 class GoldIngot final : public ItemImage
 {
     friend class global_instance_maker<GoldIngot>;
+
 private:
-    GoldIngot()
-        : ItemImage(L"builtin.gold_ingot", TextureAtlas::GoldIngot.td(), nullptr)
+    GoldIngot() : ItemImage(L"builtin.gold_ingot", TextureAtlas::GoldIngot.td(), nullptr)
     {
     }
+
 public:
     static const GoldIngot *pointer()
     {
@@ -148,11 +151,12 @@ public:
 class Diamond final : public ItemImage
 {
     friend class global_instance_maker<Diamond>;
+
 private:
-    Diamond()
-        : ItemImage(L"builtin.diamond", TextureAtlas::Diamond.td(), nullptr)
+    Diamond() : ItemImage(L"builtin.diamond", TextureAtlas::Diamond.td(), nullptr)
     {
     }
+
 public:
     static const Diamond *pointer()
     {
@@ -174,11 +178,13 @@ public:
 class RedstoneDust final : public ItemImage
 {
     friend class global_instance_maker<RedstoneDust>;
+
 private:
     RedstoneDust()
         : ItemImage(L"builtin.redstone_dust", TextureAtlas::RedstoneDustItem.td(), nullptr)
     {
     }
+
 public:
     static const RedstoneDust *pointer()
     {
@@ -188,7 +194,10 @@ public:
     {
         return pointer();
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override;
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
         return nullptr;
@@ -201,11 +210,12 @@ public:
 class Emerald final : public ItemImage
 {
     friend class global_instance_maker<Emerald>;
+
 private:
-    Emerald()
-        : ItemImage(L"builtin.emerald", TextureAtlas::Emerald.td(), nullptr)
+    Emerald() : ItemImage(L"builtin.emerald", TextureAtlas::Emerald.td(), nullptr)
     {
     }
+
 public:
     static const Emerald *pointer()
     {
@@ -227,11 +237,12 @@ public:
 class LapisLazuli final : public ItemImage
 {
     friend class global_instance_maker<LapisLazuli>;
+
 private:
-    LapisLazuli()
-        : ItemImage(L"builtin.lapis_lazuli", TextureAtlas::LapisLazuli.td(), nullptr)
+    LapisLazuli() : ItemImage(L"builtin.lapis_lazuli", TextureAtlas::LapisLazuli.td(), nullptr)
     {
     }
+
 public:
     static const LapisLazuli *pointer()
     {
@@ -253,11 +264,12 @@ public:
 class Flint final : public ItemImage
 {
     friend class global_instance_maker<Flint>;
+
 private:
-    Flint()
-        : ItemImage(L"builtin.flint", TextureAtlas::Flint.td(), nullptr)
+    Flint() : ItemImage(L"builtin.flint", TextureAtlas::Flint.td(), nullptr)
     {
     }
+
 public:
     static const Flint *pointer()
     {
@@ -275,7 +287,6 @@ public:
     {
     }
 };
-
 }
 }
 }

@@ -48,27 +48,46 @@ class EntityItem;
 class ItemDescriptor
 {
     ItemDescriptor(const ItemDescriptor &) = delete;
-    void operator =(const ItemDescriptor &) = delete;
+    void operator=(const ItemDescriptor &) = delete;
+
 public:
     const std::wstring name;
+
 private:
     const Entities::builtin::EntityItem *entity;
+
 public:
     const Entities::builtin::EntityItem *getEntity() const
     {
         return entity;
     }
+
 protected:
-    explicit ItemDescriptor(std::wstring name, enum_array<Mesh, RenderLayer> entityMeshes, Transform entityPreorientSelectionBoxTransform);
+    explicit ItemDescriptor(std::wstring name,
+                            enum_array<Mesh, RenderLayer> entityMeshes,
+                            Transform entityPreorientSelectionBoxTransform);
     explicit ItemDescriptor(std::wstring name, Transform entityPreorientSelectionBoxTransform);
+
 public:
     virtual ~ItemDescriptor();
     static constexpr float minRenderZ = 0.75f, maxRenderZ = 1.0f;
-    virtual void render(Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const = 0;
+    virtual void render(
+        Item item, Mesh &dest, float minX, float maxX, float minY, float maxY) const = 0;
     virtual bool dataEqual(std::shared_ptr<void> data1, std::shared_ptr<void> data2) const = 0;
-    Entity *dropAsEntity(Item item, World &world, WorldLockManager &lock_manager, Player &player) const;
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const = 0;
-    virtual Item onDispenseOrDrop(Item item, World &world, WorldLockManager &lock_manager, PositionI dispensePosition, VectorF dispenseDirection, bool useSpecialAction) const = 0;
+    Entity *dropAsEntity(Item item,
+                         World &world,
+                         WorldLockManager &lock_manager,
+                         Player &player) const;
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const = 0;
+    virtual Item onDispenseOrDrop(Item item,
+                                  World &world,
+                                  WorldLockManager &lock_manager,
+                                  PositionI dispensePosition,
+                                  VectorF dispenseDirection,
+                                  bool useSpecialAction) const = 0;
     virtual unsigned getMaxStackCount() const
     {
         return 64;
@@ -111,8 +130,18 @@ public:
     {
         return true;
     }
-    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity = VectorF(0.0f));
-    static Entity *addToWorld(World &world, WorldLockManager &lock_manager, ItemStack itemStack, PositionF position, VectorF velocity, std::weak_ptr<Player> player, double ignoreTime = 1);
+    static Entity *addToWorld(World &world,
+                              WorldLockManager &lock_manager,
+                              ItemStack itemStack,
+                              PositionF position,
+                              VectorF velocity = VectorF(0.0f));
+    static Entity *addToWorld(World &world,
+                              WorldLockManager &lock_manager,
+                              ItemStack itemStack,
+                              PositionF position,
+                              VectorF velocity,
+                              std::weak_ptr<Player> player,
+                              double ignoreTime = 1);
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const = 0;
     virtual void writeItemData(stream::Writer &writer, std::shared_ptr<void> data) const = 0;
 };
@@ -132,16 +161,18 @@ inline bool Item::dataEqual(const Item &rt) const
 class ItemDescriptors_t final
 {
     friend class ItemDescriptor;
+
 private:
     typedef linked_map<std::wstring, ItemDescriptorPointer> MapType;
     static MapType *itemsMap;
     void add(ItemDescriptorPointer bd) const;
     void remove(ItemDescriptorPointer bd) const;
+
 public:
     constexpr ItemDescriptors_t() noexcept
     {
     }
-    ItemDescriptorPointer operator [](std::wstring name) const
+    ItemDescriptorPointer operator[](std::wstring name) const
     {
         if(itemsMap == nullptr)
         {
@@ -159,7 +190,7 @@ public:
     }
     ItemDescriptorPointer at(std::wstring name) const
     {
-        ItemDescriptorPointer retval = operator [](name);
+        ItemDescriptorPointer retval = operator[](name);
 
         if(retval == nullptr)
         {
@@ -168,24 +199,24 @@ public:
 
         return retval;
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator final : public std::iterator<std::forward_iterator_tag, const ItemDescriptorPointer>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class iterator final
+        : public std::iterator<std::forward_iterator_tag, const ItemDescriptorPointer>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class ItemDescriptors_t;
         MapType::const_iterator iter;
         bool empty;
-        explicit iterator(MapType::const_iterator iter)
-            : iter(iter), empty(false)
+        explicit iterator(MapType::const_iterator iter) : iter(iter), empty(false)
         {
         }
+
     public:
-        iterator()
-            : iter(), empty(true)
+        iterator() : iter(), empty(true)
         {
         }
-        bool operator ==(const iterator &r) const
+        bool operator==(const iterator &r) const
         {
             if(empty)
             {
@@ -199,20 +230,20 @@ GCC_PRAGMA(diagnostic pop)
 
             return iter == r.iter;
         }
-        bool operator !=(const iterator &r) const
+        bool operator!=(const iterator &r) const
         {
-            return !operator ==(r);
+            return !operator==(r);
         }
-        const ItemDescriptorPointer &operator *() const
+        const ItemDescriptorPointer &operator*() const
         {
             return std::get<1>(*iter);
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             ++iter;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             return iterator(iter++);
         }

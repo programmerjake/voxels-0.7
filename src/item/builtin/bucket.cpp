@@ -34,14 +34,13 @@ namespace Items
 {
 namespace builtin
 {
-
-Bucket::Bucket()
-    : ItemImage(L"builtin.bucket", TextureAtlas::Bucket.td(), nullptr)
+Bucket::Bucket() : ItemImage(L"builtin.bucket", TextureAtlas::Bucket.td(), nullptr)
 {
 }
 Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
 {
-    RayCasting::Collision c = player.castRay(world, lock_manager, RayCasting::BlockCollisionMaskEverything);
+    RayCasting::Collision c =
+        player.castRay(world, lock_manager, RayCasting::BlockCollisionMaskEverything);
     if(c.valid())
     {
         if(c.type != RayCasting::Collision::Type::Block)
@@ -49,7 +48,8 @@ Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Play
         Block b = world.getBlockIterator(c.blockPosition, lock_manager.tls).get(lock_manager);
         if(!b.good())
             return item;
-        const Blocks::builtin::Fluid *fluid = dynamic_cast<const Blocks::builtin::Fluid *>(b.descriptor);
+        const Blocks::builtin::Fluid *fluid =
+            dynamic_cast<const Blocks::builtin::Fluid *>(b.descriptor);
         if(fluid == nullptr)
             return item;
         Item retval = fluid->getFilledBucket();
@@ -59,7 +59,9 @@ Item Bucket::onUse(Item item, World &world, WorldLockManager &lock_manager, Play
     return item;
 }
 WaterBucket::WaterBucket()
-    : ItemImage(L"builtin.water_bucket", TextureAtlas::WaterBucket.td(), Blocks::builtin::Water::descriptor())
+    : ItemImage(L"builtin.water_bucket",
+                TextureAtlas::WaterBucket.td(),
+                Blocks::builtin::Water::descriptor())
 {
 }
 }
@@ -72,6 +74,7 @@ namespace builtin
 class BucketRecipe final : public PatternRecipe<3, 2>
 {
     friend class global_instance_maker<BucketRecipe>;
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -80,15 +83,20 @@ protected:
         output = RecipeOutput(ItemStack(Item(Items::builtin::Bucket::descriptor()), 1));
         return true;
     }
+
 private:
     BucketRecipe()
-        : PatternRecipe(checked_array<Item, 3 * 2>
-        {
-            Item(Items::builtin::IronIngot::descriptor()), Item(), Item(Items::builtin::IronIngot::descriptor()),
-            Item(), Item(Items::builtin::IronIngot::descriptor()), Item(),
-        })
+        : PatternRecipe(checked_array<Item, 3 * 2>{
+              Item(Items::builtin::IronIngot::descriptor()),
+              Item(),
+              Item(Items::builtin::IronIngot::descriptor()),
+              Item(),
+              Item(Items::builtin::IronIngot::descriptor()),
+              Item(),
+          })
     {
     }
+
 public:
     static const BucketRecipe *pointer()
     {
@@ -101,6 +109,5 @@ public:
 };
 }
 }
-
 }
 }

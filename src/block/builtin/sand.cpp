@@ -30,37 +30,53 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 namespace Blocks
 {
 namespace builtin
 {
-void Sand::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Sand::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Sand::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Sand::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-Entity *Sand::makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const
+Entity *Sand::makeFallingBlockEntity(World &world,
+                                     PositionF position,
+                                     WorldLockManager &lock_manager) const
 {
-    return world.addEntity(Entities::builtin::FallingSand::descriptor(), position, VectorF(0), lock_manager);
+    return world.addEntity(
+        Entities::builtin::FallingSand::descriptor(), position, VectorF(0), lock_manager);
 }
-void Gravel::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Gravel::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
         if(std::uniform_int_distribution<int>(0, 9)(world.getRandomGenerator()) <= 0)
-            ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Flint::descriptor())), bi.position() + VectorF(0.5));
+            ItemDescriptor::addToWorld(world,
+                                       lock_manager,
+                                       ItemStack(Item(Items::builtin::Flint::descriptor())),
+                                       bi.position() + VectorF(0.5));
         else
-            ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Gravel::descriptor())), bi.position() + VectorF(0.5));
+            ItemDescriptor::addToWorld(world,
+                                       lock_manager,
+                                       ItemStack(Item(Items::builtin::Gravel::descriptor())),
+                                       bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-Entity *Gravel::makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const
+Entity *Gravel::makeFallingBlockEntity(World &world,
+                                       PositionF position,
+                                       WorldLockManager &lock_manager) const
 {
-    return world.addEntity(Entities::builtin::FallingGravel::descriptor(), position, VectorF(0), lock_manager);
+    return world.addEntity(
+        Entities::builtin::FallingGravel::descriptor(), position, VectorF(0), lock_manager);
 }
 }
 }
@@ -92,8 +108,7 @@ Item FallingSand::getDroppedItem() const
 {
     return Item(Items::builtin::Sand::descriptor());
 }
-FallingSand::FallingSand()
-    : FallingBlock(L"builtin.falling_sand", TextureAtlas::Sand.td())
+FallingSand::FallingSand() : FallingBlock(L"builtin.falling_sand", TextureAtlas::Sand.td())
 {
 }
 Block FallingGravel::getPlacedBlock() const
@@ -104,13 +119,10 @@ Item FallingGravel::getDroppedItem() const
 {
     return Item(Items::builtin::Gravel::descriptor());
 }
-FallingGravel::FallingGravel()
-    : FallingBlock(L"builtin.falling_gravel", TextureAtlas::Gravel.td())
+FallingGravel::FallingGravel() : FallingBlock(L"builtin.falling_gravel", TextureAtlas::Gravel.td())
 {
 }
-
 }
 }
-
 }
 }

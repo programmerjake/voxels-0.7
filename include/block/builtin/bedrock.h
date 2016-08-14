@@ -34,6 +34,7 @@ namespace builtin
 class Bedrock final : public StoneBlock
 {
     friend class global_instance_maker<Bedrock>;
+
 public:
     static const Bedrock *pointer()
     {
@@ -43,13 +44,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    Bedrock()
-        : StoneBlock(L"builtin.bedrock", TextureAtlas::Bedrock.td())
+    Bedrock() : StoneBlock(L"builtin.bedrock", TextureAtlas::Bedrock.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return -1;
@@ -58,7 +64,8 @@ public:
     {
         return ToolLevel_None;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override

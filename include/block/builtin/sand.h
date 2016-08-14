@@ -36,6 +36,7 @@ namespace builtin
 class Sand final : public FallingFullBlock
 {
     friend class global_instance_maker<Sand>;
+
 public:
     static const Sand *pointer()
     {
@@ -45,13 +46,23 @@ public:
     {
         return pointer();
     }
+
 private:
     Sand()
-        : FallingFullBlock(L"builtin.sand", LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround, true, TextureAtlas::Sand.td())
+        : FallingFullBlock(L"builtin.sand",
+                           LightProperties(Lighting(), Lighting::makeMaxLight()),
+                           RayCasting::BlockCollisionMaskGround,
+                           true,
+                           TextureAtlas::Sand.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 0.5f;
@@ -64,19 +75,24 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
     {
         return nullptr;
     }
+
 protected:
-    virtual Entity *makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const override;
+    virtual Entity *makeFallingBlockEntity(World &world,
+                                           PositionF position,
+                                           WorldLockManager &lock_manager) const override;
 };
 class Gravel final : public FallingFullBlock
 {
     friend class global_instance_maker<Gravel>;
+
 public:
     static const Gravel *pointer()
     {
@@ -86,13 +102,23 @@ public:
     {
         return pointer();
     }
+
 private:
     Gravel()
-        : FallingFullBlock(L"builtin.gravel", LightProperties(Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround, true, TextureAtlas::Gravel.td())
+        : FallingFullBlock(L"builtin.gravel",
+                           LightProperties(Lighting(), Lighting::makeMaxLight()),
+                           RayCasting::BlockCollisionMaskGround,
+                           true,
+                           TextureAtlas::Gravel.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 0.5f;
@@ -105,15 +131,19 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Shovel *>(tool.descriptor) != nullptr;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
     {
         return nullptr;
     }
+
 protected:
-    virtual Entity *makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const override;
+    virtual Entity *makeFallingBlockEntity(World &world,
+                                           PositionF position,
+                                           WorldLockManager &lock_manager) const override;
 };
 }
 }

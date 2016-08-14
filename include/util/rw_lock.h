@@ -42,9 +42,11 @@ template <>
 struct rw_lock_implementation<false>
 {
     static constexpr bool is_spinlock = false;
+
 private:
 #if __cplusplus > 201103L // c++14 or later
     std::shared_timed_mutex lock;
+
 public:
     void reader_lock()
     {
@@ -77,6 +79,7 @@ public:
     std::size_t readerWaitingCount = 0;
     static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
     std::size_t readerCount = 0;
+
 public:
     void reader_lock()
     {
@@ -148,12 +151,13 @@ public:
     class reader_view final
     {
         friend struct rw_lock_implementation;
+
     private:
         rw_lock_implementation &theLock;
-        reader_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
+        reader_view(rw_lock_implementation &theLock) : theLock(theLock)
         {
         }
+
     public:
         void lock()
         {
@@ -171,12 +175,13 @@ public:
     class writer_view final
     {
         friend struct rw_lock_implementation;
+
     private:
         rw_lock_implementation &theLock;
-        writer_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
+        writer_view(rw_lock_implementation &theLock) : theLock(theLock)
         {
         }
+
     public:
         void lock()
         {
@@ -202,22 +207,24 @@ public:
 };
 
 template <>
-struct [[deprecated("untested")]] rw_lock_implementation<true>
+struct[[deprecated("untested")]] rw_lock_implementation<true>
 {
     static constexpr bool is_spinlock = true;
+
 private:
     static constexpr std::size_t readerCountForWriterLocked = ~(std::size_t)0;
-    std::atomic_size_t readerCount; // if a writer has this locked then readerCount == readerCountForWriterLocked
+    std::atomic_size_t
+        readerCount; // if a writer has this locked then readerCount == readerCountForWriterLocked
     std::atomic_size_t writerCount; // number of writers waiting + the writer that owns this lock
 public:
-    constexpr rw_lock_implementation()
-        : readerCount(0), writerCount(0)
+    constexpr rw_lock_implementation() : readerCount(0), writerCount(0)
     {
     }
     void reader_lock()
     {
         std::size_t value = readerCount.load(std::memory_order_relaxed);
-        while(value == readerCountForWriterLocked || writerCount.load(std::memory_order_relaxed) > 0)
+        while(value == readerCountForWriterLocked
+              || writerCount.load(std::memory_order_relaxed) > 0)
         {
             cpu_relax();
             value = readerCount.load(std::memory_order_relaxed);
@@ -227,7 +234,8 @@ public:
             cpu_relax();
             value = readerCount.load(std::memory_order_relaxed);
         }
-        while(!readerCount.compare_exchange_weak(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
+        while(!readerCount.compare_exchange_weak(
+            value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
         {
             cpu_relax();
             while(value == readerCountForWriterLocked)
@@ -244,7 +252,8 @@ public:
         {
             return false;
         }
-        if(!readerCount.compare_exchange_strong(value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
+        if(!readerCount.compare_exchange_strong(
+               value, value + 1, std::memory_order_acquire, std::memory_order_relaxed))
         {
             return false;
         }
@@ -258,7 +267,10 @@ public:
     {
         writerCount.fetch_add(1, std::memory_order_relaxed);
         std::size_t value = 0;
-        while(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
+        while(!readerCount.compare_exchange_weak(value,
+                                                 readerCountForWriterLocked,
+                                                 std::memory_order_acquire,
+                                                 std::memory_order_relaxed))
         {
             cpu_relax();
             value = 0;
@@ -267,7 +279,10 @@ public:
     bool writer_try_lock()
     {
         std::size_t value = 0;
-        if(!readerCount.compare_exchange_weak(value, readerCountForWriterLocked, std::memory_order_acquire, std::memory_order_relaxed))
+        if(!readerCount.compare_exchange_weak(value,
+                                              readerCountForWriterLocked,
+                                              std::memory_order_acquire,
+                                              std::memory_order_relaxed))
         {
             return false;
         }
@@ -282,12 +297,13 @@ public:
     class reader_view final
     {
         friend struct rw_lock_implementation;
+
     private:
         rw_lock_implementation &theLock;
-        reader_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
+        reader_view(rw_lock_implementation &theLock) : theLock(theLock)
         {
         }
+
     public:
         void lock()
         {
@@ -305,12 +321,13 @@ public:
     class writer_view final
     {
         friend struct rw_lock_implementation;
+
     private:
         rw_lock_implementation &theLock;
-        writer_view(rw_lock_implementation &theLock)
-            : theLock(theLock)
+        writer_view(rw_lock_implementation &theLock) : theLock(theLock)
         {
         }
+
     public:
         void lock()
         {
@@ -335,7 +352,7 @@ public:
     }
 };
 
-typedef rw_lock_implementation<true> rw_spinlock [[deprecated("untested")]];
+typedef rw_lock_implementation<true> rw_spinlock[[deprecated("untested")]];
 typedef rw_lock_implementation<false> rw_lock;
 #if 1 // change when spinlock is checked
 typedef rw_lock rw_fast_lock;
@@ -348,26 +365,22 @@ class reader_lock final
 {
     T *theLock;
     bool locked;
+
 public:
-    constexpr reader_lock() noexcept
-        : theLock(nullptr), locked(false)
+    constexpr reader_lock() noexcept : theLock(nullptr), locked(false)
     {
     }
-    explicit reader_lock(T &lock)
-        : theLock(&lock), locked(true)
+    explicit reader_lock(T &lock) : theLock(&lock), locked(true)
     {
         lock.reader_lock();
     }
-    reader_lock(T &lock, std::defer_lock_t) noexcept
-        : theLock(&lock), locked(false)
+    reader_lock(T &lock, std::defer_lock_t) noexcept : theLock(&lock), locked(false)
     {
     }
-    reader_lock(T &lock, std::try_to_lock_t)
-        : theLock(&lock), locked(lock.reader_try_lock())
+    reader_lock(T &lock, std::try_to_lock_t) : theLock(&lock), locked(lock.reader_try_lock())
     {
     }
-    reader_lock(T &lock, std::adopt_lock_t) noexcept
-        : theLock(&lock), locked(true)
+    reader_lock(T &lock, std::adopt_lock_t) noexcept : theLock(&lock), locked(true)
     {
     }
     ~reader_lock()
@@ -375,13 +388,12 @@ public:
         if(theLock && locked)
             theLock->reader_unlock();
     }
-    reader_lock(reader_lock &&rt) noexcept
-        : theLock(rt.theLock), locked(rt.locked)
+    reader_lock(reader_lock &&rt) noexcept : theLock(rt.theLock), locked(rt.locked)
     {
         rt.theLock = nullptr;
         rt.locked = false;
     }
-    reader_lock &operator =(reader_lock &&rt)
+    reader_lock &operator=(reader_lock &&rt)
     {
         if(theLock && locked)
             theLock->reader_unlock();
@@ -440,26 +452,22 @@ class writer_lock final
 {
     T *theLock;
     bool locked;
+
 public:
-    constexpr writer_lock() noexcept
-        : theLock(nullptr), locked(false)
+    constexpr writer_lock() noexcept : theLock(nullptr), locked(false)
     {
     }
-    explicit writer_lock(T &lock)
-        : theLock(&lock), locked(true)
+    explicit writer_lock(T &lock) : theLock(&lock), locked(true)
     {
         lock.writer_lock();
     }
-    writer_lock(T &lock, std::defer_lock_t) noexcept
-        : theLock(&lock), locked(false)
+    writer_lock(T &lock, std::defer_lock_t) noexcept : theLock(&lock), locked(false)
     {
     }
-    writer_lock(T &lock, std::try_to_lock_t)
-        : theLock(&lock), locked(lock.writer_try_lock())
+    writer_lock(T &lock, std::try_to_lock_t) : theLock(&lock), locked(lock.writer_try_lock())
     {
     }
-    writer_lock(T &lock, std::adopt_lock_t) noexcept
-        : theLock(&lock), locked(true)
+    writer_lock(T &lock, std::adopt_lock_t) noexcept : theLock(&lock), locked(true)
     {
     }
     ~writer_lock()
@@ -467,13 +475,12 @@ public:
         if(theLock && locked)
             theLock->writer_unlock();
     }
-    writer_lock(writer_lock &&rt) noexcept
-        : theLock(rt.theLock), locked(rt.locked)
+    writer_lock(writer_lock &&rt) noexcept : theLock(rt.theLock), locked(rt.locked)
     {
         rt.theLock = nullptr;
         rt.locked = false;
     }
-    writer_lock &operator =(writer_lock &&rt)
+    writer_lock &operator=(writer_lock &&rt)
     {
         if(theLock && locked)
             theLock->writer_unlock();
@@ -532,13 +539,15 @@ public:
 namespace std
 {
 template <typename T>
-void swap(programmerjake::voxels::reader_lock<T> &l, programmerjake::voxels::reader_lock<T> &r) noexcept
+void swap(programmerjake::voxels::reader_lock<T> &l,
+          programmerjake::voxels::reader_lock<T> &r) noexcept
 {
     l.swap(r);
 }
 
 template <typename T>
-void swap(programmerjake::voxels::writer_lock<T> &l, programmerjake::voxels::writer_lock<T> &r) noexcept
+void swap(programmerjake::voxels::writer_lock<T> &l,
+          programmerjake::voxels::writer_lock<T> &r) noexcept
 {
     l.swap(r);
 }

@@ -43,31 +43,33 @@ public:
     {
         return arraySize - 1;
     }
+
 private:
     size_type frontIndex, backIndex;
     value_type array[arraySize];
+
 public:
     friend class iterator;
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator final : public std::iterator<std::random_access_iterator_tag, value_type>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class circularDeque;
         friend class const_iterator;
+
     private:
         circularDeque *container;
         std::size_t index;
-        iterator(circularDeque *container, std::size_t index)
-            : container(container), index(index)
+        iterator(circularDeque *container, std::size_t index) : container(container), index(index)
         {
         }
+
     public:
-        iterator()
-            : container(nullptr), index()
+        iterator() : container(nullptr), index()
         {
         }
-        iterator &operator +=(difference_type n)
+        iterator &operator+=(difference_type n)
         {
             if(-n > static_cast<difference_type>(index))
             {
@@ -84,23 +86,23 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        iterator &operator -=(difference_type n)
+        iterator &operator-=(difference_type n)
         {
             return *this += -n;
         }
-        friend iterator operator +(difference_type n, iterator i)
+        friend iterator operator+(difference_type n, iterator i)
         {
             return i += n;
         }
-        friend iterator operator +(iterator i, difference_type n)
+        friend iterator operator+(iterator i, difference_type n)
         {
             return i += n;
         }
-        friend iterator operator -(iterator i, difference_type n)
+        friend iterator operator-(iterator i, difference_type n)
         {
             return i -= n;
         }
-        difference_type operator -(const iterator &r) const
+        difference_type operator-(const iterator &r) const
         {
             assert(container == r.container && container != nullptr);
             difference_type loc = index + arraySize - container->frontIndex;
@@ -129,19 +131,19 @@ GCC_PRAGMA(diagnostic pop)
 
             return loc - rloc;
         }
-        T &operator [](difference_type n) const
+        T &operator[](difference_type n) const
         {
             return *(*this + n);
         }
-        T &operator *() const
+        T &operator*() const
         {
             return container->array[index];
         }
-        T *operator ->() const
+        T *operator->() const
         {
             return container->array + index;
         }
-        const iterator &operator --()
+        const iterator &operator--()
         {
             if(index == 0)
             {
@@ -154,7 +156,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        iterator operator --(int)
+        iterator operator--(int)
         {
             iterator retval = *this;
 
@@ -169,7 +171,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return retval;
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             if(index >= arraySize - 1)
             {
@@ -182,7 +184,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
 
@@ -197,39 +199,41 @@ GCC_PRAGMA(diagnostic pop)
 
             return retval;
         }
-        friend bool operator ==(const iterator &l, const iterator &r)
+        friend bool operator==(const iterator &l, const iterator &r)
         {
             return l.index == r.index;
         }
-        friend bool operator !=(const iterator &l, const iterator &r)
+        friend bool operator!=(const iterator &l, const iterator &r)
         {
             return l.index != r.index;
         }
-        friend bool operator >(const iterator &l, const iterator &r)
+        friend bool operator>(const iterator &l, const iterator &r)
         {
             return (l - r) > 0;
         }
-        friend bool operator >=(const iterator &l, const iterator &r)
+        friend bool operator>=(const iterator &l, const iterator &r)
         {
             return (l - r) >= 0;
         }
-        friend bool operator <(const iterator &l, const iterator &r)
+        friend bool operator<(const iterator &l, const iterator &r)
         {
             return (l - r) < 0;
         }
-        friend bool operator <=(const iterator &l, const iterator &r)
+        friend bool operator<=(const iterator &l, const iterator &r)
         {
             return (l - r) <= 0;
         }
     };
 
     friend class const_iterator;
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class const_iterator final : public std::iterator<std::random_access_iterator_tag, const value_type>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class const_iterator final
+        : public std::iterator<std::random_access_iterator_tag, const value_type>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class circularDeque;
+
     private:
         const circularDeque *container;
         std::size_t index;
@@ -237,16 +241,15 @@ GCC_PRAGMA(diagnostic pop)
             : container(container), index(index)
         {
         }
+
     public:
-        const_iterator()
-            : container(nullptr), index()
+        const_iterator() : container(nullptr), index()
         {
         }
-        const_iterator(const iterator &v)
-            : container(v.container), index(v.index)
+        const_iterator(const iterator &v) : container(v.container), index(v.index)
         {
         }
-        const_iterator &operator +=(difference_type n)
+        const_iterator &operator+=(difference_type n)
         {
             if(-n > static_cast<difference_type>(index))
             {
@@ -263,23 +266,23 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        const_iterator &operator -=(difference_type n)
+        const_iterator &operator-=(difference_type n)
         {
             return *this += -n;
         }
-        friend const_iterator operator +(difference_type n, const_iterator i)
+        friend const_iterator operator+(difference_type n, const_iterator i)
         {
             return i += n;
         }
-        friend const_iterator operator +(const_iterator i, difference_type n)
+        friend const_iterator operator+(const_iterator i, difference_type n)
         {
             return i += n;
         }
-        friend const_iterator operator -(const_iterator i, difference_type n)
+        friend const_iterator operator-(const_iterator i, difference_type n)
         {
             return i -= n;
         }
-        difference_type operator -(const const_iterator &r) const
+        difference_type operator-(const const_iterator &r) const
         {
             assert(container == r.container && container != nullptr);
             difference_type loc = index + arraySize - container->frontIndex;
@@ -308,19 +311,19 @@ GCC_PRAGMA(diagnostic pop)
 
             return loc - rloc;
         }
-        const T &operator [](difference_type n) const
+        const T &operator[](difference_type n) const
         {
             return *(*this + n);
         }
-        const T &operator *() const
+        const T &operator*() const
         {
             return container->array[index];
         }
-        const T *operator ->() const
+        const T *operator->() const
         {
             return container->array + index;
         }
-        const const_iterator &operator --()
+        const const_iterator &operator--()
         {
             if(index == 0)
             {
@@ -333,7 +336,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        const_iterator operator --(int)
+        const_iterator operator--(int)
         {
             const_iterator retval = *this;
 
@@ -348,7 +351,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return retval;
         }
-        const const_iterator &operator ++()
+        const const_iterator &operator++()
         {
             if(index >= arraySize - 1)
             {
@@ -361,7 +364,7 @@ GCC_PRAGMA(diagnostic pop)
 
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             const_iterator retval = *this;
 
@@ -376,27 +379,27 @@ GCC_PRAGMA(diagnostic pop)
 
             return retval;
         }
-        friend bool operator ==(const const_iterator &l, const const_iterator &r)
+        friend bool operator==(const const_iterator &l, const const_iterator &r)
         {
             return l.index == r.index;
         }
-        friend bool operator !=(const const_iterator &l, const const_iterator &r)
+        friend bool operator!=(const const_iterator &l, const const_iterator &r)
         {
             return l.index != r.index;
         }
-        friend bool operator >(const const_iterator &l, const const_iterator &r)
+        friend bool operator>(const const_iterator &l, const const_iterator &r)
         {
             return (l - r) > 0;
         }
-        friend bool operator >=(const const_iterator &l, const const_iterator &r)
+        friend bool operator>=(const const_iterator &l, const const_iterator &r)
         {
             return (l - r) >= 0;
         }
-        friend bool operator <(const const_iterator &l, const const_iterator &r)
+        friend bool operator<(const const_iterator &l, const const_iterator &r)
         {
             return (l - r) < 0;
         }
-        friend bool operator <=(const const_iterator &l, const const_iterator &r)
+        friend bool operator<=(const const_iterator &l, const const_iterator &r)
         {
             return (l - r) <= 0;
         }
@@ -406,8 +409,7 @@ GCC_PRAGMA(diagnostic pop)
 
     typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
-    circularDeque()
-        : frontIndex(0), backIndex(0)
+    circularDeque() : frontIndex(0), backIndex(0)
     {
     }
 
@@ -516,12 +518,12 @@ GCC_PRAGMA(diagnostic pop)
         return cbegin()[pos];
     }
 
-    T &operator [](size_type pos)
+    T &operator[](size_type pos)
     {
         return begin()[pos];
     }
 
-    const T &operator [](size_type pos) const
+    const T &operator[](size_type pos) const
     {
         return cbegin()[pos];
     }
@@ -546,7 +548,7 @@ GCC_PRAGMA(diagnostic pop)
         array[frontIndex] = v;
     }
 
-    void push_front(T  &&v)
+    void push_front(T &&v)
     {
         if(frontIndex-- == 0)
         {
@@ -566,7 +568,7 @@ GCC_PRAGMA(diagnostic pop)
         }
     }
 
-    void push_back(T  &&v)
+    void push_back(T &&v)
     {
         array[backIndex] = std::move(v);
 

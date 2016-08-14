@@ -36,12 +36,16 @@ class PregeneratedDecoratorInstance : public DecoratorInstance
 private:
     std::vector<PackedBlock> blocks;
     const VectorI baseOffset, theSize;
+
 public:
-    PregeneratedDecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor, VectorI baseOffset, VectorI theSize)
+    PregeneratedDecoratorInstance(PositionI position,
+                                  DecoratorDescriptorPointer descriptor,
+                                  VectorI baseOffset,
+                                  VectorI theSize)
         : DecoratorInstance(position, descriptor),
-        blocks(),
-        baseOffset(baseOffset),
-        theSize(theSize)
+          blocks(),
+          baseOffset(baseOffset),
+          theSize(theSize)
     {
         blocks.resize(theSize.x * theSize.y * theSize.z);
     }
@@ -54,7 +58,8 @@ public:
     Block getBlock(VectorI rpos) const
     {
         rpos -= baseOffset;
-        if(rpos.x < 0 || rpos.x >= theSize.x || rpos.y < 0 || rpos.y >= theSize.y || rpos.z < 0 || rpos.z >= theSize.z)
+        if(rpos.x < 0 || rpos.x >= theSize.x || rpos.y < 0 || rpos.y >= theSize.y || rpos.z < 0
+           || rpos.z >= theSize.z)
             return Block();
         return (Block)blocks[rpos.x * theSize.z * theSize.y + rpos.y * theSize.z + rpos.z];
     }
@@ -74,7 +79,9 @@ public:
     {
         return newBlock.good();
     }
-    virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
+    virtual void generateInChunk(PositionI chunkBasePosition,
+                                 WorldLockManager &lock_manager,
+                                 World &world,
                                  BlocksGenerateArray &blocks) const override
     {
         assert(chunkBasePosition.d == position.d);

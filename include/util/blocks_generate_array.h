@@ -34,24 +34,33 @@ template <typename T>
 class GenericBlocksGenerateArray final
 {
 private:
-    checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> blocks;
+    checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>,
+                  BlockChunk::chunkSizeX> blocks;
+
 public:
-    GenericBlocksGenerateArray()
-        : blocks()
+    GenericBlocksGenerateArray() : blocks()
     {
     }
     class IndexHelper1;
     class IndexHelper2 final
     {
         friend class IndexHelper1;
+
     private:
-        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                    BlockChunk::chunkSizeZ>,
+                      BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
         std::size_t indexY;
-        IndexHelper2(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
+        IndexHelper2(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                                 BlockChunk::chunkSizeZ>,
+                                   BlockChunk::chunkSizeX> &blocks,
+                     std::size_t indexX,
+                     std::size_t indexY)
             : blocks(blocks), indexX(indexX), indexY(indexY)
         {
         }
+
     public:
         T &operator[](std::size_t indexZ)
         {
@@ -60,7 +69,7 @@ public:
         T &at(std::size_t index)
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         static std::size_t size()
         {
@@ -70,13 +79,20 @@ public:
     class IndexHelper1 final
     {
         friend class GenericBlocksGenerateArray;
+
     private:
-        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                    BlockChunk::chunkSizeZ>,
+                      BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
-        IndexHelper1(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
+        IndexHelper1(checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                                 BlockChunk::chunkSizeZ>,
+                                   BlockChunk::chunkSizeX> &blocks,
+                     std::size_t indexX)
             : blocks(blocks), indexX(indexX)
         {
         }
+
     public:
         IndexHelper2 operator[](std::size_t indexY)
         {
@@ -85,7 +101,7 @@ public:
         IndexHelper2 at(std::size_t index)
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         static std::size_t size()
         {
@@ -96,14 +112,23 @@ public:
     class ConstIndexHelper2 final
     {
         friend class ConstIndexHelper1;
+
     private:
-        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                          BlockChunk::chunkSizeZ>,
+                            BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
         std::size_t indexY;
-        ConstIndexHelper2(const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX, std::size_t indexY)
+        ConstIndexHelper2(
+            const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                              BlockChunk::chunkSizeZ>,
+                                BlockChunk::chunkSizeX> &blocks,
+            std::size_t indexX,
+            std::size_t indexY)
             : blocks(blocks), indexX(indexX), indexY(indexY)
         {
         }
+
     public:
         const T &operator[](std::size_t indexZ)
         {
@@ -112,7 +137,7 @@ public:
         const T &at(std::size_t index)
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         static std::size_t size()
         {
@@ -122,13 +147,21 @@ public:
     class ConstIndexHelper1 final
     {
         friend class GenericBlocksGenerateArray;
+
     private:
-        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks;
+        const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                          BlockChunk::chunkSizeZ>,
+                            BlockChunk::chunkSizeX> &blocks;
         std::size_t indexX;
-        ConstIndexHelper1(const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>, BlockChunk::chunkSizeZ>, BlockChunk::chunkSizeX> &blocks, std::size_t indexX)
+        ConstIndexHelper1(
+            const checked_array<checked_array<checked_array<T, BlockChunk::chunkSizeY>,
+                                              BlockChunk::chunkSizeZ>,
+                                BlockChunk::chunkSizeX> &blocks,
+            std::size_t indexX)
             : blocks(blocks), indexX(indexX)
         {
         }
+
     public:
         ConstIndexHelper2 operator[](std::size_t indexY)
         {
@@ -137,7 +170,7 @@ public:
         ConstIndexHelper2 at(std::size_t index)
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         static std::size_t size()
         {
@@ -155,12 +188,12 @@ public:
     ConstIndexHelper1 at(std::size_t index) const
     {
         assert(index < size());
-        return operator [](index);
+        return operator[](index);
     }
     IndexHelper1 at(std::size_t index)
     {
         assert(index < size());
-        return operator [](index);
+        return operator[](index);
     }
     static std::size_t size()
     {

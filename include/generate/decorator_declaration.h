@@ -38,10 +38,12 @@ namespace voxels
 class DecoratorDescriptor;
 typedef const DecoratorDescriptor *DecoratorDescriptorPointer;
 typedef std::size_t DecoratorDescriptorIndex;
-static constexpr DecoratorDescriptorIndex DecoratorDescriptorIndexNone = ~static_cast<DecoratorDescriptorIndex>(0);
+static constexpr DecoratorDescriptorIndex DecoratorDescriptorIndexNone =
+    ~static_cast<DecoratorDescriptorIndex>(0);
 class DecoratorDescriptors_t final
 {
     friend class DecoratorDescriptor;
+
 private:
     static std::unordered_map<std::wstring, DecoratorDescriptorPointer> *map;
     static std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator> *list;
@@ -51,52 +53,56 @@ private:
         if(map == nullptr)
         {
             map = new std::unordered_map<std::wstring, DecoratorDescriptorPointer>;
-            list = new std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator>;
+            list =
+                new std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator>;
             sortedList = new std::multimap<float, DecoratorDescriptorPointer>;
         }
     }
     static void addDescriptor(DecoratorDescriptor *descriptor);
     static DecoratorDescriptorIndex getIndex(DecoratorDescriptorPointer descriptor);
+
 public:
     std::size_t size() const
     {
         makeMap();
         return list->size();
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator final : public std::iterator<std::forward_iterator_tag, const DecoratorDescriptorPointer>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class iterator final
+        : public std::iterator<std::forward_iterator_tag, const DecoratorDescriptorPointer>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class DecoratorDescriptors_t;
+
     private:
         std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter;
-        iterator(std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter)
-            : iter(iter)
+        iterator(std::multimap<float, DecoratorDescriptorPointer>::const_iterator iter) : iter(iter)
         {
         }
+
     public:
         iterator() = default;
-        const DecoratorDescriptorPointer operator *() const
+        const DecoratorDescriptorPointer operator*() const
         {
             return std::get<1>(*iter);
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             ++iter;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
-            operator ++();
+            operator++();
             return retval;
         }
-        bool operator ==(const iterator &rt) const
+        bool operator==(const iterator &rt) const
         {
             return iter == rt.iter;
         }
-        bool operator !=(const iterator &rt) const
+        bool operator!=(const iterator &rt) const
         {
             return iter != rt.iter;
         }

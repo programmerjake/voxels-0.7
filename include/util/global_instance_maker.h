@@ -44,6 +44,7 @@ class global_instance_maker_init_list final
         static init_list_item *retval = nullptr;
         return retval;
     }
+
 public:
     static void init_all()
     {
@@ -72,7 +73,7 @@ private:
     struct helper final
     {
         helper(const helper &) = delete;
-        void operator =(const helper &) = delete;
+        void operator=(const helper &) = delete;
         helper()
         {
             addToInitList();
@@ -99,6 +100,7 @@ private:
         }
     }
     static helper theHelper;
+
 public:
     static const T *getInstance()
     {

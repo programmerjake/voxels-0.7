@@ -30,21 +30,19 @@ namespace voxels
 template <typename T>
 class unlock_guard
 {
-    T * plock;
+    T *plock;
     unlock_guard(const unlock_guard &) = delete;
-    const unlock_guard & operator =(const unlock_guard &) = delete;
+    const unlock_guard &operator=(const unlock_guard &) = delete;
+
 public:
-    explicit unlock_guard(T & lock)
-        : plock(&lock)
+    explicit unlock_guard(T &lock) : plock(&lock)
     {
         plock->unlock();
     }
-    unlock_guard(T & lock, std::adopt_lock_t)
-        : plock(&lock)
+    unlock_guard(T &lock, std::adopt_lock_t) : plock(&lock)
     {
     }
-    unlock_guard(unlock_guard && rt)
-        : plock(rt.plock)
+    unlock_guard(unlock_guard &&rt) : plock(rt.plock)
     {
         rt.plock = nullptr;
     }

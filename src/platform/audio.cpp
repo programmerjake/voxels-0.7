@@ -70,7 +70,8 @@ struct PlayingAudioData
         if(decoder->samplesPerSecond() != getGlobalAudioSampleRate())
             decoder = make_shared<ResampleAudioDecoder>(decoder, getGlobalAudioSampleRate());
         if(decoder->channelCount() != getGlobalAudioChannelCount())
-            decoder = make_shared<RedistributeChannelsAudioDecoder>(decoder, getGlobalAudioChannelCount());
+            decoder = make_shared<RedistributeChannelsAudioDecoder>(decoder,
+                                                                    getGlobalAudioChannelCount());
         if(decoder->isHighLatencySource())
             decoder = make_shared<StreamBufferingAudioDecoder>(decoder);
         unsigned channels = decoder->channelCount();
@@ -79,9 +80,11 @@ struct PlayingAudioData
         auto &buffer = *pbuffer;
         uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
         uint64_t decodedAmount;
-        for(decodedAmount = 0;decodedAmount < bufferSamples;)
+        for(decodedAmount = 0; decodedAmount < bufferSamples;)
         {
-            uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodedAmount * channels)], bufferSamples - decodedAmount);
+            uint64_t currentDecodeStep = decoder->decodeAudioBlock(
+                &buffer[static_cast<std::size_t>(decodedAmount * channels)],
+                bufferSamples - decodedAmount);
             if(currentDecodeStep == 0)
             {
                 if(!looped)
@@ -93,7 +96,7 @@ struct PlayingAudioData
         for(size_t i = 0; i < decodedAmount * channels; i++)
             bufferQueue.push_back(buffer[i]);
     }
-    bool addInAudioSample(float * data)
+    bool addInAudioSample(float *data)
     {
         unsigned channels = decoder->channelCount();
         if(!overallEOF && bufferQueue.size() < bufferQueue.capacity() / 2)
@@ -104,9 +107,11 @@ struct PlayingAudioData
             uint64_t bufferSamples = (bufferQueue.capacity() - bufferQueue.size()) / channels;
             uint64_t decodedAmount;
             bool hitEnd = false;
-            for(decodedAmount = 0;decodedAmount < bufferSamples;)
+            for(decodedAmount = 0; decodedAmount < bufferSamples;)
             {
-                uint64_t currentDecodeStep = decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodedAmount * channels)], bufferSamples - decodedAmount);
+                uint64_t currentDecodeStep = decoder->decodeAudioBlock(
+                    &buffer[static_cast<std::size_t>(decodedAmount * channels)],
+                    bufferSamples - decodedAmount);
                 if(currentDecodeStep == 0)
                 {
                     hitEnd = true;
@@ -136,7 +141,7 @@ struct PlayingAudioData
         }
         return false;
     }
-    bool addInAudio(float * data, size_t sampleCount)
+    bool addInAudio(float *data, size_t sampleCount)
     {
         unsigned channels = decoder->channelCount();
         for(size_t i = 0; i < sampleCount; i++)
@@ -197,22 +202,21 @@ void stopAudioImp(shared_ptr<PlayingAudioData> audio)
 }
 }
 
-PlayingAudio::PlayingAudio(shared_ptr<PlayingAudioData> data)
-    : data(data)
+PlayingAudio::PlayingAudio(shared_ptr<PlayingAudioData> data) : data(data)
 {
 }
 
-void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
+void PlayingAudio::audioCallback(void *, uint8_t *buffer_in, int length)
 {
     setThreadPriority(ThreadPriority::High);
     static vector<float> buffer;
     unique_lock<mutex> lock(getAudioStateMutex());
-    int16_t * buffer16 = (int16_t *)buffer_in;
+    int16_t *buffer16 = (int16_t *)buffer_in;
     memset((void *)buffer16, 0, length);
     assert(length % (getGlobalAudioChannelCount() * sizeof(int16_t)) == 0);
     size_t sampleCount = length / (getGlobalAudioChannelCount() * sizeof(int16_t));
     buffer.assign(sampleCount * getGlobalAudioChannelCount(), 0);
-    for(auto i = getPlayingAudioSet().begin(); i != getPlayingAudioSet().end(); )
+    for(auto i = getPlayingAudioSet().begin(); i != getPlayingAudioSet().end();)
     {
         if(!(*i)->addInAudio(buffer.data(), sampleCount))
             i = getPlayingAudioSet().erase(i);
@@ -221,7 +225,9 @@ void PlayingAudio::audioCallback(void *, uint8_t * buffer_in, int length)
     }
     for(float v : buffer)
     {
-        *buffer16++ = limit<int>(static_cast<int>(v * 0x8000), numeric_limits<int16_t>::min(), numeric_limits<int16_t>::max());
+        *buffer16++ = limit<int>(static_cast<int>(v * 0x8000),
+                                 numeric_limits<int16_t>::min(),
+                                 numeric_limits<int16_t>::max());
     }
 }
 
@@ -272,23 +278,24 @@ double PlayingAudio::duration()
     return data->decoder->lengthInSeconds();
 }
 
-Audio::Audio(wstring resourceName, bool isStreaming)
-    : data()
+Audio::Audio(wstring resourceName, bool isStreaming) : data()
 {
     if(isStreaming)
     {
-        data = make_shared<AudioData>([resourceName]()->shared_ptr<AudioDecoder>
-        {
-            try
+        data = make_shared<AudioData>(
+            [resourceName]() -> shared_ptr<AudioDecoder>
             {
-                shared_ptr<stream::Reader> preader = getResourceReader(resourceName);
-                return make_shared<OggVorbisDecoder>(preader);
-            }
-            catch(stream::IOException &)
-            {
-                return make_shared<MemoryAudioDecoder>(vector<float>(), getGlobalAudioSampleRate(), getGlobalAudioChannelCount());
-            }
-        });
+                try
+                {
+                    shared_ptr<stream::Reader> preader = getResourceReader(resourceName);
+                    return make_shared<OggVorbisDecoder>(preader);
+                }
+                catch(stream::IOException &)
+                {
+                    return make_shared<MemoryAudioDecoder>(
+                        vector<float>(), getGlobalAudioSampleRate(), getGlobalAudioChannelCount());
+                }
+            });
     }
     else
     {
@@ -302,27 +309,39 @@ Audio::Audio(wstring resourceName, bool isStreaming)
             for(;;)
             {
                 buffer.resize(static_cast<std::size_t>(finalSize + decoder->channelCount() * 8192));
-                uint64_t currentSize = decoder->channelCount() * decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(finalSize)], (buffer.size() - finalSize) / decoder->channelCount());
+                uint64_t currentSize = decoder->channelCount()
+                                       * decoder->decodeAudioBlock(
+                                             &buffer[static_cast<std::size_t>(finalSize)],
+                                             (buffer.size() - finalSize) / decoder->channelCount());
                 if(currentSize == 0)
                     break;
                 finalSize += currentSize;
             }
             buffer.resize(static_cast<std::size_t>(finalSize));
-            shared_ptr<MemoryAudioDecoder> memDecoder = make_shared<MemoryAudioDecoder>(buffer, decoder->samplesPerSecond(), decoder->channelCount());
-            data = make_shared<AudioData>([memDecoder]()->shared_ptr<AudioDecoder>{memDecoder->reset(); return memDecoder;});
+            shared_ptr<MemoryAudioDecoder> memDecoder = make_shared<MemoryAudioDecoder>(
+                buffer, decoder->samplesPerSecond(), decoder->channelCount());
+            data = make_shared<AudioData>([memDecoder]() -> shared_ptr<AudioDecoder>
+                                          {
+                                              memDecoder->reset();
+                                              return memDecoder;
+                                          });
         }
-        catch(stream::IOException & e)
+        catch(stream::IOException &e)
         {
             throw AudioLoadError(string("io exception : ") + e.what());
         }
     }
 }
 
-Audio::Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCount)
-    : data()
+Audio::Audio(const vector<float> &data, unsigned sampleRate, unsigned channelCount) : data()
 {
-    shared_ptr<MemoryAudioDecoder> memDecoder = make_shared<MemoryAudioDecoder>(data, sampleRate, channelCount);
-    this->data = make_shared<AudioData>([memDecoder]()->shared_ptr<AudioDecoder>{memDecoder->reset(); return memDecoder;});
+    shared_ptr<MemoryAudioDecoder> memDecoder =
+        make_shared<MemoryAudioDecoder>(data, sampleRate, channelCount);
+    this->data = make_shared<AudioData>([memDecoder]() -> shared_ptr<AudioDecoder>
+                                        {
+                                            memDecoder->reset();
+                                            return memDecoder;
+                                        });
 }
 
 shared_ptr<PlayingAudio> Audio::play(float volume, bool looped)

@@ -437,8 +437,8 @@ struct ViewPoint::Implementation final
             if(!anyUpdates)
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             lockIt.lock();
-            // if(anyUpdates)
-            // debugLog << L"generated render meshes.\x1b[K" << std::endl;
+// if(anyUpdates)
+// debugLog << L"generated render meshes.\x1b[K" << std::endl;
 #ifndef USE_PER_CHUNK_BUFFER
             if(anyUpdates)
             {
@@ -815,8 +815,7 @@ struct ViewPoint::Implementation final
         struct TranslucentMeshTag final
         {
         };
-        thread_local_variable<Mesh, TranslucentMeshTag> translucentMeshTLS(
-            lock_manager.tls);
+        thread_local_variable<Mesh, TranslucentMeshTag> translucentMeshTLS(lock_manager.tls);
         Mesh &translucentMesh = translucentMeshTLS.get();
         translucentMesh.clear();
         entityMeshes[RenderLayer::Opaque].append(additionalObjects);
@@ -845,13 +844,16 @@ struct ViewPoint::Implementation final
                     {
                         if(!meshes.meshes->meshBuffers[RenderLayer::Opaque].empty())
                         {
-                            renderer << transform(worldToCamera, meshes.meshes->meshBuffers[RenderLayer::Opaque]);
+                            renderer << transform(worldToCamera,
+                                                  meshes.meshes->meshBuffers[RenderLayer::Opaque]);
                         }
                         else
                         {
-                            renderer << transform(worldToCamera, meshes.meshes->meshes[RenderLayer::Opaque]);
+                            renderer << transform(worldToCamera,
+                                                  meshes.meshes->meshes[RenderLayer::Opaque]);
                         }
-                        auto triangleCount = meshes.meshes->meshes[RenderLayer::Opaque].triangleCount();
+                        auto triangleCount =
+                            meshes.meshes->meshes[RenderLayer::Opaque].triangleCount();
                         auto vertexCount = meshes.meshes->meshes[RenderLayer::Opaque].vertexCount();
                         renderedTriangles += triangleCount;
                         if(triangleCount > maxChunkMeshBufferTriangleCount)
@@ -925,8 +927,7 @@ struct ViewPoint::Implementation final
             translucentMesh.append(meshes->meshes[RenderLayer::Translucent]);
         }
 #endif
-        std::size_t renderedTranslucentTriangles =
-            translucentMesh.triangleCount();
+        std::size_t renderedTranslucentTriangles = translucentMesh.triangleCount();
         struct TriangleIndirectArrayTag
         {
         };
@@ -945,13 +946,11 @@ struct ViewPoint::Implementation final
         triangleIndirectArray.clear();
         triangleIndirectArray.reserve(renderedTranslucentTriangles);
         VectorF cameraPosition = transform(cameraToWorld, VectorF(0));
-        for(std::size_t i = 0; i < translucentMesh.indexedTriangles.size();
-            i++)
+        for(std::size_t i = 0; i < translucentMesh.indexedTriangles.size(); i++)
         {
             const IndexedTriangle &tri = translucentMesh.indexedTriangles[i];
             VectorF averagePosition =
-                (translucentMesh.vertices[tri.v[0]].p
-                 + translucentMesh.vertices[tri.v[1]].p
+                (translucentMesh.vertices[tri.v[0]].p + translucentMesh.vertices[tri.v[1]].p
                  + translucentMesh.vertices[tri.v[2]].p) * (1.0f / 3);
             float distanceSquared = absSquared(cameraPosition - averagePosition);
             triangleIndirectArray.emplace_back(i, distanceSquared);
@@ -972,8 +971,7 @@ struct ViewPoint::Implementation final
         std::vector<IndexedTriangle> &oldTriangles = oldTrianglesTLS.get();
         translucentMesh.indexedTriangles.swap(oldTriangles);
         translucentMesh.indexedTriangles.clear();
-        translucentMesh.indexedTriangles.reserve(
-            renderedTranslucentTriangles);
+        translucentMesh.indexedTriangles.reserve(renderedTranslucentTriangles);
         for(IndirectTriangle tri : triangleIndirectArray)
         {
             translucentMesh.addTriangle(oldTriangles[tri.triangleIndex]);

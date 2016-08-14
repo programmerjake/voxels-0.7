@@ -52,6 +52,7 @@ class Renderer final
 {
     Renderer(const Renderer &) = delete;
     Renderer &operator=(const Renderer &) = delete;
+
 private:
     struct Implementation;
     void render(const Mesh &m, const Transform &tform);
@@ -63,6 +64,7 @@ private:
 
     RenderLayer currentRenderLayer;
     std::shared_ptr<Implementation> implementation;
+
 public:
     Renderer(Renderer &&rt)
         : currentRenderLayer(rt.currentRenderLayer), implementation(std::move(rt.implementation))

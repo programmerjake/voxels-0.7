@@ -31,10 +31,10 @@ namespace Recipes
 {
 namespace builtin
 {
-
 class LadderRecipe final : public PatternRecipe<3, 3>
 {
     friend class global_instance_maker<LadderRecipe>;
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -43,16 +43,23 @@ protected:
         output = RecipeOutput(ItemStack(Item(Items::builtin::Ladder::descriptor()), 3));
         return true;
     }
+
 private:
     LadderRecipe()
-        : PatternRecipe(checked_array<Item, 3 * 3>
-        {
-            Item(Items::builtin::Stick::descriptor()), Item(), Item(Items::builtin::Stick::descriptor()),
-            Item(Items::builtin::Stick::descriptor()), Item(Items::builtin::Stick::descriptor()), Item(Items::builtin::Stick::descriptor()),
-            Item(Items::builtin::Stick::descriptor()), Item(), Item(Items::builtin::Stick::descriptor()),
-        })
+        : PatternRecipe(checked_array<Item, 3 * 3>{
+              Item(Items::builtin::Stick::descriptor()),
+              Item(),
+              Item(Items::builtin::Stick::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+              Item(Items::builtin::Stick::descriptor()),
+              Item(),
+              Item(Items::builtin::Stick::descriptor()),
+          })
     {
     }
+
 public:
     static const LadderRecipe *pointer()
     {
@@ -63,7 +70,6 @@ public:
         return pointer();
     }
 };
-
 }
 }
 }

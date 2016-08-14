@@ -813,8 +813,8 @@ struct write<T, typename std::enable_if<std::is_enum<T>::value>::type>
 {
     write(Writer &writer, T value)
     {
-        stream::write<typename enum_traits<T>::rwtype>(writer,
-            static_cast<typename enum_traits<T>::rwtype>(value));
+        stream::write<typename enum_traits<T>::rwtype>(
+            writer, static_cast<typename enum_traits<T>::rwtype>(value));
     }
 };
 
@@ -825,7 +825,8 @@ struct read_nonnull : public read_base<typename rw_class_traits<T>::value_type>
 {
     GCC_PRAGMA(diagnostic pop)
     read_nonnull(Reader &reader)
-        : read_base<typename rw_class_traits<T>::value_type>(static_cast<std::shared_ptr<T>>(read<T>(reader)))
+        : read_base<typename rw_class_traits<T>::value_type>(
+              static_cast<std::shared_ptr<T>>(read<T>(reader)))
     {
         if(this->value == nullptr)
             throw InvalidDataValueException("read null pointer in read_nonnull");

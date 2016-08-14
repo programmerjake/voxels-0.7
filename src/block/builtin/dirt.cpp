@@ -30,19 +30,27 @@ namespace Blocks
 {
 namespace builtin
 {
-void Dirt::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Dirt::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Dirt::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Dirt::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
-void Dirt::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+void Dirt::randomTick(const Block &block,
+                      World &world,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager) const
 {
     BlockIterator bi = blockIterator;
     bi.moveBy(VectorI(0, 1, 0), lock_manager);
     Block b = bi.get(lock_manager);
     if(!b.good())
         return;
-    if(b.lighting.toFloat(world.getLighting(bi.position().d)) < 4.0f / 15 || !b.descriptor->lightProperties.isTotallyTransparent())
+    if(b.lighting.toFloat(world.getLighting(bi.position().d)) < 4.0f / 15
+       || !b.descriptor->lightProperties.isTotallyTransparent())
         return;
     for(int dx = -1; dx <= 1; dx++)
     {

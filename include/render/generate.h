@@ -100,8 +100,7 @@ inline ColorizedMeshRRef reverse(ColorizedMeshRRef &&mesh)
 }
 
 template <typename Fn>
-inline Mesh lightMesh(
-    Mesh m, Fn &lightVertex)
+inline Mesh lightMesh(Mesh m, Fn &lightVertex)
 {
     for(Vertex &v : m.vertices)
     {

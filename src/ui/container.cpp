@@ -39,15 +39,13 @@ void Container::render(Renderer &renderer, float minZ, float maxZ, bool hasFocus
         bool hasFocus;
         bool overlaps(const MyElementType &other) const
         {
-            if(element->minX >= other.element->maxX ||
-               element->maxX <= other.element->minX ||
-               element->minY >= other.element->maxY ||
-               element->maxY <= other.element->minY)
+            if(element->minX >= other.element->maxX || element->maxX <= other.element->minX
+               || element->minY >= other.element->maxY
+               || element->maxY <= other.element->minY)
                 return false;
             return true;
         }
-        MyElementType()
-            : element(), depth(), hasFocus()
+        MyElementType() : element(), depth(), hasFocus()
         {
         }
     };

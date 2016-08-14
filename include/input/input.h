@@ -31,8 +31,7 @@ namespace voxels
 struct HotBarSelectEventArguments : public EventArguments
 {
     std::size_t newSelection;
-    HotBarSelectEventArguments(std::size_t newSelection = 0)
-        : newSelection(newSelection)
+    HotBarSelectEventArguments(std::size_t newSelection = 0) : newSelection(newSelection)
     {
     }
 };
@@ -69,21 +68,21 @@ struct GameInput
     }
     GameInput()
         : isCreativeMode(),
-        jump(),
-        fly(),
-        moveDirectionPlayerRelative(),
-        attack(),
-        action(),
-        hotBarMoveLeft(),
-        hotBarMoveRight(),
-        hotBarSelect(),
-        sneak(),
-        drop(),
-        openInventory(),
-        paused(),
-        viewTheta(),
-        viewPhi(),
-        viewPsi()
+          jump(),
+          fly(),
+          moveDirectionPlayerRelative(),
+          attack(),
+          action(),
+          hotBarMoveLeft(),
+          hotBarMoveRight(),
+          hotBarSelect(),
+          sneak(),
+          drop(),
+          openInventory(),
+          paused(),
+          viewTheta(),
+          viewPhi(),
+          viewPsi()
     {
     }
 };

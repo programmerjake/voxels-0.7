@@ -35,10 +35,12 @@ class ViewPoint final
 {
     friend class World;
     ViewPoint(const ViewPoint &rt) = delete;
-    const ViewPoint &operator =(const ViewPoint &) = delete;
+    const ViewPoint &operator=(const ViewPoint &) = delete;
+
 private:
     struct Implementation;
     const std::shared_ptr<Implementation> implementation;
+
 public:
     ViewPoint(World &world, PositionF position, std::int32_t viewDistance = 48);
     PositionF getPosition();
@@ -47,9 +49,11 @@ public:
     void setViewDistance(std::int32_t newViewDistance);
     void getPositionAndViewDistance(PositionF &position, std::int32_t &viewDistance);
     void setPositionAndViewDistance(PositionF position, std::int32_t viewDistance);
-    void render(Renderer &renderer, Transform worldToCamera, WorldLockManager &lock_manager, Mesh additionalObjects = Mesh());
+    void render(Renderer &renderer,
+                Transform worldToCamera,
+                WorldLockManager &lock_manager,
+                Mesh additionalObjects = Mesh());
 };
-
 }
 }
 

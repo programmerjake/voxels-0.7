@@ -36,19 +36,94 @@ namespace builtin
 class FallingBlock : public BlockDescriptor
 {
 public:
-    using BlockDescriptor::BlockDescriptor;
-protected:
-    virtual Entity *makeFallingBlockEntity(World &world, PositionF position, WorldLockManager &lock_manager) const = 0;
-public:
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    FallingBlock(std::wstring name,
+                 BlockShape blockShape,
+                 LightProperties lightProperties,
+                 RayCasting::BlockCollisionMask blockRayCollisionMask,
+                 bool isStaticMesh,
+                 bool isFaceBlockedNX,
+                 bool isFaceBlockedPX,
+                 bool isFaceBlockedNY,
+                 bool isFaceBlockedPY,
+                 bool isFaceBlockedNZ,
+                 bool isFaceBlockedPZ,
+                 Mesh meshCenter,
+                 Mesh meshFaceNX,
+                 Mesh meshFacePX,
+                 Mesh meshFaceNY,
+                 Mesh meshFacePY,
+                 Mesh meshFaceNZ,
+                 Mesh meshFacePZ,
+                 RenderLayer staticRenderLayer)
+        : BlockDescriptor(std::move(name),
+                          blockShape,
+                          lightProperties,
+                          blockRayCollisionMask,
+                          isStaticMesh,
+                          isFaceBlockedNX,
+                          isFaceBlockedPX,
+                          isFaceBlockedNY,
+                          isFaceBlockedPY,
+                          isFaceBlockedNZ,
+                          isFaceBlockedPZ,
+                          std::move(meshCenter),
+                          std::move(meshFaceNX),
+                          std::move(meshFacePX),
+                          std::move(meshFaceNY),
+                          std::move(meshFacePY),
+                          std::move(meshFaceNZ),
+                          std::move(meshFacePZ),
+                          staticRenderLayer)
     {
-        BlockIterator bi = blockIterator;
-        bi.moveTowardNY(lock_manager);
-        Block b = bi.get(lock_manager);
-        if(b.good() && b.descriptor->isReplaceableByFallingBlock())
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
+    }
+    FallingBlock(std::wstring name,
+                 BlockShape blockShape,
+                 LightProperties lightProperties,
+                 RayCasting::BlockCollisionMask blockRayCollisionMask,
+                 bool isFaceBlockedNX,
+                 bool isFaceBlockedPX,
+                 bool isFaceBlockedNY,
+                 bool isFaceBlockedPY,
+                 bool isFaceBlockedNZ,
+                 bool isFaceBlockedPZ)
+        : BlockDescriptor(std::move(name),
+                          blockShape,
+                          lightProperties,
+                          blockRayCollisionMask,
+                          isFaceBlockedNX,
+                          isFaceBlockedPX,
+                          isFaceBlockedNY,
+                          isFaceBlockedPY,
+                          isFaceBlockedNZ,
+                          isFaceBlockedPZ)
+    {
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
+    }
+
+protected:
+    virtual Entity *makeFallingBlockEntity(World &world,
+                                           PositionF position,
+                                           WorldLockManager &lock_manager) const = 0;
+
+public:
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const
+    {
+        if(kind == BlockUpdateKind::UpdateNotify)
         {
-            world.setBlock(blockIterator, lock_manager, Block(Air::descriptor()));
-            makeFallingBlockEntity(world, blockIterator.position() + VectorF(0.5f), lock_manager);
+            BlockIterator bi = blockIterator;
+            bi.moveTowardNY(lock_manager);
+            Block b = bi.get(lock_manager);
+            if(b.good() && b.descriptor->isReplaceableByFallingBlock())
+            {
+                world.setBlock(blockIterator, lock_manager, Block(Air::descriptor()));
+                makeFallingBlockEntity(
+                    world, blockIterator.position() + VectorF(0.5f), lock_manager);
+            }
         }
     }
 };

@@ -57,12 +57,10 @@ private:
         unsigned depth;
         Node *left, *right;
         Node *prev, *next;
-        Node(const T &value)
-            : value(value), depth(0)
+        Node(const T &value) : value(value), depth(0)
         {
         }
-        Node(T  &&value)
-            : value(move(value)), depth(0)
+        Node(T &&value) : value(move(value)), depth(0)
         {
         }
         void calcDepth()
@@ -104,7 +102,7 @@ private:
         }
     }
     Compare compare;
-    static void rotateLeft(Node  *&node)
+    static void rotateLeft(Node *&node)
     {
         assert(node && node->right);
         Node *tree1 = node->left;
@@ -119,7 +117,7 @@ private:
         node->left->calcDepth();
         node->calcDepth();
     }
-    static void rotateRight(Node  *&node)
+    static void rotateRight(Node *&node)
     {
         assert(node && node->left);
         Node *tree1 = node->left->left;
@@ -134,7 +132,7 @@ private:
         node->right->calcDepth();
         node->calcDepth();
     }
-    static void balanceNode(Node  *&node)
+    static void balanceNode(Node *&node)
     {
         assert(node);
         unsigned lDepth = 0;
@@ -195,7 +193,7 @@ private:
         tree->calcDepth();
         balanceNode(tree);
     }
-    static Node *removeInorderPredecessorH(Node  *&node)
+    static Node *removeInorderPredecessorH(Node *&node)
     {
         assert(node != nullptr);
 
@@ -412,6 +410,7 @@ private:
         constructList(tree->left, head, tree->prev);
         constructList(tree->right, tree->next, tail);
     }
+
 public:
     friend class iterator;
     friend class const_iterator;
@@ -419,52 +418,52 @@ public:
     {
         friend class balanced_tree;
         friend class iterator;
+
     private:
         const Node *node;
+
     public:
-        const_iterator()
-            : node(nullptr)
+        const_iterator() : node(nullptr)
         {
         }
-        const_iterator(const Node *node)
-            : node(node)
+        const_iterator(const Node *node) : node(node)
         {
         }
-        const const_iterator &operator ++()
+        const const_iterator &operator++()
         {
             node = node->next;
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             auto retval = *this;
             node = node->next;
             return retval;
         }
-        const const_iterator &operator --()
+        const const_iterator &operator--()
         {
             node = node->prev;
             return *this;
         }
-        const_iterator operator --(int)
+        const_iterator operator--(int)
         {
             auto retval = *this;
             node = node->prev;
             return retval;
         }
-        friend bool operator ==(const_iterator a, const_iterator b)
+        friend bool operator==(const_iterator a, const_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(const_iterator a, const_iterator b)
+        friend bool operator!=(const_iterator a, const_iterator b)
         {
             return a.node != b.node;
         }
-        const T &operator *() const
+        const T &operator*() const
         {
             return node->value;
         }
-        const T *operator ->() const
+        const T *operator->() const
         {
             return &node->value;
         }
@@ -472,72 +471,72 @@ public:
     class iterator final : public std::iterator<std::bidirectional_iterator_tag, T>
     {
         friend class balanced_tree;
+
     private:
         Node *node;
+
     public:
-        iterator()
-            : node(nullptr)
+        iterator() : node(nullptr)
         {
         }
-        iterator(Node *node)
-            : node(node)
+        iterator(Node *node) : node(node)
         {
         }
         operator const_iterator() const
         {
             return const_iterator(node);
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             node = node->next;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             auto retval = *this;
             node = node->next;
             return retval;
         }
-        const iterator &operator --()
+        const iterator &operator--()
         {
             node = node->prev;
             return *this;
         }
-        iterator operator --(int)
+        iterator operator--(int)
         {
             auto retval = *this;
             node = node->prev;
             return retval;
         }
-        friend bool operator ==(iterator a, iterator b)
+        friend bool operator==(iterator a, iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(iterator a, iterator b)
+        friend bool operator!=(iterator a, iterator b)
         {
             return a.node != b.node;
         }
-        friend bool operator ==(const_iterator a, iterator b)
+        friend bool operator==(const_iterator a, iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(const_iterator a, iterator b)
+        friend bool operator!=(const_iterator a, iterator b)
         {
             return a.node != b.node;
         }
-        friend bool operator ==(iterator a, const_iterator b)
+        friend bool operator==(iterator a, const_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(iterator a, const_iterator b)
+        friend bool operator!=(iterator a, const_iterator b)
         {
             return a.node != b.node;
         }
-        T &operator *() const
+        T &operator*() const
         {
             return node->value;
         }
-        T *operator ->() const
+        T *operator->() const
         {
             return &node->value;
         }
@@ -548,52 +547,52 @@ public:
     {
         friend class balanced_tree;
         friend class reverse_iterator;
+
     private:
         const Node *node;
+
     public:
-        const_reverse_iterator()
-            : node(nullptr)
+        const_reverse_iterator() : node(nullptr)
         {
         }
-        const_reverse_iterator(const Node *node)
-            : node(node)
+        const_reverse_iterator(const Node *node) : node(node)
         {
         }
-        const const_reverse_iterator &operator ++()
+        const const_reverse_iterator &operator++()
         {
             node = node->prev;
             return *this;
         }
-        const_reverse_iterator operator ++(int)
+        const_reverse_iterator operator++(int)
         {
             auto retval = *this;
             node = node->prev;
             return retval;
         }
-        const const_reverse_iterator &operator --()
+        const const_reverse_iterator &operator--()
         {
             node = node->next;
             return *this;
         }
-        const_reverse_iterator operator --(int)
+        const_reverse_iterator operator--(int)
         {
             auto retval = *this;
             node = node->next;
             return retval;
         }
-        friend bool operator ==(const_reverse_iterator a, const_reverse_iterator b)
+        friend bool operator==(const_reverse_iterator a, const_reverse_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(const_reverse_iterator a, const_reverse_iterator b)
+        friend bool operator!=(const_reverse_iterator a, const_reverse_iterator b)
         {
             return a.node != b.node;
         }
-        const T &operator *() const
+        const T &operator*() const
         {
             return node->value;
         }
-        const T *operator ->() const
+        const T *operator->() const
         {
             return &node->value;
         }
@@ -601,85 +600,84 @@ public:
     class reverse_iterator final : public std::iterator<std::bidirectional_iterator_tag, T>
     {
         friend class balanced_tree;
+
     private:
         Node *node;
+
     public:
-        reverse_iterator()
-            : node(nullptr)
+        reverse_iterator() : node(nullptr)
         {
         }
-        reverse_iterator(Node *node)
-            : node(node)
+        reverse_iterator(Node *node) : node(node)
         {
         }
         operator const_reverse_iterator() const
         {
             return const_reverse_iterator(node);
         }
-        const reverse_iterator &operator ++()
+        const reverse_iterator &operator++()
         {
             node = node->prev;
             return *this;
         }
-        reverse_iterator operator ++(int)
+        reverse_iterator operator++(int)
         {
             auto retval = *this;
             node = node->prev;
             return retval;
         }
-        const reverse_iterator &operator --()
+        const reverse_iterator &operator--()
         {
             node = node->next;
             return *this;
         }
-        reverse_iterator operator --(int)
+        reverse_iterator operator--(int)
         {
             auto retval = *this;
             node = node->next;
             return retval;
         }
-        friend bool operator ==(reverse_iterator a, reverse_iterator b)
+        friend bool operator==(reverse_iterator a, reverse_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(reverse_iterator a, reverse_iterator b)
+        friend bool operator!=(reverse_iterator a, reverse_iterator b)
         {
             return a.node != b.node;
         }
-        friend bool operator ==(const_reverse_iterator a, reverse_iterator b)
+        friend bool operator==(const_reverse_iterator a, reverse_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(const_reverse_iterator a, reverse_iterator b)
+        friend bool operator!=(const_reverse_iterator a, reverse_iterator b)
         {
             return a.node != b.node;
         }
-        friend bool operator ==(reverse_iterator a, const_reverse_iterator b)
+        friend bool operator==(reverse_iterator a, const_reverse_iterator b)
         {
             return a.node == b.node;
         }
-        friend bool operator !=(reverse_iterator a, const_reverse_iterator b)
+        friend bool operator!=(reverse_iterator a, const_reverse_iterator b)
         {
             return a.node != b.node;
         }
-        T &operator *() const
+        T &operator*() const
         {
             return node->value;
         }
-        T *operator ->() const
+        T *operator->() const
         {
             return &node->value;
         }
     };
-    balanced_tree()
-        : root(nullptr), head(nullptr), tail(nullptr), compare()
+    balanced_tree() : root(nullptr), head(nullptr), tail(nullptr), compare()
     {
     }
     explicit balanced_tree(const Compare &compare)
         : root(nullptr), head(nullptr), tail(nullptr), compare(compare)
     {
     }
-    explicit balanced_tree(Compare  &&compare)
+    explicit balanced_tree(Compare &&compare)
         : root(nullptr), head(nullptr), tail(nullptr), compare(move(compare))
     {
     }
@@ -688,7 +686,7 @@ public:
     {
         constructList(root, head, tail);
     }
-    balanced_tree(balanced_tree  &&rt)
+    balanced_tree(balanced_tree &&rt)
         : root(rt.root), head(rt.head), tail(rt.tail), compare(rt.compare)
     {
         rt.root = nullptr;
@@ -699,7 +697,7 @@ public:
     {
         freeTree(root);
     }
-    const balanced_tree &operator =(const balanced_tree &rt)
+    const balanced_tree &operator=(const balanced_tree &rt)
     {
         if(root == rt.root)
         {
@@ -712,7 +710,7 @@ public:
         compare = rt.compare;
         return *this;
     }
-    const balanced_tree &operator =(balanced_tree && rt)
+    const balanced_tree &operator=(balanced_tree &&rt)
     {
         swap(root, rt.root);
         swap(head, rt.head);
@@ -751,7 +749,7 @@ public:
     {
         insertNode(root, new Node(value), head, tail);
     }
-    void insert(T  &&value)
+    void insert(T &&value)
     {
         insertNode(root, new Node(move(value)), head, tail);
     }

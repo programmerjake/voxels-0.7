@@ -39,7 +39,8 @@ namespace stream
 class ReaderStreamBuf final : public std::wstreambuf /// reads UTF-8
 {
     ReaderStreamBuf(const ReaderStreamBuf &) = delete;
-    ReaderStreamBuf &operator =(const ReaderStreamBuf &) = delete;
+    ReaderStreamBuf &operator=(const ReaderStreamBuf &) = delete;
+
 private:
     std::shared_ptr<Reader> preader;
     Reader &reader;
@@ -74,7 +75,8 @@ private:
     {
         if(gotEOFOrError)
             return;
-        while(buffer.size() < buffer.capacity() - 1 // for surrogate pairs when wchar_t is for UTF-16
+        while(buffer.size() < buffer.capacity()
+                                  - 1 // for surrogate pairs when wchar_t is for UTF-16
               && (forcedReadCount > 0 || reader.dataAvailable()))
         {
             try
@@ -87,7 +89,8 @@ private:
                 charBufferUsed++;
                 if(charBufferUsed >= 2)
                 {
-                    if((charBuffer[charBufferUsed - 1] & 0xC0) != 0x80) // expected continuation byte
+                    if((charBuffer[charBufferUsed - 1] & 0xC0)
+                       != 0x80) // expected continuation byte
                     {
                         gotEOFOrError = true;
                         return;
@@ -184,17 +187,13 @@ private:
             }
         }
     }
+
 public:
-    explicit ReaderStreamBuf(Reader &reader)
-        : preader(),
-        reader(reader),
-        buffer()
+    explicit ReaderStreamBuf(Reader &reader) : preader(), reader(reader), buffer()
     {
     }
     explicit ReaderStreamBuf(std::shared_ptr<Reader> preader)
-        : preader(preader),
-        reader(*preader),
-        buffer()
+        : preader(preader), reader(*preader), buffer()
     {
     }
     Reader &getReader()
@@ -205,6 +204,7 @@ public:
     {
         return preader;
     }
+
 protected:
     virtual std::streamsize showmanyc() override
     {
@@ -236,17 +236,17 @@ protected:
 class ReaderIStream final : public std::wistream
 {
     ReaderIStream(const ReaderIStream &) = delete;
-    ReaderIStream &operator =(const ReaderIStream &) = delete;
+    ReaderIStream &operator=(const ReaderIStream &) = delete;
+
 private:
     ReaderStreamBuf sb;
+
 public:
-    explicit ReaderIStream(Reader &reader)
-        : std::wistream(nullptr), sb(reader)
+    explicit ReaderIStream(Reader &reader) : std::wistream(nullptr), sb(reader)
     {
         rdbuf(&sb);
     }
-    explicit ReaderIStream(std::shared_ptr<Reader> reader)
-        : std::wistream(nullptr), sb(reader)
+    explicit ReaderIStream(std::shared_ptr<Reader> reader) : std::wistream(nullptr), sb(reader)
     {
         rdbuf(&sb);
     }
@@ -262,7 +262,8 @@ public:
 class WriterStreamBuf final : public std::wstreambuf /// writes UTF-8
 {
     WriterStreamBuf(const WriterStreamBuf &) = delete;
-    WriterStreamBuf &operator =(const WriterStreamBuf &) = delete;
+    WriterStreamBuf &operator=(const WriterStreamBuf &) = delete;
+
 private:
     std::shared_ptr<Writer> pwriter;
     Writer &writer;
@@ -355,15 +356,12 @@ private:
         return writeCodePoint(ch);
 #endif // WCHAR_BITS == 16
     }
+
 public:
-    explicit WriterStreamBuf(Writer &writer)
-        : pwriter(),
-        writer(writer)
+    explicit WriterStreamBuf(Writer &writer) : pwriter(), writer(writer)
     {
     }
-    explicit WriterStreamBuf(std::shared_ptr<Writer> pwriter)
-        : pwriter(pwriter),
-        writer(*pwriter)
+    explicit WriterStreamBuf(std::shared_ptr<Writer> pwriter) : pwriter(pwriter), writer(*pwriter)
     {
     }
     Writer &getWriter()
@@ -374,6 +372,7 @@ public:
     {
         return pwriter;
     }
+
 protected:
     virtual int sync() override
     {
@@ -397,17 +396,17 @@ protected:
 class WriterOStream final : public std::wostream
 {
     WriterOStream(const WriterOStream &) = delete;
-    WriterOStream &operator =(const WriterOStream &) = delete;
+    WriterOStream &operator=(const WriterOStream &) = delete;
+
 private:
     WriterStreamBuf sb;
+
 public:
-    explicit WriterOStream(Writer &writer)
-        : std::wostream(nullptr), sb(writer)
+    explicit WriterOStream(Writer &writer) : std::wostream(nullptr), sb(writer)
     {
         rdbuf(&sb);
     }
-    explicit WriterOStream(std::shared_ptr<Writer> writer)
-        : std::wostream(nullptr), sb(writer)
+    explicit WriterOStream(std::shared_ptr<Writer> writer) : std::wostream(nullptr), sb(writer)
     {
         rdbuf(&sb);
     }

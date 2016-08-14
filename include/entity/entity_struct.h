@@ -41,17 +41,18 @@ typedef const EntityDescriptor *EntityDescriptorPointer;
 struct Entity final
 {
     Entity(const Entity &) = default;
-    Entity &operator =(const Entity &) = default;
+    Entity &operator=(const Entity &) = default;
     Entity(Entity &&) = default;
-    Entity &operator =(Entity &&) = default;
+    Entity &operator=(Entity &&) = default;
     EntityDescriptorPointer descriptor;
     std::shared_ptr<PhysicsObject> physicsObject;
     std::shared_ptr<void> data;
-    Entity()
-        : descriptor(nullptr), physicsObject(nullptr), data(nullptr)
+    Entity() : descriptor(nullptr), physicsObject(nullptr), data(nullptr)
     {
     }
-    Entity(EntityDescriptorPointer descriptor, std::shared_ptr<PhysicsObject> physicsObject, std::shared_ptr<void> data = nullptr)
+    Entity(EntityDescriptorPointer descriptor,
+           std::shared_ptr<PhysicsObject> physicsObject,
+           std::shared_ptr<void> data = nullptr)
         : descriptor(descriptor), physicsObject(physicsObject), data(data)
     {
     }
@@ -63,14 +64,16 @@ struct Entity final
     {
         return good();
     }
-    bool operator !() const
+    bool operator!() const
     {
         return !good();
     }
     void destroy();
     void write(stream::Writer &writer) const;
+
 private:
     void readInternal(stream::Reader &reader, PositionF &position, VectorF &velocity);
+
 public:
     template <typename F>
     void read(stream::Reader &reader, F createFn)
@@ -91,4 +94,3 @@ public:
 }
 
 #endif // ENTITY_STRUCT_H_INCLUDED
-

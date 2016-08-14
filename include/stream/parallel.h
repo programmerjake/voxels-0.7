@@ -37,32 +37,28 @@ namespace stream
 {
 struct NonResizableException final : public IOException
 {
-    NonResizableException()
-        : IOException("IO Error : non-resizable")
+    NonResizableException() : IOException("IO Error : non-resizable")
     {
     }
 };
 
 struct ReadOnlyException final : public IOException
 {
-    ReadOnlyException()
-        : IOException("IO Error : write attempted on read-only data")
+    ReadOnlyException() : IOException("IO Error : write attempted on read-only data")
     {
     }
 };
 
 struct WriteOnlyException final : public IOException
 {
-    WriteOnlyException()
-        : IOException("IO Error : read attempted on write-only data")
+    WriteOnlyException() : IOException("IO Error : read attempted on write-only data")
     {
     }
 };
 
 struct ReadPastEndException final : public IOException
 {
-    ReadPastEndException()
-        : IOException("IO Error : read attempted past end of data")
+    ReadPastEndException() : IOException("IO Error : read attempted past end of data")
     {
     }
 };
@@ -72,9 +68,10 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
 class Parallel : public std::enable_shared_from_this<Parallel>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     Parallel(const Parallel &) = delete;
-    Parallel &operator =(const Parallel &) = delete;
+    Parallel &operator=(const Parallel &) = delete;
+
 public:
     Parallel() = default;
     virtual ~Parallel() = default;
@@ -103,7 +100,8 @@ public:
      * from a different thread than the calling thread, though
      * only by one thread at a time.
      */
-    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart, std::uint64_t sectionSize) = 0;
+    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize) = 0;
     /**
      * lock a section for writing and return a Writer for the section.
      * Tries to expand this Parallel if the specified section is past the end of this Parallel.
@@ -122,7 +120,8 @@ public:
      * from a different thread than the calling thread, though
      * only by one thread at a time.
      */
-    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart, std::uint64_t sectionSize) = 0;
+    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart,
+                                                 std::uint64_t sectionSize) = 0;
     /**
      * lock a section for reading and writing and return a StreamRW for the section
      * Tries to expand this Parallel if the specified section is past the end of this Parallel.
@@ -142,13 +141,15 @@ public:
      * from a different thread than the calling thread, though
      * only by one thread at a time.
      */
-    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize) = 0;
+    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart,
+                                                       std::uint64_t sectionSize) = 0;
 };
 
 class ParallelMemory final : public Parallel
 {
 private:
     const std::shared_ptr<Parallel> implementation;
+
 public:
     ParallelMemory(std::size_t size);
     virtual std::uint64_t size() override
@@ -159,17 +160,21 @@ public:
     {
         implementation->resize(newSize);
     }
-    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize) override
     {
         return implementation->readSection(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart,
+                                                 std::uint64_t sectionSize) override
     {
         return implementation->writeSection(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart,
+                                                       std::uint64_t sectionSize) override
     {
-        return implementation->readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize);
+        return implementation->readWriteSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize);
     }
 };
 
@@ -200,7 +205,8 @@ private:
         }
     };
     std::vector<std::weak_ptr<const Region>> lockedRegions; // the regions that are currently locked
-    std::vector<std::shared_ptr<const Region>> waitingRegions; // the regions that are waiting to be locked
+    std::vector<std::shared_ptr<const Region>>
+        waitingRegions; // the regions that are waiting to be locked
     std::uint64_t publicSize;
     bool settingPublicSize;
     std::size_t waitingOnPublicSizeCount = 0;
@@ -208,12 +214,13 @@ private:
     {
 #error finish
     };
+
 protected:
     std::uint64_t getRequiredSize(std::unique_lock<std::mutex> &theGlobalLock)
     {
         ignore_unused_variable_warning(theGlobalLock);
         std::uint64_t requiredSize = 0;
-        for(auto i = lockedRegions.begin(); i != lockedRegions.end(); )
+        for(auto i = lockedRegions.begin(); i != lockedRegions.end();)
         {
             std::shared_ptr<const Region> region = i->lock();
             if(region == nullptr)
@@ -261,22 +268,30 @@ protected:
         }
         settingPublicSize = false;
     }
-    virtual void internalResize(std::uint64_t newSize, std::unique_lock<std::mutex> &theGlobalLock) = 0;
-    virtual void checkReadSectionImplemented(std::uint64_t sectionStart, std::uint64_t sectionSize) const
+    virtual void internalResize(std::uint64_t newSize,
+                                std::unique_lock<std::mutex> &theGlobalLock) = 0;
+    virtual void checkReadSectionImplemented(std::uint64_t sectionStart,
+                                             std::uint64_t sectionSize) const
     {
     }
-    virtual void checkWriteSectionImplemented(std::uint64_t sectionStart, std::uint64_t sectionSize) const
+    virtual void checkWriteSectionImplemented(std::uint64_t sectionStart,
+                                              std::uint64_t sectionSize) const
     {
     }
     virtual void checkResizeImplemented(std::uint64_t newSize)
     {
     }
-    virtual std::size_t internalReadSection(std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<std::mutex> &theGlobalLock) = 0;
-    virtual std::size_t internalWriteSection(const std::uint8_t *data, std::uint64_t start, std::size_t count, std::unique_lock<std::mutex> &theGlobalLock) = 0;
+    virtual std::size_t internalReadSection(std::uint8_t *data,
+                                            std::uint64_t start,
+                                            std::size_t count,
+                                            std::unique_lock<std::mutex> &theGlobalLock) = 0;
+    virtual std::size_t internalWriteSection(const std::uint8_t *data,
+                                             std::uint64_t start,
+                                             std::size_t count,
+                                             std::unique_lock<std::mutex> &theGlobalLock) = 0;
+
 public:
-    explicit SerializedParallel(std::uint64_t initialSize)
-        : globalLock(),
-        publicSize(initialSize)
+    explicit SerializedParallel(std::uint64_t initialSize) : globalLock(), publicSize(initialSize)
     {
     }
     virtual std::uint64_t size() override final
@@ -289,18 +304,22 @@ public:
         std::unique_lock<std::mutex> lockIt(globalLock);
         internalResize(newSize, lockIt);
     }
-    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart, std::uint64_t sectionSize)
+    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize)
     {
         std::unique_lock<std::mutex> lockIt(globalLock);
         checkReadSectionImplemented(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart, std::uint64_t sectionSize)
+    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart,
+                                                 std::uint64_t sectionSize)
     {
         return implementation->writeSection(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize)
+    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart,
+                                                       std::uint64_t sectionSize)
     {
-        return implementation->readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize);
+        return implementation->readWriteSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize);
     }
 };
 
@@ -308,6 +327,7 @@ class ParallelFile final : public Parallel
 {
 private:
     const std::shared_ptr<Parallel> implementation;
+
 public:
     ParallelFile(std::wstring fileName);
     virtual std::uint64_t size() override
@@ -318,17 +338,21 @@ public:
     {
         implementation->resize(newSize);
     }
-    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<Reader> readSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize) override
     {
         return implementation->readSection(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<Writer> writeSection(std::uint64_t sectionStart,
+                                                 std::uint64_t sectionSize) override
     {
         return implementation->writeSection(sectionStart, sectionSize);
     }
-    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize) override
+    virtual std::shared_ptr<StreamRW> readWriteSection(std::uint64_t sectionStart,
+                                                       std::uint64_t sectionSize) override
     {
-        return implementation->readWriteSection(std::uint64_t sectionStart, std::uint64_t sectionSize);
+        return implementation->readWriteSection(std::uint64_t sectionStart,
+                                                std::uint64_t sectionSize);
     }
 };
 }

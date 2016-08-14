@@ -32,7 +32,10 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename Key, typename T, typename Hash = std::hash<Key>, typename Pred = std::equal_to<Key>>
+template <typename Key,
+          typename T,
+          typename Hash = std::hash<Key>,
+          typename Pred = std::equal_to<Key>>
 class linked_map
 {
 public:
@@ -47,11 +50,12 @@ public:
     typedef const value_type *const_pointer;
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
+
 private:
     struct Node
     {
         Node(const Node &) = delete;
-        Node &operator =(const Node &) = delete;
+        Node &operator=(const Node &) = delete;
         value_type value;
         Node *hash_next;
         Node *list_next;
@@ -62,7 +66,11 @@ private:
         {
         }
         Node(const key_type &key, size_type cachedHash)
-            : value(key, mapped_type()), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
+            : value(key, mapped_type()),
+              hash_next(),
+              list_next(),
+              list_prev(),
+              cachedHash(cachedHash)
         {
         }
         Node(const value_type &kv_pair, size_type cachedHash)
@@ -70,7 +78,11 @@ private:
         {
         }
         Node(const key_type &key, mapped_type &&value, size_type cachedHash)
-            : value(key, std::move(value)), hash_next(), list_next(), list_prev(), cachedHash(cachedHash)
+            : value(key, std::move(value)),
+              hash_next(),
+              list_next(),
+              list_prev(),
+              cachedHash(cachedHash)
         {
         }
     };
@@ -162,6 +174,7 @@ private:
             buckets[current_hash] = node;
         }
     }
+
 public:
     constexpr size_type bucket_count() const
     {
@@ -208,20 +221,22 @@ public:
 
         if(buckets != nullptr)
         {
-            delete []buckets;
+            delete[] buckets;
         }
 
         buckets = new_hash_table;
         bucket_count_ = new_bucket_count;
     }
+
 private:
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     template <typename ValueT, typename DerivedType>
     struct iterator_base : public std::iterator<std::bidirectional_iterator_tag, ValueT>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class linked_map;
+
     protected:
         Node *ptr;
         const linked_map *container;
@@ -229,32 +244,32 @@ GCC_PRAGMA(diagnostic pop)
             : ptr(ptr), container(container)
         {
         }
+
     public:
-        constexpr iterator_base()
-            : ptr(nullptr), container(nullptr)
+        constexpr iterator_base() : ptr(nullptr), container(nullptr)
         {
         }
         template <typename U, typename V>
-        constexpr bool operator ==(iterator_base<U, V> r) const
+        constexpr bool operator==(iterator_base<U, V> r) const
         {
             return ptr == r.ptr;
         }
         template <typename U, typename V>
-        constexpr bool operator !=(iterator_base<U, V> r) const
+        constexpr bool operator!=(iterator_base<U, V> r) const
         {
             return ptr != r.ptr;
         }
-        constexpr ValueT *operator ->() const
+        constexpr ValueT *operator->() const
         {
             return &ptr->value;
         }
-        constexpr ValueT &operator *() const
+        constexpr ValueT &operator*() const
         {
             return ptr->value;
         }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-        const DerivedType &operator ++()
+        GCC_PRAGMA(diagnostic push)
+        GCC_PRAGMA(diagnostic ignored "-Weffc++")
+        const DerivedType &operator++()
         {
             if(ptr == nullptr)
             {
@@ -267,7 +282,7 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 
             return *static_cast<const DerivedType *>(this);
         }
-        const DerivedType &operator --()
+        const DerivedType &operator--()
         {
             if(ptr == nullptr)
             {
@@ -280,7 +295,7 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 
             return *static_cast<const DerivedType *>(this);
         }
-        const DerivedType operator ++(int)
+        const DerivedType operator++(int)
         {
             Node *initial_pointer = ptr;
 
@@ -295,7 +310,7 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 
             return DerivedType(initial_pointer, container);
         }
-        const DerivedType operator --(int)
+        const DerivedType operator--(int)
         {
             Node *initial_pointer = ptr;
 
@@ -310,31 +325,33 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 
             return DerivedType(initial_pointer, container);
         }
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
     };
+
 public:
     struct iterator;
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     struct const_iterator final : public iterator_base<const value_type, const_iterator>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class linked_map;
         friend struct iterator;
         constexpr const_iterator()
         {
         }
+
     private:
         constexpr const_iterator(Node *ptr, const linked_map *container)
             : iterator_base<const value_type, const_iterator>(ptr, container)
         {
         }
     };
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     struct iterator final : public iterator_base<value_type, iterator>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class linked_map;
         constexpr iterator()
         {
@@ -343,22 +360,30 @@ GCC_PRAGMA(diagnostic pop)
         {
             return const_iterator(this->ptr, this->container);
         }
+
     private:
         constexpr iterator(Node *ptr, const linked_map *container)
             : iterator_base<value_type, iterator>(ptr, container)
         {
         }
     };
-    explicit linked_map(size_type n, const hasher &hf = hasher(), const key_equal &eql = key_equal())
+    explicit linked_map(size_type n,
+                        const hasher &hf = hasher(),
+                        const key_equal &eql = key_equal())
         : bucket_count_(prime_ceiling(n)), the_hasher(hf), the_comparer(eql)
     {
     }
-    linked_map()
-        : linked_map(0)
+    linked_map() : linked_map(0)
     {
     }
     linked_map(const linked_map &r)
-        : bucket_count_(r.bucket_count_), node_count(r.node_count), buckets(nullptr), list_head(nullptr), list_tail(nullptr), the_hasher(r.the_hasher), the_comparer(r.the_comparer)
+        : bucket_count_(r.bucket_count_),
+          node_count(r.node_count),
+          buckets(nullptr),
+          list_head(nullptr),
+          list_tail(nullptr),
+          the_hasher(r.the_hasher),
+          the_comparer(r.the_comparer)
     {
         buckets = new Node *[bucket_count_];
 
@@ -389,7 +414,13 @@ GCC_PRAGMA(diagnostic pop)
         }
     }
     linked_map(linked_map &&r)
-        : bucket_count_(r.bucket_count_), node_count(r.node_count), buckets(r.buckets), list_head(r.list_head), list_tail(r.list_tail), the_hasher(r.the_hasher), the_comparer(r.the_comparer)
+        : bucket_count_(r.bucket_count_),
+          node_count(r.node_count),
+          buckets(r.buckets),
+          list_head(r.list_head),
+          list_tail(r.list_tail),
+          the_hasher(r.the_hasher),
+          the_comparer(r.the_comparer)
     {
         r.node_count = 0;
         r.buckets = nullptr;
@@ -402,7 +433,7 @@ GCC_PRAGMA(diagnostic pop)
 
         if(buckets != nullptr)
         {
-            delete []buckets;
+            delete[] buckets;
         }
     }
     void clear()
@@ -419,12 +450,12 @@ GCC_PRAGMA(diagnostic pop)
 
         if(buckets != nullptr)
         {
-            delete []buckets;
+            delete[] buckets;
         }
 
         buckets = nullptr;
     }
-    const linked_map &operator =(const linked_map &r)
+    const linked_map &operator=(const linked_map &r)
     {
         if(&r == this)
         {
@@ -435,7 +466,7 @@ GCC_PRAGMA(diagnostic pop)
 
         if(buckets != nullptr)
         {
-            delete []buckets;
+            delete[] buckets;
         }
 
         bucket_count_ = r.bucket_count_;
@@ -479,7 +510,7 @@ GCC_PRAGMA(diagnostic pop)
         swap(list_head, r.list_head);
         swap(list_tail, r.list_tail);
     }
-    const linked_map &operator =(linked_map && r)
+    const linked_map &operator=(linked_map &&r)
     {
         swap(r);
         return *this;
@@ -576,7 +607,7 @@ GCC_PRAGMA(diagnostic pop)
 
         return end();
     }
-    mapped_type &operator [](const key_type &key)
+    mapped_type &operator[](const key_type &key)
     {
         create_buckets();
         size_type key_hash = static_cast<size_type>(the_hasher(key));
@@ -623,7 +654,8 @@ GCC_PRAGMA(diagnostic pop)
             }
         }
 
-        throw std::out_of_range("key doesn't exist in linked_map<KeyType, ValueType>::at(const KeyType&)");
+        throw std::out_of_range(
+            "key doesn't exist in linked_map<KeyType, ValueType>::at(const KeyType&)");
     }
     const mapped_type &at(const key_type &key) const
     {
@@ -639,7 +671,8 @@ GCC_PRAGMA(diagnostic pop)
             }
         }
 
-        throw std::out_of_range("key doesn't exist in linked_map<KeyType, ValueType>::at(const KeyType&) const");
+        throw std::out_of_range(
+            "key doesn't exist in linked_map<KeyType, ValueType>::at(const KeyType&) const");
     }
     size_type erase(const key_type &key)
     {
@@ -694,7 +727,8 @@ GCC_PRAGMA(diagnostic pop)
         {
             size_type current_hash = node->cachedHash % bucket_count_;
 
-            for(Node **pnode = &buckets[current_hash]; *pnode != nullptr; pnode = &(*pnode)->hash_next)
+            for(Node **pnode = &buckets[current_hash]; *pnode != nullptr;
+                pnode = &(*pnode)->hash_next)
             {
                 if(*pnode == node)
                 {

@@ -36,14 +36,31 @@ public:
     std::wstring text;
     ColorF textColor;
     Text::TextProperties textProperties;
-    LabeledElement(std::wstring text, float minX, float maxX, float minY, float maxY, ColorF textColor = GrayscaleF(0), Text::TextProperties textProperties = Text::defaultTextProperties)
-        : Element(minX, maxX, minY, maxY), text(text), textColor(textColor), textProperties(textProperties)
+    LabeledElement(std::wstring text,
+                   float minX,
+                   float maxX,
+                   float minY,
+                   float maxY,
+                   ColorF textColor = GrayscaleF(0),
+                   Text::TextProperties textProperties = Text::defaultTextProperties)
+        : Element(minX, maxX, minY, maxY),
+          text(text),
+          textColor(textColor),
+          textProperties(textProperties)
     {
     }
+
 protected:
     virtual float elementWidth() = 0;
     virtual float elementHeight() = 0;
-    virtual void renderElement(Renderer &renderer, float minX, float maxX, float minY, float maxY, float minZ, float maxZ, bool isSelected) = 0;
+    virtual void renderElement(Renderer &renderer,
+                               float minX,
+                               float maxX,
+                               float minY,
+                               float maxY,
+                               float minZ,
+                               float maxZ,
+                               bool isSelected) = 0;
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool isSelected) override
     {
         float newMinX = minX + elementWidth();
@@ -64,7 +81,14 @@ protected:
                                   .concat(Transform::scale(minZ)),
                               Text::mesh(text, textColor, textProperties));
         float eHeight = elementHeight();
-        renderElement(renderer, minX, newMinX, centerY - 0.5f * eHeight, centerY + 0.5f * eHeight, interpolate<float>(0.125f, minZ, maxZ), maxZ, isSelected);
+        renderElement(renderer,
+                      minX,
+                      newMinX,
+                      centerY - 0.5f * eHeight,
+                      centerY + 0.5f * eHeight,
+                      interpolate<float>(0.125f, minZ, maxZ),
+                      maxZ,
+                      isSelected);
     }
 };
 }

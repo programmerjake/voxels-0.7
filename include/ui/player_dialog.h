@@ -38,13 +38,15 @@ namespace ui
 class PlayerDialog : public Ui
 {
     PlayerDialog(const PlayerDialog &) = delete;
-    PlayerDialog &operator =(const PlayerDialog &) = delete;
+    PlayerDialog &operator=(const PlayerDialog &) = delete;
+
 private:
     class BackgroundElement : public ShadedContainer
     {
     public:
         BackgroundElement()
-            : ShadedContainer(-Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY())
+            : ShadedContainer(
+                  -Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY())
         {
         }
         virtual void layout() override
@@ -59,6 +61,7 @@ private:
     bool addedElements = false;
     std::shared_ptr<ImageElement> backgroundImageElement;
     WorldLockManager *plock_manager = nullptr;
+
 protected:
     static constexpr int imageXRes()
     {
@@ -120,21 +123,26 @@ protected:
     float touchHoldTimeLeft = 0;
     VectorF touchStartPosition = VectorF(0);
     bool hasTouchMoved = false;
+
 public:
     PlayerDialog(std::shared_ptr<Player> player, TextureDescriptor backgroundImage)
         : backgroundImageElement(), player(player), backgroundImage(backgroundImage)
     {
     }
+
 protected:
     virtual bool canSelectItemStack(std::shared_ptr<UiItem> item) const
     {
         return item != selectedItem;
     }
-    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount)
+    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack,
+                                   std::shared_ptr<ItemStack> destItemStack,
+                                   unsigned transferCount)
     {
         return destItemStack->transfer(*sourceItemStack, transferCount);
     }
-    std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(VectorF position)
+    std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> getItemStackFromPosition(
+        VectorF position)
     {
         position /= -position.z;
         for(std::shared_ptr<Element> e : *this)
@@ -146,13 +154,15 @@ protected:
                 continue;
             if(!canSelectItemStack(item))
                 continue;
-            return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(item->getItemStack(), item->getItemStackLock());
+            return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(
+                item->getItemStack(), item->getItemStackLock());
         }
         return std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *>(nullptr, nullptr);
     }
     virtual void addElements()
     {
     }
+
 public:
     virtual void reset() override
     {
@@ -166,23 +176,35 @@ public:
         {
             addedElements = true;
             add(std::make_shared<BackgroundElement>());
-            backgroundImageElement = std::make_shared<ImageElement>(backgroundImage, imageMinX(), imageMaxX(), imageMinY(), imageMaxY());
+            backgroundImageElement = std::make_shared<ImageElement>(
+                backgroundImage, imageMinX(), imageMaxX(), imageMinY(), imageMaxY());
             add(backgroundImageElement);
             // add hot bar items
             for(int x = 0; x < (int)player->items.itemStacks.size(); x++)
             {
-                add(std::make_shared<UiItem>(imageGetPositionX(5 + 18 * x), imageGetPositionX(5 + 18 * x + 16),
-                                             imageGetPositionY(5), imageGetPositionY(5 + 16),
-                                             std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][0]), &player->itemsLock));
+                add(std::make_shared<UiItem>(
+                    imageGetPositionX(5 + 18 * x),
+                    imageGetPositionX(5 + 18 * x + 16),
+                    imageGetPositionY(5),
+                    imageGetPositionY(5 + 16),
+                    std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][0]),
+                    &player->itemsLock));
             }
             // add the rest of the player's items
             for(int x = 0; x < (int)player->items.itemStacks.size(); x++)
             {
-                for(int y = 1; y < (int)player->items.itemStacks[0].size(); y++) // start at 1 to skip hotbar
+                for(int y = 1; y < (int)player->items.itemStacks[0].size();
+                    y++) // start at 1 to skip hotbar
                 {
-                    add(std::make_shared<UiItem>(imageGetPositionX(5 + 18 * x), imageGetPositionX(5 + 18 * x + 16),
-                                                 imageGetPositionY(28 + 18 * ((int)player->items.itemStacks[0].size() - y - 1)), imageGetPositionY(28 + 18 * ((int)player->items.itemStacks[0].size() - y - 1) + 16),
-                                                 std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y]), &player->itemsLock));
+                    add(std::make_shared<UiItem>(
+                        imageGetPositionX(5 + 18 * x),
+                        imageGetPositionX(5 + 18 * x + 16),
+                        imageGetPositionY(28
+                                          + 18 * ((int)player->items.itemStacks[0].size() - y - 1)),
+                        imageGetPositionY(
+                            28 + 18 * ((int)player->items.itemStacks[0].size() - y - 1) + 16),
+                        std::shared_ptr<ItemStack>(player, &player->items.itemStacks[x][y]),
+                        &player->itemsLock));
                 }
             }
             if(Display::needTouchControls())
@@ -190,9 +212,11 @@ public:
                 class CloseButton final : public Button
                 {
                     CloseButton(const CloseButton &) = delete;
-                    CloseButton &operator =(const CloseButton &) = delete;
+                    CloseButton &operator=(const CloseButton &) = delete;
+
                 private:
                     PlayerDialog *const playerDialog;
+
                 public:
                     CloseButton(PlayerDialog *playerDialog)
                         : Button(L"\u2190",
@@ -200,13 +224,13 @@ public:
                                  Display::scaleX(),
                                  -Display::scaleY(),
                                  Display::getTouchControlSize() - Display::scaleY()),
-                        playerDialog(playerDialog)
+                          playerDialog(playerDialog)
                     {
-                        click.bind([this](EventArguments &)->Event::ReturnType
-                        {
-                            this->playerDialog->quit();
-                            return Event::Propagate;
-                        });
+                        click.bind([this](EventArguments &) -> Event::ReturnType
+                                   {
+                                       this->playerDialog->quit();
+                                       return Event::Propagate;
+                                   });
                     }
                     virtual void layout() override
                     {
@@ -247,7 +271,8 @@ public:
         if(isTouchSelection)
             return true;
         VectorF position = Display::transformMouseTo3D(event.x, event.y);
-        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack =
+            getItemStackFromPosition(position);
         if(std::get<0>(itemStack) == nullptr)
             return true;
         std::unique_lock<std::recursive_mutex> theLock;
@@ -260,20 +285,22 @@ public:
             if(!std::get<0>(itemStack)->good())
                 return true;
             std::shared_ptr<Player> player = this->player;
-            std::shared_ptr<ItemStack> selectedItemItemStack = std::shared_ptr<ItemStack>(new ItemStack(), [player](ItemStack *itemStack)
-            {
-                if(itemStack->good())
-                {
-                    for(std::size_t i = 0; i < itemStack->count; i++)
-                    {
-                        if(player->addItem(itemStack->item) < 1)
-                        {
-                            FIXME_MESSAGE(finish)
-                        }
-                    }
-                }
-                delete itemStack;
-            });
+            std::shared_ptr<ItemStack> selectedItemItemStack =
+                std::shared_ptr<ItemStack>(new ItemStack(),
+                                           [player](ItemStack *itemStack)
+                                           {
+                                               if(itemStack->good())
+                                               {
+                                                   for(std::size_t i = 0; i < itemStack->count; i++)
+                                                   {
+                                                       if(player->addItem(itemStack->item) < 1)
+                                                       {
+                                                           FIXME_MESSAGE(finish)
+                                                       }
+                                                   }
+                                               }
+                                               delete itemStack;
+                                           });
             unsigned transferCount = 0;
             switch(event.button)
             {
@@ -290,8 +317,11 @@ public:
             transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
             if(selectedItemItemStack->good())
             {
-                selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale(), position.x + 8 * imageScale(),
-                                                        position.y - 8 * imageScale(), position.y + 8 * imageScale(), selectedItemItemStack);
+                selectedItem = std::make_shared<UiItem>(position.x - 8 * imageScale(),
+                                                        position.x + 8 * imageScale(),
+                                                        position.y - 8 * imageScale(),
+                                                        position.y + 8 * imageScale(),
+                                                        selectedItemItemStack);
                 add(selectedItem);
             }
             return true;
@@ -333,12 +363,14 @@ public:
     {
         plock_manager = &lock_manager;
     }
+
 protected:
     void handleTouch(VectorF position, bool isLongPress)
     {
         if(selectedItem && !isTouchSelection)
             return;
-        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack = getItemStackFromPosition(position);
+        std::pair<std::shared_ptr<ItemStack>, std::recursive_mutex *> itemStack =
+            getItemStackFromPosition(position);
         if(std::get<0>(itemStack) == nullptr)
             return;
         std::unique_lock<std::recursive_mutex> theLock;
@@ -351,20 +383,22 @@ protected:
             if(!std::get<0>(itemStack)->good())
                 return;
             std::shared_ptr<Player> player = this->player;
-            std::shared_ptr<ItemStack> selectedItemItemStack = std::shared_ptr<ItemStack>(new ItemStack(), [player](ItemStack *itemStack)
-            {
-                if(itemStack->good())
-                {
-                    for(std::size_t i = 0; i < itemStack->count; i++)
-                    {
-                        if(player->addItem(itemStack->item) < 1)
-                        {
-                            FIXME_MESSAGE(finish)
-                        }
-                    }
-                }
-                delete itemStack;
-            });
+            std::shared_ptr<ItemStack> selectedItemItemStack =
+                std::shared_ptr<ItemStack>(new ItemStack(),
+                                           [player](ItemStack *itemStack)
+                                           {
+                                               if(itemStack->good())
+                                               {
+                                                   for(std::size_t i = 0; i < itemStack->count; i++)
+                                                   {
+                                                       if(player->addItem(itemStack->item) < 1)
+                                                       {
+                                                           FIXME_MESSAGE(finish)
+                                                       }
+                                                   }
+                                               }
+                                               delete itemStack;
+                                           });
             unsigned transferCount = 0;
             if(isLongPress)
             {
@@ -377,8 +411,11 @@ protected:
             transferItems(std::get<0>(itemStack), selectedItemItemStack, transferCount);
             if(selectedItemItemStack->good())
             {
-                selectedItem = std::make_shared<UiItem>(-16 * imageScale(), 16 * imageScale(),
-                                                        -16 * imageScale(), 16 * imageScale(), selectedItemItemStack);
+                selectedItem = std::make_shared<UiItem>(-16 * imageScale(),
+                                                        16 * imageScale(),
+                                                        -16 * imageScale(),
+                                                        16 * imageScale(),
+                                                        selectedItemItemStack);
                 selectedItem->moveTopLeftTo(getParent()->minX, getParent()->maxY);
                 isTouchSelection = true;
                 add(selectedItem);
@@ -405,6 +442,7 @@ protected:
             }
         }
     }
+
 public:
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {

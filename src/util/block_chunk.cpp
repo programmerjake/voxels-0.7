@@ -41,9 +41,7 @@ BlockChunkChunkVariables::~BlockChunkChunkVariables()
 }
 
 BlockChunk::BlockChunk(PositionI basePosition, IndirectBlockChunk *indirectBlockChunk)
-    : BasicBlockChunk(basePosition),
-    objectCounter(),
-    indirectBlockChunk(indirectBlockChunk)
+    : BasicBlockChunk(basePosition), objectCounter(), indirectBlockChunk(indirectBlockChunk)
 {
     assert(indirectBlockChunk);
 #ifdef USE_SEMAPHORE_FOR_BLOCK_CHUNK
@@ -81,8 +79,11 @@ void WrappedEntity::verify() const
     assert(currentSubchunk != nullptr && currentChunk != nullptr);
     assert(subchunkListMembers.is_linked());
     assert(chunkListMembers.is_linked());
-    assert(currentSubchunk >= &currentChunk->subchunks[0][0][0] && currentSubchunk <= &currentChunk->subchunks[BlockChunk::subchunkCountX - 1][BlockChunk::subchunkCountY - 1][BlockChunk::subchunkCountZ - 1]);
+    assert(currentSubchunk >= &currentChunk->subchunks[0][0][0]
+           && currentSubchunk
+                  <= &currentChunk->subchunks[BlockChunk::subchunkCountX
+                                              - 1][BlockChunk::subchunkCountY
+                                                   - 1][BlockChunk::subchunkCountZ - 1]);
 }
-
 }
 }

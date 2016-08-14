@@ -28,8 +28,10 @@ namespace programmerjake
 namespace voxels
 {
 /** install a handler for termination requests.
- * @param handler the new termination request handler or nullptr to remove the termination request handler
- * @note the handler is called in a new thread. The handler should call std::exit or something similar.
+ * @param handler the new termination request handler or nullptr to remove the termination request
+ * handler
+ * @note the handler is called in a new thread. The handler should call std::exit or something
+ * similar.
  */
 void setTerminationRequestHandler(std::function<void()> handler);
 }

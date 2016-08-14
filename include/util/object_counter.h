@@ -42,6 +42,7 @@ private:
     {
         theCount.fetch_sub(1, std::memory_order_relaxed);
     }
+
 public:
     ObjectCounter()
     {
@@ -57,7 +58,8 @@ public:
     }
     static void dumpCount()
     {
-        getDebugLog() << L"Object Count: " << count() << L" " << string_cast<std::wstring>(__PRETTY_FUNCTION__) << postnl;
+        getDebugLog() << L"Object Count: " << count() << L" "
+                      << string_cast<std::wstring>(__PRETTY_FUNCTION__) << postnl;
     }
     ObjectCounter(const ObjectCounter &)
     {
@@ -67,11 +69,11 @@ public:
     {
         inc();
     }
-    ObjectCounter &operator =(const ObjectCounter &)
+    ObjectCounter &operator=(const ObjectCounter &)
     {
         return *this;
     }
-    ObjectCounter &operator =(ObjectCounter &&)
+    ObjectCounter &operator=(ObjectCounter &&)
     {
         return *this;
     }

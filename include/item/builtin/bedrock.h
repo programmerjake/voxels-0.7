@@ -37,11 +37,15 @@ namespace builtin
 class Bedrock final : public ItemBlock
 {
     friend class global_instance_maker<Bedrock>;
+
 private:
     Bedrock()
-        : ItemBlock(L"builtin.bedrock", TextureAtlas::Bedrock.td(), Blocks::builtin::Bedrock::descriptor())
+        : ItemBlock(L"builtin.bedrock",
+                    TextureAtlas::Bedrock.td(),
+                    Blocks::builtin::Bedrock::descriptor())
     {
     }
+
 public:
     static const Bedrock *pointer()
     {

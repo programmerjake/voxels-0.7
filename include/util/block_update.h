@@ -36,9 +36,6 @@ enum class BlockUpdateKind : std::uint8_t
     UpdateNotify,
     Water,
     Redstone,
-
-    /// not used; use Redstone instead
-    RedstoneDust,
     SynchronousUpdateFinalize,
     DEFINE_ENUM_LIMITS(Lighting, SynchronousUpdateFinalize)
 };
@@ -67,8 +64,6 @@ inline float BlockUpdateKindDefaultPeriod(BlockUpdateKind buKind)
         return 0.25f;
     case BlockUpdateKind::Redstone:
         return 0.1f;
-    case BlockUpdateKind::RedstoneDust:
-        return 0.1f;
     case BlockUpdateKind::SynchronousUpdateFinalize:
         return -1;
     }
@@ -89,8 +84,6 @@ inline BlockUpdatePhase BlockUpdateKindPhase(BlockUpdateKind buKind)
     case BlockUpdateKind::Water:
         return BlockUpdatePhase::Update;
     case BlockUpdateKind::Redstone:
-        return BlockUpdatePhase::Calculate;
-    case BlockUpdateKind::RedstoneDust:
         return BlockUpdatePhase::Calculate;
     case BlockUpdateKind::SynchronousUpdateFinalize:
         return BlockUpdatePhase::Update;

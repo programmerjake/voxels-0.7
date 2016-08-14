@@ -33,7 +33,6 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 namespace stream
 {
 class Reader;
@@ -43,7 +42,8 @@ class Writer;
 class ChunkCache final
 {
     ChunkCache(const ChunkCache &) = delete;
-    ChunkCache &operator =(const ChunkCache &) = delete;
+    ChunkCache &operator=(const ChunkCache &) = delete;
+
 public:
     ChunkCache();
     ~ChunkCache();
@@ -56,6 +56,7 @@ public:
         return retval;
     }
     void setChunk(PositionI chunkBasePosition, const std::vector<std::uint8_t> &buffer);
+
 private:
     static constexpr std::size_t NullChunk = 0;
     struct FileChunkState final
@@ -72,7 +73,6 @@ private:
     std::vector<FileChunkState> fileChunks;
     std::mutex theLock;
 };
-
 }
 }
 

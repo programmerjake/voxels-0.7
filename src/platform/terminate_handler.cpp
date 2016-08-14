@@ -115,24 +115,24 @@ int initTerminateHandler()
     static sem_t signalSemaphore;
     sem_init(&signalSemaphore, 0, 0);
     std::thread([]()
-    {
-        while(true)
-        {
-            while(sem_wait(&signalSemaphore) != 0)
-            {
-                if(errno == EINTR)
-                    continue;
-                abort();
-            }
-            std::function<void()> handler;
-            setOrGetTerminationHandlerFn(handler, false);
-            if(handler == nullptr)
-            {
-                std::_Exit(82);
-            }
-            handler();
-        }
-    }).detach();
+                {
+                    while(true)
+                    {
+                        while(sem_wait(&signalSemaphore) != 0)
+                        {
+                            if(errno == EINTR)
+                                continue;
+                            abort();
+                        }
+                        std::function<void()> handler;
+                        setOrGetTerminationHandlerFn(handler, false);
+                        if(handler == nullptr)
+                        {
+                            std::_Exit(82);
+                        }
+                        handler();
+                    }
+                }).detach();
     struct sigaction action = {};
     action.sa_handler = [](int)
     {
@@ -166,10 +166,10 @@ void setTerminationRequestHandler(std::function<void()> handler)
         };
         handler = std::function<void()>(newHandler);
     }
-    static int unused = initTerminateHandler(); // static so we initialize only once and in only one thread
+    static int unused =
+        initTerminateHandler(); // static so we initialize only once and in only one thread
     ignore_unused_variable_warning(unused);
     setOrGetTerminationHandlerFn(handler, true);
 }
-
 }
 }

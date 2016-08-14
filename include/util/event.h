@@ -52,26 +52,27 @@ public:
         Default = Low,
         DEFINE_ENUM_LIMITS(Low, High)
     };
+
 private:
-    std::shared_ptr<std::list<std::function<ReturnType (EventArguments &args)>>> functions;
+    std::shared_ptr<std::list<std::function<ReturnType(EventArguments &args)>>> functions;
+
 public:
-    explicit Event(std::function<ReturnType (EventArguments &args)> fn = nullptr)
-        : functions(std::make_shared<std::list<std::function<ReturnType (EventArguments &args)>>>())
+    explicit Event(std::function<ReturnType(EventArguments &args)> fn = nullptr)
+        : functions(std::make_shared<std::list<std::function<ReturnType(EventArguments &args)>>>())
     {
         bind(fn);
     }
-    Event(Event &&rt)
-        : functions(std::move(rt.functions))
+    Event(Event &&rt) : functions(std::move(rt.functions))
     {
     }
     Event(const Event &) = delete;
-    const Event &operator =(Event &&rt)
+    const Event &operator=(Event &&rt)
     {
         functions = std::move(rt.functions);
         return *this;
     }
-    const Event &operator =(const Event &) = delete;
-    void bind(std::function<ReturnType (EventArguments &args)> fn, Priority p = Priority::Default)
+    const Event &operator=(const Event &) = delete;
+    void bind(std::function<ReturnType(EventArguments &args)> fn, Priority p = Priority::Default)
     {
         if(fn != nullptr)
         {
@@ -81,30 +82,38 @@ public:
                 functions->push_back(fn);
         }
     }
-    void bindv(std::function<void (EventArguments &args)> fn, ReturnType returnType, Priority p = Priority::Default)
+    void bindv(std::function<void(EventArguments &args)> fn,
+               ReturnType returnType,
+               Priority p = Priority::Default)
     {
-        bind([fn, returnType](EventArguments &args)->ReturnType
-        {
-            fn(args);
-            return returnType;
-        }, p);
+        bind(
+            [fn, returnType](EventArguments &args) -> ReturnType
+            {
+                fn(args);
+                return returnType;
+            },
+            p);
     }
-    void bind2v(std::function<void ()> fn, ReturnType returnType, Priority p = Priority::Default)
+    void bind2v(std::function<void()> fn, ReturnType returnType, Priority p = Priority::Default)
     {
-        bind([fn, returnType](EventArguments &)->ReturnType
-        {
-            fn();
-            return returnType;
-        }, p);
+        bind(
+            [fn, returnType](EventArguments &) -> ReturnType
+            {
+                fn();
+                return returnType;
+            },
+            p);
     }
-    void bind2(std::function<ReturnType ()> fn, Priority p = Priority::Default)
+    void bind2(std::function<ReturnType()> fn, Priority p = Priority::Default)
     {
-        bind([fn](EventArguments &)->ReturnType
-        {
-            return fn();
-        }, p);
+        bind(
+            [fn](EventArguments &) -> ReturnType
+            {
+                return fn();
+            },
+            p);
     }
-    ReturnType operator ()(EventArguments &args)
+    ReturnType operator()(EventArguments &args)
     {
         auto functions = this->functions;
         for(auto fn : *functions)
@@ -121,7 +130,6 @@ public:
         return operator()(args);
     }
 };
-
 }
 }
 

@@ -38,6 +38,7 @@ template <std::size_t W, std::size_t H>
 class PatternRecipe : public RecipeDescriptor
 {
     static_assert(W <= RecipeInput::width && H <= RecipeInput::height, "Pattern too big");
+
 protected:
     checked_array<Item, W * H> pattern;
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const = 0;
@@ -45,9 +46,9 @@ protected:
     {
         return patternItem == inputItem;
     }
+
 public:
-    PatternRecipe(checked_array<Item, W * H> pattern)
-        : RecipeDescriptor(), pattern(pattern)
+    PatternRecipe(checked_array<Item, W * H> pattern) : RecipeDescriptor(), pattern(pattern)
     {
     }
     virtual bool matches(const RecipeInput &input, RecipeOutput &output) const override

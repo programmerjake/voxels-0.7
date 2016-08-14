@@ -33,12 +33,7 @@ namespace
 constexpr std::uint64_t chunkSize = 1 << 10;
 }
 
-ChunkCache::ChunkCache()
-    : reader(),
-    writer(),
-    startingChunksMap(),
-    fileChunks(),
-    theLock()
+ChunkCache::ChunkCache() : reader(), writer(), startingChunksMap(), fileChunks(), theLock()
 {
     static_assert(NullChunk == 0, "invalid value for NullChunk");
     fileChunks.resize(1); // fileChunks 0 is unused because it is NullChunk
@@ -70,13 +65,16 @@ void ChunkCache::getChunk(PositionI chunkBasePosition, std::vector<std::uint8_t>
         for(; chunkIndex != NullChunk; chunkIndex = fileChunks[chunkIndex].nextChunk)
         {
             static_assert(NullChunk == 0, "invalid value for NullChunk");
-            std::int64_t filePosition = static_cast<std::int64_t>(chunkIndex - 1) * chunkSize; // skip null chunk
-            assert(fileChunks[chunkIndex].nextChunk == NullChunk || fileChunks[chunkIndex].usedSize == chunkSize);
+            std::int64_t filePosition =
+                static_cast<std::int64_t>(chunkIndex - 1) * chunkSize; // skip null chunk
+            assert(fileChunks[chunkIndex].nextChunk == NullChunk
+                   || fileChunks[chunkIndex].usedSize == chunkSize);
             assert(fileChunks[chunkIndex].usedSize > 0);
             reader->seek(filePosition, stream::SeekPosition::Start);
             std::size_t bufferWriteStartPosition = buffer.size();
             buffer.resize(bufferWriteStartPosition + fileChunks[chunkIndex].usedSize);
-            reader->readAllBytes(&buffer[bufferWriteStartPosition], fileChunks[chunkIndex].usedSize);
+            reader->readAllBytes(&buffer[bufferWriteStartPosition],
+                                 fileChunks[chunkIndex].usedSize);
         }
     }
     catch(stream::EOFException &)
@@ -87,7 +85,8 @@ void ChunkCache::getChunk(PositionI chunkBasePosition, std::vector<std::uint8_t>
 
 void ChunkCache::setChunk(PositionI chunkBasePosition, const std::vector<std::uint8_t> &buffer)
 {
-    getDebugLog() << "stored chunk at " << chunkBasePosition << " with buffer of length " << buffer.size() << postnl;
+    getDebugLog() << "stored chunk at " << chunkBasePosition << " with buffer of length "
+                  << buffer.size() << postnl;
     std::unique_lock<std::mutex> lockIt(theLock);
     static_assert(NullChunk == std::size_t(), "invalid value for NullChunk");
     std::size_t &startingChunkIndex = startingChunksMap[chunkBasePosition];
@@ -144,7 +143,8 @@ void ChunkCache::setChunk(PositionI chunkBasePosition, const std::vector<std::ui
         try
         {
             static_assert(NullChunk == 0, "invalid value for NullChunk");
-            std::int64_t filePosition = static_cast<std::int64_t>(chunkIndex - 1) * chunkSize; // skip null chunk
+            std::int64_t filePosition =
+                static_cast<std::int64_t>(chunkIndex - 1) * chunkSize; // skip null chunk
             writer->seek(filePosition, stream::SeekPosition::Start);
             writer->writeBytes(&buffer[bufferPos], currentChunkSize);
         }
@@ -191,6 +191,5 @@ std::size_t ChunkCache::allocChunk()
     fileChunks[retval].nextChunk = NullChunk;
     return retval;
 }
-
 }
 }

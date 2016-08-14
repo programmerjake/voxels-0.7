@@ -38,15 +38,20 @@ namespace builtin
 class Furnace final : public ItemBlock
 {
     friend class global_instance_maker<Furnace>;
+
 private:
     Furnace()
         : ItemBlock(L"builtin.furnace",
-                    TextureAtlas::FurnaceSide.td(), TextureAtlas::FurnaceSide.td(),
-                    TextureAtlas::DispenserDropperPistonFurnaceFrame.td(), TextureAtlas::DispenserDropperPistonFurnaceFrame.td(),
-                    TextureAtlas::FurnaceSide.td(), TextureAtlas::FurnaceFrontOff.td(),
+                    TextureAtlas::FurnaceSide.td(),
+                    TextureAtlas::FurnaceSide.td(),
+                    TextureAtlas::DispenserDropperPistonFurnaceFrame.td(),
+                    TextureAtlas::DispenserDropperPistonFurnaceFrame.td(),
+                    TextureAtlas::FurnaceSide.td(),
+                    TextureAtlas::FurnaceFrontOff.td(),
                     Blocks::builtin::Furnace::descriptor())
     {
     }
+
 public:
     static const Furnace *pointer()
     {
@@ -56,12 +61,19 @@ public:
     {
         return pointer();
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override
     {
         RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
         if(c.valid())
         {
-            if(player.placeBlock(c, world, lock_manager, Block(Blocks::builtin::Furnace::descriptor(player.getViewDirectionXZBlockFaceIn()))))
+            if(player.placeBlock(c,
+                                 world,
+                                 lock_manager,
+                                 Block(Blocks::builtin::Furnace::descriptor(
+                                     player.getViewDirectionXZBlockFaceIn()))))
                 return getAfterPlaceItem();
         }
         return item;

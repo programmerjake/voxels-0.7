@@ -35,7 +35,10 @@ namespace builtin
 class StoneBlock : public FullBlock
 {
 protected:
-    StoneBlock(std::wstring name, TextureDescriptor td, LightProperties lightProperties = LightProperties(Lighting(), Lighting::makeMaxLight()))
+    StoneBlock(std::wstring name,
+               TextureDescriptor td,
+               LightProperties lightProperties = LightProperties(Lighting(),
+                                                                 Lighting::makeMaxLight()))
         : FullBlock(name, lightProperties, RayCasting::BlockCollisionMaskGround, true, td)
     {
     }

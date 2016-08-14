@@ -298,7 +298,8 @@ struct hash<programmerjake::voxels::ColorF> final
     hash<float> floatHasher;
     std::size_t operator()(const programmerjake::voxels::ColorF &v) const
     {
-        return floatHasher(v.r) + 3 * floatHasher(v.g) + 5 * floatHasher(v.b) + 7 * floatHasher(v.a);
+        return floatHasher(v.r) + 3 * floatHasher(v.g) + 5 * floatHasher(v.b)
+               + 7 * floatHasher(v.a);
     }
 };
 
@@ -308,7 +309,8 @@ struct hash<programmerjake::voxels::ColorI> final
     hash<std::uint8_t> uint8Hasher;
     std::size_t operator()(const programmerjake::voxels::ColorI &v) const
     {
-        return uint8Hasher(v.r) + 257 * uint8Hasher(v.g) + 8191 * uint8Hasher(v.b) + 1021 * uint8Hasher(v.a);
+        return uint8Hasher(v.r) + 257 * uint8Hasher(v.g) + 8191 * uint8Hasher(v.b)
+               + 1021 * uint8Hasher(v.a);
     }
 };
 }

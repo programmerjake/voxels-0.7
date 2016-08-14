@@ -43,6 +43,7 @@ namespace builtin
 class Desert final : public BiomeDescriptor
 {
     friend class global_instance_maker<Desert>;
+
 public:
     static const Desert *pointer()
     {
@@ -52,23 +53,33 @@ public:
     {
         return pointer();
     }
+
 private:
-    Desert()
-        : BiomeDescriptor(L"builtin.desert", 1, 0)
+    Desert() : BiomeDescriptor(L"builtin.desert", 1, 0)
     {
     }
+
 public:
-    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
+    virtual float getBiomeCorrespondence(float temperature,
+                                         float humidity,
+                                         PositionI pos,
+                                         RandomSource &randomSource) const override
     {
         return temperature * (1 - humidity);
     }
-    virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
+    virtual float getGroundHeight(PositionI columnBasePosition,
+                                  RandomSource &randomSource) const override
     {
         PositionF pos = (PositionF)columnBasePosition;
         pos.y = 0;
-        return limit<float>(randomSource.getFBMValue(pos * 0.03f) * 2, -0.5f, 0.5f) * 6 + 5 + World::SeaLevel;
+        return limit<float>(randomSource.getFBMValue(pos * 0.03f) * 2, -0.5f, 0.5f) * 6 + 5
+               + World::SeaLevel;
     }
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    virtual void makeGroundColumn(PositionI chunkBasePosition,
+                                  PositionI columnBasePosition,
+                                  BlocksGenerateArray &blocks,
+                                  RandomSource &randomSource,
+                                  int groundHeight) const override
     {
         for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
         {

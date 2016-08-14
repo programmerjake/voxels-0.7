@@ -36,8 +36,7 @@ typedef const RecipeDescriptor *RecipeDescriptorPointer;
 struct Recipe final
 {
     RecipeDescriptorPointer descriptor;
-    constexpr Recipe(RecipeDescriptorPointer descriptor = nullptr)
-        : descriptor(descriptor)
+    constexpr Recipe(RecipeDescriptorPointer descriptor = nullptr) : descriptor(descriptor)
     {
     }
     constexpr bool good() const
@@ -50,10 +49,12 @@ struct RecipeInput final
 {
     static constexpr std::size_t width = 3, height = 3;
     typedef checked_array<checked_array<Item, height>, width> ItemsArrayType;
+
 private:
     ItemsArrayType items;
     Item recipeBlock; // ex. crafting table, furnace, or nothing for inventory
     linked_map<Item, std::size_t> itemCounts;
+
 public:
     const ItemsArrayType &getItems() const
     {
@@ -67,8 +68,7 @@ public:
     {
         return itemCounts;
     }
-    RecipeInput()
-        : items(), recipeBlock(), itemCounts()
+    RecipeInput() : items(), recipeBlock(), itemCounts()
     {
     }
     RecipeInput(const ItemsArrayType &itemsIn, Item recipeBlock)
@@ -127,6 +127,7 @@ public:
                 break;
         }
     }
+
 private:
     void shiftLeft()
     {
@@ -155,6 +156,7 @@ private:
             items[x][y] = Item();
         }
     }
+
 public:
     bool empty() const
     {
@@ -170,16 +172,14 @@ struct RecipeOutput final
     {
         return output.good();
     }
-    RecipeOutput()
-        : items(), output()
+    RecipeOutput() : items(), output()
     {
     }
     RecipeOutput(checked_array<checked_array<Item, 3>, 3> items, ItemStack output)
         : items(items), output(output)
     {
     }
-    RecipeOutput(ItemStack output)
-        : items(), output(output)
+    RecipeOutput(ItemStack output) : items(), output(output)
     {
     }
     void clear()
@@ -191,9 +191,11 @@ struct RecipeOutput final
 class RecipeDescriptor
 {
     RecipeDescriptor(const RecipeDescriptor &) = delete;
-    const RecipeDescriptor &operator =(const RecipeDescriptor &) = delete;
+    const RecipeDescriptor &operator=(const RecipeDescriptor &) = delete;
+
 protected:
     RecipeDescriptor();
+
 public:
     virtual ~RecipeDescriptor() = default;
     virtual bool matches(const RecipeInput &input, RecipeOutput &output) const = 0;
@@ -202,6 +204,7 @@ public:
 class RecipeDescriptors_t final
 {
     friend class RecipeDescriptor;
+
 private:
     typedef std::vector<RecipeDescriptorPointer> ListType;
     static ListType *list;
@@ -213,6 +216,7 @@ private:
         }
         list->push_back(descriptor);
     }
+
 public:
     typedef ListType::const_iterator iterator;
     iterator begin() const

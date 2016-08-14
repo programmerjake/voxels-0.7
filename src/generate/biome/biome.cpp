@@ -31,8 +31,7 @@ namespace voxels
 linked_map<std::wstring, BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeNameMap = nullptr;
 std::vector<BiomeDescriptorPointer> *BiomeDescriptors_t::pBiomeVector = nullptr;
 
-BiomeProperties::BiomeProperties(BiomeWeights weights)
-    : weights(weights)
+BiomeProperties::BiomeProperties(BiomeWeights weights) : weights(weights)
 {
     weights.normalize();
     grassColor = calcColorInternal<&BiomeDescriptor::grassColor>();
@@ -68,16 +67,21 @@ void BiomeDescriptors_t::addBiome(BiomeDescriptor *biome)
     biome->index = pBiomeVector->size();
     pBiomeVector->push_back(biome);
     assert(0 == pBiomeNameMap->count(biome->name));
-    pBiomeNameMap->insert(linked_map<std::wstring, BiomeDescriptorPointer>::value_type(biome->name, biome));
+    pBiomeNameMap->insert(
+        linked_map<std::wstring, BiomeDescriptorPointer>::value_type(biome->name, biome));
 }
 
 
-BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const
+BiomeWeights BiomeDescriptors_t::getBiomeWeights(float temperature,
+                                                 float humidity,
+                                                 PositionI pos,
+                                                 RandomSource &randomSource) const
 {
     BiomeWeights retval;
     for(BiomeWeights::value_type &v : retval)
     {
-        std::get<1>(v) = std::max<float>(0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
+        std::get<1>(v) = std::max<float>(
+            0, std::get<0>(v)->getBiomeCorrespondence(temperature, humidity, pos, randomSource));
     }
     retval.normalize();
     for(BiomeWeights::value_type &v : retval)
@@ -98,8 +102,7 @@ struct StreamBiomeDescriptors final
     std::unordered_map<BiomeDescriptorPointer, Descriptor> biomeDescriptorPointerToDescriptorMap;
     std::size_t descriptorCount = 0;
     StreamBiomeDescriptors()
-        : descriptorToBiomeDescriptorPointerMap(),
-        biomeDescriptorPointerToDescriptorMap()
+        : descriptorToBiomeDescriptorPointerMap(), biomeDescriptorPointerToDescriptorMap()
     {
     }
     static StreamBiomeDescriptors &get(stream::Stream &stream)
@@ -107,7 +110,8 @@ struct StreamBiomeDescriptors final
         struct tag_t
         {
         };
-        std::shared_ptr<StreamBiomeDescriptors> retval = stream.getAssociatedValue<StreamBiomeDescriptors, tag_t>();
+        std::shared_ptr<StreamBiomeDescriptors> retval =
+            stream.getAssociatedValue<StreamBiomeDescriptors, tag_t>();
         if(retval)
             return *retval;
         retval = std::make_shared<StreamBiomeDescriptors>();
@@ -120,7 +124,8 @@ struct StreamBiomeDescriptors final
         Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
         if(upperLimit != me.descriptorCount + 1)
             upperLimit = static_cast<Descriptor>(me.descriptorCount);
-        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        Descriptor descriptor =
+            stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
         if(descriptor == NullDescriptor)
             return nullptr;
         if(descriptor <= me.descriptorCount)
@@ -161,7 +166,8 @@ struct StreamBiomeDescriptors final
 };
 }
 
-void BiomeDescriptors_t::writeDescriptor(stream::Writer &writer, BiomeDescriptorPointer descriptor) const
+void BiomeDescriptors_t::writeDescriptor(stream::Writer &writer,
+                                         BiomeDescriptorPointer descriptor) const
 {
     StreamBiomeDescriptors::write(writer, descriptor);
 }
@@ -173,10 +179,12 @@ BiomeDescriptorPointer BiomeDescriptors_t::readDescriptor(stream::Reader &reader
 
 float BiomeDescriptor::getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const
 {
-    const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator = dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(descriptor);
+    const Decorators::builtin::MineralVeinDecorator *mineralVeinDecorator =
+        dynamic_cast<const Decorators::builtin::MineralVeinDecorator *>(descriptor);
     if(mineralVeinDecorator != nullptr)
         return mineralVeinDecorator->defaultPreChunkGenerateCount;
-    const Decorators::builtin::TreeDecorator *treeDecorator = dynamic_cast<const Decorators::builtin::TreeDecorator *>(descriptor);
+    const Decorators::builtin::TreeDecorator *treeDecorator =
+        dynamic_cast<const Decorators::builtin::TreeDecorator *>(descriptor);
     if(treeDecorator != nullptr)
         return treeDecorator->getChunkDecoratorCount(this);
     return 0;

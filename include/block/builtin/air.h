@@ -35,6 +35,7 @@ namespace builtin
 class Air final : public BlockDescriptor
 {
     friend class global_instance_maker<Air>;
+
 public:
     static const Air *pointer()
     {
@@ -56,7 +57,11 @@ public:
     {
         return false;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override
     {
         handleToolDamage(tool);
     }
@@ -72,20 +77,42 @@ public:
     {
         return true;
     }
-    virtual bool canAttachBlock(Block b, BlockFace attachingFace, Block attachingBlock) const override
+    virtual bool canAttachBlock(Block b,
+                                BlockFace attachingFace,
+                                Block attachingBlock) const override
     {
         return false;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
     {
         return nullptr;
     }
+
 private:
     Air()
-        : BlockDescriptor(L"builtin.air", BlockShape(nullptr), LightProperties(), (RayCasting::BlockCollisionMask)0, true, false, false, false, false, false, false, Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
+        : BlockDescriptor(L"builtin.air",
+                          BlockShape(nullptr),
+                          LightProperties(),
+                          (RayCasting::BlockCollisionMask)0,
+                          true,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          false,
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          RenderLayer::Opaque)
     {
     }
 };

@@ -36,21 +36,18 @@ class CachedVariable
     mutable simple_spin_lock theLock;
     typedef std::lock_guard<simple_spin_lock> my_lock_guard;
     T view;
+
 public:
-    CachedVariable()
-        : view()
+    CachedVariable() : view()
     {
     }
-    explicit CachedVariable(const T &v)
-        : view(v)
+    explicit CachedVariable(const T &v) : view(v)
     {
     }
-    explicit CachedVariable(T &&v)
-        : view(std::move(v))
+    explicit CachedVariable(T &&v) : view(std::move(v))
     {
     }
-    CachedVariable(const CachedVariable &rt)
-        : CachedVariable(rt.read())
+    CachedVariable(const CachedVariable &rt) : CachedVariable(rt.read())
     {
     }
     T read() const
@@ -71,17 +68,17 @@ public:
     {
         return read();
     }
-    const CachedVariable &operator =(const T &value)
+    const CachedVariable &operator=(const T &value)
     {
         write(value);
         return *this;
     }
-    const CachedVariable &operator =(const CachedVariable &rt)
+    const CachedVariable &operator=(const CachedVariable &rt)
     {
         write(rt.read());
         return *this;
     }
-    const CachedVariable &operator =(T &&value)
+    const CachedVariable &operator=(T &&value)
     {
         write(std::move(value));
         return *this;
@@ -91,30 +88,29 @@ public:
         friend class CachedVariable;
         T *v;
         std::unique_lock<simple_spin_lock> lockIt;
-        explicit LockedView(CachedVariable *cv)
-            : lockIt(cv->theLock)
+        explicit LockedView(CachedVariable *cv) : lockIt(cv->theLock)
         {
             v = &cv->view;
         }
         LockedView(const LockedView &) = delete;
+
     public:
         ~LockedView()
         {
         }
-        LockedView(LockedView &&rt)
-            : v(rt.v), lockIt(std::move(rt.lockIt))
+        LockedView(LockedView &&rt) : v(rt.v), lockIt(std::move(rt.lockIt))
         {
             rt.v = nullptr;
         }
-        const T &operator =(const LockedView &rt)
+        const T &operator=(const LockedView &rt)
         {
             return *v = *rt.v;
         }
-        const T &operator =(const T &value)
+        const T &operator=(const T &value)
         {
             return *v = value;
         }
-        const T &operator =(T &&value)
+        const T &operator=(T &&value)
         {
             return *v = std::move(value);
         }
@@ -138,7 +134,7 @@ public:
         {
             return *v;
         }
-        T &operator ->()
+        T &operator->()
         {
             return *v;
         }

@@ -37,8 +37,15 @@ namespace ui
 class DynamicLabel : public Label
 {
     std::function<std::wstring(double deltaTime)> textFn;
+
 public:
-    DynamicLabel(std::function<std::wstring(double deltaTime)> textFn, float minX, float maxX, float minY, float maxY, ColorF textColor = GrayscaleF(0), Text::TextProperties textProperties = Text::defaultTextProperties)
+    DynamicLabel(std::function<std::wstring(double deltaTime)> textFn,
+                 float minX,
+                 float maxX,
+                 float minY,
+                 float maxY,
+                 ColorF textColor = GrayscaleF(0),
+                 Text::TextProperties textProperties = Text::defaultTextProperties)
         : Label(L"uninitialized", minX, maxX, minY, maxY, textColor, textProperties), textFn(textFn)
     {
     }

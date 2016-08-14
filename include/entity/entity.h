@@ -46,18 +46,28 @@ class World;
 class EntityDescriptor
 {
     EntityDescriptor(const EntityDescriptor &) = delete;
-    void operator =(const EntityDescriptor &) = delete;
+    void operator=(const EntityDescriptor &) = delete;
+
 protected:
     explicit EntityDescriptor(std::wstring name);
+
 public:
     virtual ~EntityDescriptor();
     const std::wstring name;
 
-    virtual void moveStep(Entity &entity, World &world, WorldLockManager &lock_manager, double deltaTime) const
+    virtual void moveStep(Entity &entity,
+                          World &world,
+                          WorldLockManager &lock_manager,
+                          double deltaTime) const
     {
     }
-    virtual void render(Entity &entity, Mesh &dest, RenderLayer rl, const Transform &cameraToWorldMatrix) const = 0;
-    virtual RayCasting::Collision getRayCollision(Entity &entity, World &world, RayCasting::Ray ray) const
+    virtual void render(Entity &entity,
+                        Mesh &dest,
+                        RenderLayer rl,
+                        const Transform &cameraToWorldMatrix) const = 0;
+    virtual RayCasting::Collision getRayCollision(Entity &entity,
+                                                  World &world,
+                                                  RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
@@ -66,28 +76,42 @@ public:
     {
         entity.data = nullptr;
     }
-    virtual bool onUse(Entity &entity, World &world, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    virtual bool onUse(Entity &entity,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const
     {
         return false;
     }
-    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(Entity &entity, PositionF position, VectorF velocity, std::shared_ptr<PhysicsWorld> physicsWorld) const = 0;
-    virtual void write(PositionF position, VectorF velocity, std::shared_ptr<void> data, stream::Writer &writer) const = 0;
-    virtual std::shared_ptr<void> read(PositionF position, VectorF velocity, stream::Reader &reader) const = 0;
+    virtual std::shared_ptr<PhysicsObject> makePhysicsObject(
+        Entity &entity,
+        PositionF position,
+        VectorF velocity,
+        std::shared_ptr<PhysicsWorld> physicsWorld) const = 0;
+    virtual void write(PositionF position,
+                       VectorF velocity,
+                       std::shared_ptr<void> data,
+                       stream::Writer &writer) const = 0;
+    virtual std::shared_ptr<void> read(PositionF position,
+                                       VectorF velocity,
+                                       stream::Reader &reader) const = 0;
 };
 
 class EntityDescriptors_t final
 {
     friend class EntityDescriptor;
+
 private:
     typedef linked_map<std::wstring, EntityDescriptorPointer> MapType;
     static MapType *entitiesMap;
     void add(EntityDescriptorPointer bd) const;
     void remove(EntityDescriptorPointer bd) const;
+
 public:
     constexpr EntityDescriptors_t()
     {
     }
-    EntityDescriptorPointer operator [](std::wstring name) const
+    EntityDescriptorPointer operator[](std::wstring name) const
     {
         if(entitiesMap == nullptr)
             return nullptr;
@@ -98,29 +122,29 @@ public:
     }
     EntityDescriptorPointer at(std::wstring name) const
     {
-        EntityDescriptorPointer retval = operator [](name);
+        EntityDescriptorPointer retval = operator[](name);
         if(retval == nullptr)
             throw std::out_of_range("EntityDescriptor not found");
         return retval;
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator final : public std::iterator<std::forward_iterator_tag, const EntityDescriptorPointer>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class iterator final
+        : public std::iterator<std::forward_iterator_tag, const EntityDescriptorPointer>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class EntityDescriptors_t;
         MapType::const_iterator iter;
         bool empty;
-        explicit iterator(MapType::const_iterator iter)
-            : iter(iter), empty(false)
+        explicit iterator(MapType::const_iterator iter) : iter(iter), empty(false)
         {
         }
+
     public:
-        iterator()
-            : iter(), empty(true)
+        iterator() : iter(), empty(true)
         {
         }
-        bool operator ==(const iterator &r) const
+        bool operator==(const iterator &r) const
         {
             if(empty)
                 return r.empty;
@@ -128,20 +152,20 @@ GCC_PRAGMA(diagnostic pop)
                 return false;
             return iter == r.iter;
         }
-        bool operator !=(const iterator &r) const
+        bool operator!=(const iterator &r) const
         {
-            return !operator ==(r);
+            return !operator==(r);
         }
-        const EntityDescriptorPointer &operator *() const
+        const EntityDescriptorPointer &operator*() const
         {
             return std::get<1>(*iter);
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             ++iter;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             return iterator(iter++);
         }

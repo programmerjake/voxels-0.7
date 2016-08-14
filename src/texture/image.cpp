@@ -32,14 +32,14 @@ namespace programmerjake
 {
 namespace voxels
 {
-Image::Image(wstring resourceName)
-    : data()
+Image::Image(wstring resourceName) : data()
 {
     try
     {
         shared_ptr<stream::Reader> preader = getResourceReader(resourceName);
         PngDecoder decoder(*preader);
-        data = shared_ptr<data_t>(new data_t(decoder.removeData(), decoder.width(), decoder.height(), RowOrder::TopToBottom));
+        data = shared_ptr<data_t>(new data_t(
+            decoder.removeData(), decoder.width(), decoder.height(), RowOrder::TopToBottom));
     }
     catch(stream::IOException &e)
     {
@@ -47,15 +47,14 @@ Image::Image(wstring resourceName)
     }
 }
 
-Image::Image(unsigned w, unsigned h)
-    : data()
+Image::Image(unsigned w, unsigned h) : data()
 {
-    data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * w * h], w, h, RowOrder::TopToBottom));
+    data = shared_ptr<data_t>(
+        new data_t(new uint8_t[BytesPerPixel * w * h], w, h, RowOrder::TopToBottom));
     memset((void *)data->data, 0, BytesPerPixel * w * h);
 }
 
-Image::Image(ColorI c)
-    : data()
+Image::Image(ColorI c) : data()
 {
     data = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel], 1, 1, RowOrder::TopToBottom));
     setPixel(0, 0, c);
@@ -68,7 +67,7 @@ Image::data_t::~data_t()
     {
         freeTexture(texture);
     }
-    delete []data;
+    delete[] data;
 }
 
 void Image::setPixel(int x, int y, ColorI c)
@@ -165,12 +164,28 @@ void Image::bind() const
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data->w, data->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)data->data);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     GL_RGBA,
+                     data->w,
+                     data->h,
+                     0,
+                     GL_RGBA,
+                     GL_UNSIGNED_BYTE,
+                     (GLvoid *)data->data);
     }
     else
     {
         glBindTexture(GL_TEXTURE_2D, data->texture);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, data->w, data->h, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid *)data->data);
+        glTexSubImage2D(GL_TEXTURE_2D,
+                        0,
+                        0,
+                        0,
+                        data->w,
+                        data->h,
+                        GL_RGBA,
+                        GL_UNSIGNED_BYTE,
+                        (GLvoid *)data->data);
     }
 
     data->textureValid = true;
@@ -198,7 +213,8 @@ void Image::setData(const std::uint8_t *src, RowOrder rowOrder)
     data->lock.lock();
     copyOnWrite();
     data->textureValid = false;
-    data->rowOrder = rowOrder; // everything is going to be overwritten so we don't need to use setRowOrder
+    data->rowOrder =
+        rowOrder; // everything is going to be overwritten so we don't need to use setRowOrder
     std::uint8_t *dest = data->data;
     for(std::size_t i = getDataSize(); i > 0; i--)
     {
@@ -207,7 +223,8 @@ void Image::setData(const std::uint8_t *src, RowOrder rowOrder)
     data->lock.unlock();
 }
 
-void Image::copyRect(int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop)
+void Image::copyRect(
+    int destLeft, int destTop, int destW, int destH, Image src, int srcLeft, int srcTop)
 {
     if(destLeft < 0)
     {
@@ -282,7 +299,8 @@ void Image::copyRect(int destLeft, int destTop, int destW, int destH, Image src,
                     pDest[3] = 0;
                 }
             }
-            const std::uint8_t *pSrc = &src.data->data[BytesPerPixel * (srcLeft + x + srcY * src.data->w)];
+            const std::uint8_t *pSrc =
+                &src.data->data[BytesPerPixel * (srcLeft + x + srcY * src.data->w)];
             int limit = (int)src.data->w - srcLeft;
             if(limit > destW)
                 limit = destW;
@@ -347,7 +365,8 @@ void Image::copyOnWrite()
         return;
     }
 
-    shared_ptr<data_t> newData = shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * data->w * data->h], data));
+    shared_ptr<data_t> newData =
+        shared_ptr<data_t>(new data_t(new uint8_t[BytesPerPixel * data->w * data->h], data));
 
     for(size_t i = 0; i < BytesPerPixel * data->w * data->h; i++)
     {
@@ -364,6 +383,7 @@ struct SerializedImages final
 public:
     typedef std::uint64_t Descriptor;
     static constexpr Descriptor NullDescriptor = 0;
+
 private:
     Descriptor validDescriptorCount = 0;
     std::unordered_map<Descriptor, Image> descriptorToImageMap;
@@ -371,19 +391,20 @@ private:
     struct construct_tag_t
     {
     };
+
 public:
-    SerializedImages(construct_tag_t)
-        : descriptorToImageMap(),
-        imageToDescriptorMap()
+    SerializedImages(construct_tag_t) : descriptorToImageMap(), imageToDescriptorMap()
     {
     }
+
 private:
     static SerializedImages &get(stream::Stream &stream)
     {
         struct tag_t
         {
         };
-        std::shared_ptr<SerializedImages> pretval = stream.getAssociatedValue<SerializedImages, tag_t>();
+        std::shared_ptr<SerializedImages> pretval =
+            stream.getAssociatedValue<SerializedImages, tag_t>();
         if(pretval == nullptr)
         {
             pretval = std::make_shared<SerializedImages>(construct_tag_t());
@@ -391,11 +412,13 @@ private:
         }
         return *pretval;
     }
+
 public:
     static bool readDescriptor(stream::Reader &reader, Image &image, Descriptor &descriptor)
     {
         SerializedImages &me = get(reader);
-        descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, me.validDescriptorCount + 1);
+        descriptor =
+            stream::read_limited<Descriptor>(reader, NullDescriptor, me.validDescriptorCount + 1);
         if(descriptor == me.validDescriptorCount + 1)
         {
             ++me.validDescriptorCount;

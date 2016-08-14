@@ -32,7 +32,9 @@ namespace programmerjake
 {
 namespace voxels
 {
-bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManager &lock_manager) const
+bool Tree::placeInWorld(PositionI generatePosition,
+                        World &world,
+                        WorldLockManager &lock_manager) const
 {
     if(!good())
         return false;
@@ -51,7 +53,8 @@ bool Tree::placeInWorld(PositionI generatePosition, World &world, WorldLockManag
                     BlockIterator bi = originBlockIterator;
                     bi.moveBy(rpos, lock_manager);
                     Block worldBlock = bi.get(lock_manager);
-                    Block selectedBlock = descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos), true);
+                    Block selectedBlock =
+                        descriptor->selectBlock(worldBlock, placedTree.getBlock(rpos), true);
                     selectedBlock.lighting = worldBlock.lighting;
                     placedTree.setBlock(rpos, selectedBlock);
                 }
@@ -93,12 +96,18 @@ Block TreeDescriptor::selectBlock(Block originalWorldBlock, Block treeBlock, boo
     return treeBlock;
 }
 
-void WoodDescriptor::makeLeavesDrops(World &world, BlockIterator bi, WorldLockManager &lock_manager, Item tool) const
+void WoodDescriptor::makeLeavesDrops(World &world,
+                                     BlockIterator bi,
+                                     WorldLockManager &lock_manager,
+                                     Item tool) const
 {
     FIXME_MESSAGE(check for shears)
     if(std::uniform_int_distribution<>(0, 19)(world.getRandomGenerator()) == 0)
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(getSaplingItemDescriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(getSaplingItemDescriptor())),
+                                   bi.position() + VectorF(0.5));
     }
 }
 
@@ -111,18 +120,22 @@ namespace builtin
 class CraftingTableRecipe : PatternRecipe<2, 2>
 {
     CraftingTableRecipe(CraftingTableRecipe &) = delete;
-    CraftingTableRecipe &operator =(CraftingTableRecipe &) = delete;
+    CraftingTableRecipe &operator=(CraftingTableRecipe &) = delete;
+
 private:
     WoodDescriptorPointer woodDescriptor;
+
 public:
     CraftingTableRecipe(WoodDescriptorPointer woodDescriptor)
-        : PatternRecipe(checked_array<Item, 2 * 2>
-                        {
-                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()),
-                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor())
-                        }), woodDescriptor(woodDescriptor)
+        : PatternRecipe(
+              checked_array<Item, 2 * 2>{Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor())}),
+          woodDescriptor(woodDescriptor)
     {
     }
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -136,19 +149,27 @@ protected:
 class ChestRecipe : PatternRecipe<3, 3>
 {
     ChestRecipe(ChestRecipe &) = delete;
-    ChestRecipe &operator =(ChestRecipe &) = delete;
+    ChestRecipe &operator=(ChestRecipe &) = delete;
+
 private:
     WoodDescriptorPointer woodDescriptor;
+
 public:
     ChestRecipe(WoodDescriptorPointer woodDescriptor)
-        : PatternRecipe(checked_array<Item, 3 * 3>
-                        {
-                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()),
-                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(), Item(woodDescriptor->getPlanksItemDescriptor()),
-                            Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor()), Item(woodDescriptor->getPlanksItemDescriptor())
-                        }), woodDescriptor(woodDescriptor)
+        : PatternRecipe(
+              checked_array<Item, 3 * 3>{Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor())}),
+          woodDescriptor(woodDescriptor)
     {
     }
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -162,14 +183,19 @@ protected:
 class WoodToPlanksRecipe final : public UnorderedRecipe
 {
     WoodToPlanksRecipe(WoodToPlanksRecipe &) = delete;
-    WoodToPlanksRecipe &operator =(WoodToPlanksRecipe &) = delete;
+    WoodToPlanksRecipe &operator=(WoodToPlanksRecipe &) = delete;
+
 private:
     WoodDescriptorPointer woodDescriptor;
+
 public:
     WoodToPlanksRecipe(WoodDescriptorPointer woodDescriptor)
-        : UnorderedRecipe{std::pair<Item, std::size_t>(Item(woodDescriptor->getLogItemDescriptor()), 1)}, woodDescriptor(woodDescriptor)
+        : UnorderedRecipe{std::pair<Item, std::size_t>(Item(woodDescriptor->getLogItemDescriptor()),
+                                                       1)},
+          woodDescriptor(woodDescriptor)
     {
     }
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -183,18 +209,20 @@ protected:
 class PlanksToSticksRecipe final : public PatternRecipe<1, 2>
 {
     PlanksToSticksRecipe(PlanksToSticksRecipe &) = delete;
-    PlanksToSticksRecipe &operator =(PlanksToSticksRecipe &) = delete;
+    PlanksToSticksRecipe &operator=(PlanksToSticksRecipe &) = delete;
+
 private:
     WoodDescriptorPointer woodDescriptor;
+
 public:
     PlanksToSticksRecipe(WoodDescriptorPointer woodDescriptor)
-        : PatternRecipe(checked_array<Item, 1 * 2>
-                        {
-                            Item(woodDescriptor->getPlanksItemDescriptor()),
-                            Item(woodDescriptor->getPlanksItemDescriptor())
-                        }), woodDescriptor(woodDescriptor)
+        : PatternRecipe(
+              checked_array<Item, 1 * 2>{Item(woodDescriptor->getPlanksItemDescriptor()),
+                                         Item(woodDescriptor->getPlanksItemDescriptor())}),
+          woodDescriptor(woodDescriptor)
     {
     }
+
 protected:
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const override
     {
@@ -211,7 +239,14 @@ namespace Woods
 {
 namespace builtin
 {
-SimpleWood::SimpleWood(std::wstring name, TextureDescriptor logTop, TextureDescriptor logSide, TextureDescriptor planks, TextureDescriptor sapling, TextureDescriptor leaves, TextureDescriptor blockedLeaves, std::vector<TreeDescriptorPointer> trees)
+SimpleWood::SimpleWood(std::wstring name,
+                       TextureDescriptor logTop,
+                       TextureDescriptor logSide,
+                       TextureDescriptor planks,
+                       TextureDescriptor sapling,
+                       TextureDescriptor leaves,
+                       TextureDescriptor blockedLeaves,
+                       std::vector<TreeDescriptorPointer> trees)
     : WoodDescriptor(name, logTop, logSide, planks, sapling, leaves, blockedLeaves, trees)
 {
     enum_array<BlockDescriptorPointer, LogOrientation> logBlockDescriptors;

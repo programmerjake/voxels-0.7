@@ -35,8 +35,10 @@ namespace builtin
 class Bucket final : public ItemImage
 {
     friend class global_instance_maker<Bucket>;
+
 private:
     Bucket();
+
 public:
     static const Bucket *pointer()
     {
@@ -46,7 +48,10 @@ public:
     {
         return pointer();
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override;
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
         return nullptr;
@@ -58,13 +63,16 @@ public:
 class WaterBucket final : public ItemImage
 {
     friend class global_instance_maker<WaterBucket>;
+
 private:
     WaterBucket();
+
 protected:
     virtual Item getAfterPlaceItem() const
     {
         return Item(Bucket::descriptor());
     }
+
 public:
     static const WaterBucket *pointer()
     {

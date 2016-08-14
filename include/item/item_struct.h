@@ -43,8 +43,8 @@ struct Item final
 {
     Item(const Item &) = default;
     Item(Item &&) = default;
-    Item &operator =(const Item &) = default;
-    Item &operator =(Item &&) = default;
+    Item &operator=(const Item &) = default;
+    Item &operator=(Item &&) = default;
     /// @brief the ItemDescriptor
     ItemDescriptorPointer descriptor = nullptr;
     /// @brief the associated data
@@ -57,8 +57,7 @@ struct Item final
         return descriptor != nullptr;
     }
     /// @brief construct an empty item
-    Item()
-        : descriptor(nullptr), data()
+    Item() : descriptor(nullptr), data()
     {
     }
     /** @brief construct an item
@@ -68,11 +67,14 @@ struct Item final
      *
      */
     explicit Item(ItemDescriptorPointer descriptor, std::shared_ptr<void> data = nullptr)
-        : descriptor(descriptor), data(descriptor == nullptr ? std::shared_ptr<void>(nullptr) : data)
+        : descriptor(descriptor),
+          data(descriptor == nullptr ? std::shared_ptr<void>(nullptr) : data)
     {
     }
+
 private:
     bool dataEqual(const Item &rt) const;
+
 public:
     /** @brief check for item equality
      * @param rt the other Item
@@ -80,7 +82,7 @@ public:
      * @see operator !=
      * @see ItemDescriptorPointer::dataEqual
      */
-    bool operator ==(const Item &rt) const
+    bool operator==(const Item &rt) const
     {
         if(descriptor == nullptr)
             return rt.descriptor == nullptr;
@@ -92,7 +94,7 @@ public:
      * @see operator ==
      * @see ItemDescriptorPointer::dataEqual
      */
-    bool operator !=(const Item &rt) const
+    bool operator!=(const Item &rt) const
     {
         if(descriptor == nullptr)
             return rt.descriptor != nullptr;
@@ -115,8 +117,7 @@ struct ItemStack final
         return item.getMaxStackCount();
     }
     /// @brief construct an empty ItemStack
-    ItemStack()
-        : item()
+    ItemStack() : item()
     {
     }
     /** @brief construct an ItemStack
@@ -142,7 +143,7 @@ struct ItemStack final
      * @return true if this item equals rt
      * @see operator !=
      */
-    bool operator ==(const ItemStack &rt) const
+    bool operator==(const ItemStack &rt) const
     {
         if(count == 0)
             return rt.count == 0;
@@ -153,7 +154,7 @@ struct ItemStack final
      * @return true if this item doesn't equal rt
      * @see operator ==
      */
-    bool operator !=(const ItemStack &rt) const
+    bool operator!=(const ItemStack &rt) const
     {
         if(count == 0)
             return rt.count != 0;
@@ -223,7 +224,8 @@ struct ItemStack final
             return ItemStack();
         Item item = stream::read<Item>(reader);
         if(!item.good())
-            throw stream::InvalidDataValueException("read empty item after non-zero count for ItemStack");
+            throw stream::InvalidDataValueException(
+                "read empty item after non-zero count for ItemStack");
         if(count > item.getMaxStackCount())
             throw stream::InvalidDataValueException("count too high for item");
         return ItemStack(item, count);
@@ -245,8 +247,7 @@ template <std::size_t W, std::size_t H>
 class ItemStackArray final
 {
 public:
-    ItemStackArray()
-        : itemStacks()
+    ItemStackArray() : itemStacks()
     {
     }
     checked_array<checked_array<ItemStack, H>, W> itemStacks;
@@ -339,7 +340,7 @@ namespace std
 template <>
 struct hash<programmerjake::voxels::Item>
 {
-    size_t operator ()(const programmerjake::voxels::Item &v) const
+    size_t operator()(const programmerjake::voxels::Item &v) const
     {
         return hash<programmerjake::voxels::ItemDescriptorPointer>()(v.descriptor);
     }
@@ -347,11 +348,12 @@ struct hash<programmerjake::voxels::Item>
 template <>
 struct hash<programmerjake::voxels::ItemStack>
 {
-    size_t operator ()(const programmerjake::voxels::ItemStack &v) const
+    size_t operator()(const programmerjake::voxels::ItemStack &v) const
     {
         if(v.count == 0)
             return 0;
-        return hash<programmerjake::voxels::Item>()(v.item) + 3 * hash<decltype(v.count)>()(v.count);
+        return hash<programmerjake::voxels::Item>()(v.item)
+               + 3 * hash<decltype(v.count)>()(v.count);
     }
 };
 }

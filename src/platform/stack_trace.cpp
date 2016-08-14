@@ -36,14 +36,15 @@ namespace programmerjake
 {
 namespace voxels
 {
-void StackTrace::SymbolListDeleter::operator ()(const char * const*ptr) const
+void StackTrace::SymbolListDeleter::operator()(const char *const *ptr) const
 {
     std::free(const_cast<const char **>(ptr));
 }
 StackTrace StackTrace::make()
 {
     StackTrace retval;
-    retval.usedAddressCount = std::max<int>(0, backtrace(&retval.addresses[0], retval.addresses.size()));
+    retval.usedAddressCount =
+        std::max<int>(0, backtrace(&retval.addresses[0], retval.addresses.size()));
     return std::move(retval);
 }
 void StackTrace::addressesToSymbols()

@@ -179,8 +179,8 @@ void GameUi::clear(Renderer &renderer)
     }
     else
     {
-        viewPoint =
-            std::make_shared<ViewPoint>(*world, playerPosition, (GameVersion::DEBUG ? 32 : 48) / (GameVersion::MOBILE ? 2 : 1));
+        viewPoint = std::make_shared<ViewPoint>(
+            *world, playerPosition, (GameVersion::DEBUG ? 32 : 48) / (GameVersion::MOBILE ? 2 : 1));
     }
     renderer << RenderLayer::Opaque;
     if(backgroundCamera)
@@ -805,10 +805,10 @@ void GameUi::addWorldUi()
         public:
             JumpButton(GameUi *gameUi)
                 : Button(L"\u2666",
-                    Display::scaleX() - Display::getTouchControlSize(),
-                    Display::scaleX(),
-                    Display::getTouchControlSize() * -1.5f,
-                    Display::getTouchControlSize() * -0.5f),
+                         Display::scaleX() - Display::getTouchControlSize(),
+                         Display::scaleX(),
+                         Display::getTouchControlSize() * -1.5f,
+                         Display::getTouchControlSize() * -0.5f),
                   gameUi(gameUi)
             {
                 pressed.onChange.bind([this](EventArguments &) -> Event::ReturnType

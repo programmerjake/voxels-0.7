@@ -29,20 +29,40 @@ namespace programmerjake
 namespace voxels
 {
 const BlockDescriptor **BlockDescriptorIndex::blockDescriptorTable = nullptr;
-std::size_t BlockDescriptorIndex::blockDescriptorTableSize = 0, BlockDescriptorIndex::blockDescriptorTableAllocated = 0;
+std::size_t BlockDescriptorIndex::blockDescriptorTableSize = 0,
+            BlockDescriptorIndex::blockDescriptorTableAllocated = 0;
 
 
-BlockDescriptor::BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer)
+BlockDescriptor::BlockDescriptor(std::wstring name,
+                                 BlockShape blockShape,
+                                 LightProperties lightProperties,
+                                 RayCasting::BlockCollisionMask blockRayCollisionMask,
+                                 bool isStaticMesh,
+                                 bool isFaceBlockedNX,
+                                 bool isFaceBlockedPX,
+                                 bool isFaceBlockedNY,
+                                 bool isFaceBlockedPY,
+                                 bool isFaceBlockedNZ,
+                                 bool isFaceBlockedPZ,
+                                 Mesh meshCenter,
+                                 Mesh meshFaceNX,
+                                 Mesh meshFacePX,
+                                 Mesh meshFaceNY,
+                                 Mesh meshFacePY,
+                                 Mesh meshFaceNZ,
+                                 Mesh meshFacePZ,
+                                 RenderLayer staticRenderLayer)
     : bdIndex(),
-    name(name),
-    blockShape(blockShape),
-    lightProperties(lightProperties),
-    blockRayCollisionMask(blockRayCollisionMask),
-    isStaticMesh(isStaticMesh),
-    isFaceBlocked(),
-    meshCenter(),
-    meshFace(),
-    staticRenderLayer(staticRenderLayer)
+      name(name),
+      blockShape(blockShape),
+      lightProperties(lightProperties),
+      blockRayCollisionMask(blockRayCollisionMask),
+      isStaticMesh(isStaticMesh),
+      isFaceBlocked(),
+      handledUpdateKinds(),
+      meshCenter(),
+      meshFace(),
+      staticRenderLayer(staticRenderLayer)
 {
     isFaceBlocked[BlockFace::NX] = isFaceBlockedNX;
     isFaceBlocked[BlockFace::PX] = isFaceBlockedPX;
@@ -50,6 +70,9 @@ BlockDescriptor::BlockDescriptor(std::wstring name, BlockShape blockShape, Light
     isFaceBlocked[BlockFace::PY] = isFaceBlockedPY;
     isFaceBlocked[BlockFace::NZ] = isFaceBlockedNZ;
     isFaceBlocked[BlockFace::PZ] = isFaceBlockedPZ;
+    for(bool &v : handledUpdateKinds)
+        v = false;
+    handledUpdateKinds[BlockUpdateKind::Lighting] = true;
     this->meshCenter = meshCenter;
     meshFace[BlockFace::NX] = meshFaceNX;
     meshFace[BlockFace::PX] = meshFacePX;
@@ -93,12 +116,14 @@ void BlockDescriptors_t::remove(BlockDescriptorPointer bd) const
 }
 
 PackedBlock::PackedBlock(const Block &b)
-    : descriptor(b.descriptor ? b.descriptor->getBlockDescriptorIndex() : BlockDescriptorIndex(nullptr)), lighting(b.lighting), data(b.data)
+    : descriptor(b.descriptor ? b.descriptor->getBlockDescriptorIndex() :
+                                BlockDescriptorIndex(nullptr)),
+      lighting(b.lighting),
+      data(b.data)
 {
 }
 
-BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd)
-    : index()
+BlockDescriptorIndex::BlockDescriptorIndex(BlockDescriptorPointer bd) : index()
 {
     if(bd == nullptr)
         index = NullIndex;
@@ -118,7 +143,7 @@ void Block::createNewLighting(Lighting oldLighting)
     }
 }
 
-bool Block::operator ==(const Block &r) const
+bool Block::operator==(const Block &r) const
 {
     if(descriptor != r.descriptor)
     {
@@ -143,9 +168,12 @@ bool Block::operator ==(const Block &r) const
     return descriptor->isDataEqual(data, r.data);
 }
 
-BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp)
+BlockLighting Block::calcBlockLighting(BlockIterator bi,
+                                       WorldLockManager &lock_manager,
+                                       WorldLightingProperties wlp)
 {
-    checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3> blocks;
+    checked_array<checked_array<checked_array<std::pair<LightProperties, Lighting>, 3>, 3>, 3>
+        blocks;
     for(int x = 0; (size_t)x < blocks.size(); x++)
     {
         for(int y = 0; (size_t)y < blocks[x].size(); y++)
@@ -154,7 +182,8 @@ BlockLighting Block::calcBlockLighting(BlockIterator bi, WorldLockManager &lock_
             {
                 BlockIterator curBi = bi;
                 curBi.moveBy(VectorI(x - 1, y - 1, z - 1), lock_manager);
-                auto l = std::pair<LightProperties, Lighting>(LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
+                auto l = std::pair<LightProperties, Lighting>(
+                    LightProperties(Lighting(), Lighting::makeMaxLight()), Lighting());
                 const Block &b = curBi.get(lock_manager);
 
                 if(b)
@@ -179,7 +208,8 @@ float BlockDescriptor::getBreakDuration(Item tool) const
     if(hardness == 0)
         return hardness;
     float baseSpeed = 1.5f * hardness;
-    const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
+    const Items::builtin::tools::Tool *toolDescriptor =
+        dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
     if(!isMatchingTool(tool))
         return baseSpeed * 10.0f / 3.0f;
     if(!isHelpingToolKind(tool))
@@ -194,7 +224,8 @@ bool BlockDescriptor::isMatchingTool(Item tool) const
     if(!isHelpingToolKind(tool))
         return getToolLevel() <= ToolLevel_None;
     ToolLevel toolLevel = ToolLevel_None;
-    const Items::builtin::tools::Tool *toolDescriptor = dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
+    const Items::builtin::tools::Tool *toolDescriptor =
+        dynamic_cast<const Items::builtin::tools::Tool *>(tool.descriptor);
     if(toolDescriptor != nullptr)
         toolLevel = toolDescriptor->getToolLevel();
     return getToolLevel() <= toolLevel;
@@ -205,13 +236,17 @@ void BlockDescriptor::handleToolDamage(Item &tool) const
     tool = Items::builtin::tools::Tool::incrementDamage(tool, this);
 }
 
-RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager, bool senseWeakInputThroughBlock)
+RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBlockFace,
+                                                        BlockIterator blockIterator,
+                                                        WorldLockManager &lock_manager,
+                                                        bool senseWeakInputThroughBlock)
 {
     blockIterator.moveToward(inputThroughBlockFace, lock_manager);
     Block b = blockIterator.get(lock_manager);
     if(!b.good())
         return RedstoneSignal();
-    RedstoneSignal retval = b.descriptor->getRedstoneSignal(getOppositeBlockFace(inputThroughBlockFace));
+    RedstoneSignal retval =
+        b.descriptor->getRedstoneSignal(getOppositeBlockFace(inputThroughBlockFace));
     if(b.descriptor->canTransmitRedstoneSignal())
     {
         for(BlockFace bf : enum_traits<BlockFace>())
@@ -238,7 +273,10 @@ RedstoneSignal BlockDescriptor::calculateRedstoneSignal(BlockFace inputThroughBl
     return retval;
 }
 
-void BlockDescriptor::addRedstoneBlockUpdates(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned distance)
+void BlockDescriptor::addRedstoneBlockUpdates(World &world,
+                                              BlockIterator blockIterator,
+                                              WorldLockManager &lock_manager,
+                                              unsigned distance)
 {
     int distanceI = distance;
     for(VectorI delta = VectorI(-distanceI); delta.x <= distanceI; delta.x++)
@@ -251,7 +289,10 @@ void BlockDescriptor::addRedstoneBlockUpdates(World &world, BlockIterator blockI
             {
                 BlockIterator bi = blockIterator;
                 bi.moveBy(delta, lock_manager);
-                world.addBlockUpdate(bi, lock_manager, BlockUpdateKind::Redstone, BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
+                world.addBlockUpdate(bi,
+                                     lock_manager,
+                                     BlockUpdateKind::Redstone,
+                                     BlockUpdateKindDefaultPeriod(BlockUpdateKind::Redstone));
             }
         }
     }
@@ -267,8 +308,7 @@ struct StreamBlockDescriptors final
     std::unordered_map<BlockDescriptorPointer, Descriptor> blockDescriptorPointerToDescriptorMap;
     std::size_t descriptorCount = 0;
     StreamBlockDescriptors()
-        : descriptorToBlockDescriptorPointerMap(),
-        blockDescriptorPointerToDescriptorMap()
+        : descriptorToBlockDescriptorPointerMap(), blockDescriptorPointerToDescriptorMap()
     {
     }
     static StreamBlockDescriptors &get(stream::Stream &stream)
@@ -276,7 +316,8 @@ struct StreamBlockDescriptors final
         struct tag_t
         {
         };
-        std::shared_ptr<StreamBlockDescriptors> retval = stream.getAssociatedValue<StreamBlockDescriptors, tag_t>();
+        std::shared_ptr<StreamBlockDescriptors> retval =
+            stream.getAssociatedValue<StreamBlockDescriptors, tag_t>();
         if(retval)
             return *retval;
         retval = std::make_shared<StreamBlockDescriptors>();
@@ -289,7 +330,8 @@ struct StreamBlockDescriptors final
         Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
         if(upperLimit != me.descriptorCount + 1)
             upperLimit = static_cast<Descriptor>(me.descriptorCount);
-        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        Descriptor descriptor =
+            stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
         if(descriptor == NullDescriptor)
             return nullptr;
         if(descriptor <= me.descriptorCount)
@@ -363,6 +405,7 @@ size_t hash<programmerjake::voxels::Block>::operator()(const programmerjake::vox
         return 0;
     }
 
-    return std::hash<programmerjake::voxels::BlockDescriptorPointer>()(b.descriptor) + b.descriptor->hashData(b.data);
+    return std::hash<programmerjake::voxels::BlockDescriptorPointer>()(b.descriptor)
+           + b.descriptor->hashData(b.data);
 }
 }

@@ -76,11 +76,10 @@ struct BlockEffects final
         : drag(drag), canSwim(canSwim), canClimb(canClimb)
     {
     }
-    BlockEffects(std::nullptr_t = nullptr)
-        : BlockEffects(0.0f)
+    BlockEffects(std::nullptr_t = nullptr) : BlockEffects(0.0f)
     {
     }
-    BlockEffects &operator +=(BlockEffects rt)
+    BlockEffects &operator+=(BlockEffects rt)
     {
         if(rt.canSwim)
             canSwim = true;
@@ -92,7 +91,7 @@ struct BlockEffects final
             drag = rt.drag;
         return *this;
     }
-    BlockEffects operator +(BlockEffects rt) const
+    BlockEffects operator+(BlockEffects rt) const
     {
         return rt += *this;
     }
@@ -101,24 +100,70 @@ struct BlockEffects final
 class BlockDescriptor
 {
     BlockDescriptor(const BlockDescriptor &) = delete;
-    void operator =(const BlockDescriptor &) = delete;
+    void operator=(const BlockDescriptor &) = delete;
+
 private:
     BlockDescriptorIndex bdIndex;
+
 public:
     BlockDescriptorIndex getBlockDescriptorIndex() const
     {
         return bdIndex;
     }
     const std::wstring name;
+
 protected:
-    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isStaticMesh, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY,
-                    bool isFaceBlockedNZ, bool isFaceBlockedPZ, Mesh meshCenter, Mesh meshFaceNX, Mesh meshFacePX, Mesh meshFaceNY, Mesh meshFacePY, Mesh meshFaceNZ, Mesh meshFacePZ, RenderLayer staticRenderLayer);
-    BlockDescriptor(std::wstring name, BlockShape blockShape, LightProperties lightProperties, RayCasting::BlockCollisionMask blockRayCollisionMask, bool isFaceBlockedNX, bool isFaceBlockedPX, bool isFaceBlockedNY, bool isFaceBlockedPY, bool isFaceBlockedNZ,
+    BlockDescriptor(std::wstring name,
+                    BlockShape blockShape,
+                    LightProperties lightProperties,
+                    RayCasting::BlockCollisionMask blockRayCollisionMask,
+                    bool isStaticMesh,
+                    bool isFaceBlockedNX,
+                    bool isFaceBlockedPX,
+                    bool isFaceBlockedNY,
+                    bool isFaceBlockedPY,
+                    bool isFaceBlockedNZ,
+                    bool isFaceBlockedPZ,
+                    Mesh meshCenter,
+                    Mesh meshFaceNX,
+                    Mesh meshFacePX,
+                    Mesh meshFaceNY,
+                    Mesh meshFacePY,
+                    Mesh meshFaceNZ,
+                    Mesh meshFacePZ,
+                    RenderLayer staticRenderLayer);
+    BlockDescriptor(std::wstring name,
+                    BlockShape blockShape,
+                    LightProperties lightProperties,
+                    RayCasting::BlockCollisionMask blockRayCollisionMask,
+                    bool isFaceBlockedNX,
+                    bool isFaceBlockedPX,
+                    bool isFaceBlockedNY,
+                    bool isFaceBlockedPY,
+                    bool isFaceBlockedNZ,
                     bool isFaceBlockedPZ)
-        : BlockDescriptor(name, blockShape, lightProperties, blockRayCollisionMask, false, isFaceBlockedNX, isFaceBlockedPX, isFaceBlockedNY, isFaceBlockedPY, isFaceBlockedNZ, isFaceBlockedPZ, Mesh(), Mesh(), Mesh(), Mesh(),
-                          Mesh(), Mesh(), Mesh(), RenderLayer::Opaque)
+        : BlockDescriptor(name,
+                          blockShape,
+                          lightProperties,
+                          blockRayCollisionMask,
+                          false,
+                          isFaceBlockedNX,
+                          isFaceBlockedPX,
+                          isFaceBlockedNY,
+                          isFaceBlockedPY,
+                          isFaceBlockedNZ,
+                          isFaceBlockedPZ,
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          Mesh(),
+                          RenderLayer::Opaque)
     {
     }
+
 public:
     virtual ~BlockDescriptor();
     const BlockShape blockShape;
@@ -126,14 +171,22 @@ public:
     const RayCasting::BlockCollisionMask blockRayCollisionMask;
     const bool isStaticMesh;
     enum_array<bool, BlockFace> isFaceBlocked;
+    enum_array<bool, BlockUpdateKind> handledUpdateKinds;
     /** generate dynamic mesh
      the generated mesh is at the absolute position of the block
      */
-    virtual void renderDynamic(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
+    virtual void renderDynamic(const Block &block,
+                               Mesh &dest,
+                               BlockIterator blockIterator,
+                               WorldLockManager &lock_manager,
+                               RenderLayer rl,
+                               const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
     {
         UNREACHABLE(); // base class shouldn't be called
     }
-    virtual bool drawsAnythingDynamic(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual bool drawsAnythingDynamic(const Block &block,
+                                      BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const
     {
         return true;
     }
@@ -165,8 +218,11 @@ public:
             vertex.c = bl.lightVertex(vertex.p + offset, vertex.c, vertex.n);
         }
     }
+
 public:
-    bool drawsAnything(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    bool drawsAnything(const Block &block,
+                       BlockIterator blockIterator,
+                       WorldLockManager &lock_manager) const
     {
         if(isStaticMesh)
         {
@@ -201,7 +257,12 @@ public:
     /** generate mesh
      the generated mesh is at the absolute position of the block
      */
-    void render(const Block &block, Mesh &dest, BlockIterator blockIterator, WorldLockManager &lock_manager, RenderLayer rl, const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
+    void render(const Block &block,
+                Mesh &dest,
+                BlockIterator blockIterator,
+                WorldLockManager &lock_manager,
+                RenderLayer rl,
+                const enum_array<BlockLighting, BlockFaceOrNone> &lighting) const
     {
         if(isStaticMesh)
         {
@@ -253,13 +314,21 @@ public:
             renderDynamic(block, dest, blockIterator, lock_manager, rl, lighting);
         }
     }
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const
     {
     }
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const
     {
     }
-    virtual bool isDataEqual(const BlockDataPointer<BlockData> &a, const BlockDataPointer<BlockData> &b) const
+    virtual bool isDataEqual(const BlockDataPointer<BlockData> &a,
+                             const BlockDataPointer<BlockData> &b) const
     {
         return a == b;
     }
@@ -267,7 +336,11 @@ public:
     {
         return std::hash<BlockData *>()(data.get());
     }
-    virtual RayCasting::Collision getRayCollision(const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, World &world, RayCasting::Ray ray) const
+    virtual RayCasting::Collision getRayCollision(const Block &block,
+                                                  BlockIterator blockIterator,
+                                                  WorldLockManager &lock_manager,
+                                                  World &world,
+                                                  RayCasting::Ray ray) const
     {
         return RayCasting::Collision(world);
     }
@@ -276,15 +349,27 @@ public:
         return Transform::identity();
     }
     virtual void handleToolDamage(Item &tool) const;
-    virtual float getBreakDuration(Item tool) const; /// values less than zero mean that this block won't break
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const = 0;
-    virtual void onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+    virtual float getBreakDuration(
+        Item tool) const; /// values less than zero mean that this block won't break
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const = 0;
+    virtual void onReplace(World &world,
+                           Block b,
+                           BlockIterator bi,
+                           WorldLockManager &lock_manager) const
     {
     }
-    virtual float getHardness() const = 0; /// values less than zero mean that this block won't break
-    virtual bool isHelpingToolKind(Item tool) const = 0; /// if there is not a specific tool for this block then return true to avoid the slowdown factor
+    virtual float getHardness()
+        const = 0; /// values less than zero mean that this block won't break
+    virtual bool isHelpingToolKind(Item tool) const = 0; /// if there is not a specific tool for
+                                                         /// this block then return true to avoid
+                                                         /// the slowdown factor
     virtual ToolLevel getToolLevel() const = 0;
-    virtual bool isMatchingTool(Item tool) const; /// if there is not a specific tool for this block then return true to avoid the slowdown factor
+    virtual bool isMatchingTool(Item tool) const; /// if there is not a specific tool for this block
+                                                  /// then return true to avoid the slowdown factor
     virtual bool isReplaceable() const
     {
         return false;
@@ -298,11 +383,19 @@ public:
         return isReplaceable();
     }
     virtual bool isGroundBlock() const = 0;
-    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    virtual bool onUse(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const
     {
         return false;
     }
-    virtual bool onStartAttack(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+    virtual bool onStartAttack(World &world,
+                               Block b,
+                               BlockIterator bi,
+                               WorldLockManager &lock_manager,
+                               std::shared_ptr<Player> player) const
     {
         return true;
     }
@@ -315,7 +408,12 @@ public:
     {
         return false;
     }
-    virtual void generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+    virtual void generateParticles(World &world,
+                                   Block b,
+                                   BlockIterator bi,
+                                   WorldLockManager &lock_manager,
+                                   double currentTime,
+                                   double deltaTime) const
     {
     }
     virtual bool canTransmitRedstoneSignal() const
@@ -334,15 +432,23 @@ public:
     {
         return RedstoneSignal();
     }
-    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace, BlockIterator blockIterator, WorldLockManager &lock_manager, bool senseWeakInputThroughBlock = true);
-    static void addRedstoneBlockUpdates(World &world, BlockIterator blockIterator, WorldLockManager &lock_manager, unsigned distance = 1);
-    virtual std::wstring getDescription(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    static RedstoneSignal calculateRedstoneSignal(BlockFace inputThroughBlockFace,
+                                                  BlockIterator blockIterator,
+                                                  WorldLockManager &lock_manager,
+                                                  bool senseWeakInputThroughBlock = true);
+    static void addRedstoneBlockUpdates(World &world,
+                                        BlockIterator blockIterator,
+                                        WorldLockManager &lock_manager,
+                                        unsigned distance = 1);
+    virtual std::wstring getDescription(BlockIterator blockIterator,
+                                        WorldLockManager &lock_manager) const
     {
         return name;
     }
     virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const = 0;
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const = 0;
-    virtual BlockShape getEffectShape(BlockIterator blockIterator, WorldLockManager &lock_manager) const
+    virtual BlockShape getEffectShape(BlockIterator blockIterator,
+                                      WorldLockManager &lock_manager) const
     {
         return BlockShape(nullptr);
     }
@@ -361,16 +467,18 @@ namespace voxels
 class BlockDescriptors_t final
 {
     friend class BlockDescriptor;
+
 private:
     typedef linked_map<std::wstring, BlockDescriptorPointer> MapType;
     static MapType *blocksMap;
     void add(BlockDescriptorPointer bd) const;
     void remove(BlockDescriptorPointer bd) const;
+
 public:
     constexpr BlockDescriptors_t() noexcept
     {
     }
-    BlockDescriptorPointer operator [](std::wstring name) const
+    BlockDescriptorPointer operator[](std::wstring name) const
     {
         if(blocksMap == nullptr)
         {
@@ -388,7 +496,7 @@ public:
     }
     BlockDescriptorPointer at(std::wstring name) const
     {
-        BlockDescriptorPointer retval = operator [](name);
+        BlockDescriptorPointer retval = operator[](name);
 
         if(retval == nullptr)
         {
@@ -397,24 +505,24 @@ public:
 
         return retval;
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
-    class iterator final : public std::iterator<std::forward_iterator_tag, const BlockDescriptorPointer>
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    class iterator final
+        : public std::iterator<std::forward_iterator_tag, const BlockDescriptorPointer>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class BlockDescriptors_t;
         MapType::const_iterator iter;
         bool empty;
-        explicit iterator(MapType::const_iterator iter)
-            : iter(iter), empty(false)
+        explicit iterator(MapType::const_iterator iter) : iter(iter), empty(false)
         {
         }
+
     public:
-        iterator()
-            : iter(), empty(true)
+        iterator() : iter(), empty(true)
         {
         }
-        bool operator ==(const iterator &r) const
+        bool operator==(const iterator &r) const
         {
             if(empty)
             {
@@ -428,20 +536,20 @@ GCC_PRAGMA(diagnostic pop)
 
             return iter == r.iter;
         }
-        bool operator !=(const iterator &r) const
+        bool operator!=(const iterator &r) const
         {
-            return !operator ==(r);
+            return !operator==(r);
         }
-        const BlockDescriptorPointer &operator *() const
+        const BlockDescriptorPointer &operator*() const
         {
             return std::get<1>(*iter);
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             ++iter;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             return iterator(iter++);
         }

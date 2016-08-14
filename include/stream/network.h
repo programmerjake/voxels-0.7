@@ -31,20 +31,17 @@ namespace voxels
 {
 namespace stream
 {
-
 class NetworkException : public IOException
 {
 public:
-    explicit NetworkException(std::string msg)
-        : IOException(msg)
+    explicit NetworkException(std::string msg) : IOException(msg)
     {
     }
 };
 
 struct NetworkDisconnectedException final : public NetworkException
 {
-    NetworkDisconnectedException()
-        : NetworkException("network disconnected")
+    NetworkDisconnectedException() : NetworkException("network disconnected")
     {
     }
 };
@@ -271,7 +268,7 @@ public:
     const SSLCertificateValidationError errorCode;
     explicit SSLCertificateValidationException(SSLCertificateValidationError errorCode)
         : NetworkException("SSL Certificate Validation Error: " + toMessage(errorCode)),
-        errorCode(errorCode)
+          errorCode(errorCode)
     {
     }
 };
@@ -280,7 +277,11 @@ namespace Network
 {
 std::shared_ptr<StreamRW> makeTCPConnection(std::wstring address, std::uint16_t defaultPort);
 std::shared_ptr<StreamServer> makeTCPServer(std::uint16_t listenPort);
-std::shared_ptr<StreamRW> makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn = nullptr);
+std::shared_ptr<StreamRW> makeSSLConnection(
+    std::wstring address,
+    std::uint16_t defaultPort,
+    std::function<void(SSLCertificateValidationError errorCode)>
+        handleCertificateValidationErrorFn = nullptr);
 /**
  * @param listenPort the TCP port number to listen on
  * @param certificateFile the certificate file name
@@ -290,10 +291,11 @@ std::shared_ptr<StreamRW> makeSSLConnection(std::wstring address, std::uint16_t 
  * The function should throw when it can't return the password.
  * @return the new StreamServer
  */
-std::shared_ptr<StreamServer> makeSSLServer(std::uint16_t listenPort,
-                                            std::wstring certificateFile,
-                                            std::wstring privateKeyFile,
-                                            std::function<std::wstring()> getDecryptionPasswordFn = nullptr);
+std::shared_ptr<StreamServer> makeSSLServer(
+    std::uint16_t listenPort,
+    std::wstring certificateFile,
+    std::wstring privateKeyFile,
+    std::function<std::wstring()> getDecryptionPasswordFn = nullptr);
 }
 }
 }

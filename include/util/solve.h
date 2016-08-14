@@ -29,7 +29,7 @@ namespace programmerjake
 {
 namespace voxels
 {
-inline int solveLinear(float a/*constant*/, float b/*linear*/, float retval[1])
+inline int solveLinear(float a /*constant*/, float b /*linear*/, float retval[1])
 {
     retval[0] = 0;
 
@@ -42,7 +42,10 @@ inline int solveLinear(float a/*constant*/, float b/*linear*/, float retval[1])
     return 1;
 }
 
-inline int solveQuadratic(float a/*constant*/, float b/*linear*/, float c/*quadratic*/, float retval[2])
+inline int solveQuadratic(float a /*constant*/,
+                          float b /*linear*/,
+                          float c /*quadratic*/,
+                          float retval[2])
 {
     if(std::abs(c) < eps)
     {
@@ -69,8 +72,11 @@ inline int solveQuadratic(float a/*constant*/, float b/*linear*/, float c/*quadr
     return 2;
 }
 
-inline int solveCubic(float a/*constant*/, float b/*linear*/, float c/*quadratic*/, float d/*cubic*/,
-               float retval[3])
+inline int solveCubic(float a /*constant*/,
+                      float b /*linear*/,
+                      float c /*quadratic*/,
+                      float d /*cubic*/,
+                      float retval[3])
 {
     if(std::abs(d) < eps)
     {

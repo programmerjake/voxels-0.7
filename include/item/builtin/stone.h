@@ -35,8 +35,10 @@ namespace builtin
 class Stone final : public ItemBlock
 {
     friend class global_instance_maker<Stone>;
+
 private:
     Stone();
+
 public:
     static const Stone *pointer()
     {

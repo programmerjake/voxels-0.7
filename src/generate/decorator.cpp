@@ -27,21 +27,26 @@ namespace programmerjake
 namespace voxels
 {
 DecoratorDescriptor::DecoratorDescriptor(std::wstring name, int chunkSearchDistance, float priority)
-    : index(DecoratorDescriptorIndexNone), name(name), chunkSearchDistance(chunkSearchDistance), priority(priority)
+    : index(DecoratorDescriptorIndexNone),
+      name(name),
+      chunkSearchDistance(chunkSearchDistance),
+      priority(priority)
 {
     assert(chunkSearchDistance >= 0);
     DecoratorDescriptors_t::addDescriptor(this);
 }
 
 std::unordered_map<std::wstring, DecoratorDescriptorPointer> *DecoratorDescriptors_t::map = nullptr;
-std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator> *DecoratorDescriptors_t::list = nullptr;
+std::vector<std::multimap<float, DecoratorDescriptorPointer>::const_iterator> *
+    DecoratorDescriptors_t::list = nullptr;
 std::multimap<float, DecoratorDescriptorPointer> *DecoratorDescriptors_t::sortedList = nullptr;
 
 void DecoratorDescriptors_t::addDescriptor(DecoratorDescriptor *descriptor)
 {
     assert(descriptor != nullptr);
     makeMap();
-    if(!std::get<1>(map->insert(std::pair<std::wstring, DecoratorDescriptorPointer>(descriptor->name, descriptor))))
+    if(!std::get<1>(map->insert(
+           std::pair<std::wstring, DecoratorDescriptorPointer>(descriptor->name, descriptor))))
     {
         UNREACHABLE();
     }
@@ -53,6 +58,5 @@ DecoratorDescriptorIndex DecoratorDescriptors_t::getIndex(DecoratorDescriptorPoi
 {
     return descriptor->getIndex();
 }
-
 }
 }

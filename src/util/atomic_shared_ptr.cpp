@@ -62,45 +62,24 @@ std::atomic_flag atomic_shared_ptr_lock29 = ATOMIC_FLAG_INIT;
 std::atomic_flag atomic_shared_ptr_lock30 = ATOMIC_FLAG_INIT;
 std::atomic_flag atomic_shared_ptr_lock31 = ATOMIC_FLAG_INIT;
 std::atomic_flag atomic_shared_ptr_lock32 = ATOMIC_FLAG_INIT;
-std::atomic_flag *atomic_shared_ptr_locks[atomic_shared_ptr_locks_count] =
-{
-    &atomic_shared_ptr_lock01,
-    &atomic_shared_ptr_lock02,
-    &atomic_shared_ptr_lock03,
-    &atomic_shared_ptr_lock04,
-    &atomic_shared_ptr_lock05,
-    &atomic_shared_ptr_lock06,
-    &atomic_shared_ptr_lock07,
-    &atomic_shared_ptr_lock08,
-    &atomic_shared_ptr_lock09,
-    &atomic_shared_ptr_lock10,
-    &atomic_shared_ptr_lock11,
-    &atomic_shared_ptr_lock12,
-    &atomic_shared_ptr_lock13,
-    &atomic_shared_ptr_lock14,
-    &atomic_shared_ptr_lock15,
-    &atomic_shared_ptr_lock16,
-    &atomic_shared_ptr_lock17,
-    &atomic_shared_ptr_lock18,
-    &atomic_shared_ptr_lock19,
-    &atomic_shared_ptr_lock20,
-    &atomic_shared_ptr_lock21,
-    &atomic_shared_ptr_lock22,
-    &atomic_shared_ptr_lock23,
-    &atomic_shared_ptr_lock24,
-    &atomic_shared_ptr_lock25,
-    &atomic_shared_ptr_lock26,
-    &atomic_shared_ptr_lock27,
-    &atomic_shared_ptr_lock28,
-    &atomic_shared_ptr_lock29,
-    &atomic_shared_ptr_lock30,
-    &atomic_shared_ptr_lock31,
-    &atomic_shared_ptr_lock32,
+std::atomic_flag *atomic_shared_ptr_locks[atomic_shared_ptr_locks_count] = {
+    &atomic_shared_ptr_lock01, &atomic_shared_ptr_lock02, &atomic_shared_ptr_lock03,
+    &atomic_shared_ptr_lock04, &atomic_shared_ptr_lock05, &atomic_shared_ptr_lock06,
+    &atomic_shared_ptr_lock07, &atomic_shared_ptr_lock08, &atomic_shared_ptr_lock09,
+    &atomic_shared_ptr_lock10, &atomic_shared_ptr_lock11, &atomic_shared_ptr_lock12,
+    &atomic_shared_ptr_lock13, &atomic_shared_ptr_lock14, &atomic_shared_ptr_lock15,
+    &atomic_shared_ptr_lock16, &atomic_shared_ptr_lock17, &atomic_shared_ptr_lock18,
+    &atomic_shared_ptr_lock19, &atomic_shared_ptr_lock20, &atomic_shared_ptr_lock21,
+    &atomic_shared_ptr_lock22, &atomic_shared_ptr_lock23, &atomic_shared_ptr_lock24,
+    &atomic_shared_ptr_lock25, &atomic_shared_ptr_lock26, &atomic_shared_ptr_lock27,
+    &atomic_shared_ptr_lock28, &atomic_shared_ptr_lock29, &atomic_shared_ptr_lock30,
+    &atomic_shared_ptr_lock31, &atomic_shared_ptr_lock32,
 };
 }
 
 atomic_shared_ptr_mutex_holder::atomic_shared_ptr_mutex_holder(void *theAtomicSharedPtr) noexcept
-    : theLock((void *)atomic_shared_ptr_locks[std::hash<void *>()(theAtomicSharedPtr) & atomic_shared_ptr_locks_mask])
+    : theLock((void *)atomic_shared_ptr_locks[std::hash<void *>()(theAtomicSharedPtr)
+                                              & atomic_shared_ptr_locks_mask])
 {
 }
 

@@ -40,15 +40,16 @@ template <typename T>
 class intrusive_list_members
 {
     intrusive_list_members(const intrusive_list_members &) = delete;
-    const intrusive_list_members &operator =(const intrusive_list_members &) = delete;
+    const intrusive_list_members &operator=(const intrusive_list_members &) = delete;
     template <typename T2, intrusive_list_members<T2> T2::*member>
     friend class intrusive_list;
+
 private:
     T *next;
     T *prev;
+
 public:
-    constexpr intrusive_list_members()
-        : next(nullptr), prev(nullptr)
+    constexpr intrusive_list_members() : next(nullptr), prev(nullptr)
     {
     }
     constexpr bool is_linked() const
@@ -57,7 +58,7 @@ public:
     }
     ~intrusive_list_members()
     {
-//        assert(!is_linked());
+        //        assert(!is_linked());
     }
 };
 template <typename T, intrusive_list_members<T> T::*member>
@@ -71,6 +72,7 @@ public:
     typedef const T &const_reference;
     typedef T *pointer;
     typedef const T *const_pointer;
+
 private:
     std::size_t elementCount;
     std::function<void(T *)> deleter;
@@ -95,9 +97,10 @@ private:
     {
         deleter(node);
     }
+
 public:
     explicit intrusive_list(std::function<void(T *)> deleter)
-        : elementCount(0), deleter(std::move(deleter)), endOfListElement {0}
+        : elementCount(0), deleter(std::move(deleter)), endOfListElement{0}
     {
         if(this->deleter == nullptr)
         {
@@ -124,7 +127,7 @@ public:
         rt.elementCount = 0;
         deleter = rt.deleter;
     }
-    const intrusive_list &operator =(intrusive_list &&rt)
+    const intrusive_list &operator=(intrusive_list &&rt)
     {
         clear();
         (rt.getEndOfListMember()->next->*member).prev = getEndOfListElement();
@@ -157,127 +160,127 @@ public:
     {
         return elementCount == 0;
     }
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class iterator : public std::iterator<std::bidirectional_iterator_tag, T>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
+
     private:
         T *node;
-        constexpr iterator(T *node)
-            : node(node)
+        constexpr iterator(T *node) : node(node)
         {
         }
+
     public:
-        constexpr iterator()
-            : iterator(nullptr)
+        constexpr iterator() : iterator(nullptr)
         {
         }
-        T &operator *() const
+        T &operator*() const
         {
             return *node;
         }
-        T *operator ->() const
+        T *operator->() const
         {
             return node;
         }
-        constexpr bool operator ==(iterator rt) const
+        constexpr bool operator==(iterator rt) const
         {
             return node == rt.node;
         }
-        constexpr bool operator !=(iterator rt) const
+        constexpr bool operator!=(iterator rt) const
         {
             return node != rt.node;
         }
-        const iterator &operator ++()
+        const iterator &operator++()
         {
             node = (node->*member).next;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
-            operator ++();
+            operator++();
             return *this;
         }
-        const iterator &operator --()
+        const iterator &operator--()
         {
             node = (node->*member).prev;
             return *this;
         }
-        iterator operator --(int)
+        iterator operator--(int)
         {
             iterator retval = *this;
-            operator --();
+            operator--();
             return *this;
         }
     };
-GCC_PRAGMA(diagnostic push)
-GCC_PRAGMA(diagnostic ignored "-Weffc++")
+    GCC_PRAGMA(diagnostic push)
+    GCC_PRAGMA(diagnostic ignored "-Weffc++")
     class const_iterator : public std::iterator<std::bidirectional_iterator_tag, const T>
     {
-GCC_PRAGMA(diagnostic pop)
+        GCC_PRAGMA(diagnostic pop)
         friend class intrusive_list;
+
     private:
         const T *node;
-        constexpr const_iterator(const T *node)
-            : node(node)
+        constexpr const_iterator(const T *node) : node(node)
         {
         }
+
     public:
-        constexpr const_iterator()
-            : const_iterator(nullptr)
+        constexpr const_iterator() : const_iterator(nullptr)
         {
         }
         const_iterator(const typename intrusive_list::iterator &rt)
-            : const_iterator(rt.operator ->())
+            : const_iterator(rt.operator->())
         {
         }
-        constexpr const T &operator *() const
+        constexpr const T &operator*() const
         {
             return *node;
         }
-        constexpr const T *operator ->() const
+        constexpr const T *operator->() const
         {
             return node;
         }
-        constexpr bool operator ==(const_iterator rt) const
+        constexpr bool operator==(const_iterator rt) const
         {
             return node == rt.node;
         }
-        constexpr bool operator !=(const_iterator rt) const
+        constexpr bool operator!=(const_iterator rt) const
         {
             return node != rt.node;
         }
-        constexpr bool operator ==(iterator rt) const
+        constexpr bool operator==(iterator rt) const
         {
             return *this == const_iterator(rt);
         }
-        constexpr bool operator !=(iterator rt) const
+        constexpr bool operator!=(iterator rt) const
         {
             return *this != const_iterator(rt);
         }
-        const const_iterator &operator ++()
+        const const_iterator &operator++()
         {
             node = (node->*member).next;
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             const_iterator retval = *this;
-            operator ++();
+            operator++();
             return *this;
         }
-        const const_iterator &operator --()
+        const const_iterator &operator--()
         {
             node = (node->*member).prev;
             return *this;
         }
-        const_iterator operator --(int)
+        const_iterator operator--(int)
         {
             const_iterator retval = *this;
-            operator --();
+            operator--();
             return *this;
         }
     };
@@ -426,7 +429,10 @@ GCC_PRAGMA(diagnostic pop)
     {
         splice(pos, other, it);
     }
-    void splice(const_iterator pos, intrusive_list &other, const_iterator first, const_iterator last)
+    void splice(const_iterator pos,
+                intrusive_list &other,
+                const_iterator first,
+                const_iterator last)
     {
         const_iterator i = first;
         while(i != last)
@@ -437,7 +443,10 @@ GCC_PRAGMA(diagnostic pop)
             i = next;
         }
     }
-    void splice(const_iterator pos, intrusive_list &&other, const_iterator first, const_iterator last)
+    void splice(const_iterator pos,
+                intrusive_list &&other,
+                const_iterator first,
+                const_iterator last)
     {
         splice(pos, other, first, last);
     }

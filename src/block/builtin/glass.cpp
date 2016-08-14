@@ -30,7 +30,8 @@ namespace Blocks
 {
 namespace builtin
 {
-void Glass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Glass::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     FIXME_MESSAGE(add silk touch)
     handleToolDamage(tool);

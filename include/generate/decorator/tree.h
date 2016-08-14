@@ -40,23 +40,30 @@ namespace builtin
 class TreeDecorator : public DecoratorDescriptor
 {
     TreeDecorator(const TreeDecorator &) = delete;
-    TreeDecorator &operator =(const TreeDecorator &) = delete;
+    TreeDecorator &operator=(const TreeDecorator &) = delete;
+
 public:
     const TreeDescriptorPointer treeDescriptor;
     TreeDecorator(TreeDescriptorPointer treeDescriptor)
-        : DecoratorDescriptor(L"builtin.tree(treeDescriptor=" + treeDescriptor->name + L")", 1, 1000), treeDescriptor(treeDescriptor)
+        : DecoratorDescriptor(
+              L"builtin.tree(treeDescriptor=" + treeDescriptor->name + L")", 1, 1000),
+          treeDescriptor(treeDescriptor)
     {
     }
+
 protected:
     class Instance : public DecoratorInstance
     {
         Tree tree;
+
     public:
         Instance(PositionI position, DecoratorDescriptorPointer descriptor, Tree tree)
             : DecoratorInstance(position, descriptor), tree(std::move(tree))
         {
         }
-        virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
+        virtual void generateInChunk(PositionI chunkBasePosition,
+                                     WorldLockManager &lock_manager,
+                                     World &world,
                                      BlocksGenerateArray &blocks) const override
         {
             assert(chunkBasePosition.d == position.d);
@@ -90,11 +97,13 @@ protected:
             {
                 VectorI crpos = setToDirtPosition - chunkBasePosition;
                 Block &b = blocks[crpos.x][crpos.y][crpos.z];
-                if(b.descriptor != dirtDescriptor && dynamic_cast<const Blocks::builtin::DirtBlock *>(b.descriptor) != nullptr)
+                if(b.descriptor != dirtDescriptor
+                   && dynamic_cast<const Blocks::builtin::DirtBlock *>(b.descriptor) != nullptr)
                     b = Block(dirtDescriptor);
             }
         }
     };
+
 public:
     /** @brief create a DecoratorInstance for this decorator in a chunk
      *
@@ -105,14 +114,20 @@ public:
      * @param chunkBaseIterator a BlockIterator to chunkBasePosition
      * @param blocks the blocks for this chunk
      * @param randomSource the RandomSource
-     * @param generateNumber a number that is different for each decorator in a chunk (use for picking a different position each time)
+     * @param generateNumber a number that is different for each decorator in a chunk (use for
+     *picking a different position each time)
      * @return the new DecoratorInstance or nullptr
      *
      */
-    virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
-                                 WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const BlocksGenerateArray &blocks,
-                                 RandomSource &randomSource, std::uint32_t generateNumber) const override
+    virtual std::shared_ptr<const DecoratorInstance> createInstance(
+        PositionI chunkBasePosition,
+        PositionI columnBasePosition,
+        PositionI surfacePosition,
+        WorldLockManager &lock_manager,
+        BlockIterator chunkBaseIterator,
+        const BlocksGenerateArray &blocks,
+        RandomSource &randomSource,
+        std::uint32_t generateNumber) const override
     {
         VectorI surfaceRPos = surfacePosition - chunkBasePosition;
         Block groundBlock = blocks[surfaceRPos.x][surfaceRPos.y][surfaceRPos.z];
@@ -121,7 +136,8 @@ public:
             return nullptr;
         if(aboveGroundBlock.descriptor != Blocks::builtin::Air::descriptor())
             return nullptr;
-        return std::make_shared<Instance>(surfacePosition + VectorI(0, 1, 0), this, treeDescriptor->generateTree(generateNumber));
+        return std::make_shared<Instance>(
+            surfacePosition + VectorI(0, 1, 0), this, treeDescriptor->generateTree(generateNumber));
     }
     virtual float getChunkDecoratorCount(BiomeDescriptorPointer biome) const
     {

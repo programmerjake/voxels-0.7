@@ -27,7 +27,6 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 enum class ThreeStateBool : std::uint8_t
 {
     False = 0, // must be 0 so casting to and from bool is false
@@ -92,7 +91,6 @@ inline ThreeStateBool invert(ThreeStateBool v)
         return ThreeStateBool::Unknown;
     }
 }
-
 }
 }
 

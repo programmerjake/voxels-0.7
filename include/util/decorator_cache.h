@@ -40,8 +40,7 @@ private:
     {
         PositionI position;
         DecoratorDescriptorPointer descriptor;
-        ChunkKey()
-            : position(), descriptor(nullptr)
+        ChunkKey() : position(), descriptor(nullptr)
         {
         }
         ChunkKey(PositionI position, DecoratorDescriptorPointer descriptor)
@@ -64,7 +63,8 @@ private:
     {
         std::size_t operator()(const ChunkKey &v) const
         {
-            return std::hash<PositionI>()(v.position) + std::hash<DecoratorDescriptorPointer>()(v.descriptor);
+            return std::hash<PositionI>()(v.position)
+                   + std::hash<DecoratorDescriptorPointer>()(v.descriptor);
         }
     };
     struct Chunk final
@@ -73,10 +73,7 @@ private:
         std::vector<std::shared_ptr<const DecoratorInstance>> decorators;
         bool empty = true;
         std::list<ChunkKey>::iterator chunksListIterator;
-        Chunk()
-            : key(),
-            decorators(),
-            chunksListIterator()
+        Chunk() : key(), decorators(), chunksListIterator()
         {
         }
     };
@@ -105,18 +102,19 @@ private:
         }
         return retval;
     }
+
 public:
-    DecoratorCache()
-        : chunks(),
-        chunksList()
+    DecoratorCache() : chunks(), chunksList()
     {
     }
     class InstanceRange final
     {
     public:
         typedef std::vector<std::shared_ptr<const DecoratorInstance>>::const_iterator iterator;
+
     private:
         iterator beginValue, endValue;
+
     public:
         InstanceRange(iterator beginValue, iterator endValue)
             : beginValue(beginValue), endValue(endValue)
@@ -131,13 +129,17 @@ public:
             return endValue;
         }
     };
-    std::pair<InstanceRange, bool> getChunkInstances(PositionI chunkBasePosition, DecoratorDescriptorPointer descriptor)
+    std::pair<InstanceRange, bool> getChunkInstances(PositionI chunkBasePosition,
+                                                     DecoratorDescriptorPointer descriptor)
     {
         assert(descriptor != nullptr);
         Chunk &c = getChunk(ChunkKey(chunkBasePosition, descriptor));
-        return std::pair<InstanceRange, bool>(InstanceRange(c.decorators.begin(), c.decorators.end()), !c.empty);
+        return std::pair<InstanceRange, bool>(
+            InstanceRange(c.decorators.begin(), c.decorators.end()), !c.empty);
     }
-    void setChunkInstances(PositionI chunkBasePosition, DecoratorDescriptorPointer descriptor, std::vector<std::shared_ptr<const DecoratorInstance>> newDecorators)
+    void setChunkInstances(PositionI chunkBasePosition,
+                           DecoratorDescriptorPointer descriptor,
+                           std::vector<std::shared_ptr<const DecoratorInstance>> newDecorators)
     {
         assert(descriptor != nullptr);
         Chunk &c = getChunk(ChunkKey(chunkBasePosition, descriptor));

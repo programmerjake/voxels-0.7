@@ -39,7 +39,7 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
 class Element : public EventHandler, public std::enable_shared_from_this<Element>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
 public:
     Element(float minX, float maxX, float minY, float maxY);
     virtual ~Element();
@@ -203,6 +203,7 @@ public:
     virtual void handleFocusChange(bool gettingFocus)
     {
     }
+
 protected:
     /**
      * @brief render this element
@@ -212,6 +213,7 @@ protected:
      * @param hasFocus if this element currently has focus
      */
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) = 0;
+
 private:
     friend class Container; // so Container can set parent
     std::weak_ptr<Container> parent;

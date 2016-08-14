@@ -61,20 +61,23 @@ private:
     static const BlockDescriptor **blockDescriptorTable;
     static std::size_t blockDescriptorTableSize, blockDescriptorTableAllocated;
     friend class BlockDescriptor;
-    explicit BlockDescriptorIndex(std::uint16_t index)
-        : index(index)
+    explicit BlockDescriptorIndex(std::uint16_t index) : index(index)
     {
     }
-    static BlockDescriptorIndex addNewDescriptor(const BlockDescriptor *bd) // should only be called before any threads other than the main thread are started
+    static BlockDescriptorIndex addNewDescriptor(const BlockDescriptor *bd) // should only be called
+                                                                            // before any threads
+                                                                            // other than the main
+                                                                            // thread are started
     {
         assert(bd != nullptr);
         if(blockDescriptorTableSize >= blockDescriptorTableAllocated)
         {
             blockDescriptorTableAllocated += 1024;
-            const BlockDescriptor **newTable = new const BlockDescriptor *[blockDescriptorTableAllocated];
+            const BlockDescriptor **newTable =
+                new const BlockDescriptor *[blockDescriptorTableAllocated];
             for(std::size_t i = 0; i < blockDescriptorTableSize; i++)
                 newTable[i] = blockDescriptorTable[i];
-            delete []blockDescriptorTable;
+            delete[] blockDescriptorTable;
             blockDescriptorTable = newTable;
         }
         std::size_t index = blockDescriptorTableSize++;
@@ -85,6 +88,7 @@ private:
         blockDescriptorTable[index] = bd;
         return make(static_cast<std::uint16_t>(index));
     }
+
 public:
     static BlockDescriptorIndex make(std::uint16_t index)
     {
@@ -92,13 +96,11 @@ public:
         return BlockDescriptorIndex(index);
     }
     std::uint16_t index;
-    constexpr BlockDescriptorIndex()
-        : index(NullIndex)
+    constexpr BlockDescriptorIndex() : index(NullIndex)
     {
     }
     static constexpr std::uint16_t NullIndex = ~static_cast<std::uint16_t>(0);
-    constexpr BlockDescriptorIndex(std::nullptr_t)
-        : index(NullIndex)
+    constexpr BlockDescriptorIndex(std::nullptr_t) : index(NullIndex)
     {
     }
     BlockDescriptorIndex(BlockDescriptorPointer bd);
@@ -109,12 +111,12 @@ public:
         assert(index < blockDescriptorTableSize);
         return blockDescriptorTable[index];
     }
-    const BlockDescriptor *operator ->() const
+    const BlockDescriptor *operator->() const
     {
         assert(index < blockDescriptorTableSize);
         return blockDescriptorTable[index];
     }
-    const BlockDescriptor &operator *() const
+    const BlockDescriptor &operator*() const
     {
         assert(index < blockDescriptorTableSize);
         return *blockDescriptorTable[index];
@@ -127,47 +129,47 @@ public:
     {
         return index != NullIndex;
     }
-    bool operator !() const
+    bool operator!() const
     {
         return index == NullIndex;
     }
-    friend bool operator ==(std::nullptr_t, BlockDescriptorIndex v)
+    friend bool operator==(std::nullptr_t, BlockDescriptorIndex v)
     {
         return !v;
     }
-    friend bool operator ==(BlockDescriptorIndex v, std::nullptr_t)
+    friend bool operator==(BlockDescriptorIndex v, std::nullptr_t)
     {
         return !v;
     }
-    friend bool operator ==(const BlockDescriptor *a, BlockDescriptorIndex b)
+    friend bool operator==(const BlockDescriptor *a, BlockDescriptorIndex b)
     {
         return a == b.get();
     }
-    friend bool operator ==(BlockDescriptorIndex a, const BlockDescriptor *b)
+    friend bool operator==(BlockDescriptorIndex a, const BlockDescriptor *b)
     {
         return a.get() == b;
     }
-    friend bool operator ==(BlockDescriptorIndex a, BlockDescriptorIndex b)
+    friend bool operator==(BlockDescriptorIndex a, BlockDescriptorIndex b)
     {
         return a.index == b.index;
     }
-    friend bool operator !=(std::nullptr_t, BlockDescriptorIndex v)
+    friend bool operator!=(std::nullptr_t, BlockDescriptorIndex v)
     {
         return static_cast<bool>(v);
     }
-    friend bool operator !=(BlockDescriptorIndex v, std::nullptr_t)
+    friend bool operator!=(BlockDescriptorIndex v, std::nullptr_t)
     {
         return static_cast<bool>(v);
     }
-    friend bool operator !=(const BlockDescriptor *a, BlockDescriptorIndex b)
+    friend bool operator!=(const BlockDescriptor *a, BlockDescriptorIndex b)
     {
         return a != b.get();
     }
-    friend bool operator !=(BlockDescriptorIndex a, const BlockDescriptor *b)
+    friend bool operator!=(BlockDescriptorIndex a, const BlockDescriptor *b)
     {
         return a.get() != b;
     }
-    friend bool operator !=(BlockDescriptorIndex a, BlockDescriptorIndex b)
+    friend bool operator!=(BlockDescriptorIndex a, BlockDescriptorIndex b)
     {
         return a.index != b.index;
     }
@@ -178,18 +180,19 @@ class BlockDataPointerBase;
 struct BlockData
 {
     friend class BlockDataPointerBase;
+
 private:
     std::atomic_uint_fast32_t referenceCount;
+
 public:
-    BlockData()
-        : referenceCount(0)
+    BlockData() : referenceCount(0)
     {
     }
     virtual ~BlockData()
     {
     }
     BlockData(const BlockData &) = delete;
-    const BlockData &operator =(const BlockData &) = delete;
+    const BlockData &operator=(const BlockData &) = delete;
 };
 
 class BlockDataPointerBase
@@ -211,9 +214,9 @@ private:
             }
         }
     }
+
 protected:
-    explicit BlockDataPointerBase(BlockData *ptr)
-        : ptr(ptr)
+    explicit BlockDataPointerBase(BlockData *ptr) : ptr(ptr)
     {
         addRef();
     }
@@ -221,24 +224,22 @@ protected:
     {
         remRef();
     }
-    BlockDataPointerBase(const BlockDataPointerBase &rt)
-        : ptr(rt.ptr)
+    BlockDataPointerBase(const BlockDataPointerBase &rt) : ptr(rt.ptr)
     {
         addRef();
     }
-    BlockDataPointerBase(BlockDataPointerBase &&rt)
-        : ptr(rt.ptr)
+    BlockDataPointerBase(BlockDataPointerBase &&rt) : ptr(rt.ptr)
     {
         rt.ptr = nullptr;
     }
-    const BlockDataPointerBase &operator =(const BlockDataPointerBase &rt)
+    const BlockDataPointerBase &operator=(const BlockDataPointerBase &rt)
     {
         rt.addRef();
         remRef();
         ptr = rt.ptr;
         return *this;
     }
-    const BlockDataPointerBase &operator =(BlockDataPointerBase &&rt)
+    const BlockDataPointerBase &operator=(BlockDataPointerBase &&rt)
     {
         if(rt.ptr == ptr)
             return *this;
@@ -258,62 +259,64 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename T>
 struct BlockDataPointer : public BlockDataPointerBase
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     T *get() const
     {
         return static_cast<T *>(BlockDataPointerBase::get());
     }
-    explicit BlockDataPointer(T *ptr = nullptr)
-        : BlockDataPointerBase(ptr)
+    explicit BlockDataPointer(T *ptr = nullptr) : BlockDataPointerBase(ptr)
     {
     }
-    BlockDataPointer(std::nullptr_t)
-        : BlockDataPointerBase(nullptr)
+    BlockDataPointer(std::nullptr_t) : BlockDataPointerBase(nullptr)
     {
     }
-    template <typename U, typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
     BlockDataPointer(const BlockDataPointer<U> &rt)
         : BlockDataPointerBase(rt)
     {
     }
-    template <typename U, typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
     BlockDataPointer(BlockDataPointer<U> &&rt)
         : BlockDataPointerBase(std::move(rt))
     {
     }
-    template <typename U, typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
-    const BlockDataPointer &operator =(const BlockDataPointer<U> &rt)
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
+    const BlockDataPointer &operator=(const BlockDataPointer<U> &rt)
     {
-        BlockDataPointerBase::operator =(rt);
+        BlockDataPointerBase::operator=(rt);
         return *this;
     }
-    template <typename U, typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
-    const BlockDataPointer &operator =(BlockDataPointer<U> &&rt)
+    template <typename U,
+              typename = typename std::enable_if<std::is_convertible<U *, T *>::value>::type>
+    const BlockDataPointer &operator=(BlockDataPointer<U> &&rt)
     {
-        BlockDataPointerBase::operator =(std::move(rt));
+        BlockDataPointerBase::operator=(std::move(rt));
         return *this;
     }
-    friend bool operator ==(std::nullptr_t, const BlockDataPointer &b)
+    friend bool operator==(std::nullptr_t, const BlockDataPointer &b)
     {
         return nullptr == b.get();
     }
-    friend bool operator ==(const BlockDataPointer &a, std::nullptr_t)
+    friend bool operator==(const BlockDataPointer &a, std::nullptr_t)
     {
         return a.get() == nullptr;
     }
-    friend bool operator !=(std::nullptr_t, const BlockDataPointer &b)
+    friend bool operator!=(std::nullptr_t, const BlockDataPointer &b)
     {
         return nullptr != b.get();
     }
-    friend bool operator !=(const BlockDataPointer &a, std::nullptr_t)
+    friend bool operator!=(const BlockDataPointer &a, std::nullptr_t)
     {
         return a.get() != nullptr;
     }
-    T &operator *() const
+    T &operator*() const
     {
         return *get();
     }
-    T *operator ->() const
+    T *operator->() const
     {
         return get();
     }
@@ -321,20 +324,20 @@ GCC_PRAGMA(diagnostic pop)
     {
         return get() != nullptr;
     }
-    bool operator !() const
+    bool operator!() const
     {
         return get() == nullptr;
     }
 };
 
 template <typename T, typename U>
-inline bool operator ==(const BlockDataPointer<T> &a, const BlockDataPointer<U> &b)
+inline bool operator==(const BlockDataPointer<T> &a, const BlockDataPointer<U> &b)
 {
     return a.get() == b.get();
 }
 
 template <typename T, typename U>
-inline bool operator !=(const BlockDataPointer<T> &a, const BlockDataPointer<U> &b)
+inline bool operator!=(const BlockDataPointer<T> &a, const BlockDataPointer<U> &b)
 {
     return a.get() != b.get();
 }
@@ -362,22 +365,23 @@ struct Block final
     BlockDescriptorPointer descriptor;
     Lighting lighting;
     BlockDataPointer<BlockData> data;
-    Block()
-        : descriptor(nullptr), lighting(), data(nullptr)
+    Block() : descriptor(nullptr), lighting(), data(nullptr)
     {
     }
     Block(BlockDescriptorPointer descriptor, BlockDataPointer<BlockData> data = nullptr)
         : descriptor(descriptor), lighting(), data(data)
     {
     }
-    Block(BlockDescriptorPointer descriptor, Lighting lighting, BlockDataPointer<BlockData> data = nullptr)
+    Block(BlockDescriptorPointer descriptor,
+          Lighting lighting,
+          BlockDataPointer<BlockData> data = nullptr)
         : descriptor(descriptor), lighting(lighting), data(data)
     {
     }
     Block(const Block &rt) = default;
     Block(Block &&rt) = default;
-    Block &operator =(const Block &rt) = default;
-    Block &operator =(Block &&rt) = default;
+    Block &operator=(const Block &rt) = default;
+    Block &operator=(Block &&rt) = default;
     bool good() const
     {
         return descriptor != nullptr;
@@ -386,17 +390,19 @@ struct Block final
     {
         return good();
     }
-    bool operator !() const
+    bool operator!() const
     {
         return !good();
     }
-    bool operator ==(const Block &r) const;
-    bool operator !=(const Block &r) const
+    bool operator==(const Block &r) const;
+    bool operator!=(const Block &r) const
     {
-        return !operator ==(r);
+        return !operator==(r);
     }
     void createNewLighting(Lighting oldLighting);
-    static BlockLighting calcBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, WorldLightingProperties wlp);
+    static BlockLighting calcBlockLighting(BlockIterator bi,
+                                           WorldLockManager &lock_manager,
+                                           WorldLightingProperties wlp);
     static Block read(stream::Reader &reader);
     void write(stream::Writer &writer) const;
 };
@@ -407,10 +413,7 @@ struct PackedBlock final
     PackedLighting lighting;
     BlockDataPointer<BlockData> data;
     explicit PackedBlock(const Block &b);
-    PackedBlock()
-        : descriptor(),
-        lighting(),
-        data()
+    PackedBlock() : descriptor(), lighting(), data()
     {
     }
     explicit operator Block() const
@@ -422,16 +425,13 @@ struct PackedBlock final
 struct BlockShape final
 {
     VectorF offset, extents;
-    BlockShape()
-        : offset(0), extents(-1)
+    BlockShape() : offset(0), extents(-1)
     {
     }
-    BlockShape(std::nullptr_t)
-        : BlockShape()
+    BlockShape(std::nullptr_t) : BlockShape()
     {
     }
-    BlockShape(VectorF offset, VectorF extents)
-        : offset(offset), extents(extents)
+    BlockShape(VectorF offset, VectorF extents) : offset(offset), extents(extents)
     {
         assert(extents.x > 0 && extents.y > 0 && extents.z > 0);
     }

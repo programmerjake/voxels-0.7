@@ -33,8 +33,10 @@ namespace voxels
 class BiomeDescriptor
 {
     friend class BiomeDescriptors_t;
+
 private:
     BiomeIndex index;
+
 public:
     virtual ~BiomeDescriptor() = default;
     BiomeIndex getIndex() const
@@ -51,38 +53,76 @@ public:
     {
         temperature = limit<float>(temperature, 0, 1);
         humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.5f, 0.7f, 0.6f), interpolate(humidity, RGBF(0.75f, 0.7f, 0.33f), RGBF(0.25f, 1.0f, 0.2f)));
+        return interpolate(
+            temperature,
+            RGBF(0.5f, 0.7f, 0.6f),
+            interpolate(humidity, RGBF(0.75f, 0.7f, 0.33f), RGBF(0.25f, 1.0f, 0.2f)));
     }
     static ColorF makeBiomeLeavesColor(float temperature, float humidity)
     {
         temperature = limit<float>(temperature, 0, 1);
         humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.4f, 0.63f, 0.5f), interpolate(humidity, RGBF(0.7f, 0.65f, 0.16f), RGBF(0.1f, 0.8f, 0.0f)));
+        return interpolate(temperature,
+                           RGBF(0.4f, 0.63f, 0.5f),
+                           interpolate(humidity, RGBF(0.7f, 0.65f, 0.16f), RGBF(0.1f, 0.8f, 0.0f)));
     }
     static ColorF makeBiomeWaterColor(float temperature, float humidity)
     {
         temperature = limit<float>(temperature, 0, 1);
         humidity = limit<float>(humidity, 0, 1) * temperature;
-        return interpolate(temperature, RGBF(0.0f, 0.0f, 1.0f), interpolate(humidity, RGBF(0.0f, 0.63f, 0.83f), RGBF(0.0f, 0.9f, 0.75f)));
+        return interpolate(
+            temperature,
+            RGBF(0.0f, 0.0f, 1.0f),
+            interpolate(humidity, RGBF(0.0f, 0.63f, 0.83f), RGBF(0.0f, 0.9f, 0.75f)));
     }
-    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const = 0;
-    virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const = 0;
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const = 0;
+    virtual float getBiomeCorrespondence(float temperature,
+                                         float humidity,
+                                         PositionI pos,
+                                         RandomSource &randomSource) const = 0;
+    virtual float getGroundHeight(PositionI columnBasePosition,
+                                  RandomSource &randomSource) const = 0;
+    virtual void makeGroundColumn(PositionI chunkBasePosition,
+                                  PositionI columnBasePosition,
+                                  BlocksGenerateArray &blocks,
+                                  RandomSource &randomSource,
+                                  int groundHeight) const = 0;
     virtual bool isGoodStartingPosition() const
     {
         return true;
     }
     virtual float getChunkDecoratorCount(DecoratorDescriptorPointer descriptor) const;
+
 protected:
-    BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor);
+    BiomeDescriptor(std::wstring name,
+                    float temperature,
+                    float humidity,
+                    ColorF grassColor,
+                    ColorF leavesColor,
+                    ColorF waterColor);
     BiomeDescriptor(std::wstring name, float temperature, float humidity)
-        : BiomeDescriptor(name, temperature, humidity, makeBiomeGrassColor(temperature, humidity), makeBiomeLeavesColor(temperature, humidity), makeBiomeWaterColor(temperature, humidity))
+        : BiomeDescriptor(name,
+                          temperature,
+                          humidity,
+                          makeBiomeGrassColor(temperature, humidity),
+                          makeBiomeLeavesColor(temperature, humidity),
+                          makeBiomeWaterColor(temperature, humidity))
     {
     }
 };
 
-inline BiomeDescriptor::BiomeDescriptor(std::wstring name, float temperature, float humidity, ColorF grassColor, ColorF leavesColor, ColorF waterColor)
-    : index(), name(name), temperature(temperature), humidity(humidity), grassColor(grassColor), leavesColor(leavesColor), waterColor(waterColor)
+inline BiomeDescriptor::BiomeDescriptor(std::wstring name,
+                                        float temperature,
+                                        float humidity,
+                                        ColorF grassColor,
+                                        ColorF leavesColor,
+                                        ColorF waterColor)
+    : index(),
+      name(name),
+      temperature(temperature),
+      humidity(humidity),
+      grassColor(grassColor),
+      leavesColor(leavesColor),
+      waterColor(waterColor)
 {
     BiomeDescriptors.addBiome(this);
 }

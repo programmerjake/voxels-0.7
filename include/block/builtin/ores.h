@@ -33,10 +33,10 @@ namespace Blocks
 {
 namespace builtin
 {
-
 class CoalOre final : public StoneBlock
 {
     friend class global_instance_maker<CoalOre>;
+
 public:
     static const CoalOre *pointer()
     {
@@ -46,13 +46,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    CoalOre()
-        : StoneBlock(L"builtin.coal_ore", TextureAtlas::CoalOre.td())
+    CoalOre() : StoneBlock(L"builtin.coal_ore", TextureAtlas::CoalOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -61,7 +66,8 @@ public:
     {
         return ToolLevel_Wood;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -73,6 +79,7 @@ public:
 class IronOre final : public StoneBlock
 {
     friend class global_instance_maker<IronOre>;
+
 public:
     static const IronOre *pointer()
     {
@@ -82,13 +89,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    IronOre()
-        : StoneBlock(L"builtin.iron_ore", TextureAtlas::IronOre.td())
+    IronOre() : StoneBlock(L"builtin.iron_ore", TextureAtlas::IronOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -97,7 +109,8 @@ public:
     {
         return ToolLevel_Stone;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -109,6 +122,7 @@ public:
 class GoldOre final : public StoneBlock
 {
     friend class global_instance_maker<GoldOre>;
+
 public:
     static const GoldOre *pointer()
     {
@@ -118,13 +132,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    GoldOre()
-        : StoneBlock(L"builtin.gold_ore", TextureAtlas::GoldOre.td())
+    GoldOre() : StoneBlock(L"builtin.gold_ore", TextureAtlas::GoldOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -133,7 +152,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -145,6 +165,7 @@ public:
 class RedstoneOre final : public StoneBlock
 {
     friend class global_instance_maker<RedstoneOre>;
+
 public:
     static const RedstoneOre *pointer()
     {
@@ -154,15 +175,28 @@ public:
     {
         return pointer();
     }
+
 private:
-    RedstoneOre()
-        : StoneBlock(L"builtin.redstone_ore", TextureAtlas::RedstoneOre.td())
+    RedstoneOre() : StoneBlock(L"builtin.redstone_ore", TextureAtlas::RedstoneOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual bool onStartAttack(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
-    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual bool onStartAttack(World &world,
+                               Block b,
+                               BlockIterator bi,
+                               WorldLockManager &lock_manager,
+                               std::shared_ptr<Player> player) const override;
+    virtual bool onUse(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -171,7 +205,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -183,6 +218,7 @@ public:
 class LitRedstoneOre final : public StoneBlock
 {
     friend class global_instance_maker<LitRedstoneOre>;
+
 public:
     static const LitRedstoneOre *pointer()
     {
@@ -192,14 +228,25 @@ public:
     {
         return pointer();
     }
+
 private:
     LitRedstoneOre()
-        : StoneBlock(L"builtin.lit_redstone_ore", TextureAtlas::ActiveRedstoneOre.td(), LightProperties(Lighting::makeArtificialLighting(9), Lighting::makeMaxLight()))
+        : StoneBlock(L"builtin.lit_redstone_ore",
+                     TextureAtlas::ActiveRedstoneOre.td(),
+                     LightProperties(Lighting::makeArtificialLighting(9), Lighting::makeMaxLight()))
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -208,7 +255,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -220,6 +268,7 @@ public:
 class DiamondOre final : public StoneBlock
 {
     friend class global_instance_maker<DiamondOre>;
+
 public:
     static const DiamondOre *pointer()
     {
@@ -229,13 +278,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    DiamondOre()
-        : StoneBlock(L"builtin.diamond_ore", TextureAtlas::DiamondOre.td())
+    DiamondOre() : StoneBlock(L"builtin.diamond_ore", TextureAtlas::DiamondOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -244,7 +298,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -256,6 +311,7 @@ public:
 class EmeraldOre final : public StoneBlock
 {
     friend class global_instance_maker<EmeraldOre>;
+
 public:
     static const EmeraldOre *pointer()
     {
@@ -265,13 +321,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    EmeraldOre()
-        : StoneBlock(L"builtin.emerald_ore", TextureAtlas::EmeraldOre.td())
+    EmeraldOre() : StoneBlock(L"builtin.emerald_ore", TextureAtlas::EmeraldOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -280,7 +341,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -292,6 +354,7 @@ public:
 class LapisLazuliOre final : public StoneBlock
 {
     friend class global_instance_maker<LapisLazuliOre>;
+
 public:
     static const LapisLazuliOre *pointer()
     {
@@ -301,13 +364,18 @@ public:
     {
         return pointer();
     }
+
 private:
-    LapisLazuliOre()
-        : StoneBlock(L"builtin.lapis_lazuli_ore", TextureAtlas::LapisLazuliOre.td())
+    LapisLazuliOre() : StoneBlock(L"builtin.lapis_lazuli_ore", TextureAtlas::LapisLazuliOre.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
     virtual float getHardness() const override
     {
         return 3.0f;
@@ -316,7 +384,8 @@ public:
     {
         return ToolLevel_Iron;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -324,7 +393,6 @@ public:
         return nullptr;
     }
 };
-
 }
 }
 }

@@ -36,6 +36,7 @@ namespace builtin
 class Grass final : public DirtBlock
 {
     friend class global_instance_maker<Grass>;
+
 public:
     static const Grass *pointer()
     {
@@ -45,25 +46,42 @@ public:
     {
         return pointer();
     }
+
 private:
     Grass()
-        : DirtBlock(L"builtin.grass", true,
-                    TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td(),
-                    TextureAtlas::Dirt.td(), TextureDescriptor(),
-                    TextureAtlas::DirtMask.td(), TextureAtlas::DirtMask.td(),
-                    TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td(),
-                    TextureDescriptor(), TextureAtlas::GrassTop.td(),
-                    TextureAtlas::GrassMask.td(), TextureAtlas::GrassMask.td())
+        : DirtBlock(L"builtin.grass",
+                    true,
+                    TextureAtlas::DirtMask.td(),
+                    TextureAtlas::DirtMask.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureDescriptor(),
+                    TextureAtlas::DirtMask.td(),
+                    TextureAtlas::DirtMask.td(),
+                    TextureAtlas::GrassMask.td(),
+                    TextureAtlas::GrassMask.td(),
+                    TextureDescriptor(),
+                    TextureAtlas::GrassTop.td(),
+                    TextureAtlas::GrassMask.td(),
+                    TextureAtlas::GrassMask.td())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const override;
     virtual float getHardness() const override
     {
         return 0.6f;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override

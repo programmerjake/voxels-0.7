@@ -38,7 +38,13 @@ namespace programmerjake
 {
 namespace voxels
 {
-template <typename BT, typename BiomeT, typename SCT, std::size_t ChunkShiftXV = 4, std::size_t ChunkShiftYV = 8, std::size_t ChunkShiftZV = 4, std::size_t SubchunkShiftXYZV = 3>
+template <typename BT,
+          typename BiomeT,
+          typename SCT,
+          std::size_t ChunkShiftXV = 4,
+          std::size_t ChunkShiftYV = 8,
+          std::size_t ChunkShiftZV = 4,
+          std::size_t SubchunkShiftXYZV = 4>
 struct BasicBlockChunk
 {
     typedef BT BlockType;
@@ -52,7 +58,8 @@ struct BasicBlockChunk
     static constexpr std::int32_t chunkSizeX = static_cast<std::int32_t>(1) << chunkShiftX;
     static constexpr std::int32_t chunkSizeY = static_cast<std::int32_t>(1) << chunkShiftY;
     static constexpr std::int32_t chunkSizeZ = static_cast<std::int32_t>(1) << chunkShiftZ;
-    static constexpr std::int32_t subchunkSizeXYZ = static_cast<std::int32_t>(1) << subchunkShiftXYZ;
+    static constexpr std::int32_t subchunkSizeXYZ = static_cast<std::int32_t>(1)
+                                                    << subchunkShiftXYZ;
     static constexpr std::int32_t subchunkCountX = chunkSizeX / subchunkSizeXYZ;
     static constexpr std::int32_t subchunkCountY = chunkSizeY / subchunkSizeXYZ;
     static constexpr std::int32_t subchunkCountZ = chunkSizeZ / subchunkSizeXYZ;
@@ -63,30 +70,34 @@ struct BasicBlockChunk
     static_assert((chunkSizeX & (chunkSizeX - 1)) == 0, "chunkSizeX must be a power of 2");
     static_assert((chunkSizeY & (chunkSizeY - 1)) == 0, "chunkSizeY must be a power of 2");
     static_assert((chunkSizeZ & (chunkSizeZ - 1)) == 0, "chunkSizeZ must be a power of 2");
-    static_assert((subchunkSizeXYZ & (subchunkSizeXYZ - 1)) == 0, "subchunkSizeXYZ must be a power of 2");
-    static_assert(subchunkSizeXYZ <= chunkSizeX && subchunkSizeXYZ <= chunkSizeY && subchunkSizeXYZ <= chunkSizeZ, "subchunkSizeXYZ must not be bigger than the chunk size");
+    static_assert((subchunkSizeXYZ & (subchunkSizeXYZ - 1)) == 0,
+                  "subchunkSizeXYZ must be a power of 2");
+    static_assert(subchunkSizeXYZ <= chunkSizeX && subchunkSizeXYZ <= chunkSizeY
+                      && subchunkSizeXYZ <= chunkSizeZ,
+                  "subchunkSizeXYZ must not be bigger than the chunk size");
     constexpr BasicBlockChunk(PositionI basePosition)
-        : basePosition(basePosition),
-        biomes(),
-        blocks(),
-        subchunks()
+        : basePosition(basePosition), biomes(), blocks(), subchunks()
     {
     }
     static constexpr PositionI getChunkBasePosition(PositionI pos)
     {
-        return PositionI(pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1), pos.d);
+        return PositionI(
+            pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1), pos.d);
     }
     static constexpr VectorI getChunkBasePosition(VectorI pos)
     {
-        return VectorI(pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1));
+        return VectorI(
+            pos.x & ~(chunkSizeX - 1), pos.y & ~(chunkSizeY - 1), pos.z & ~(chunkSizeZ - 1));
     }
     static constexpr PositionI getChunkRelativePosition(PositionI pos)
     {
-        return PositionI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1), pos.d);
+        return PositionI(
+            pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1), pos.d);
     }
     static constexpr VectorI getChunkRelativePosition(VectorI pos)
     {
-        return VectorI(pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
+        return VectorI(
+            pos.x & (chunkSizeX - 1), pos.y & (chunkSizeY - 1), pos.z & (chunkSizeZ - 1));
     }
     static constexpr std::int32_t getSubchunkBaseAbsolutePosition(std::int32_t v)
     {
@@ -94,23 +105,32 @@ struct BasicBlockChunk
     }
     static constexpr VectorI getSubchunkBaseAbsolutePosition(VectorI pos)
     {
-        return VectorI(getSubchunkBaseAbsolutePosition(pos.x), getSubchunkBaseAbsolutePosition(pos.y), getSubchunkBaseAbsolutePosition(pos.z));
+        return VectorI(getSubchunkBaseAbsolutePosition(pos.x),
+                       getSubchunkBaseAbsolutePosition(pos.y),
+                       getSubchunkBaseAbsolutePosition(pos.z));
     }
     static constexpr PositionI getSubchunkBaseAbsolutePosition(PositionI pos)
     {
-        return PositionI(getSubchunkBaseAbsolutePosition(pos.x), getSubchunkBaseAbsolutePosition(pos.y), getSubchunkBaseAbsolutePosition(pos.z), pos.d);
+        return PositionI(getSubchunkBaseAbsolutePosition(pos.x),
+                         getSubchunkBaseAbsolutePosition(pos.y),
+                         getSubchunkBaseAbsolutePosition(pos.z),
+                         pos.d);
     }
     static constexpr VectorI getSubchunkBaseRelativePosition(VectorI pos)
     {
-        return VectorI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)), pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)), pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)));
+        return VectorI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)),
+                       pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)),
+                       pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)));
     }
     static constexpr VectorI getSubchunkIndexFromChunkRelativePosition(VectorI pos)
     {
-        return VectorI(pos.x >> subchunkShiftXYZ, pos.y >> subchunkShiftXYZ, pos.z >> subchunkShiftXYZ);
+        return VectorI(
+            pos.x >> subchunkShiftXYZ, pos.y >> subchunkShiftXYZ, pos.z >> subchunkShiftXYZ);
     }
     static constexpr VectorI getChunkRelativePositionFromSubchunkIndex(VectorI pos)
     {
-        return VectorI(pos.x << subchunkShiftXYZ, pos.y << subchunkShiftXYZ, pos.z << subchunkShiftXYZ);
+        return VectorI(
+            pos.x << subchunkShiftXYZ, pos.y << subchunkShiftXYZ, pos.z << subchunkShiftXYZ);
     }
     static constexpr VectorI getSubchunkIndexFromPosition(VectorI pos)
     {
@@ -118,7 +138,10 @@ struct BasicBlockChunk
     }
     static constexpr PositionI getSubchunkBaseRelativePosition(PositionI pos)
     {
-        return PositionI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)), pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)), pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)), pos.d);
+        return PositionI(pos.x & ((chunkSizeX - 1) & ~(subchunkSizeXYZ - 1)),
+                         pos.y & ((chunkSizeY - 1) & ~(subchunkSizeXYZ - 1)),
+                         pos.z & ((chunkSizeZ - 1) & ~(subchunkSizeXYZ - 1)),
+                         pos.d);
     }
     static constexpr std::int32_t getSubchunkRelativePosition(std::int32_t v)
     {
@@ -126,11 +149,16 @@ struct BasicBlockChunk
     }
     static constexpr VectorI getSubchunkRelativePosition(VectorI pos)
     {
-        return VectorI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z));
+        return VectorI(getSubchunkRelativePosition(pos.x),
+                       getSubchunkRelativePosition(pos.y),
+                       getSubchunkRelativePosition(pos.z));
     }
     static constexpr PositionI getSubchunkRelativePosition(PositionI pos)
     {
-        return PositionI(getSubchunkRelativePosition(pos.x), getSubchunkRelativePosition(pos.y), getSubchunkRelativePosition(pos.z), pos.d);
+        return PositionI(getSubchunkRelativePosition(pos.x),
+                         getSubchunkRelativePosition(pos.y),
+                         getSubchunkRelativePosition(pos.z),
+                         pos.d);
     }
     checked_array<checked_array<BiomeType, chunkSizeZ>, chunkSizeX> biomes;
     class BlocksArray final
@@ -139,7 +167,9 @@ struct BasicBlockChunk
         BlockType blocks[chunkSizeX * chunkSizeY * chunkSizeZ];
         static std::size_t getIndex(std::size_t indexX, std::size_t indexY, std::size_t indexZ)
         {
-            assert(indexX < static_cast<std::size_t>(chunkSizeX) && indexY < static_cast<std::size_t>(chunkSizeY) && indexZ < static_cast<std::size_t>(chunkSizeZ));
+            assert(indexX < static_cast<std::size_t>(chunkSizeX)
+                   && indexY < static_cast<std::size_t>(chunkSizeY)
+                   && indexZ < static_cast<std::size_t>(chunkSizeZ));
             std::size_t subchunkIndexX = indexX / subchunkSizeXYZ;
             std::size_t subchunkIndexY = indexY / subchunkSizeXYZ;
             std::size_t subchunkIndexZ = indexZ / subchunkSizeXYZ;
@@ -154,11 +184,13 @@ struct BasicBlockChunk
             retval = retval * subchunkSizeXYZ + subchunkOffsetZ;
             return retval;
         }
+
     public:
         class IndexHelper1;
         class IndexHelper2 final
         {
             friend class IndexHelper1;
+
         private:
             BlockType *blocks;
             std::size_t indexX;
@@ -167,6 +199,7 @@ struct BasicBlockChunk
                 : blocks(blocks), indexX(indexX), indexY(indexY)
             {
             }
+
         public:
             BlockType &operator[](std::size_t indexZ)
             {
@@ -175,7 +208,7 @@ struct BasicBlockChunk
             BlockType &at(std::size_t index)
             {
                 assert(index < size());
-                return operator [](index);
+                return operator[](index);
             }
             static std::size_t size()
             {
@@ -185,13 +218,14 @@ struct BasicBlockChunk
         class IndexHelper1 final
         {
             friend class BlocksArray;
+
         private:
             BlockType *blocks;
             std::size_t indexX;
-            IndexHelper1(BlockType *blocks, std::size_t indexX)
-                : blocks(blocks), indexX(indexX)
+            IndexHelper1(BlockType *blocks, std::size_t indexX) : blocks(blocks), indexX(indexX)
             {
             }
+
         public:
             IndexHelper2 operator[](std::size_t indexY)
             {
@@ -200,7 +234,7 @@ struct BasicBlockChunk
             IndexHelper2 at(std::size_t index)
             {
                 assert(index < size());
-                return operator [](index);
+                return operator[](index);
             }
             static std::size_t size()
             {
@@ -211,6 +245,7 @@ struct BasicBlockChunk
         class ConstIndexHelper2 final
         {
             friend class ConstIndexHelper1;
+
         private:
             const BlockType *blocks;
             std::size_t indexX;
@@ -219,6 +254,7 @@ struct BasicBlockChunk
                 : blocks(blocks), indexX(indexX), indexY(indexY)
             {
             }
+
         public:
             const BlockType &operator[](std::size_t indexZ)
             {
@@ -227,7 +263,7 @@ struct BasicBlockChunk
             const BlockType &at(std::size_t index)
             {
                 assert(index < size());
-                return operator [](index);
+                return operator[](index);
             }
             static std::size_t size()
             {
@@ -237,6 +273,7 @@ struct BasicBlockChunk
         class ConstIndexHelper1 final
         {
             friend class BlocksArray;
+
         private:
             const BlockType *blocks;
             std::size_t indexX;
@@ -244,6 +281,7 @@ struct BasicBlockChunk
                 : blocks(blocks), indexX(indexX)
             {
             }
+
         public:
             ConstIndexHelper2 operator[](std::size_t indexY)
             {
@@ -252,7 +290,7 @@ struct BasicBlockChunk
             ConstIndexHelper2 at(std::size_t index)
             {
                 assert(index < size());
-                return operator [](index);
+                return operator[](index);
             }
             static std::size_t size()
             {
@@ -270,12 +308,12 @@ struct BasicBlockChunk
         ConstIndexHelper1 at(std::size_t index) const
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         IndexHelper1 at(std::size_t index)
         {
             assert(index < size());
-            return operator [](index);
+            return operator[](index);
         }
         static std::size_t size()
         {
@@ -283,22 +321,27 @@ struct BasicBlockChunk
         }
     };
     BlocksArray blocks;
-    checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>, subchunkCountX> subchunks;
+    checked_array<checked_array<checked_array<SubchunkType, subchunkCountZ>, subchunkCountY>,
+                  subchunkCountX> subchunks;
 };
 
 GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 template <typename BlockChunk>
-class BasicBlockChunkRelativePositionIterator final : public std::iterator<std::forward_iterator_tag, const VectorI>
+class BasicBlockChunkRelativePositionIterator final
+    : public std::iterator<std::forward_iterator_tag, const VectorI>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     VectorI pos;
     VectorI subchunkBasePos;
     VectorI subchunkRelativePos;
-    constexpr BasicBlockChunkRelativePositionIterator(VectorI pos, VectorI subchunkBasePos, VectorI subchunkRelativePos)
+    constexpr BasicBlockChunkRelativePositionIterator(VectorI pos,
+                                                      VectorI subchunkBasePos,
+                                                      VectorI subchunkRelativePos)
         : pos(pos), subchunkBasePos(subchunkBasePos), subchunkRelativePos(subchunkRelativePos)
     {
     }
+
 public:
     constexpr BasicBlockChunkRelativePositionIterator()
     {
@@ -309,25 +352,27 @@ public:
     }
     static constexpr BasicBlockChunkRelativePositionIterator end()
     {
-        return BasicBlockChunkRelativePositionIterator(VectorI(0, 0, BlockChunk::chunkSizeZ), VectorI(0, 0, BlockChunk::chunkSizeZ), VectorI(0));
+        return BasicBlockChunkRelativePositionIterator(VectorI(0, 0, BlockChunk::chunkSizeZ),
+                                                       VectorI(0, 0, BlockChunk::chunkSizeZ),
+                                                       VectorI(0));
     }
-    constexpr bool operator ==(const BasicBlockChunkRelativePositionIterator &rt) const
+    constexpr bool operator==(const BasicBlockChunkRelativePositionIterator &rt) const
     {
         return pos == rt.pos;
     }
-    constexpr bool operator !=(const BasicBlockChunkRelativePositionIterator &rt) const
+    constexpr bool operator!=(const BasicBlockChunkRelativePositionIterator &rt) const
     {
         return pos != rt.pos;
     }
-    constexpr const VectorI &operator *() const
+    constexpr const VectorI &operator*() const
     {
         return pos;
     }
-    constexpr const VectorI *operator ->() const
+    constexpr const VectorI *operator->() const
     {
         return &pos;
     }
-    const BasicBlockChunkRelativePositionIterator &operator ++()
+    const BasicBlockChunkRelativePositionIterator &operator++()
     {
         subchunkRelativePos.x++;
         if(subchunkRelativePos.x >= BlockChunk::subchunkSizeXYZ)
@@ -358,10 +403,10 @@ public:
         pos = subchunkBasePos + subchunkRelativePos;
         return *this;
     }
-    BasicBlockChunkRelativePositionIterator operator ++(int)
+    BasicBlockChunkRelativePositionIterator operator++(int)
     {
         BasicBlockChunkRelativePositionIterator retval = *this;
-        operator ++();
+        operator++();
         return retval;
     }
 };
@@ -373,11 +418,12 @@ class ChunkMap
 {
 public:
     typedef ChunkType value_type;
+
 private:
     struct Node
     {
         Node(const Node &) = delete;
-        Node &operator =(const Node &) = delete;
+        Node &operator=(const Node &) = delete;
         value_type value;
         Node *hash_next;
         const std::size_t cachedHash;
@@ -452,11 +498,21 @@ private:
         std::shared_ptr<std::vector<std::recursive_mutex>> bucket_locks;
         bool locked;
         iterator_imp(Node *node, std::size_t bucket_index, ChunkMap *parent_map, bool locked)
-            : node(node), bucket_index(bucket_index), bucket_count(parent_map->bucket_count), pbuckets(&parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(locked)
+            : node(node),
+              bucket_index(bucket_index),
+              bucket_count(parent_map->bucket_count),
+              pbuckets(&parent_map->buckets),
+              bucket_locks(parent_map->bucket_locks),
+              locked(locked)
         {
         }
         iterator_imp(ChunkMap *parent_map)
-            : node(nullptr), bucket_index(0), bucket_count(parent_map->bucket_count), pbuckets(&parent_map->buckets), bucket_locks(parent_map->bucket_locks), locked(false)
+            : node(nullptr),
+              bucket_index(0),
+              bucket_count(parent_map->bucket_count),
+              pbuckets(&parent_map->buckets),
+              bucket_locks(parent_map->bucket_locks),
+              locked(false)
         {
             lock(false);
             node = (*pbuckets)[bucket_index];
@@ -478,19 +534,34 @@ private:
             }
         }
         iterator_imp()
-            : node(nullptr), bucket_index(0), bucket_count(0), pbuckets(nullptr), bucket_locks(nullptr), locked(false)
+            : node(nullptr),
+              bucket_index(0),
+              bucket_count(0),
+              pbuckets(nullptr),
+              bucket_locks(nullptr),
+              locked(false)
         {
         }
         iterator_imp(const iterator_imp &rt)
-            : node(rt.node), bucket_index(rt.bucket_index), bucket_count(rt.bucket_count), pbuckets(rt.pbuckets), bucket_locks(rt.bucket_locks), locked(false)
+            : node(rt.node),
+              bucket_index(rt.bucket_index),
+              bucket_count(rt.bucket_count),
+              pbuckets(rt.pbuckets),
+              bucket_locks(rt.bucket_locks),
+              locked(false)
         {
         }
         iterator_imp(iterator_imp &&rt)
-            : node(rt.node), bucket_index(rt.bucket_index), bucket_count(rt.bucket_count), pbuckets(rt.pbuckets), bucket_locks(rt.bucket_locks), locked(rt.locked)
+            : node(rt.node),
+              bucket_index(rt.bucket_index),
+              bucket_count(rt.bucket_count),
+              pbuckets(rt.pbuckets),
+              bucket_locks(rt.bucket_locks),
+              locked(rt.locked)
         {
             rt.locked = false;
         }
-        const iterator_imp &operator =(const iterator_imp &rt)
+        const iterator_imp &operator=(const iterator_imp &rt)
         {
             if(this == &rt)
                 return *this;
@@ -502,7 +573,7 @@ private:
             bucket_locks = rt.bucket_locks;
             return *this;
         }
-        const iterator_imp &operator =(iterator_imp &&rt)
+        const iterator_imp &operator=(iterator_imp &&rt)
         {
             using std::swap;
             swap(node, rt.node);
@@ -546,7 +617,7 @@ private:
             }
             return true;
         }
-        void operator ++()
+        void operator++()
         {
             if(node == nullptr)
                 return;
@@ -569,39 +640,40 @@ private:
                 node = (*pbuckets)[bucket_index];
             }
         }
-        void operator ++(int)
+        void operator++(int)
         {
-            operator ++();
+            operator++();
         }
-        bool operator ==(const iterator_imp &rt) const
+        bool operator==(const iterator_imp &rt) const
         {
             return node == rt.node;
         }
-        bool operator !=(const iterator_imp &rt) const
+        bool operator!=(const iterator_imp &rt) const
         {
-            return !operator ==(rt);
+            return !operator==(rt);
         }
-        value_type &operator *()
+        value_type &operator*()
         {
             lock(true);
             return node->value;
         }
-        value_type *operator ->()
+        value_type *operator->()
         {
             lock(true);
             return &node->value;
         }
     };
+
 public:
     struct const_iterator;
     struct iterator final : public std::iterator<std::forward_iterator_tag, value_type>
     {
         friend class ChunkMap;
         friend struct const_iterator;
+
     private:
         iterator_imp imp;
-        iterator(iterator_imp imp)
-            : imp(std::move(imp))
+        iterator(iterator_imp imp) : imp(std::move(imp))
         {
         }
         Node *get_node()
@@ -612,6 +684,7 @@ public:
         {
             return imp.bucket_index;
         }
+
     public:
         constexpr iterator()
         {
@@ -632,28 +705,28 @@ public:
         {
             return imp.locked;
         }
-        typename ChunkMap::value_type &operator *()
+        typename ChunkMap::value_type &operator*()
         {
             return *imp;
         }
-        typename ChunkMap::value_type *operator ->()
+        typename ChunkMap::value_type *operator->()
         {
-            return &operator *();
+            return &operator*();
         }
-        bool operator ==(const iterator &rt) const
+        bool operator==(const iterator &rt) const
         {
             return imp == rt.imp;
         }
-        bool operator !=(const iterator &rt) const
+        bool operator!=(const iterator &rt) const
         {
             return imp != rt.imp;
         }
-        iterator &operator ++()
+        iterator &operator++()
         {
             ++imp;
             return *this;
         }
-        iterator operator ++(int)
+        iterator operator++(int)
         {
             iterator retval = *this;
             ++imp;
@@ -663,10 +736,10 @@ public:
     struct const_iterator final : public std::iterator<std::forward_iterator_tag, const value_type>
     {
         friend class ChunkMap;
+
     private:
         iterator_imp imp;
-        constexpr const_iterator(iterator_imp imp)
-            : imp(std::move(imp))
+        constexpr const_iterator(iterator_imp imp) : imp(std::move(imp))
         {
         }
         Node *get_node()
@@ -677,16 +750,15 @@ public:
         {
             return imp.bucket_index;
         }
+
     public:
         constexpr const_iterator()
         {
         }
-        constexpr const_iterator(const iterator &rt)
-            : imp(rt.imp)
+        constexpr const_iterator(const iterator &rt) : imp(rt.imp)
         {
         }
-        constexpr const_iterator(iterator &&rt)
-            : imp(std::move(rt.imp))
+        constexpr const_iterator(iterator &&rt) : imp(std::move(rt.imp))
         {
         }
         void lock()
@@ -705,60 +777,58 @@ public:
         {
             return imp.locked;
         }
-        const typename ChunkMap::value_type &operator *()
+        const typename ChunkMap::value_type &operator*()
         {
             return *imp;
         }
-        const typename ChunkMap::value_type *operator ->()
+        const typename ChunkMap::value_type *operator->()
         {
-            return &operator *();
+            return &operator*();
         }
-        friend bool operator ==(const iterator &l, const const_iterator &r)
+        friend bool operator==(const iterator &l, const const_iterator &r)
         {
             return const_iterator(l) == r;
         }
-        friend bool operator !=(const iterator &l, const const_iterator &r)
+        friend bool operator!=(const iterator &l, const const_iterator &r)
         {
             return const_iterator(l) != r;
         }
-        friend bool operator ==(const const_iterator &l, const iterator &r)
+        friend bool operator==(const const_iterator &l, const iterator &r)
         {
             return l == const_iterator(r);
         }
-        friend bool operator !=(const const_iterator &l, const iterator &r)
+        friend bool operator!=(const const_iterator &l, const iterator &r)
         {
             return l != const_iterator(r);
         }
-        friend bool operator ==(const const_iterator &l, const const_iterator &r)
+        friend bool operator==(const const_iterator &l, const const_iterator &r)
         {
             return l.imp == r.imp;
         }
-        friend bool operator !=(const const_iterator &l, const const_iterator &r)
+        friend bool operator!=(const const_iterator &l, const const_iterator &r)
         {
             return l.imp != r.imp;
         }
-        const_iterator &operator ++()
+        const_iterator &operator++()
         {
             ++imp;
             return *this;
         }
-        const_iterator operator ++(int)
+        const_iterator operator++(int)
         {
             iterator retval = *this;
             ++imp;
             return retval;
         }
     };
-    explicit ChunkMap(std::size_t n)
-        : bucket_count(prime_ceiling(n)), buckets(), the_hasher()
+    explicit ChunkMap(std::size_t n) : bucket_count(prime_ceiling(n)), buckets(), the_hasher()
     {
         buckets.resize(bucket_count);
         for(std::size_t i = 0; i < bucket_count; i++)
             buckets[i] = nullptr;
         bucket_locks = std::make_shared<std::vector<std::recursive_mutex>>(bucket_count);
     }
-    explicit ChunkMap()
-        : ChunkMap(8191)
+    explicit ChunkMap() : ChunkMap(8191)
     {
     }
     ChunkMap(const ChunkMap &r, std::size_t bucket_count)
@@ -777,8 +847,7 @@ public:
             buckets[current_hash] = new_node;
         }
     }
-    ChunkMap(const ChunkMap &r)
-        : ChunkMap(r, r.bucket_count)
+    ChunkMap(const ChunkMap &r) : ChunkMap(r, r.bucket_count)
     {
     }
     ~ChunkMap()
@@ -798,7 +867,7 @@ public:
             }
         }
     }
-    const ChunkMap &operator =(const ChunkMap &r)
+    const ChunkMap &operator=(const ChunkMap &r)
     {
         if(bucket_locks == r.bucket_locks)
         {
@@ -836,7 +905,7 @@ public:
         swap(buckets, r.buckets);
         swap(bucket_locks, r.bucket_locks);
     }
-    const ChunkMap &operator =(ChunkMap &&r)
+    const ChunkMap &operator=(ChunkMap &&r)
     {
         swap(r);
         return *this;
@@ -889,7 +958,8 @@ public:
             if(retval->value.basePosition == key)
             {
                 lock_it.release();
-                return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)), false);
+                return std::pair<iterator, bool>(
+                    iterator(iterator_imp(retval, current_hash, this, true)), false);
             }
         }
 
@@ -897,7 +967,8 @@ public:
         retval->hash_next = buckets[current_hash];
         buckets[current_hash] = retval;
         lock_it.release();
-        return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)), true);
+        return std::pair<iterator, bool>(iterator(iterator_imp(retval, current_hash, this, true)),
+                                         true);
     }
     const_iterator find(PositionI key) const
     {
@@ -908,12 +979,13 @@ public:
             if(retval->value.basePosition == key)
             {
                 lock_it.release();
-                return const_iterator(iterator_imp(retval, current_hash, const_cast<ChunkMap *>(this), true));
+                return const_iterator(
+                    iterator_imp(retval, current_hash, const_cast<ChunkMap *>(this), true));
             }
         }
         return cend();
     }
-    value_type &operator [](PositionI key)
+    value_type &operator[](PositionI key)
     {
         std::size_t key_hash = static_cast<std::size_t>(the_hasher(key));
         std::size_t current_hash = key_hash % bucket_count;
@@ -1015,6 +1087,7 @@ public:
     class node_ptr final
     {
         friend class ChunkMap;
+
     private:
         Node *node;
         void reset(Node *newNode)
@@ -1033,17 +1106,15 @@ public:
         {
             return node;
         }
+
     public:
-        constexpr node_ptr()
-            : node(nullptr)
+        constexpr node_ptr() : node(nullptr)
         {
         }
-        constexpr node_ptr(std::nullptr_t)
-            : node(nullptr)
+        constexpr node_ptr(std::nullptr_t) : node(nullptr)
         {
         }
-        node_ptr(node_ptr &&rt)
-            : node(rt.node)
+        node_ptr(node_ptr &&rt) : node(rt.node)
         {
             rt.node = nullptr;
         }
@@ -1051,12 +1122,12 @@ public:
         {
             reset();
         }
-        node_ptr &operator =(node_ptr &&rt)
+        node_ptr &operator=(node_ptr &&rt)
         {
             reset(rt.release());
             return *this;
         }
-        node_ptr &operator =(std::nullptr_t)
+        node_ptr &operator=(std::nullptr_t)
         {
             reset();
             return *this;
@@ -1075,39 +1146,39 @@ public:
         {
             return node != nullptr;
         }
-        bool operator !() const
+        bool operator!() const
         {
             return node == nullptr;
         }
-        typename ChunkMap::value_type &operator *() const
+        typename ChunkMap::value_type &operator*() const
         {
             return node->value;
         }
-        typename ChunkMap::value_type *operator ->() const
+        typename ChunkMap::value_type *operator->() const
         {
             return node->value;
         }
-        friend bool operator ==(std::nullptr_t, const node_ptr &v)
+        friend bool operator==(std::nullptr_t, const node_ptr &v)
         {
             return v.node == nullptr;
         }
-        friend bool operator ==(const node_ptr &v, std::nullptr_t)
+        friend bool operator==(const node_ptr &v, std::nullptr_t)
         {
             return v.node == nullptr;
         }
-        friend bool operator !=(std::nullptr_t, const node_ptr &v)
+        friend bool operator!=(std::nullptr_t, const node_ptr &v)
         {
             return v.node != nullptr;
         }
-        friend bool operator !=(const node_ptr &v, std::nullptr_t)
+        friend bool operator!=(const node_ptr &v, std::nullptr_t)
         {
             return v.node != nullptr;
         }
-        bool operator ==(const node_ptr &rt) const
+        bool operator==(const node_ptr &rt) const
         {
             return node == rt.node;
         }
-        bool operator !=(const node_ptr &rt) const
+        bool operator!=(const node_ptr &rt) const
         {
             return node != rt.node;
         }

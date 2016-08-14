@@ -44,7 +44,7 @@ struct Font final
     bool operator==(const Font &rt) const;
     bool operator!=(const Font &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
 };
 inline Font getDefaultFont()

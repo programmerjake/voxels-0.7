@@ -33,102 +33,143 @@ namespace Blocks
 {
 namespace builtin
 {
-
-void CoalOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void CoalOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Coal::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Coal::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void IronOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void IronOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::IronOre::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::IronOre::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void LapisLazuliOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void LapisLazuliOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
         int dropCount = std::uniform_int_distribution<int>(4, 8)(world.getRandomGenerator());
         for(int i = 0; i < dropCount; i++)
-            ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::LapisLazuli::descriptor())), bi.position() + VectorF(0.5));
+            ItemDescriptor::addToWorld(world,
+                                       lock_manager,
+                                       ItemStack(Item(Items::builtin::LapisLazuli::descriptor())),
+                                       bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void GoldOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void GoldOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::GoldOre::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::GoldOre::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void DiamondOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void DiamondOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Diamond::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Diamond::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void RedstoneOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void RedstoneOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
         int dropCount = std::uniform_int_distribution<int>(4, 5)(world.getRandomGenerator());
         for(int i = 0; i < dropCount; i++)
-            ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), bi.position() + VectorF(0.5));
+            ItemDescriptor::addToWorld(world,
+                                       lock_manager,
+                                       ItemStack(Item(Items::builtin::RedstoneDust::descriptor())),
+                                       bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-bool RedstoneOre::onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+bool RedstoneOre::onUse(World &world,
+                        Block b,
+                        BlockIterator bi,
+                        WorldLockManager &lock_manager,
+                        std::shared_ptr<Player> player) const
 {
     world.setBlock(bi, lock_manager, Block(LitRedstoneOre::descriptor()));
     return StoneBlock::onUse(world, b, bi, lock_manager, player);
 }
 
-bool RedstoneOre::onStartAttack(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+bool RedstoneOre::onStartAttack(World &world,
+                                Block b,
+                                BlockIterator bi,
+                                WorldLockManager &lock_manager,
+                                std::shared_ptr<Player> player) const
 {
     world.setBlock(bi, lock_manager, Block(LitRedstoneOre::descriptor()));
     return true;
 }
 
-void LitRedstoneOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void LitRedstoneOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
         int dropCount = std::uniform_int_distribution<int>(4, 5)(world.getRandomGenerator());
         for(int i = 0; i < dropCount; i++)
-            ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), bi.position() + VectorF(0.5));
+            ItemDescriptor::addToWorld(world,
+                                       lock_manager,
+                                       ItemStack(Item(Items::builtin::RedstoneDust::descriptor())),
+                                       bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void LitRedstoneOre::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+void LitRedstoneOre::randomTick(const Block &block,
+                                World &world,
+                                BlockIterator blockIterator,
+                                WorldLockManager &lock_manager) const
 {
     world.setBlock(blockIterator, lock_manager, Block(RedstoneOre::descriptor()));
 }
 
-void EmeraldOre::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void EmeraldOre::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Emerald::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Emerald::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-
 }
 }
 }

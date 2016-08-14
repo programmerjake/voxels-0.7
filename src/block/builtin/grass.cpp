@@ -30,17 +30,26 @@ namespace Blocks
 {
 namespace builtin
 {
-void Grass::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Grass::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Dirt::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Dirt::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
-void Grass::randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const
+void Grass::randomTick(const Block &block,
+                       World &world,
+                       BlockIterator blockIterator,
+                       WorldLockManager &lock_manager) const
 {
     BlockIterator bi = blockIterator;
     bi.moveBy(VectorI(0, 1, 0), lock_manager);
     Block b = bi.get(lock_manager);
-    if((b.lighting.toFloat(world.getLighting(bi.position().d)) >= 4.0f / 15 || b.lighting.indirectSkylight >= 4) && b.descriptor->lightProperties.isTotallyTransparent())
+    if((b.lighting.toFloat(world.getLighting(bi.position().d)) >= 4.0f / 15
+        || b.lighting.indirectSkylight >= 4)
+       && b.descriptor->lightProperties.isTotallyTransparent())
         return;
     world.setBlock(blockIterator, lock_manager, Block(Dirt::descriptor()));
 }

@@ -48,12 +48,12 @@ namespace Blocks
 {
 namespace builtin
 {
-
 class Furnace final : public FullBlock
 {
     Furnace(const Furnace &) = delete;
-    Furnace &operator =(const Furnace &) = delete;
+    Furnace &operator=(const Furnace &) = delete;
     friend class ui::builtin::FurnaceUi;
+
 private:
     struct FurnaceData final
     {
@@ -64,12 +64,7 @@ private:
         ItemStack fuelStack;
         float burnTimeLeft = 0.0f;
         float currentElapsedSmeltTime = 0.0f;
-        FurnaceData()
-            : hasEntity(false),
-            lock(),
-            outputStack(),
-            inputStack(),
-            fuelStack()
+        FurnaceData() : hasEntity(false), lock(), outputStack(), inputStack(), fuelStack()
         {
         }
         unsigned transferToFuelStack(ItemStack &sourceStack, unsigned transferCount)
@@ -103,7 +98,7 @@ private:
             {
                 fuelStack = temp.item.descriptor->getItemAfterBurnInFurnace();
             }
-            //getDebugLog() << L"consumeFuel" << postnl;
+            // getDebugLog() << L"consumeFuel" << postnl;
             return true;
         }
         bool canProgressSmeltIgnoringFuel()
@@ -139,7 +134,7 @@ private:
             inputStack.remove(inputStack.item);
             if(!inputStack.good())
                 currentElapsedSmeltTime = 0;
-            //getDebugLog() << L"smeltItem" << postnl;
+            // getDebugLog() << L"smeltItem" << postnl;
         }
         static std::shared_ptr<FurnaceData> read(stream::Reader &reader)
         {
@@ -171,15 +166,16 @@ private:
     struct FurnaceBlockData final : BlockData
     {
         std::shared_ptr<FurnaceData> data;
-        FurnaceBlockData(std::shared_ptr<FurnaceData> data)
-            : data(data)
+        FurnaceBlockData(std::shared_ptr<FurnaceData> data) : data(data)
         {
         }
     };
     const Entities::builtin::TileEntity *tileEntity;
     const bool burning;
+
 public:
     const BlockFace facing;
+
 private:
     static TextureDescriptor getFaceTexture(BlockFace facing, bool burning, BlockFace face)
     {
@@ -226,28 +222,52 @@ private:
         return retval;
     }
     Furnace(BlockFace facing, bool burning)
-        : FullBlock(makeName(facing, burning), LightProperties(burning ? Lighting::Lighting::makeArtificialLighting(13) : Lighting(), Lighting::makeMaxLight()), RayCasting::BlockCollisionMaskGround,
-                    true, true, true, true, true, true,
-                    getFaceTexture(facing, burning, BlockFace::NX), getFaceTexture(facing, burning, BlockFace::PX),
-                    getFaceTexture(facing, burning, BlockFace::NY), getFaceTexture(facing, burning, BlockFace::PY),
-                    getFaceTexture(facing, burning, BlockFace::NZ), getFaceTexture(facing, burning, BlockFace::PZ),
-                    RenderLayer::Opaque),
-                    tileEntity(nullptr), burning(burning), facing(facing)
+        : FullBlock(
+              makeName(facing, burning),
+              LightProperties(burning ? Lighting::Lighting::makeArtificialLighting(13) : Lighting(),
+                              Lighting::makeMaxLight()),
+              RayCasting::BlockCollisionMaskGround,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              getFaceTexture(facing, burning, BlockFace::NX),
+              getFaceTexture(facing, burning, BlockFace::PX),
+              getFaceTexture(facing, burning, BlockFace::NY),
+              getFaceTexture(facing, burning, BlockFace::PY),
+              getFaceTexture(facing, burning, BlockFace::NZ),
+              getFaceTexture(facing, burning, BlockFace::PZ),
+              RenderLayer::Opaque),
+          tileEntity(nullptr),
+          burning(burning),
+          facing(facing)
     {
-        tileEntity = new Entities::builtin::TileEntity(this, (Entities::builtin::TileEntity::MoveHandlerType)&Furnace::entityMove, (Entities::builtin::TileEntity::AttachHandlerType)&Furnace::entityAttach);
+        tileEntity = new Entities::builtin::TileEntity(
+            this,
+            (Entities::builtin::TileEntity::MoveHandlerType) & Furnace::entityMove,
+            (Entities::builtin::TileEntity::AttachHandlerType) & Furnace::entityAttach);
+        handledUpdateKinds[BlockUpdateKind::UpdateNotify] = true;
     }
     ~Furnace()
     {
         delete tileEntity;
     }
-    void handleSmelt(std::shared_ptr<FurnaceData> data, std::unique_lock<std::recursive_mutex> &lockIt, World &world, WorldLockManager &lock_manager, double deltaTime, bool hasFuel) const
+    void handleSmelt(std::shared_ptr<FurnaceData> data,
+                     std::unique_lock<std::recursive_mutex> &lockIt,
+                     World &world,
+                     WorldLockManager &lock_manager,
+                     double deltaTime,
+                     bool hasFuel) const
     {
         if(!data->canProgressSmeltIgnoringFuel())
         {
             data->currentElapsedSmeltTime = 0;
             return;
         }
-        //getDebugLog() << L"currentElapsedSmeltTime = " << data->currentElapsedSmeltTime << L", burnTimeLeft = " << data->burnTimeLeft << postnl;
+        // getDebugLog() << L"currentElapsedSmeltTime = " << data->currentElapsedSmeltTime << L",
+        // burnTimeLeft = " << data->burnTimeLeft << postnl;
         if(!hasFuel)
         {
             data->currentElapsedSmeltTime -= static_cast<float>(2 * deltaTime);
@@ -261,7 +281,11 @@ private:
             data->smeltItem();
         }
     }
-    void entityMove(Block b, BlockIterator bi, World &world, WorldLockManager &lock_manager, double deltaTime) const
+    void entityMove(Block b,
+                    BlockIterator bi,
+                    World &world,
+                    WorldLockManager &lock_manager,
+                    double deltaTime) const
     {
         assert(b.data != nullptr);
         std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(b.data.get())->data;
@@ -282,7 +306,8 @@ private:
                     break;
             }
             if(data->burnTimeLeft < deltaTimeLeft)
-                handleSmelt(data, lockIt, world, lock_manager, deltaTimeLeft - data->burnTimeLeft, false);
+                handleSmelt(
+                    data, lockIt, world, lock_manager, deltaTimeLeft - data->burnTimeLeft, false);
         }
         else
         {
@@ -292,10 +317,14 @@ private:
         bool newBurning = (data->burnTimeLeft > 0);
         if(burning != newBurning)
         {
-            world.setBlock(bi, lock_manager, Block(descriptor(facing, newBurning), b.lighting, b.data));
+            world.setBlock(
+                bi, lock_manager, Block(descriptor(facing, newBurning), b.lighting, b.data));
         }
     }
-    std::atomic_bool *entityAttach(Block b, BlockIterator bi, World &world, WorldLockManager &lock_manager) const
+    std::atomic_bool *entityAttach(Block b,
+                                   BlockIterator bi,
+                                   World &world,
+                                   WorldLockManager &lock_manager) const
     {
         assert(b.data != nullptr);
         std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(b.data.get())->data;
@@ -305,8 +334,7 @@ private:
     struct FurnaceMaker final
     {
         enum_array<enum_array<Furnace *, bool>, BlockFace> furnaces;
-        FurnaceMaker()
-            : furnaces()
+        FurnaceMaker() : furnaces()
         {
             for(BlockFace facing : enum_traits<BlockFace>())
             {
@@ -333,6 +361,7 @@ private:
     {
         return pointer(facing, burning);
     }
+
 public:
     static const Furnace *pointer(BlockFace facing = BlockFace::NX)
     {
@@ -346,8 +375,16 @@ public:
     {
         return dynamic_cast<const Items::builtin::tools::Pickaxe *>(tool.descriptor) != nullptr;
     }
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual bool onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual bool onUse(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager,
+                       std::shared_ptr<Player> player) const override;
     virtual float getHardness() const override
     {
         return 3.5f;
@@ -356,20 +393,35 @@ public:
     {
         return ToolLevel_Wood;
     }
-    virtual void tick(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind kind) const override
+    virtual void tick(World &world,
+                      const Block &block,
+                      BlockIterator blockIterator,
+                      WorldLockManager &lock_manager,
+                      BlockUpdateKind kind) const override
     {
-        if(block.data == nullptr)
+        if(kind == BlockUpdateKind::UpdateNotify)
         {
-            world.setBlock(blockIterator, lock_manager, Block(this, block.lighting, BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(std::make_shared<FurnaceData>()))));
-            return;
-        }
-        std::shared_ptr<FurnaceData> data = static_cast<FurnaceBlockData *>(block.data.get())->data;
-        if(tileEntity && !data->hasEntity.exchange(true))
-        {
-            tileEntity->addToWorld(world, lock_manager, blockIterator.position(), block, &data->hasEntity);
+            if(block.data == nullptr)
+            {
+                world.setBlock(blockIterator,
+                               lock_manager,
+                               Block(this,
+                                     block.lighting,
+                                     BlockDataPointer<FurnaceBlockData>(
+                                         new FurnaceBlockData(std::make_shared<FurnaceData>()))));
+                return;
+            }
+            std::shared_ptr<FurnaceData> data =
+                static_cast<FurnaceBlockData *>(block.data.get())->data;
+            if(tileEntity && !data->hasEntity.exchange(true))
+            {
+                tileEntity->addToWorld(
+                    world, lock_manager, blockIterator.position(), block, &data->hasEntity);
+            }
         }
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> blockData) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> blockData) const override
     {
         stream::write<bool>(writer, blockData == nullptr);
         if(blockData == nullptr)
@@ -387,7 +439,6 @@ public:
         return BlockDataPointer<FurnaceBlockData>(new FurnaceBlockData(furnaceData));
     }
 };
-
 }
 }
 }

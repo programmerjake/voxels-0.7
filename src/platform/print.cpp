@@ -100,10 +100,10 @@ private:
                          std::wstring location,
                          bool isOnline,
                          std::shared_ptr<cups_dest_t> dest)
-        : Printer(id, name, type, location, isOnline),
-        dest(dest)
+        : Printer(id, name, type, location, isOnline), dest(dest)
     {
     }
+
 public:
     const std::shared_ptr<cups_dest_t> dest;
     static std::shared_ptr<CUPSPrinter> make(std::shared_ptr<cups_dest_t> dest)
@@ -114,7 +114,8 @@ public:
             id += L"/" + string_cast<std::wstring>(dest->instance);
         std::wstring name = id, type = L"", location = L"";
         bool isOnline = true;
-        for(std::size_t optionIndex = 0; optionIndex < (std::size_t)dest->num_options; optionIndex++)
+        for(std::size_t optionIndex = 0; optionIndex < (std::size_t)dest->num_options;
+            optionIndex++)
         {
             const cups_option_t &option = dest->options[optionIndex];
             if(std::strcmp(option.name, "printer-info") == 0)
@@ -135,7 +136,8 @@ public:
                     isOnline = false;
             }
         }
-        return std::shared_ptr<CUPSPrinter>(new CUPSPrinter(id, name, type, location, isOnline, dest));
+        return std::shared_ptr<CUPSPrinter>(
+            new CUPSPrinter(id, name, type, location, isOnline, dest));
     }
 
     /** print text
@@ -148,11 +150,21 @@ public:
         cups_option_t *options = nullptr;
         int optionCount = 0;
         optionCount = cupsAddOption("attributes-charset", "utf-8", optionCount, &options);
-        int jobId = cupsCreateJob(CUPS_HTTP_DEFAULT, dest->name, string_cast<std::string>(jobName).c_str(), optionCount, options);
+        int jobId = cupsCreateJob(CUPS_HTTP_DEFAULT,
+                                  dest->name,
+                                  string_cast<std::string>(jobName).c_str(),
+                                  optionCount,
+                                  options);
         cupsFreeOptions(optionCount, options);
         if(jobId == 0)
-            throw PrintFailedException(std::string("cupsCreateJob failed: ") + cupsLastErrorString());
-        cupsStartDocument(CUPS_HTTP_DEFAULT, dest->name, jobId, string_cast<std::string>(jobName).c_str(), CUPS_FORMAT_TEXT, 1);
+            throw PrintFailedException(std::string("cupsCreateJob failed: ")
+                                       + cupsLastErrorString());
+        cupsStartDocument(CUPS_HTTP_DEFAULT,
+                          dest->name,
+                          jobId,
+                          string_cast<std::string>(jobName).c_str(),
+                          CUPS_FORMAT_TEXT,
+                          1);
         std::string utf8Text = string_cast<std::string>(text);
         cupsWriteRequestData(CUPS_HTTP_DEFAULT, utf8Text.data(), utf8Text.size());
         cupsFinishDocument(CUPS_HTTP_DEFAULT, dest->name);
@@ -165,16 +177,19 @@ std::vector<std::shared_ptr<Printer>> getPrinterList()
     std::vector<std::shared_ptr<Printer>> retval;
     cups_dest_t *dests = nullptr;
     int destCount = cupsGetDests(&dests);
-    std::shared_ptr<cups_dest_t> destsAsSharedPtr = std::shared_ptr<cups_dest_t>(dests, [destCount](cups_dest_t *dests)
-    {
-        cupsFreeDests(destCount, dests);
-    });
+    std::shared_ptr<cups_dest_t> destsAsSharedPtr =
+        std::shared_ptr<cups_dest_t>(dests,
+                                     [destCount](cups_dest_t *dests)
+                                     {
+                                         cupsFreeDests(destCount, dests);
+                                     });
     retval.reserve((std::size_t)destCount);
     retval.push_back(nullptr); // slot for default printer
     std::shared_ptr<Printer> defaultPrinter = nullptr;
     for(std::size_t destIndex = 0; destIndex < (std::size_t)destCount; destIndex++)
     {
-        std::shared_ptr<cups_dest_t> dest = std::shared_ptr<cups_dest_t>(destsAsSharedPtr, &dests[destIndex]);
+        std::shared_ptr<cups_dest_t> dest =
+            std::shared_ptr<cups_dest_t>(destsAsSharedPtr, &dests[destIndex]);
         std::shared_ptr<Printer> printer = CUPSPrinter::make(dest);
         if(dest->is_default && defaultPrinter == nullptr) // in case cups returns multiple defaults
         {

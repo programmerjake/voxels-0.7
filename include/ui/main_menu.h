@@ -37,7 +37,8 @@ private:
     {
     public:
         BackgroundElement()
-            : ShadedContainer(-Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY())
+            : ShadedContainer(
+                  -Display::scaleX(), Display::scaleX(), -Display::scaleY(), Display::scaleY())
         {
         }
         virtual void layout() override
@@ -60,6 +61,7 @@ private:
     };
     MenuState menuState = MenuState::MainMenu_;
     bool needChangeMenuState = false;
+
 public:
     virtual void reset() override
     {

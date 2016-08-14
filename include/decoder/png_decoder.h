@@ -33,8 +33,7 @@ namespace voxels
 class PngLoadError final : public stream::IOException
 {
 public:
-    explicit PngLoadError(const std::string & arg)
-        : IOException(arg)
+    explicit PngLoadError(const std::string &arg) : IOException(arg)
     {
     }
 };
@@ -46,24 +45,25 @@ class PngDecoder final
 {
 private:
     unsigned w, h;
-    std::uint8_t * data;
+    std::uint8_t *data;
     PngDecoder(const PngDecoder &) = delete;
-    const PngDecoder &operator =(const PngDecoder &) = delete;
+    const PngDecoder &operator=(const PngDecoder &) = delete;
+
 public:
-    explicit PngDecoder(stream::Reader & reader);
-    PngDecoder(PngDecoder && rt)
-        : w(rt.w), h(rt.h), data(rt.data)
+    explicit PngDecoder(stream::Reader &reader);
+    PngDecoder(PngDecoder &&rt) : w(rt.w), h(rt.h), data(rt.data)
     {
         rt.data = nullptr;
     }
     ~PngDecoder()
     {
-        delete []data;
+        delete[] data;
     }
     uint8_t operator()(int x, int y, int byteNum) const
     {
         if(x < 0 || (unsigned)x >= w || y < 0 || (unsigned)y >= h || byteNum < 0 || byteNum >= 4)
-            throw std::range_error("index out of range in PngDecoder::operator()(int x, int y, int byteNum) const");
+            throw std::range_error(
+                "index out of range in PngDecoder::operator()(int x, int y, int byteNum) const");
         std::size_t index = y;
         index *= w;
         index += x;
@@ -79,9 +79,9 @@ public:
     {
         return h;
     }
-    std::uint8_t * removeData()
+    std::uint8_t *removeData()
     {
-        std::uint8_t * retval = data;
+        std::uint8_t *retval = data;
         data = nullptr;
         return retval;
     }

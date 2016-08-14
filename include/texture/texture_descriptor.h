@@ -32,8 +32,7 @@ struct TextureDescriptor
 {
     Image image;
     float minU, maxU, minV, maxV;
-    TextureDescriptor(Image image = Image())
-        : image(image), minU(0), maxU(1), minV(0), maxV(1)
+    TextureDescriptor(Image image = Image()) : image(image), minU(0), maxU(1), minV(0), maxV(1)
     {
     }
     TextureDescriptor(Image image, float minU, float maxU, float minV, float maxV)
@@ -44,11 +43,14 @@ struct TextureDescriptor
     {
         return static_cast<bool>(image);
     }
-    bool operator !() const
+    bool operator!() const
     {
         return !image;
     }
-    TextureDescriptor subTexture(const float minU, const float maxU, const float minV, const float maxV) const
+    TextureDescriptor subTexture(const float minU,
+                                 const float maxU,
+                                 const float minV,
+                                 const float maxV) const
     {
         return TextureDescriptor(image,
                                  interpolate(minU, this->minU, this->maxU),

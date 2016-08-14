@@ -30,7 +30,6 @@ namespace Decorators
 {
 namespace builtin
 {
-
 }
 }
 }

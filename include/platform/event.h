@@ -106,11 +106,12 @@ public:
         DEFINE_ENUM_LIMITS(TouchUp, Resume)
     };
     const Type type;
+
 protected:
-    PlatformEvent(Type type)
-        : type(type)
+    PlatformEvent(Type type) : type(type)
     {
     }
+
 public:
     virtual ~PlatformEvent() = default;
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) = 0;
@@ -123,9 +124,16 @@ public:
     const float deltaX, deltaY;
     const int touchId;
     const float pressure;
+
 protected:
     TouchEvent(Type type, float x, float y, float deltaX, float deltaY, int touchId, float pressure)
-        : PlatformEvent(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY), touchId(touchId), pressure(pressure)
+        : PlatformEvent(type),
+          x(x),
+          y(y),
+          deltaX(deltaX),
+          deltaY(deltaY),
+          touchId(touchId),
+          pressure(pressure)
     {
     }
 };
@@ -171,6 +179,7 @@ class MouseEvent : public PlatformEvent
 public:
     const float x, y;
     const float deltaX, deltaY;
+
 protected:
     MouseEvent(Type type, float x, float y, float deltaX, float deltaY)
         : PlatformEvent(type), x(x), y(y), deltaX(deltaX), deltaY(deltaY)
@@ -183,6 +192,7 @@ class KeyEvent : public PlatformEvent
 public:
     const KeyboardKey key;
     const KeyboardModifiers mods;
+
 protected:
     KeyEvent(Type type, KeyboardKey key, KeyboardModifiers mods)
         : PlatformEvent(type), key(key), mods(mods)
@@ -207,8 +217,7 @@ public:
 class KeyUpEvent : public KeyEvent
 {
 public:
-    KeyUpEvent(KeyboardKey key, KeyboardModifiers mods)
-        : KeyEvent(Type::KeyUp, key, mods)
+    KeyUpEvent(KeyboardKey key, KeyboardModifiers mods) : KeyEvent(Type::KeyUp, key, mods)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -220,8 +229,7 @@ public:
 struct TextInputEvent : public PlatformEvent
 {
     const std::wstring text;
-    TextInputEvent(const std::wstring text)
-        : PlatformEvent(Type::TextInput), text(text)
+    TextInputEvent(const std::wstring text) : PlatformEvent(Type::TextInput), text(text)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -248,6 +256,7 @@ struct TextEditEvent : public PlatformEvent
 struct MouseButtonEvent : public MouseEvent
 {
     const MouseButton button;
+
 protected:
     MouseButtonEvent(Type type, float x, float y, float deltaX, float deltaY, MouseButton button)
         : MouseEvent(type, x, y, deltaX, deltaY), button(button)
@@ -257,7 +266,8 @@ protected:
 
 struct MouseUpEvent : public MouseButtonEvent
 {
-    MouseUpEvent(float x, float y, float deltaX, float deltaY, MouseButton button) : MouseButtonEvent(Type::MouseUp, x, y, deltaX, deltaY, button)
+    MouseUpEvent(float x, float y, float deltaX, float deltaY, MouseButton button)
+        : MouseButtonEvent(Type::MouseUp, x, y, deltaX, deltaY, button)
     {
     }
 
@@ -309,8 +319,7 @@ struct MouseScrollEvent : public PlatformEvent
 
 struct QuitEvent : public PlatformEvent
 {
-    QuitEvent()
-        : PlatformEvent(Type::Quit)
+    QuitEvent() : PlatformEvent(Type::Quit)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -321,8 +330,7 @@ struct QuitEvent : public PlatformEvent
 
 struct PauseEvent : public PlatformEvent
 {
-    PauseEvent()
-        : PlatformEvent(Type::Pause)
+    PauseEvent() : PlatformEvent(Type::Pause)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -333,8 +341,7 @@ struct PauseEvent : public PlatformEvent
 
 struct ResumeEvent : public PlatformEvent
 {
-    ResumeEvent()
-        : PlatformEvent(Type::Resume)
+    ResumeEvent() : PlatformEvent(Type::Resume)
     {
     }
     virtual bool dispatch(std::shared_ptr<EventHandler> eventHandler) override
@@ -347,6 +354,7 @@ class CombinedEventHandler final : public EventHandler
 {
 private:
     std::shared_ptr<EventHandler> first, second;
+
 public:
     CombinedEventHandler(std::shared_ptr<EventHandler> first, std::shared_ptr<EventHandler> second)
         : first(first), second(second)
@@ -406,7 +414,7 @@ public:
 
         return second->handleMouseMove(event);
     }
-    virtual bool handleMouseScroll(MouseScrollEvent &event)override
+    virtual bool handleMouseScroll(MouseScrollEvent &event) override
     {
         if(first->handleMouseScroll(event))
         {
@@ -415,7 +423,7 @@ public:
 
         return second->handleMouseScroll(event);
     }
-    virtual bool handleKeyUp(KeyUpEvent &event)override
+    virtual bool handleKeyUp(KeyUpEvent &event) override
     {
         if(first->handleKeyUp(event))
         {
@@ -424,7 +432,7 @@ public:
 
         return second->handleKeyUp(event);
     }
-    virtual bool handleKeyDown(KeyDownEvent &event)override
+    virtual bool handleKeyDown(KeyDownEvent &event) override
     {
         if(first->handleKeyDown(event))
         {

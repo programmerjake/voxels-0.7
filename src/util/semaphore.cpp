@@ -55,7 +55,8 @@ bool Semaphore::try_lock(std::size_t lockCount)
     {
         if(expected < lockCount)
             return false;
-        if(atomicCount.compare_exchange_strong(expected, expected - lockCount, std::memory_order_acq_rel))
+        if(atomicCount.compare_exchange_strong(
+               expected, expected - lockCount, std::memory_order_acq_rel))
             return true;
     }
     std::unique_lock<std::mutex> lockedState(stateLock, std::try_to_lock);
@@ -79,7 +80,8 @@ void Semaphore::lock(std::size_t lockCount)
     std::size_t expected = atomicCount.load(std::memory_order_relaxed);
     if(expected != 0 && expected >= lockCount)
     {
-        if(atomicCount.compare_exchange_strong(expected, expected - lockCount, std::memory_order_acq_rel))
+        if(atomicCount.compare_exchange_strong(
+               expected, expected - lockCount, std::memory_order_acq_rel))
             return;
     }
     std::unique_lock<std::mutex> lockedState(stateLock);
@@ -113,7 +115,8 @@ void Semaphore::unlock(std::size_t unlockCount)
     std::size_t expected = atomicCount.load(std::memory_order_relaxed);
     if(expected != 0)
     {
-        if(atomicCount.compare_exchange_strong(expected, expected + unlockCount, std::memory_order_acq_rel))
+        if(atomicCount.compare_exchange_strong(
+               expected, expected + unlockCount, std::memory_order_acq_rel))
             return;
     }
 
@@ -188,7 +191,8 @@ initializer init1([]()
                       std::exit(0);
                   });
 }
-#elif 0 // complex simulation of all paths through Semaphore; inspired by Klee (https://klee.github.io/)
+#elif 0 // complex simulation of all paths through Semaphore; inspired by Klee
+        // (https://klee.github.io/)
 namespace
 {
 constexpr std::size_t maxConcurrentStateCount = 1000000; // increase to simulate more paths

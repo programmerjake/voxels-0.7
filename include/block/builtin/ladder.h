@@ -73,8 +73,8 @@ public:
             displacement.z = -displacementDistance;
             break;
         }
-        Mesh mesh =
-            transform(Transform::translate(displacement), Generate::unitBox(nx, px, ny, py, nz, pz));
+        Mesh mesh = transform(Transform::translate(displacement),
+                              Generate::unitBox(nx, px, ny, py, nz, pz));
         mesh.append(reverse(mesh));
         return std::move(mesh);
     }

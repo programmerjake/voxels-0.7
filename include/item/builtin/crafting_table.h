@@ -35,8 +35,10 @@ namespace builtin
 class CraftingTable final : public ItemBlock
 {
     friend class global_instance_maker<CraftingTable>;
+
 private:
     CraftingTable();
+
 public:
     static const CraftingTable *pointer()
     {

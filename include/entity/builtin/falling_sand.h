@@ -35,11 +35,14 @@ namespace builtin
 class FallingSand final : public FallingBlock
 {
     friend class global_instance_maker<FallingSand>;
+
 protected:
     virtual Block getPlacedBlock() const override;
     virtual Item getDroppedItem() const override;
+
 private:
     FallingSand();
+
 public:
     static const FallingSand *pointer()
     {
@@ -53,11 +56,14 @@ public:
 class FallingGravel final : public FallingBlock
 {
     friend class global_instance_maker<FallingGravel>;
+
 protected:
     virtual Block getPlacedBlock() const override;
     virtual Item getDroppedItem() const override;
+
 private:
     FallingGravel();
+
 public:
     static const FallingGravel *pointer()
     {

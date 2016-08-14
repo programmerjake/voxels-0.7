@@ -43,8 +43,7 @@ namespace voxels
 class AudioLoadError final : public std::runtime_error
 {
 public:
-    explicit AudioLoadError(const std::string &arg)
-        : runtime_error(arg)
+    explicit AudioLoadError(const std::string &arg) : runtime_error(arg)
     {
     }
 };
@@ -52,7 +51,8 @@ public:
 class AudioDecoder
 {
     AudioDecoder(const AudioDecoder &) = delete;
-    const AudioDecoder & operator =(const AudioDecoder &) = delete;
+    const AudioDecoder &operator=(const AudioDecoder &) = delete;
+
 public:
     static constexpr std::uint64_t Unknown = ~static_cast<std::uint64_t>(0);
     AudioDecoder()
@@ -71,7 +71,8 @@ public:
             return -1;
         return static_cast<double>(count) / samplesPerSecond();
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) = 0; // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(
+        float *data, std::uint64_t samplesCount) = 0; // returns number of samples decoded
     virtual bool isHighLatencySource() const = 0;
 };
 
@@ -81,6 +82,7 @@ class MemoryAudioDecoder final : public AudioDecoder
     unsigned sampleRate;
     std::size_t currentLocation;
     unsigned channels;
+
 public:
     MemoryAudioDecoder(const std::vector<float> &data, unsigned sampleRate, unsigned channelCount)
         : samples(data), sampleRate(sampleRate), currentLocation(0), channels(channelCount)
@@ -101,7 +103,8 @@ public:
     {
         return channels;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(
+        float *data, std::uint64_t samplesCount) override // returns number of samples decoded
     {
         std::uint64_t retval = 0;
         for(std::uint64_t i = 0; i < samplesCount && currentLocation < samples.size(); i++)
@@ -129,13 +132,15 @@ class ResampleAudioDecoder final : public AudioDecoder
     std::vector<float> buffer;
     std::uint64_t bufferStartPosition = 0; // in values
     unsigned sampleRate, channels;
+
 public:
     ResampleAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned sampleRate)
         : decoder(decoder), buffer(), sampleRate(sampleRate), channels(decoder->channelCount())
     {
         constexpr std::size_t size = 1024;
         buffer.resize(channels * size);
-        buffer.resize(static_cast<std::size_t>(channels * decoder->decodeAudioBlock(buffer.data(), size)));
+        buffer.resize(
+            static_cast<std::size_t>(channels * decoder->decodeAudioBlock(buffer.data(), size)));
     }
     virtual unsigned samplesPerSecond() override
     {
@@ -152,7 +157,7 @@ public:
     {
         return channels;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t sampleCount) override
+    virtual std::uint64_t decodeAudioBlock(float *data, std::uint64_t sampleCount) override
     {
         if(numSamples() != Unknown)
             sampleCount = std::min(numSamples() - position, sampleCount);
@@ -178,25 +183,31 @@ public:
                 do
                 {
                     lastDecodeCount = decodeCount;
-                    decodeCount += decoder->decodeAudioBlock(&buffer[static_cast<std::size_t>(decodeCount * channels)], buffer.capacity() / channels - decodeCount);
-                }
-                while(decodeCount != lastDecodeCount && buffer.capacity() / channels < decodeCount);
+                    decodeCount += decoder->decodeAudioBlock(
+                        &buffer[static_cast<std::size_t>(decodeCount * channels)],
+                        buffer.capacity() / channels - decodeCount);
+                } while(decodeCount != lastDecodeCount
+                        && buffer.capacity() / channels < decodeCount);
                 buffer.resize(static_cast<std::size_t>(decodeCount * channels));
             }
-            if(startIndex - bufferStartPosition >= buffer.size() || (t > 0 && endIndex - bufferStartPosition >= buffer.size()))
+            if(startIndex - bufferStartPosition >= buffer.size()
+               || (t > 0 && endIndex - bufferStartPosition >= buffer.size()))
                 return retval;
             if(t > 0)
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = ((1 - t) * buffer[j + static_cast<std::size_t>(startIndex - bufferStartPosition)] + t * buffer[j + (std::size_t)(endIndex - bufferStartPosition)]);
+                    *data++ = ((1 - t) * buffer[j + static_cast<std::size_t>(startIndex
+                                                                             - bufferStartPosition)]
+                               + t * buffer[j + (std::size_t)(endIndex - bufferStartPosition)]);
                 }
             }
             else
             {
                 for(unsigned j = 0; j < channels; j++)
                 {
-                    *data++ = buffer[j + static_cast<std::size_t>(startIndex - bufferStartPosition)];
+                    *data++ =
+                        buffer[j + static_cast<std::size_t>(startIndex - bufferStartPosition)];
                 }
             }
         }
@@ -213,6 +224,7 @@ class RedistributeChannelsAudioDecoder final : public AudioDecoder
     std::shared_ptr<AudioDecoder> decoder;
     unsigned channels;
     std::vector<float> buffer;
+
 public:
     RedistributeChannelsAudioDecoder(std::shared_ptr<AudioDecoder> decoder, unsigned channelCountIn)
         : decoder(decoder), channels(channelCountIn), buffer()
@@ -230,7 +242,7 @@ public:
     {
         return channels;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t sampleCount) override
+    virtual std::uint64_t decodeAudioBlock(float *data, std::uint64_t sampleCount) override
     {
         unsigned sourceChannels = decoder->channelCount();
         if(sourceChannels == channels)
@@ -718,20 +730,21 @@ class StreamBufferingAudioDecoder final : public AudioDecoder
     std::uint64_t numSamplesValue;
     unsigned channelCountValue;
     unsigned samplesPerSecondValue;
+
 public:
     StreamBufferingAudioDecoder(std::shared_ptr<AudioDecoder> decoder)
         : decoder(decoder),
-        leftovers(),
-        fullBuffers(),
-        emptyBuffers(),
-        buffersListsLock(),
-        readerCond(),
-        writerCond(),
-        done(),
-        decoderThread(),
-        numSamplesValue(),
-        channelCountValue(),
-        samplesPerSecondValue()
+          leftovers(),
+          fullBuffers(),
+          emptyBuffers(),
+          buffersListsLock(),
+          readerCond(),
+          writerCond(),
+          done(),
+          decoderThread(),
+          numSamplesValue(),
+          channelCountValue(),
+          samplesPerSecondValue()
     {
         numSamplesValue = decoder->numSamples();
         channelCountValue = decoder->channelCount();
@@ -742,10 +755,10 @@ public:
         leftoversCurrentLocation = 0;
         done = false;
         decoderThread = std::thread([this]()
-        {
-            setThreadName(L"audio buffer");
-            decoderThreadFn();
-        });
+                                    {
+                                        setThreadName(L"audio buffer");
+                                        decoderThreadFn();
+                                    });
     }
     ~StreamBufferingAudioDecoder()
     {
@@ -767,7 +780,8 @@ public:
     {
         return channelCountValue;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(
+        float *data, std::uint64_t samplesCount) override // returns number of samples decoded
     {
         std::uint64_t retval = 0;
         std::unique_lock<std::mutex> lockIt(buffersListsLock);
@@ -809,13 +823,15 @@ class LoopingAudioDecoder final : public AudioDecoder
     unsigned samplesPerSecondValue;
     unsigned channelCountValue;
     bool isHighLatencySourceValue;
+
 public:
-    LoopingAudioDecoder(std::function<std::shared_ptr<AudioDecoder>()> decoderFactory, bool isHighLatencySourceValue = true)
+    LoopingAudioDecoder(std::function<std::shared_ptr<AudioDecoder>()> decoderFactory,
+                        bool isHighLatencySourceValue = true)
         : decoder(),
-        decoderFactory(decoderFactory),
-        samplesPerSecondValue(),
-        channelCountValue(),
-        isHighLatencySourceValue(isHighLatencySourceValue)
+          decoderFactory(decoderFactory),
+          samplesPerSecondValue(),
+          channelCountValue(),
+          isHighLatencySourceValue(isHighLatencySourceValue)
     {
         decoder = decoderFactory();
         if(!decoder)
@@ -841,7 +857,8 @@ public:
     {
         return channelCountValue;
     }
-    virtual std::uint64_t decodeAudioBlock(float * data, std::uint64_t samplesCount) override // returns number of samples decoded
+    virtual std::uint64_t decodeAudioBlock(
+        float *data, std::uint64_t samplesCount) override // returns number of samples decoded
     {
         std::uint64_t retval = 0;
         while(samplesCount > 0)
@@ -858,9 +875,11 @@ public:
                 if(!decoder)
                     return retval;
                 if(decoder->channelCount() != channelCountValue)
-                    decoder = std::make_shared<RedistributeChannelsAudioDecoder>(decoder, channelCountValue);
+                    decoder = std::make_shared<RedistributeChannelsAudioDecoder>(decoder,
+                                                                                 channelCountValue);
                 if(decoder->samplesPerSecond() != samplesPerSecondValue)
-                    decoder = std::make_shared<ResampleAudioDecoder>(decoder, samplesPerSecondValue);
+                    decoder =
+                        std::make_shared<ResampleAudioDecoder>(decoder, samplesPerSecondValue);
             }
         }
         return retval;
@@ -879,6 +898,7 @@ class PlayingAudio final
     std::shared_ptr<PlayingAudioData> data;
     PlayingAudio(std::shared_ptr<PlayingAudioData> data);
     friend class Audio;
+
 public:
     bool isPlaying();
     double currentTime();
@@ -892,21 +912,20 @@ public:
     }
 
 #ifndef DOXYGEN
-    //for integration with SDL
-    static void audioCallback(void * userData, std::uint8_t * buffer, int length);
+    // for integration with SDL
+    static void audioCallback(void *userData, std::uint8_t *buffer, int length);
 #endif
 };
 
 class Audio final
 {
     std::shared_ptr<AudioData> data;
+
 public:
-    Audio()
-        : data(nullptr)
+    Audio() : data(nullptr)
     {
     }
-    Audio(std::nullptr_t)
-        : data(nullptr)
+    Audio(std::nullptr_t) : data(nullptr)
     {
     }
     explicit Audio(std::wstring resourceName, bool isStreaming = false);

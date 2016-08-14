@@ -38,27 +38,24 @@ private:
     std::size_t usedAddressCount = 0;
     struct SymbolListDeleter final
     {
-        void operator ()(const char *const *ptr) const;
+        void operator()(const char *const *ptr) const;
     };
     std::unique_ptr<const char *const, SymbolListDeleter> symbolList;
     void addressesToSymbols();
+
 public:
-    StackTrace()
-        : addresses{nullptr},
-        symbolList()
+    StackTrace() : addresses{nullptr}, symbolList()
     {
     }
     static StackTrace make();
     StackTrace(StackTrace &&rt)
         : addresses(rt.addresses),
-        usedAddressCount(rt.usedAddressCount),
-        symbolList(std::move(rt.symbolList))
+          usedAddressCount(rt.usedAddressCount),
+          symbolList(std::move(rt.symbolList))
     {
     }
     StackTrace(const StackTrace &rt)
-        : addresses(rt.addresses),
-        usedAddressCount(rt.usedAddressCount),
-        symbolList()
+        : addresses(rt.addresses), usedAddressCount(rt.usedAddressCount), symbolList()
     {
     }
     void swap(StackTrace &rt)
@@ -72,12 +69,12 @@ public:
     {
         l.swap(r);
     }
-    StackTrace &operator =(StackTrace rt)
+    StackTrace &operator=(StackTrace rt)
     {
         swap(rt);
         return *this;
     }
-    bool operator ==(const StackTrace &rt) const
+    bool operator==(const StackTrace &rt) const
     {
         if(usedAddressCount != rt.usedAddressCount)
             return false;
@@ -88,9 +85,9 @@ public:
         }
         return true;
     }
-    bool operator !=(const StackTrace &rt) const
+    bool operator!=(const StackTrace &rt) const
     {
-        return !operator ==(rt);
+        return !operator==(rt);
     }
     bool empty() const
     {
@@ -100,7 +97,7 @@ public:
     {
         return !empty();
     }
-    bool operator !() const
+    bool operator!() const
     {
         return empty();
     }

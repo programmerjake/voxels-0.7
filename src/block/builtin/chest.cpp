@@ -35,19 +35,28 @@ namespace builtin
 class ChestUi final : public PlayerDialog
 {
     ChestUi(const ChestUi &) = delete;
-    ChestUi &operator =(const ChestUi &) = delete;
+    ChestUi &operator=(const ChestUi &) = delete;
+
 private:
     std::shared_ptr<Blocks::builtin::Chest::ChestData> chestData;
     PositionI blockPosition;
     World *pworld = nullptr;
     WorldLockManager *plock_manager = nullptr;
+
 public:
-    ChestUi(std::shared_ptr<Player> player, std::shared_ptr<Blocks::builtin::Chest::ChestData> chestData, PositionI blockPosition)
-        : PlayerDialog(player, TextureAtlas::ChestUI.td()), chestData(chestData), blockPosition(blockPosition)
+    ChestUi(std::shared_ptr<Player> player,
+            std::shared_ptr<Blocks::builtin::Chest::ChestData> chestData,
+            PositionI blockPosition)
+        : PlayerDialog(player, TextureAtlas::ChestUI.td()),
+          chestData(chestData),
+          blockPosition(blockPosition)
     {
     }
+
 protected:
-    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount) override
+    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack,
+                                   std::shared_ptr<ItemStack> destItemStack,
+                                   unsigned transferCount) override
     {
         Blocks::builtin::Chest::ChestData::ItemsType *items = &chestData->items;
         unsigned retval = 0;
@@ -91,9 +100,12 @@ protected:
             int Y = 94;
             for(ItemStack &v : i)
             {
-                add(std::make_shared<UiItem>(imageGetPositionX(X), imageGetPositionX(X + 16),
-                                             imageGetPositionY(Y), imageGetPositionY(Y + 16),
-                                             std::shared_ptr<ItemStack>(chestData, &v), &chestData->lock));
+                add(std::make_shared<UiItem>(imageGetPositionX(X),
+                                             imageGetPositionX(X + 16),
+                                             imageGetPositionY(Y),
+                                             imageGetPositionY(Y + 16),
+                                             std::shared_ptr<ItemStack>(chestData, &v),
+                                             &chestData->lock));
                 Y += 18;
             }
             X += 18;
@@ -105,6 +117,7 @@ protected:
         plock_manager = &lock_manager;
         PlayerDialog::setWorldAndLockManager(world, lock_manager);
     }
+
 public:
     virtual void move(double deltaTime) override
     {
@@ -127,8 +140,8 @@ namespace Blocks
 {
 namespace builtin
 {
-
-void Chest::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Chest::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
@@ -145,22 +158,29 @@ void Chest::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &l
                 for(ItemStack &v : i)
                 {
                     if(v.good())
-                        ItemDescriptor::addToWorld(world, lock_manager, v, bi.position() + VectorF(0.5));
+                        ItemDescriptor::addToWorld(
+                            world, lock_manager, v, bi.position() + VectorF(0.5));
                 }
             }
         }
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Chest::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Chest::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-bool Chest::onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+bool Chest::onUse(World &world,
+                  Block b,
+                  BlockIterator bi,
+                  WorldLockManager &lock_manager,
+                  std::shared_ptr<Player> player) const
 {
     if(b.data == nullptr)
         return false;
     std::shared_ptr<ChestData> data = static_cast<ChestBlockData *>(b.data.get())->data;
     return player->setDialog(std::make_shared<ui::builtin::ChestUi>(player, data, bi.position()));
 }
-
 }
 }
 }

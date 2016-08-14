@@ -36,6 +36,7 @@ namespace builtin
 class Dirt final : public DirtBlock
 {
     friend class global_instance_maker<Dirt>;
+
 public:
     static const Dirt *pointer()
     {
@@ -45,25 +46,42 @@ public:
     {
         return pointer();
     }
+
 private:
     Dirt()
-        : DirtBlock(L"builtin.dirt", true,
-                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
-                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
-                    TextureAtlas::Dirt.td(), TextureAtlas::Dirt.td(),
-                    TextureDescriptor(), TextureDescriptor(),
-                    TextureDescriptor(), TextureDescriptor(),
-                    TextureDescriptor(), TextureDescriptor())
+        : DirtBlock(L"builtin.dirt",
+                    true,
+                    TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureAtlas::Dirt.td(),
+                    TextureDescriptor(),
+                    TextureDescriptor(),
+                    TextureDescriptor(),
+                    TextureDescriptor(),
+                    TextureDescriptor(),
+                    TextureDescriptor())
     {
     }
+
 public:
-    virtual void onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const override;
-    virtual void randomTick(const Block &block, World &world, BlockIterator blockIterator, WorldLockManager &lock_manager) const override;
+    virtual void onBreak(World &world,
+                         Block b,
+                         BlockIterator bi,
+                         WorldLockManager &lock_manager,
+                         Item &tool) const override;
+    virtual void randomTick(const Block &block,
+                            World &world,
+                            BlockIterator blockIterator,
+                            WorldLockManager &lock_manager) const override;
     virtual float getHardness() const override
     {
         return 0.5f;
     }
-    virtual void writeBlockData(stream::Writer &writer, BlockDataPointer<BlockData> data) const override
+    virtual void writeBlockData(stream::Writer &writer,
+                                BlockDataPointer<BlockData> data) const override
     {
     }
     virtual BlockDataPointer<BlockData> readBlockData(stream::Reader &reader) const override
@@ -77,4 +95,3 @@ public:
 }
 
 #endif // DIRT_H_INCLUDED
-

@@ -47,21 +47,26 @@ GCC_PRAGMA(diagnostic ignored "-Weffc++")
 GCC_PRAGMA(diagnostic ignored "-Wnon-virtual-dtor")
 class DecoratorInstance : public std::enable_shared_from_this<DecoratorInstance>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     DecoratorInstance(const DecoratorInstance &) = delete;
-    DecoratorInstance &operator =(const DecoratorInstance &) = delete;
+    DecoratorInstance &operator=(const DecoratorInstance &) = delete;
+
 public:
     const PositionI position;
     const DecoratorDescriptorPointer descriptor;
+
 protected:
     DecoratorInstance(PositionI position, DecoratorDescriptorPointer descriptor)
         : position(position), descriptor(descriptor)
     {
         assert(descriptor != nullptr);
     }
+
 public:
     virtual ~DecoratorInstance() = default;
-    virtual void generateInChunk(PositionI chunkBasePosition, WorldLockManager &lock_manager, World &world,
+    virtual void generateInChunk(PositionI chunkBasePosition,
+                                 WorldLockManager &lock_manager,
+                                 World &world,
                                  BlocksGenerateArray &blocks) const = 0;
 };
 
@@ -69,9 +74,11 @@ class DecoratorDescriptor
 {
     friend class DecoratorDescriptors_t;
     DecoratorDescriptor(const DecoratorDescriptor &) = delete;
-    const DecoratorDescriptor &operator =(const DecoratorDescriptor &) = delete;
+    const DecoratorDescriptor &operator=(const DecoratorDescriptor &) = delete;
+
 private:
     DecoratorDescriptorIndex index;
+
 public:
     const std::wstring name;
     /** the distance (in additional chunks) to search to see if this decorator is used.
@@ -96,8 +103,10 @@ public:
         }
         return retval;
     }
+
 protected:
     DecoratorDescriptor(std::wstring name, int chunkSearchDistance, float priority);
+
 public:
     /** @brief create a DecoratorInstance for this decorator in a chunk
      *
@@ -108,14 +117,20 @@ public:
      * @param chunkBaseIterator a BlockIterator to chunkBasePosition
      * @param blocks the blocks for this chunk
      * @param randomSource the RandomSource
-     * @param generateNumber a number that is different for each decorator in a chunk (use for picking a different position each time)
+     * @param generateNumber a number that is different for each decorator in a chunk (use for
+     *picking a different position each time)
      * @return the new DecoratorInstance or nullptr
      *
      */
-    virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
-                                 WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const BlocksGenerateArray &blocks,
-                                 RandomSource &randomSource, std::uint32_t generateNumber) const = 0;
+    virtual std::shared_ptr<const DecoratorInstance> createInstance(
+        PositionI chunkBasePosition,
+        PositionI columnBasePosition,
+        PositionI surfacePosition,
+        WorldLockManager &lock_manager,
+        BlockIterator chunkBaseIterator,
+        const BlocksGenerateArray &blocks,
+        RandomSource &randomSource,
+        std::uint32_t generateNumber) const = 0;
 };
 }
 }

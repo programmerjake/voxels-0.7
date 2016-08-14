@@ -30,12 +30,10 @@ namespace voxels
 {
 namespace stream
 {
-
 class ZLibFormatException final : public IOException
 {
 public:
-    ZLibFormatException(const std::string &msg)
-        : IOException("zlib error : " + msg)
+    ZLibFormatException(const std::string &msg) : IOException("zlib error : " + msg)
     {
     }
 };
@@ -52,9 +50,9 @@ private:
     bool moreAvailable = false, gotEOF = false;
     void readBuffer();
     void readCompressedBuffer();
+
 public:
-    ExpandReader(std::shared_ptr<Reader> preader)
-        : ExpandReader(*preader)
+    ExpandReader(std::shared_ptr<Reader> preader) : ExpandReader(*preader)
     {
         this->preader = preader;
     }
@@ -87,9 +85,9 @@ private:
     std::vector<std::uint8_t> buffer, compressedBuffer;
     void writeBuffer();
     void writeCompressedBuffer();
+
 public:
-    CompressWriter(std::shared_ptr<Writer> pwriter)
-        : CompressWriter(*pwriter)
+    CompressWriter(std::shared_ptr<Writer> pwriter) : CompressWriter(*pwriter)
     {
         this->pwriter = pwriter;
     }
@@ -118,7 +116,6 @@ public:
         return false;
     }
 };
-
 }
 }
 }

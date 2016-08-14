@@ -31,28 +31,49 @@ namespace Blocks
 {
 namespace builtin
 {
-
-void RedstoneDust::onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+void RedstoneDust::onReplace(World &world,
+                             Block b,
+                             BlockIterator bi,
+                             WorldLockManager &lock_manager) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::RedstoneDust::descriptor())),
+                               bi.position() + VectorF(0.5));
 }
 
-void RedstoneDust::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void RedstoneDust::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::RedstoneDust::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
 
-void RedstoneDust::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void RedstoneDust::onDisattach(World &world,
+                               const Block &block,
+                               BlockIterator blockIterator,
+                               WorldLockManager &lock_manager,
+                               BlockUpdateKind blockUpdateKind) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneDust::descriptor())), blockIterator.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::RedstoneDust::descriptor())),
+                               blockIterator.position() + VectorF(0.5));
     world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
-void RedstoneDust::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+void RedstoneDust::generateParticles(World &world,
+                                     Block b,
+                                     BlockIterator bi,
+                                     WorldLockManager &lock_manager,
+                                     double currentTime,
+                                     double deltaTime) const
 {
     if(signalStrength <= 0)
         return;
@@ -66,28 +87,51 @@ void RedstoneDust::generateParticles(World &world, Block b, BlockIterator bi, Wo
     int generateRedstoneCount = limit<int>((int)(nextRedstoneCount - currentRedstoneCount), 0, 10);
     for(int i = 0; i < generateRedstoneCount; i++)
     {
-        Entities::builtin::particles::Redstone::addToWorld(world, lock_manager, bi.position() + VectorF(0.5f, 0.15f, 0.5f));
+        Entities::builtin::particles::Redstone::addToWorld(
+            world, lock_manager, bi.position() + VectorF(0.5f, 0.15f, 0.5f));
     }
 }
 
-void RedstoneTorch::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void RedstoneTorch::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
 
-void RedstoneTorch::onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+void RedstoneTorch::onReplace(World &world,
+                              Block b,
+                              BlockIterator bi,
+                              WorldLockManager &lock_manager) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())),
+                               bi.position() + VectorF(0.5));
 }
 
-void RedstoneTorch::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void RedstoneTorch::onDisattach(World &world,
+                                const Block &block,
+                                BlockIterator blockIterator,
+                                WorldLockManager &lock_manager,
+                                BlockUpdateKind blockUpdateKind) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())), blockIterator.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::RedstoneTorch::descriptor())),
+                               blockIterator.position() + VectorF(0.5));
     world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
 
-void RedstoneTorch::generateParticles(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime) const
+void RedstoneTorch::generateParticles(World &world,
+                                      Block b,
+                                      BlockIterator bi,
+                                      WorldLockManager &lock_manager,
+                                      double currentTime,
+                                      double deltaTime) const
 {
     if(!isOn)
         return;
@@ -101,10 +145,10 @@ void RedstoneTorch::generateParticles(World &world, Block b, BlockIterator bi, W
     int generateRedstoneCount = limit<int>((int)(nextRedstoneCount - currentRedstoneCount), 0, 10);
     for(int i = 0; i < generateRedstoneCount; i++)
     {
-        Entities::builtin::particles::Redstone::addToWorld(world, lock_manager, bi.position() + headPosition);
+        Entities::builtin::particles::Redstone::addToWorld(
+            world, lock_manager, bi.position() + headPosition);
     }
 }
-
 }
 }
 
@@ -112,14 +156,17 @@ namespace Items
 {
 namespace builtin
 {
-
-Item RedstoneDust::onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const
+Item RedstoneDust::onUse(Item item,
+                         World &world,
+                         WorldLockManager &lock_manager,
+                         Player &player) const
 {
     RayCasting::Collision c = player.getPlacedBlockPosition(world, lock_manager);
     if(c.valid() && c.type == RayCasting::Collision::Type::Block)
     {
         BlockIterator bi = world.getBlockIterator(c.blockPosition, lock_manager.tls);
-        Block b = Block(Blocks::builtin::RedstoneDust::calcOrientationAndSignalStrength(bi, lock_manager));
+        Block b = Block(
+            Blocks::builtin::RedstoneDust::calcOrientationAndSignalStrength(bi, lock_manager));
         if(player.placeBlock(c, world, lock_manager, b))
         {
             BlockDescriptor::addRedstoneBlockUpdates(world, bi, lock_manager, 2);
@@ -128,7 +175,6 @@ Item RedstoneDust::onUse(Item item, World &world, WorldLockManager &lock_manager
     }
     return item;
 }
-
 }
 }
 }

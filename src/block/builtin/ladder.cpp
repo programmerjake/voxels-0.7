@@ -29,24 +29,39 @@ namespace Blocks
 {
 namespace builtin
 {
-
-void Ladder::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Ladder::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Ladder::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Ladder::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
 
-void Ladder::onReplace(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager) const
+void Ladder::onReplace(World &world,
+                       Block b,
+                       BlockIterator bi,
+                       WorldLockManager &lock_manager) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Ladder::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Ladder::descriptor())),
+                               bi.position() + VectorF(0.5));
 }
 
-void Ladder::onDisattach(World &world, const Block &block, BlockIterator blockIterator, WorldLockManager &lock_manager, BlockUpdateKind blockUpdateKind) const
+void Ladder::onDisattach(World &world,
+                         const Block &block,
+                         BlockIterator blockIterator,
+                         WorldLockManager &lock_manager,
+                         BlockUpdateKind blockUpdateKind) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Ladder::descriptor())), blockIterator.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::Ladder::descriptor())),
+                               blockIterator.position() + VectorF(0.5));
     world.setBlock(blockIterator, lock_manager, Block(Air::descriptor(), block.lighting));
 }
-
 }
 }
 }

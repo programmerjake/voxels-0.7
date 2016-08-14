@@ -40,6 +40,7 @@ class rc4_random_engine final
 public:
     typedef std::uint8_t word_type;
     typedef std::uint64_t seed_type;
+
 private:
     static constexpr word_type word_type_max = (1 << 8) - 1;
     checked_array<word_type, static_cast<std::size_t>(word_type_max) + 1> state_array;
@@ -58,7 +59,8 @@ private:
         }
         for(std::size_t i = 0, j = 0; i < state_array.size(); i++)
         {
-            j = (j + static_cast<std::size_t>(state_array[i]) + key[i % key_size]) % state_array.size();
+            j = (j + static_cast<std::size_t>(state_array[i]) + key[i % key_size])
+                % state_array.size();
             word_type temp = state_array[i];
             state_array[i] = state_array[j];
             state_array[j] = temp;
@@ -82,26 +84,19 @@ private:
     struct read_construct_tag_t
     {
     };
-    explicit rc4_random_engine(read_construct_tag_t)
-        : state_array(),
-        state_i(),
-        state_j()
+    explicit rc4_random_engine(read_construct_tag_t) : state_array(), state_i(), state_j()
     {
     }
+
 public:
     typedef std::uint_fast32_t result_type;
     static constexpr seed_type default_seed = 0;
-    explicit rc4_random_engine(seed_type key = default_seed)
-        : state_array(),
-        state_i(),
-        state_j()
+    explicit rc4_random_engine(seed_type key = default_seed) : state_array(), state_i(), state_j()
     {
         initialize(key);
     }
     explicit rc4_random_engine(const word_type *key, std::size_t key_size)
-        : state_array(),
-        state_i(),
-        state_j()
+        : state_array(), state_i(), state_j()
     {
         assert(key_size == 0 || !key);
         initialize(key, key_size);
@@ -115,20 +110,21 @@ public:
         assert(key_size == 0 || !key);
         initialize(key, key_size);
     }
-    result_type operator ()()
+    result_type operator()()
     {
         state_i = (state_i + 1) % state_array.size();
         state_j = (state_j + state_array[state_i]) % state_array.size();
         word_type temp = state_array[state_i];
         state_array[state_i] = state_array[state_j];
         state_array[state_j] = temp;
-        word_type retval = state_array[(state_array[state_i] + state_array[state_j]) % state_array.size()];
+        word_type retval =
+            state_array[(state_array[state_i] + state_array[state_j]) % state_array.size()];
         return retval;
     }
     void discard(unsigned long long count)
     {
         for(unsigned long long i = 0; i < count; i++)
-            operator ()();
+            operator()();
     }
     static constexpr result_type min()
     {

@@ -28,7 +28,8 @@ namespace voxels
 void lock_hierarchy::handleError(const char *what, std::size_t lock_level, const void *theLock)
 {
     variables_t &variables = get_variables();
-    std::cerr << "locking hierarchy error: " << what << " lock_level=" << lock_level << " theLock=" << theLock << std::endl;
+    std::cerr << "locking hierarchy error: " << what << " lock_level=" << lock_level
+              << " theLock=" << theLock << std::endl;
     std::cerr << "locked levels:\n";
     std::size_t lastV = 0, count = 0;
     const std::size_t skipAtCount = 3;

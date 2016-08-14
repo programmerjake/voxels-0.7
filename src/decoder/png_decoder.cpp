@@ -33,7 +33,6 @@ namespace voxels
 {
 namespace
 {
-
 void pngloaderror(png_structp png_ptr, png_const_charp msg)
 {
     *(string *)png_get_error_ptr(png_ptr) = msg;
@@ -48,21 +47,23 @@ void pngloadwarning(png_structp, png_const_charp)
 void readBytes(png_structp png_ptr, png_bytep output, png_size_t count)
 {
     png_voidp user_data = png_get_io_ptr(png_ptr);
-    stream::Reader & reader = *(stream::Reader *)user_data;
+    stream::Reader &reader = *(stream::Reader *)user_data;
     try
     {
         reader.readBytes((uint8_t *)output, count);
     }
-    catch(stream::IOException & e)
+    catch(stream::IOException &e)
     {
         *(string *)png_get_error_ptr(png_ptr) = e.what();
         longjmp(png_jmpbuf(png_ptr), 1);
     }
 }
 
-inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width, unsigned &height, string &errorMsg)
+inline bool LoadPNG(
+    stream::Reader *preader, uint8_t *&pixels, unsigned &width, unsigned &height, string &errorMsg)
 {
-    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (void *)&errorMsg, pngloaderror, pngloadwarning);
+    png_structp png_ptr = png_create_read_struct(
+        PNG_LIBPNG_VER_STRING, (void *)&errorMsg, pngloaderror, pngloadwarning);
     if(!png_ptr)
     {
         errorMsg = "can't create png read struct";
@@ -77,14 +78,14 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
         return false;
     }
 
-    uint8_t *volatile retval = nullptr;  // so that it isn't messed up by longjmp
+    uint8_t *volatile retval = nullptr; // so that it isn't messed up by longjmp
     volatile png_bytepp rows = nullptr;
 
     if(setjmp(png_jmpbuf(png_ptr)))
     {
         png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-        delete []retval;
-        delete []rows;
+        delete[] retval;
+        delete[] rows;
         return false;
     }
 
@@ -94,7 +95,15 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
 
     png_uint_32 XRes, YRes;
     int bit_depth, color_type, interlace_type;
-    png_get_IHDR(png_ptr, info_ptr, &XRes, &YRes, &bit_depth, &color_type, &interlace_type, nullptr, nullptr);
+    png_get_IHDR(png_ptr,
+                 info_ptr,
+                 &XRes,
+                 &YRes,
+                 &bit_depth,
+                 &color_type,
+                 &interlace_type,
+                 nullptr,
+                 nullptr);
 
     png_set_strip_16(png_ptr);
 
@@ -118,7 +127,7 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
         errorMsg = "can't allocate image data array";
         longjmp(png_jmpbuf(png_ptr), 1);
     }
-    rows = (png_bytepp)new png_bytep[YRes];
+    rows = (png_bytepp) new png_bytep[YRes];
     if(!rows)
     {
         errorMsg = "can't allocate image row indirection array";
@@ -133,17 +142,15 @@ inline bool LoadPNG(stream::Reader * preader, uint8_t *&pixels, unsigned &width,
 
     png_read_end(png_ptr, info_ptr);
 
-    delete []rows;
+    delete[] rows;
 
     png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
     pixels = (uint8_t *)retval;
     return true;
 }
-
 }
 
-PngDecoder::PngDecoder(stream::Reader & reader)
-    : w(), h(), data()
+PngDecoder::PngDecoder(stream::Reader &reader) : w(), h(), data()
 {
     string errorMsg;
     if(!LoadPNG(&reader, data, w, h, errorMsg))

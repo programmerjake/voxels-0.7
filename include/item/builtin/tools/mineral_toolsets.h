@@ -37,15 +37,24 @@ namespace builtin
 {
 namespace tools
 {
-
 class StoneToolset final : public SimpleToolset
 {
     friend class global_instance_maker<StoneToolset>;
+
 private:
     StoneToolset()
-        : SimpleToolset(L"builtin.stone", ToolLevel_Stone, 1.0f / 4.0f, 132, Item(Items::builtin::Cobblestone::descriptor()), TextureAtlas::StonePickaxe.td(), TextureAtlas::StoneAxe.td(), TextureAtlas::StoneShovel.td(), TextureAtlas::StoneHoe.td())
+        : SimpleToolset(L"builtin.stone",
+                        ToolLevel_Stone,
+                        1.0f / 4.0f,
+                        132,
+                        Item(Items::builtin::Cobblestone::descriptor()),
+                        TextureAtlas::StonePickaxe.td(),
+                        TextureAtlas::StoneAxe.td(),
+                        TextureAtlas::StoneShovel.td(),
+                        TextureAtlas::StoneHoe.td())
     {
     }
+
 public:
     static const StoneToolset *pointer()
     {
@@ -60,11 +69,21 @@ public:
 class IronToolset final : public SimpleToolset
 {
     friend class global_instance_maker<IronToolset>;
+
 private:
     IronToolset()
-        : SimpleToolset(L"builtin.iron", ToolLevel_Iron, 1.0f / 6.0f, 251, Item(Items::builtin::IronIngot::descriptor()), TextureAtlas::IronPickaxe.td(), TextureAtlas::IronAxe.td(), TextureAtlas::IronShovel.td(), TextureAtlas::IronHoe.td())
+        : SimpleToolset(L"builtin.iron",
+                        ToolLevel_Iron,
+                        1.0f / 6.0f,
+                        251,
+                        Item(Items::builtin::IronIngot::descriptor()),
+                        TextureAtlas::IronPickaxe.td(),
+                        TextureAtlas::IronAxe.td(),
+                        TextureAtlas::IronShovel.td(),
+                        TextureAtlas::IronHoe.td())
     {
     }
+
 public:
     static const IronToolset *pointer()
     {
@@ -79,11 +98,21 @@ public:
 class GoldToolset final : public SimpleToolset
 {
     friend class global_instance_maker<GoldToolset>;
+
 private:
     GoldToolset()
-        : SimpleToolset(L"builtin.gold", ToolLevel_Wood, 1.0f / 12.0f, 33, Item(Items::builtin::GoldIngot::descriptor()), TextureAtlas::GoldPickaxe.td(), TextureAtlas::GoldAxe.td(), TextureAtlas::GoldShovel.td(), TextureAtlas::GoldHoe.td())
+        : SimpleToolset(L"builtin.gold",
+                        ToolLevel_Wood,
+                        1.0f / 12.0f,
+                        33,
+                        Item(Items::builtin::GoldIngot::descriptor()),
+                        TextureAtlas::GoldPickaxe.td(),
+                        TextureAtlas::GoldAxe.td(),
+                        TextureAtlas::GoldShovel.td(),
+                        TextureAtlas::GoldHoe.td())
     {
     }
+
 public:
     static const GoldToolset *pointer()
     {
@@ -98,11 +127,21 @@ public:
 class DiamondToolset final : public SimpleToolset
 {
     friend class global_instance_maker<DiamondToolset>;
+
 private:
     DiamondToolset()
-        : SimpleToolset(L"builtin.diamond", ToolLevel_Diamond, 1.0f / 8.0f, 1562, Item(Items::builtin::Diamond::descriptor()), TextureAtlas::DiamondPickaxe.td(), TextureAtlas::DiamondAxe.td(), TextureAtlas::DiamondShovel.td(), TextureAtlas::DiamondHoe.td())
+        : SimpleToolset(L"builtin.diamond",
+                        ToolLevel_Diamond,
+                        1.0f / 8.0f,
+                        1562,
+                        Item(Items::builtin::Diamond::descriptor()),
+                        TextureAtlas::DiamondPickaxe.td(),
+                        TextureAtlas::DiamondAxe.td(),
+                        TextureAtlas::DiamondShovel.td(),
+                        TextureAtlas::DiamondHoe.td())
     {
     }
+
 public:
     static const DiamondToolset *pointer()
     {
@@ -113,7 +152,6 @@ public:
         return pointer();
     }
 };
-
 }
 }
 }

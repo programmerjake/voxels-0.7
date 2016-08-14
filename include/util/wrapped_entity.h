@@ -35,7 +35,7 @@ namespace voxels
 struct WrappedEntity final
 {
     WrappedEntity(const WrappedEntity &) = delete;
-    WrappedEntity &operator =(const WrappedEntity &) = delete;
+    WrappedEntity &operator=(const WrappedEntity &) = delete;
     ObjectCounter<WrappedEntity, 0> objectCounter;
     Entity entity;
     intrusive_list_members<WrappedEntity> subchunkListMembers;
@@ -45,12 +45,10 @@ struct WrappedEntity final
     BlockChunkSubchunk *currentSubchunk = nullptr;
     BlockChunk *currentChunk = nullptr;
     std::uint64_t lastEntityRunCount = 0;
-    WrappedEntity()
-        : objectCounter(), entity(), subchunkListMembers(), chunkListMembers()
+    WrappedEntity() : objectCounter(), entity(), subchunkListMembers(), chunkListMembers()
     {
     }
-    WrappedEntity(Entity e)
-        : objectCounter(), entity(e), subchunkListMembers(), chunkListMembers()
+    WrappedEntity(Entity e) : objectCounter(), entity(e), subchunkListMembers(), chunkListMembers()
     {
     }
     void verify() const; // in block_chunk.cpp

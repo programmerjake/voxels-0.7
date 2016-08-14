@@ -41,20 +41,25 @@ class WoodToolset;
 class WoodPickaxe final : public SimplePickaxe
 {
     friend class WoodToolset;
+
 private:
     class WoodPickaxeRecipe final : public SimplePickaxeRecipe
     {
         using SimplePickaxeRecipe::SimplePickaxeRecipe;
         virtual bool itemsMatch(const Item &patternItem, const Item &inputItem) const override
         {
-            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr &&
-               dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
+            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr
+               && dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
                 return true;
             return patternItem == inputItem;
         }
-
     };
-    WoodPickaxe(std::wstring toolsetName, TextureDescriptor td, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamageValue, Item recipeMaterial)
+    WoodPickaxe(std::wstring toolsetName,
+                TextureDescriptor td,
+                ToolLevel toolLevel,
+                float mineDurationFactor,
+                unsigned maxDamageValue,
+                Item recipeMaterial)
         : SimplePickaxe(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodPickaxeRecipe(this, recipeMaterial, 1);
@@ -67,20 +72,25 @@ private:
 class WoodAxe final : public SimpleAxe
 {
     friend class WoodToolset;
+
 private:
     class WoodAxeRecipe final : public SimpleAxeRecipe
     {
         using SimpleAxeRecipe::SimpleAxeRecipe;
         virtual bool itemsMatch(const Item &patternItem, const Item &inputItem) const override
         {
-            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr &&
-               dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
+            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr
+               && dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
                 return true;
             return patternItem == inputItem;
         }
-
     };
-    WoodAxe(std::wstring toolsetName, TextureDescriptor td, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamageValue, Item recipeMaterial)
+    WoodAxe(std::wstring toolsetName,
+            TextureDescriptor td,
+            ToolLevel toolLevel,
+            float mineDurationFactor,
+            unsigned maxDamageValue,
+            Item recipeMaterial)
         : SimpleAxe(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodAxeRecipe(this, recipeMaterial, 1);
@@ -93,20 +103,25 @@ private:
 class WoodShovel final : public SimpleShovel
 {
     friend class WoodToolset;
+
 private:
     class WoodShovelRecipe final : public SimpleShovelRecipe
     {
         using SimpleShovelRecipe::SimpleShovelRecipe;
         virtual bool itemsMatch(const Item &patternItem, const Item &inputItem) const override
         {
-            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr &&
-               dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
+            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr
+               && dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
                 return true;
             return patternItem == inputItem;
         }
-
     };
-    WoodShovel(std::wstring toolsetName, TextureDescriptor td, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamageValue, Item recipeMaterial)
+    WoodShovel(std::wstring toolsetName,
+               TextureDescriptor td,
+               ToolLevel toolLevel,
+               float mineDurationFactor,
+               unsigned maxDamageValue,
+               Item recipeMaterial)
         : SimpleShovel(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodShovelRecipe(this, recipeMaterial, 1);
@@ -119,20 +134,25 @@ private:
 class WoodHoe final : public SimpleHoe
 {
     friend class WoodToolset;
+
 private:
     class WoodHoeRecipe final : public SimpleHoeRecipe
     {
         using SimpleHoeRecipe::SimpleHoeRecipe;
         virtual bool itemsMatch(const Item &patternItem, const Item &inputItem) const override
         {
-            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr &&
-               dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
+            if(dynamic_cast<const Items::builtin::WoodPlanks *>(patternItem.descriptor) != nullptr
+               && dynamic_cast<const Items::builtin::WoodPlanks *>(inputItem.descriptor) != nullptr)
                 return true;
             return patternItem == inputItem;
         }
-
     };
-    WoodHoe(std::wstring toolsetName, TextureDescriptor td, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamageValue, Item recipeMaterial)
+    WoodHoe(std::wstring toolsetName,
+            TextureDescriptor td,
+            ToolLevel toolLevel,
+            float mineDurationFactor,
+            unsigned maxDamageValue,
+            Item recipeMaterial)
         : SimpleHoe(toolsetName, td, toolLevel, mineDurationFactor, maxDamageValue)
     {
         recipe = new WoodHoeRecipe(this, recipeMaterial, 1);
@@ -145,29 +165,54 @@ private:
 class WoodToolset final : public SimpleToolset
 {
     friend class global_instance_maker<WoodToolset>;
+
 private:
-    static const Pickaxe *makePickaxe(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamage, Item recipeMaterial, TextureDescriptor td)
+    static const Pickaxe *makePickaxe(std::wstring toolsetName,
+                                      ToolLevel toolLevel,
+                                      float mineDurationFactor,
+                                      unsigned maxDamage,
+                                      Item recipeMaterial,
+                                      TextureDescriptor td)
     {
         if(td)
-            return new WoodPickaxe(toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
+            return new WoodPickaxe(
+                toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
         return nullptr;
     }
-    static const Axe *makeAxe(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamage, Item recipeMaterial, TextureDescriptor td)
+    static const Axe *makeAxe(std::wstring toolsetName,
+                              ToolLevel toolLevel,
+                              float mineDurationFactor,
+                              unsigned maxDamage,
+                              Item recipeMaterial,
+                              TextureDescriptor td)
     {
         if(td)
-            return new WoodAxe(toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
+            return new WoodAxe(
+                toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
         return nullptr;
     }
-    static const Shovel *makeShovel(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamage, Item recipeMaterial, TextureDescriptor td)
+    static const Shovel *makeShovel(std::wstring toolsetName,
+                                    ToolLevel toolLevel,
+                                    float mineDurationFactor,
+                                    unsigned maxDamage,
+                                    Item recipeMaterial,
+                                    TextureDescriptor td)
     {
         if(td)
-            return new WoodShovel(toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
+            return new WoodShovel(
+                toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
         return nullptr;
     }
-    static const Hoe *makeHoe(std::wstring toolsetName, ToolLevel toolLevel, float mineDurationFactor, unsigned maxDamage, Item recipeMaterial, TextureDescriptor td)
+    static const Hoe *makeHoe(std::wstring toolsetName,
+                              ToolLevel toolLevel,
+                              float mineDurationFactor,
+                              unsigned maxDamage,
+                              Item recipeMaterial,
+                              TextureDescriptor td)
     {
         if(td)
-            return new WoodHoe(toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
+            return new WoodHoe(
+                toolsetName, td, toolLevel, mineDurationFactor, maxDamage, recipeMaterial);
         return nullptr;
     }
     static std::wstring name()
@@ -180,11 +225,32 @@ private:
         std::wstring toolsetName = name();
         const unsigned maxDamage = 60;
         Item recipeMaterial = Item(Woods::builtin::Oak::descriptor()->getPlanksItemDescriptor());
-        pickaxe = makePickaxe(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, TextureAtlas::WoodPickaxe.td());
-        axe = makeAxe(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, TextureAtlas::WoodAxe.td());
-        shovel = makeShovel(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, TextureAtlas::WoodShovel.td());
-        hoe = makeHoe(toolsetName, toolLevel, mineDurationFactor, maxDamage, recipeMaterial, TextureAtlas::WoodHoe.td());
+        pickaxe = makePickaxe(toolsetName,
+                              toolLevel,
+                              mineDurationFactor,
+                              maxDamage,
+                              recipeMaterial,
+                              TextureAtlas::WoodPickaxe.td());
+        axe = makeAxe(toolsetName,
+                      toolLevel,
+                      mineDurationFactor,
+                      maxDamage,
+                      recipeMaterial,
+                      TextureAtlas::WoodAxe.td());
+        shovel = makeShovel(toolsetName,
+                            toolLevel,
+                            mineDurationFactor,
+                            maxDamage,
+                            recipeMaterial,
+                            TextureAtlas::WoodShovel.td());
+        hoe = makeHoe(toolsetName,
+                      toolLevel,
+                      mineDurationFactor,
+                      maxDamage,
+                      recipeMaterial,
+                      TextureAtlas::WoodHoe.td());
     }
+
 public:
     static const WoodToolset *pointer()
     {

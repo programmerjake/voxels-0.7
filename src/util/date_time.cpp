@@ -64,9 +64,9 @@ std::chrono::seconds DateTime::getTimeZoneOffset(DateTime time)
     }
     if(isDaylightSavingsTime(time))
     {
-        return std::chrono::seconds((std::int64_t)-60 * (tzInfo.DaylightBias + tzInfo.Bias));
+        return std::chrono::seconds((std::int64_t) - 60 * (tzInfo.DaylightBias + tzInfo.Bias));
     }
-    return std::chrono::seconds((std::int64_t)-60 * (tzInfo.StandardBias + tzInfo.Bias));
+    return std::chrono::seconds((std::int64_t) - 60 * (tzInfo.StandardBias + tzInfo.Bias));
 #elif __ANDROID__ || __APPLE__ || __linux || __unix || __posix
     std::tm tmStruct;
     std::time_t timeTValue = time.asTimeT();
@@ -102,8 +102,7 @@ bool DateTime::isDaylightSavingsTime(DateTime time)
 #endif
 }
 
-DateTime::DateTime(std::tm time, bool isLocalTime)
-    : millisecondsSincePosixTimeEpoch()
+DateTime::DateTime(std::tm time, bool isLocalTime) : millisecondsSincePosixTimeEpoch()
 {
     std::int64_t year = time.tm_year;
     // normalize
@@ -115,7 +114,8 @@ DateTime::DateTime(std::tm time, bool isLocalTime)
     time.tm_isdst = time2.tm_isdst; // so the hour is not adjusted
     std::mktime(&time);
     year += time.tm_year - originalYear;
-    // derived from The Open Group Base Specifications Issue 7 4.15 http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_15
+    // derived from The Open Group Base Specifications Issue 7 4.15
+    // http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_15
     std::int64_t seconds = time.tm_sec;
     seconds += (std::int64_t)time.tm_min * 60;
     seconds += (std::int64_t)time.tm_hour * 3600;
@@ -132,7 +132,12 @@ DateTime::DateTime(std::tm time, bool isLocalTime)
 
 namespace
 {
-int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const std::wstring &a, std::size_t bStart, std::size_t bLength, const wchar_t *const b)
+int compareCaseInsensitive(std::size_t aStart,
+                           std::size_t aLength,
+                           const std::wstring &a,
+                           std::size_t bStart,
+                           std::size_t bLength,
+                           const wchar_t *const b)
 {
     if(aStart >= a.size())
         aLength = 0;
@@ -162,7 +167,12 @@ int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const std::w
     return 0;
 }
 
-int compareCaseInsensitive(std::size_t aStart, std::size_t aLength, const wchar_t *const a, std::size_t bStart, std::size_t bLength, const std::wstring &b)
+int compareCaseInsensitive(std::size_t aStart,
+                           std::size_t aLength,
+                           const wchar_t *const a,
+                           std::size_t bStart,
+                           std::size_t bLength,
+                           const std::wstring &b)
 {
     return -compareCaseInsensitive(bStart, bLength, b, aStart, aLength, a);
 }
@@ -172,59 +182,26 @@ int compareCaseInsensitive(const wchar_t *const a, const std::wstring &b)
     return compareCaseInsensitive(0, std::wcslen(a), a, 0, b.size(), b);
 }
 
-const wchar_t *const weekNamesLong[7] =
-{
-    L"Sunday",
-    L"Monday",
-    L"Tuesday",
-    L"Wednesday",
-    L"Thursday",
-    L"Friday",
-    L"Saturday"
-};
+const wchar_t *const weekNamesLong[7] = {
+    L"Sunday", L"Monday", L"Tuesday", L"Wednesday", L"Thursday", L"Friday", L"Saturday"};
 
-const wchar_t *const weekNamesShort[7] =
-{
-    L"Sun",
-    L"Mon",
-    L"Tue",
-    L"Wed",
-    L"Thu",
-    L"Fri",
-    L"Sat"
-};
+const wchar_t *const weekNamesShort[7] = {L"Sun", L"Mon", L"Tue", L"Wed", L"Thu", L"Fri", L"Sat"};
 
-const wchar_t *const monthNamesLong[12] =
-{
-    L"January",
-    L"February",
-    L"March",
-    L"April",
-    L"May",
-    L"June",
-    L"July",
-    L"August",
-    L"September",
-    L"October",
-    L"November",
-    L"December"
-};
+const wchar_t *const monthNamesLong[12] = {L"January",
+                                           L"February",
+                                           L"March",
+                                           L"April",
+                                           L"May",
+                                           L"June",
+                                           L"July",
+                                           L"August",
+                                           L"September",
+                                           L"October",
+                                           L"November",
+                                           L"December"};
 
-const wchar_t *const monthNamesShort[12] =
-{
-    L"Jan",
-    L"Feb",
-    L"Mar",
-    L"Apr",
-    L"May",
-    L"Jun",
-    L"Jul",
-    L"Aug",
-    L"Sep",
-    L"Oct",
-    L"Nov",
-    L"Dec"
-};
+const wchar_t *const monthNamesShort[12] = {
+    L"Jan", L"Feb", L"Mar", L"Apr", L"May", L"Jun", L"Jul", L"Aug", L"Sep", L"Oct", L"Nov", L"Dec"};
 
 enum class DateTokenType
 {
@@ -244,15 +221,17 @@ enum class DateTokenType
 class DateTokenizer final
 {
     DateTokenizer(const DateTokenizer &) = delete;
-    DateTokenizer &operator =(const DateTokenizer &) = delete;
+    DateTokenizer &operator=(const DateTokenizer &) = delete;
+
 private:
     const std::wstring &input;
+
 public:
-    explicit DateTokenizer(const std::wstring &input)
-        : input(input)
+    explicit DateTokenizer(const std::wstring &input) : input(input)
     {
         next();
     }
+
 private:
     std::size_t currentInputLocation = 0;
     std::wint_t peekCh()
@@ -267,6 +246,7 @@ private:
         currentInputLocation++;
         return retval;
     }
+
 public:
     DateTokenType type = DateTokenType::Eof;
     std::wstring value = L"";
@@ -381,7 +361,9 @@ public:
             intValue = 1; // sign
             return;
         default:
-            throw DateTime::FormatException("invalid character : '" + string_cast<std::string>(std::wstring(1, (wchar_t)peekCh())) + "'");
+            throw DateTime::FormatException(
+                "invalid character : '"
+                + string_cast<std::string>(std::wstring(1, (wchar_t)peekCh())) + "'");
         }
     }
 };
@@ -407,8 +389,7 @@ enum class FormatTokenType
     Second, // 's'
 };
 
-static const wchar_t *const dateFormats[] =
-{
+static const wchar_t *const dateFormats[] = {
     L" +Y-M-D ",
     L" +Y-M-D_h:m:s ",
     L" +Y-M-D_h:m:s_p ",
@@ -470,7 +451,8 @@ static const wchar_t *const dateFormats[] =
     L" h_p ",
 };
 
-typedef checked_array<std::wstring, sizeof(dateFormats) / sizeof(dateFormats[0])> DateFormatsArrayType;
+typedef checked_array<std::wstring, sizeof(dateFormats) / sizeof(dateFormats[0])>
+    DateFormatsArrayType;
 
 DateFormatsArrayType makeDateFormatsArray()
 {
@@ -490,12 +472,13 @@ struct DateFormatTokenizer final
 {
 private:
     const std::wstring &format;
+
 public:
-    explicit DateFormatTokenizer(const std::wstring &format)
-        : format(format)
+    explicit DateFormatTokenizer(const std::wstring &format) : format(format)
     {
         next();
     }
+
 private:
     std::size_t currentPosition = 0;
     wint_t peekCh()
@@ -891,7 +874,9 @@ std::tm DateTime::asStructTm(bool isLocalTime) const
     std::tm retval = std::tm();
     if(isLocalTime)
     {
-        retval = DateTime(millisecondsSincePosixTimeEpoch + (std::int64_t)getTimeZoneOffset(*this).count() * 1000).asStructTm(false);
+        retval =
+            DateTime(millisecondsSincePosixTimeEpoch
+                     + (std::int64_t)getTimeZoneOffset(*this).count() * 1000).asStructTm(false);
         retval.tm_isdst = isDaylightSavingsTime(*this) ? 1 : 0;
         return retval;
     }
@@ -1029,6 +1014,5 @@ initializer init1([]()
 });
 }
 #endif
-
 }
 }

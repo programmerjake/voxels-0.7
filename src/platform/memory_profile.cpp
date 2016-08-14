@@ -71,11 +71,14 @@ void log_alloc(std::size_t count)
             if(byteCount >= dumpByteCount && !getDebugLog().isInPostFunction())
             {
                 byteCount %= dumpByteCount;
-                auto compareFn = [](typename AllocationsMapType::iterator a, typename AllocationsMapType::iterator b)
+                auto compareFn = [](typename AllocationsMapType::iterator a,
+                                    typename AllocationsMapType::iterator b)
                 {
                     return std::get<1>(*a) > std::get<1>(*b);
                 };
-                std::priority_queue<typename AllocationsMapType::iterator, std::vector<typename AllocationsMapType::iterator>, decltype(compareFn)> pqueue(compareFn);
+                std::priority_queue<typename AllocationsMapType::iterator,
+                                    std::vector<typename AllocationsMapType::iterator>,
+                                    decltype(compareFn)> pqueue(compareFn);
                 for(auto i = allocationsMap.begin(); i != allocationsMap.end(); i++)
                 {
                     pqueue.push(i);
@@ -124,7 +127,8 @@ void release(void *v)
 #else
     if(v == nullptr)
         return;
-    MemoryHeader *ptr = reinterpret_cast<MemoryHeader *>(static_cast<char *>(v) - offsetof(MemoryHeader, data));
+    MemoryHeader *ptr =
+        reinterpret_cast<MemoryHeader *>(static_cast<char *>(v) - offsetof(MemoryHeader, data));
     allocatedMemory.fetch_sub(ptr->allocatedSize, std::memory_order_relaxed);
     std::free(static_cast<void *>(ptr));
 #endif // LOG_ALLOC
@@ -177,5 +181,3 @@ void operator delete[](void *ptr)
 {
     operator delete(ptr);
 }
-
-

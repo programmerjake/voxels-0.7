@@ -35,8 +35,10 @@ namespace builtin
 class Chest final : public ItemBlock
 {
     friend class global_instance_maker<Chest>;
+
 private:
     Chest();
+
 public:
     static const Chest *pointer()
     {
@@ -46,7 +48,10 @@ public:
     {
         return pointer();
     }
-    virtual Item onUse(Item item, World &world, WorldLockManager &lock_manager, Player &player) const override;
+    virtual Item onUse(Item item,
+                       World &world,
+                       WorldLockManager &lock_manager,
+                       Player &player) const override;
     virtual std::shared_ptr<void> readItemData(stream::Reader &reader) const override
     {
         return nullptr;

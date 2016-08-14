@@ -65,8 +65,7 @@ class PlayerList;
 
 struct WorldConstructionAborted final : public std::runtime_error
 {
-    WorldConstructionAborted()
-        : std::runtime_error("World construction aborted")
+    WorldConstructionAborted() : std::runtime_error("World construction aborted")
     {
     }
 };
@@ -75,10 +74,11 @@ GCC_PRAGMA(diagnostic push)
 GCC_PRAGMA(diagnostic ignored "-Weffc++")
 class World final : public std::enable_shared_from_this<World>
 {
-GCC_PRAGMA(diagnostic pop)
+    GCC_PRAGMA(diagnostic pop)
     friend class ViewPoint;
     World(const World &) = delete;
-    const World &operator =(const World &) = delete;
+    const World &operator=(const World &) = delete;
+
 private:
     // private types
     struct internal_construct_flag
@@ -90,9 +90,11 @@ private:
     class StreamWorldGuard final
     {
         StreamWorldGuard(const StreamWorldGuard &) = delete;
-        StreamWorldGuard &operator =(const StreamWorldGuard &) = delete;
+        StreamWorldGuard &operator=(const StreamWorldGuard &) = delete;
+
     private:
         stream::Stream &stream;
+
     public:
         StreamWorldGuard(stream::Stream &stream, World &world, WorldLockManager &lock_manager)
             : stream(stream)
@@ -107,7 +109,7 @@ private:
     struct InitialChunkGenerateStruct final
     {
         InitialChunkGenerateStruct(const InitialChunkGenerateStruct &) = delete;
-        InitialChunkGenerateStruct &operator =(const InitialChunkGenerateStruct &) = delete;
+        InitialChunkGenerateStruct &operator=(const InitialChunkGenerateStruct &) = delete;
         std::mutex lock;
         std::condition_variable initialGenerationDoneCond;
         std::condition_variable generatorWaitDoneCond;
@@ -115,19 +117,24 @@ private:
         bool generatorWait = true;
         std::atomic_bool *abortFlag;
         explicit InitialChunkGenerateStruct(std::size_t count, std::atomic_bool *abortFlag)
-            : lock(), initialGenerationDoneCond(), generatorWaitDoneCond(), count(count), abortFlag(abortFlag)
+            : lock(),
+              initialGenerationDoneCond(),
+              generatorWaitDoneCond(),
+              count(count),
+              abortFlag(abortFlag)
         {
         }
     };
     struct ThreadPauseGuard final
     {
         ThreadPauseGuard(const ThreadPauseGuard &) = delete;
-        ThreadPauseGuard &operator =(const ThreadPauseGuard &) = delete;
+        ThreadPauseGuard &operator=(const ThreadPauseGuard &) = delete;
+
     private:
         World &world;
+
     public:
-        explicit ThreadPauseGuard(World &world)
-            : world(world)
+        explicit ThreadPauseGuard(World &world) : world(world)
         {
             std::unique_lock<std::mutex> lockIt(world.stateLock);
             while(world.isPaused && !world.destructing)
@@ -161,18 +168,20 @@ private:
             checkForPause(lockedStateLock);
         }
     };
+
 public:
     // public types
     typedef std::uint64_t SeedType;
     struct WorldRandomNumberGenerator final
     {
         friend class World;
+
     private:
         World &world;
-        WorldRandomNumberGenerator(World &world)
-            : world(world)
+        WorldRandomNumberGenerator(World &world) : world(world)
         {
         }
+
     public:
         typedef rc4_random_engine::result_type result_type;
         static result_type min()
@@ -183,7 +192,7 @@ public:
         {
             return rc4_random_engine::max();
         }
-        result_type operator ()() const
+        result_type operator()() const
         {
             std::lock_guard<std::mutex> lockIt(world.randomGeneratorLock);
             return world.randomGenerator();
@@ -199,6 +208,7 @@ public:
     private:
         World *pworld = nullptr;
         WorldLockManager *plock_manager = nullptr;
+
     public:
         StreamWorld()
         {
@@ -208,9 +218,9 @@ public:
         {
         }
         StreamWorld(const StreamWorld &) = default;
-        StreamWorld &operator =(const StreamWorld &) = default;
+        StreamWorld &operator=(const StreamWorld &) = default;
         StreamWorld(StreamWorld &&) = default;
-        StreamWorld &operator =(StreamWorld &&) = default;
+        StreamWorld &operator=(StreamWorld &&) = default;
         ~StreamWorld() = default;
         bool good() const
         {
@@ -220,7 +230,7 @@ public:
         {
             return good();
         }
-        bool operator !() const
+        bool operator!() const
         {
             return !good();
         }
@@ -240,6 +250,7 @@ public:
             return *plock_manager;
         }
     };
+
 public:
     // public variables
     static constexpr std::int32_t SeaLevel = 64;
@@ -249,6 +260,7 @@ public:
     static constexpr float timeOfDayDuskStart = 600.0f;
     static constexpr float timeOfDayNightStart = 690.0f;
     static constexpr float timeOfDayDawnStart = 1110.0f;
+
 public:
     // public functions
     static SeedType makeSeed(std::wstring seed)
@@ -266,7 +278,8 @@ public:
     }
     static StreamWorld getStreamWorld(stream::Stream &stream)
     {
-        std::shared_ptr<StreamWorld> retval = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
+        std::shared_ptr<StreamWorld> retval =
+            stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
         if(retval == nullptr)
             return StreamWorld();
         return *retval;
@@ -282,14 +295,18 @@ public:
      * @param worldGenerator the world generator to use
      *
      */
-    World(SeedType seed, const WorldGenerator *worldGenerator, std::atomic_bool *abortFlag = nullptr);
+    World(SeedType seed,
+          const WorldGenerator *worldGenerator,
+          std::atomic_bool *abortFlag = nullptr);
     /** @brief construct a world
      *
      * @param seed the world seed to use
      * @param worldGenerator the world generator to use
      *
      */
-    World(std::wstring seed, const WorldGenerator *worldGenerator, std::atomic_bool *abortFlag = nullptr)
+    World(std::wstring seed,
+          const WorldGenerator *worldGenerator,
+          std::atomic_bool *abortFlag = nullptr)
         : World(makeSeed(seed), worldGenerator, abortFlag)
     {
     }
@@ -328,11 +345,16 @@ public:
      * @param bi a <code>BlockIterator</code> to the block to reschedule the block update for
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param kind the kind of block update
-     * @param updateTimeFromNow how far in the future to schedule the block update or (for values < 0) a flag to delete the block update
-     * @return the time left for the previous block update or -1 if there is no previous block update
+     * @param updateTimeFromNow how far in the future to schedule the block update or (for values <
+     *0) a flag to delete the block update
+     * @return the time left for the previous block update or -1 if there is no previous block
+     *update
      *
      */
-    float rescheduleBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
+    float rescheduleBlockUpdate(BlockIterator bi,
+                                WorldLockManager &lock_manager,
+                                BlockUpdateKind kind,
+                                float updateTimeFromNow)
     {
         bi.updateLock(lock_manager);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
@@ -341,18 +363,22 @@ public:
         if(updateTimeFromNow < 0)
         {
             if(block.hasOptionalData)
-                blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+                blockOptionalData = subchunk.blockOptionalData.get(
+                    BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
         }
         else
         {
-            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+            blockOptionalData = subchunk.blockOptionalData.get_or_make(
+                BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition),
+                lock_manager.tls);
             block.hasOptionalData = true;
         }
         if(blockOptionalData == nullptr)
             return -1;
         BlockUpdate **ppnode = &blockOptionalData->updateListHead;
         BlockUpdate *pnode = *ppnode;
-        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(bi.chunk->getChunkVariables().blockUpdateListLock);
+        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(
+            bi.chunk->getChunkVariables().blockUpdateListLock);
         float retval = -1;
         while(pnode != nullptr)
         {
@@ -370,11 +396,14 @@ public:
                         bi.chunk->getChunkVariables().blockUpdateListTail = pnode->chunk_prev;
                     else
                         pnode->chunk_next->chunk_prev = pnode->chunk_prev;
-                    bi.chunk->getChunkVariables().blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]--;
+                    bi.chunk->getChunkVariables()
+                        .blockUpdatesPerPhase[BlockUpdateKindPhase(kind)]--;
                     BlockUpdate::free(pnode, lock_manager.tls);
                     if(blockOptionalData->empty())
                     {
-                        subchunk.blockOptionalData.erase(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+                        subchunk.blockOptionalData.erase(
+                            BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition),
+                            lock_manager.tls);
                         block.hasOptionalData = false;
                     }
                 }
@@ -389,7 +418,11 @@ public:
         }
         if(updateTimeFromNow >= 0)
         {
-            pnode = BlockUpdate::allocate(lock_manager.tls, kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
+            pnode = BlockUpdate::allocate(lock_manager.tls,
+                                          kind,
+                                          bi.position(),
+                                          updateTimeFromNow,
+                                          blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
             pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
@@ -411,10 +444,14 @@ public:
      * @return if there is a previous block update
      *
      */
-    bool addBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind, float updateTimeFromNow)
+    bool addBlockUpdate(BlockIterator bi,
+                        WorldLockManager &lock_manager,
+                        BlockUpdateKind kind,
+                        float updateTimeFromNow)
     {
         bi.updateLock(lock_manager);
-        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(bi.chunk->getChunkVariables().blockUpdateListLock);
+        std::unique_lock<decltype(bi.chunk->getChunkVariables().blockUpdateListLock)> lockIt(
+            bi.chunk->getChunkVariables().blockUpdateListLock);
         assert(updateTimeFromNow >= 0);
         BlockChunkSubchunk &subchunk = bi.getSubchunk();
         BlockChunkBlock &block = bi.getBlock();
@@ -422,11 +459,14 @@ public:
         if(updateTimeFromNow < 0)
         {
             if(block.hasOptionalData)
-                blockOptionalData = subchunk.blockOptionalData.get(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
+                blockOptionalData = subchunk.blockOptionalData.get(
+                    BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition));
         }
         else
         {
-            blockOptionalData = subchunk.blockOptionalData.get_or_make(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), lock_manager.tls);
+            blockOptionalData = subchunk.blockOptionalData.get_or_make(
+                BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition),
+                lock_manager.tls);
             block.hasOptionalData = true;
         }
         if(blockOptionalData == nullptr)
@@ -446,7 +486,11 @@ public:
         }
         if(updateTimeFromNow >= 0)
         {
-            pnode = BlockUpdate::allocate(lock_manager.tls, kind, bi.position(), updateTimeFromNow, blockOptionalData->updateListHead);
+            pnode = BlockUpdate::allocate(lock_manager.tls,
+                                          kind,
+                                          bi.position(),
+                                          updateTimeFromNow,
+                                          blockOptionalData->updateListHead);
             blockOptionalData->updateListHead = pnode;
             pnode->chunk_next = bi.chunk->getChunkVariables().blockUpdateListHead;
             pnode->chunk_prev = nullptr;
@@ -464,7 +508,8 @@ public:
      * @param bi a <code>BlockIterator</code> to the block to delete the block update for
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param kind the kind of block update to delete
-     * @return the time left for the previous block update or -1 if there is no previous block update
+     * @return the time left for the previous block update or -1 if there is no previous block
+     *update
      *
      */
     float deleteBlockUpdate(BlockIterator bi, WorldLockManager &lock_manager, BlockUpdateKind kind)
@@ -489,7 +534,12 @@ public:
             subchunk.removeParticleGeneratingBlock(bi.position());
         }
         bd = newBlock.descriptor;
-        BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock), lock_manager.tls);
+        BlockChunk::putBlockIntoArray(
+            BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition),
+            b,
+            subchunk,
+            std::move(newBlock),
+            lock_manager.tls);
         if(bd != nullptr && bd->generatesParticles())
         {
             subchunk.addParticleGeneratingBlock(bi.position());
@@ -509,6 +559,8 @@ public:
         }
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
+            if(!bd || !bd->handledUpdateKinds[kind])
+                continue;
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod > 0)
                 addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
@@ -521,7 +573,9 @@ public:
      * @param newBiomeProperties the new biome properties
      * @see setBlock
      */
-    void setBiomeProperties(BlockIterator bi, WorldLockManager &lock_manager, BiomeProperties newBiomeProperties)
+    void setBiomeProperties(BlockIterator bi,
+                            WorldLockManager &lock_manager,
+                            BiomeProperties newBiomeProperties)
     {
         bi.updateLock(lock_manager);
         BlockChunkBiome &b = bi.getBiome();
@@ -543,7 +597,11 @@ public:
         }
     }
     template <bool doInvalidate = true, typename T>
-    void setBiomePropertiesRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBiomes, VectorI newBiomesOrigin)
+    void setBiomePropertiesRange(PositionI minCorner,
+                                 VectorI maxCorner,
+                                 WorldLockManager &lock_manager,
+                                 const T &newBiomes,
+                                 VectorI newBiomesOrigin)
     {
         minCorner.y = 0;
         maxCorner.y = BlockChunk::chunkSizeY - 1;
@@ -570,7 +628,8 @@ public:
      * except for the order of setting blocks, this is equivalent to:
      * @code
      * template <typename T>
-     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager,
+     *const T &newBlocks, VectorI newBlocksOrigin)
      * {
      *     for(PositionI pos = minCorner; pos.x <= maxCorner.x; pos.x++)
      *     {
@@ -580,7 +639,8 @@ public:
      *             {
      *                 BlockIterator bi = getBlockIterator(pos);
      *                 VectorI newBlocksPosition = pos - minCorner + newBlocksOrigin;
-     *                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+     *                 Block newBlock =
+     *newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
      *                 setBlock(bi, lock_manager, newBlock);
      *             }
      *         }
@@ -589,8 +649,12 @@ public:
      * @endcode
      *
      * @param blockIterator the BlockIterator to use
-     * @param minCorner the minimum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
-     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
+     * @param minCorner the minimum corner of the block range to set. sets blocks in the range
+     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
+     *maxCorner.z
+     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range
+     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
+     *maxCorner.z
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param newBlocks the array of new blocks
      * @param newBlocksOrigin the minimum corner in the array of new blocks
@@ -598,44 +662,61 @@ public:
      *
      */
     template <typename T>
-    void setBlockRange(BlockIterator blockIterator, PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+    void setBlockRange(BlockIterator blockIterator,
+                       PositionI minCorner,
+                       VectorI maxCorner,
+                       WorldLockManager &lock_manager,
+                       const T &newBlocks,
+                       VectorI newBlocksOrigin)
     {
         PositionI adjustedMinCorner = minCorner - VectorI(1);
         VectorI adjustedMaxCorner = maxCorner + VectorI(1);
         PositionI minCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(minCorner);
         VectorI maxCornerSubchunk = BlockChunk::getSubchunkBaseAbsolutePosition(maxCorner);
-        for(PositionI subchunkPos = minCornerSubchunk; subchunkPos.x <= maxCornerSubchunk.x; subchunkPos.x += BlockChunk::subchunkSizeXYZ)
+        for(PositionI subchunkPos = minCornerSubchunk; subchunkPos.x <= maxCornerSubchunk.x;
+            subchunkPos.x += BlockChunk::subchunkSizeXYZ)
         {
-            for(subchunkPos.y = minCornerSubchunk.y; subchunkPos.y <= maxCornerSubchunk.y; subchunkPos.y += BlockChunk::subchunkSizeXYZ)
+            for(subchunkPos.y = minCornerSubchunk.y; subchunkPos.y <= maxCornerSubchunk.y;
+                subchunkPos.y += BlockChunk::subchunkSizeXYZ)
             {
-                for(subchunkPos.z = minCornerSubchunk.z; subchunkPos.z <= maxCornerSubchunk.z; subchunkPos.z += BlockChunk::subchunkSizeXYZ)
+                for(subchunkPos.z = minCornerSubchunk.z; subchunkPos.z <= maxCornerSubchunk.z;
+                    subchunkPos.z += BlockChunk::subchunkSizeXYZ)
                 {
                     VectorI minSubchunkRelativePos = VectorI(0);
                     VectorI maxSubchunkRelativePos = VectorI(BlockChunk::subchunkSizeXYZ - 1);
-                    minSubchunkRelativePos.x = std::max(minSubchunkRelativePos.x, minCorner.x - subchunkPos.x);
-                    minSubchunkRelativePos.y = std::max(minSubchunkRelativePos.y, minCorner.y - subchunkPos.y);
-                    minSubchunkRelativePos.z = std::max(minSubchunkRelativePos.z, minCorner.z - subchunkPos.z);
-                    maxSubchunkRelativePos.x = std::min(maxSubchunkRelativePos.x, maxCorner.x - subchunkPos.x);
-                    maxSubchunkRelativePos.y = std::min(maxSubchunkRelativePos.y, maxCorner.y - subchunkPos.y);
-                    maxSubchunkRelativePos.z = std::min(maxSubchunkRelativePos.z, maxCorner.z - subchunkPos.z);
+                    minSubchunkRelativePos.x =
+                        std::max(minSubchunkRelativePos.x, minCorner.x - subchunkPos.x);
+                    minSubchunkRelativePos.y =
+                        std::max(minSubchunkRelativePos.y, minCorner.y - subchunkPos.y);
+                    minSubchunkRelativePos.z =
+                        std::max(minSubchunkRelativePos.z, minCorner.z - subchunkPos.z);
+                    maxSubchunkRelativePos.x =
+                        std::min(maxSubchunkRelativePos.x, maxCorner.x - subchunkPos.x);
+                    maxSubchunkRelativePos.y =
+                        std::min(maxSubchunkRelativePos.y, maxCorner.y - subchunkPos.y);
+                    maxSubchunkRelativePos.z =
+                        std::min(maxSubchunkRelativePos.z, maxCorner.z - subchunkPos.z);
                     BlockIterator sbi = blockIterator;
                     sbi.moveTo(subchunkPos, lock_manager);
-                    std::size_t setBlockCount = 0;
-                    for(VectorI subchunkRelativePos = minSubchunkRelativePos; subchunkRelativePos.x <= maxSubchunkRelativePos.x; subchunkRelativePos.x++)
+                    for(VectorI subchunkRelativePos = minSubchunkRelativePos;
+                        subchunkRelativePos.x <= maxSubchunkRelativePos.x;
+                        subchunkRelativePos.x++)
                     {
-                        for(subchunkRelativePos.y = minSubchunkRelativePos.y; subchunkRelativePos.y <= maxSubchunkRelativePos.y; subchunkRelativePos.y++)
+                        for(subchunkRelativePos.y = minSubchunkRelativePos.y;
+                            subchunkRelativePos.y <= maxSubchunkRelativePos.y;
+                            subchunkRelativePos.y++)
                         {
-                            for(subchunkRelativePos.z = minSubchunkRelativePos.z; subchunkRelativePos.z <= maxSubchunkRelativePos.z; subchunkRelativePos.z++)
+                            for(subchunkRelativePos.z = minSubchunkRelativePos.z;
+                                subchunkRelativePos.z <= maxSubchunkRelativePos.z;
+                                subchunkRelativePos.z++)
                             {
                                 BlockIterator bi = sbi;
-                                if(setBlockCount++ > 500)
-                                {
-                                    lock_manager.clear();
-                                    setBlockCount = 0;
-                                }
                                 bi.moveBy(subchunkRelativePos, lock_manager);
-                                VectorI newBlocksPosition = subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
-                                Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+                                VectorI newBlocksPosition =
+                                    subchunkRelativePos + subchunkPos - minCorner + newBlocksOrigin;
+                                Block newBlock =
+                                    newBlocks[newBlocksPosition.x][newBlocksPosition
+                                                                       .y][newBlocksPosition.z];
                                 BlockChunkBlock &b = bi.getBlock(lock_manager);
                                 BlockChunkSubchunk &subchunk = bi.getSubchunk();
                                 BlockDescriptorPointer bd = subchunk.getBlockKind(b);
@@ -644,16 +725,25 @@ public:
                                     subchunk.removeParticleGeneratingBlock(bi.position());
                                 }
                                 bd = newBlock.descriptor;
-                                BlockChunk::putBlockIntoArray(BlockChunk::getSubchunkRelativePosition(bi.currentRelativePosition), b, subchunk, std::move(newBlock), lock_manager.tls);
+                                BlockChunk::putBlockIntoArray(
+                                    BlockChunk::getSubchunkRelativePosition(
+                                        bi.currentRelativePosition),
+                                    b,
+                                    subchunk,
+                                    std::move(newBlock),
+                                    lock_manager.tls);
                                 if(bd != nullptr && bd->generatesParticles())
                                 {
                                     subchunk.addParticleGeneratingBlock(bi.position());
                                 }
                                 for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
                                 {
+                                    if(!bd || !bd->handledUpdateKinds[kind])
+                                        continue;
                                     float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
                                     if(defaultPeriod > 0)
-                                        rescheduleBlockUpdate(bi, lock_manager, kind, defaultPeriod);
+                                        rescheduleBlockUpdate(
+                                            bi, lock_manager, kind, defaultPeriod);
                                 }
                             }
                         }
@@ -670,7 +760,8 @@ public:
      * except for the order of setting blocks, this is equivalent to:
      * @code
      * template <typename T>
-     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+     * void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager,
+     *const T &newBlocks, VectorI newBlocksOrigin)
      * {
      *     for(PositionI pos = minCorner; pos.x <= maxCorner.x; pos.x++)
      *     {
@@ -680,7 +771,8 @@ public:
      *             {
      *                 BlockIterator bi = getBlockIterator(pos);
      *                 VectorI newBlocksPosition = pos - minCorner + newBlocksOrigin;
-     *                 Block newBlock = newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
+     *                 Block newBlock =
+     *newBlocks[newBlocksPosition.x][newBlocksPosition.y][newBlocksPosition.z];
      *                 setBlock(bi, lock_manager, newBlock);
      *             }
      *         }
@@ -688,8 +780,12 @@ public:
      * }
      * @endcode
      *
-     * @param minCorner the minimum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
-     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <= maxCorner.z
+     * @param minCorner the minimum corner of the block range to set. sets blocks in the range
+     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
+     *maxCorner.z
+     * @param maxCorner the maximum corner of the block range to set. sets blocks in the range
+     *minCorner.x <= x <= maxCorner.x, minCorner.y <= y <= maxCorner.y, minCorner.z <= z <=
+     *maxCorner.z
      * @param lock_manager this thread's <code>WorldLockManager</code>
      * @param newBlocks the array of new blocks
      * @param newBlocksOrigin the minimum corner in the array of new blocks
@@ -697,9 +793,18 @@ public:
      *
      */
     template <typename T>
-    void setBlockRange(PositionI minCorner, VectorI maxCorner, WorldLockManager &lock_manager, const T &newBlocks, VectorI newBlocksOrigin)
+    void setBlockRange(PositionI minCorner,
+                       VectorI maxCorner,
+                       WorldLockManager &lock_manager,
+                       const T &newBlocks,
+                       VectorI newBlocksOrigin)
     {
-        setBlockRange(getBlockIterator(minCorner, lock_manager.tls), minCorner, maxCorner, lock_manager, newBlocks, newBlocksOrigin);
+        setBlockRange(getBlockIterator(minCorner, lock_manager.tls),
+                      minCorner,
+                      maxCorner,
+                      lock_manager,
+                      newBlocks,
+                      newBlocksOrigin);
     }
     /** @brief create a <code>BlockIterator</code>
      *
@@ -718,8 +823,17 @@ public:
      * @param position the velocity for the new entity
      *
      */
-    Entity *addEntity(EntityDescriptorPointer descriptor, PositionF position, VectorF velocity, WorldLockManager &lock_manager, std::shared_ptr<void> entityData = nullptr);
-    RayCasting::Collision castRay(RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, RayCasting::BlockCollisionMask blockRayCollisionMask = RayCasting::BlockCollisionMaskDefault, const Entity *ignoreEntity = nullptr);
+    Entity *addEntity(EntityDescriptorPointer descriptor,
+                      PositionF position,
+                      VectorF velocity,
+                      WorldLockManager &lock_manager,
+                      std::shared_ptr<void> entityData = nullptr);
+    RayCasting::Collision castRay(RayCasting::Ray ray,
+                                  WorldLockManager &lock_manager,
+                                  float maxSearchDistance,
+                                  RayCasting::BlockCollisionMask blockRayCollisionMask =
+                                      RayCasting::BlockCollisionMaskDefault,
+                                  const Entity *ignoreEntity = nullptr);
     void move(double deltaTime, WorldLockManager &lock_manager);
     bool isLightingStable()
     {
@@ -753,7 +867,8 @@ public:
     bool isDawn()
     {
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
-        return timeOfDayInSeconds >= timeOfDayDawnStart && timeOfDayInSeconds < dayDurationInSeconds;
+        return timeOfDayInSeconds >= timeOfDayDawnStart
+               && timeOfDayInSeconds < dayDurationInSeconds;
     }
     float getLightingParameter()
     {
@@ -765,7 +880,9 @@ public:
         }
         else if(timeOfDayInSeconds < timeOfDayNightStart)
         {
-            t = 1 - (timeOfDayInSeconds - timeOfDayDuskStart) / (timeOfDayNightStart - timeOfDayDuskStart);
+            t = 1
+                - (timeOfDayInSeconds - timeOfDayDuskStart)
+                      / (timeOfDayNightStart - timeOfDayDuskStart);
         }
         else if(timeOfDayInSeconds < timeOfDayDawnStart)
         {
@@ -773,14 +890,16 @@ public:
         }
         else
         {
-            t = (timeOfDayInSeconds - timeOfDayDawnStart) / (dayDurationInSeconds - timeOfDayDawnStart);
+            t = (timeOfDayInSeconds - timeOfDayDawnStart)
+                / (dayDurationInSeconds - timeOfDayDawnStart);
         }
         t = limit(t, 0.0f, 1.0f);
         return t;
     }
     WorldLightingProperties getLighting(Dimension d)
     {
-        float t = interpolate<float>(getLightingParameter(), getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
+        float t = interpolate<float>(
+            getLightingParameter(), getNightSkyBrightnessLevel(d), getDaySkyBrightnessLevel(d));
         t = (std::floor(16 * t) + 0.01f) / 15;
         t = limit(t, 0.0f, 1.0f);
         return WorldLightingProperties(t, d);
@@ -816,7 +935,8 @@ public:
         std::unique_lock<std::recursive_mutex> lockIt(timeOfDayLock);
         double newTimeOfDayInSeconds = timeOfDayInSeconds + deltaTime;
         double newTimeInDays = newTimeOfDayInSeconds / dayDurationInSeconds;
-        timeOfDayInSeconds = dayDurationInSeconds * static_cast<float>(newTimeInDays - std::floor(newTimeInDays));
+        timeOfDayInSeconds =
+            dayDurationInSeconds * static_cast<float>(newTimeInDays - std::floor(newTimeInDays));
         moonPhase = (moonPhase + (int)std::floor(newTimeInDays)) % moonPhaseCount;
     }
     int getMoonPhase()
@@ -899,6 +1019,19 @@ public:
     void write(stream::Writer &writer, WorldLockManager &lock_manager);
     static std::shared_ptr<World> read(stream::Reader &reader);
     static std::uint32_t getStreamFileVersion(stream::Reader &reader);
+    static Lighting getDefaultBlockLighting(PositionI position, bool isTopFace)
+    {
+        switch(position.d)
+        {
+        case Dimension::Overworld:
+            if(position.y >= 64 && isTopFace)
+                return Lighting::makeSkyLighting();
+            return Lighting();
+        }
+        UNREACHABLE();
+        return Lighting();
+    }
+
 private:
     // private variables
     rc4_random_engine randomGenerator;
@@ -934,23 +1067,45 @@ private:
     // private functions
     void lightingThreadFn(TLS &tls);
     void blockUpdateThreadFn(TLS &tls, bool isPhaseManager);
-    void generateChunk(std::shared_ptr<BlockChunk> chunk, WorldLockManager &lock_manager, const std::atomic_bool *abortFlag, std::unique_ptr<ThreadPauseGuard> &pauseGuard);
-    void chunkGeneratingThreadFn(std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls);
+    void generateChunk(std::shared_ptr<BlockChunk> chunk,
+                       WorldLockManager &lock_manager,
+                       const std::atomic_bool *abortFlag,
+                       std::unique_ptr<ThreadPauseGuard> &pauseGuard);
+    void chunkGeneratingThreadFn(
+        std::shared_ptr<InitialChunkGenerateStruct> initialChunkGenerateStruct, TLS &tls);
     void particleGeneratingThreadFn(TLS &tls);
     void moveEntitiesThreadFn(TLS &tls);
-    static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind, BlockIterator bi, WorldLockManager &lock_manager);
-    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockUpdatePhase phase, BlockIterator bi, WorldLockManager &lock_manager);
-    static Lighting getBlockLighting(BlockIterator bi, WorldLockManager &lock_manager, bool isTopFace);
-    float getChunkGeneratePriority(BlockIterator bi, WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
+    static BlockUpdate *removeAllBlockUpdatesInChunk(BlockUpdateKind kind,
+                                                     BlockIterator bi,
+                                                     WorldLockManager &lock_manager);
+    static BlockUpdate *removeAllReadyBlockUpdatesInChunk(BlockUpdatePhase phase,
+                                                          BlockIterator bi,
+                                                          WorldLockManager &lock_manager);
+    static Lighting getBlockLighting(BlockIterator bi,
+                                     WorldLockManager &lock_manager,
+                                     bool isTopFace);
+    float getChunkGeneratePriority(
+        BlockIterator bi,
+        WorldLockManager &lock_manager); /// low values mean high priority, NAN means don't generate
     bool isInitialGenerateChunk(PositionI position);
-    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi, RayCasting::Ray ray, WorldLockManager &lock_manager, float maxSearchDistance, const Entity *ignoreEntity);
-    void generateParticlesInSubchunk(BlockIterator bi, WorldLockManager &lock_manager, double currentTime, double deltaTime, std::vector<PositionI> &positions);
+    RayCasting::Collision castRayCheckForEntitiesInSubchunk(BlockIterator sbi,
+                                                            RayCasting::Ray ray,
+                                                            WorldLockManager &lock_manager,
+                                                            float maxSearchDistance,
+                                                            const Entity *ignoreEntity);
+    void generateParticlesInSubchunk(BlockIterator bi,
+                                     WorldLockManager &lock_manager,
+                                     double currentTime,
+                                     double deltaTime,
+                                     std::vector<PositionI> &positions);
     static void setStreamWorld(stream::Stream &stream, StreamWorld streamWorld)
     {
-        std::shared_ptr<StreamWorld> p = stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
+        std::shared_ptr<StreamWorld> p =
+            stream.getAssociatedValue<StreamWorld, stream_world_tag_t>();
         if(p == nullptr && streamWorld)
         {
-            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(std::make_shared<StreamWorld>(streamWorld));
+            stream.setAssociatedValue<StreamWorld, stream_world_tag_t>(
+                std::make_shared<StreamWorld>(streamWorld));
         }
         else if(p != nullptr && !streamWorld)
         {
@@ -967,14 +1122,20 @@ private:
         b.invalidate();
         bi.getSubchunk().invalidate();
         bi.chunk->getChunkVariables().invalidate();
+        auto blockDescriptor = bi.getSubchunk().getBlockKind(b);
         for(BlockUpdateKind kind : enum_traits<BlockUpdateKind>())
         {
+            if(!blockDescriptor || !blockDescriptor->handledUpdateKinds[kind])
+                continue;
             float defaultPeriod = BlockUpdateKindDefaultPeriod(kind);
             if(defaultPeriod == 0)
                 addBlockUpdate(bi, lock_manager, kind, defaultPeriod);
         }
     }
-    void invalidateBlockRange(BlockIterator bi, VectorI minCorner, VectorI maxCorner, WorldLockManager &lock_manager);
+    void invalidateBlockRange(BlockIterator bi,
+                              VectorI minCorner,
+                              VectorI maxCorner,
+                              WorldLockManager &lock_manager);
     bool isChunkCloseEnoughToPlayerToGetRandomUpdates(PositionI chunkBasePosition);
     void chunkUnloaderThreadFn(TLS &tls);
     BlockIterator getBlockIteratorForWorldAddEntity(PositionI pos, TLS &tls);

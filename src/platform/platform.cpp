@@ -3834,7 +3834,7 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         typename std::conditional<Is16Bit, IndexedTriangle16, IndexedTriangle>::type TriangleType;
     typedef typename std::conditional<Is16Bit, Mesh16, Mesh>::type MeshType;
     static constexpr std::size_t sectionSizeInVertices = TriangleType::indexMaxValue() + 1;
-        MeshBufferImpOpenGLBuffer(std::size_t triangleCount, std::size_t vertexCount)
+    MeshBufferImpOpenGLBuffer(std::size_t triangleCount, std::size_t vertexCount)
         : vertexBuffer(),
           sectionSizes(),
           triangleBuffer(),
@@ -3910,10 +3910,10 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         {
             auto splitMeshes = Mesh::split16(mesh, sectionSizeInVertices);
             assert(splitMeshes.size() <= sectionSizes.size());
-            IndexedTriangle16 *triangles = reinterpret_cast<IndexedTriangle16 *>(triangleBuffer.mappedMemory);
+            IndexedTriangle16 *triangles =
+                reinterpret_cast<IndexedTriangle16 *>(triangleBuffer.mappedMemory);
             Vertex *vertices = reinterpret_cast<Vertex *>(vertexBuffer.mappedMemory);
-            for(std::size_t sectionIndex = 0; sectionIndex < splitMeshes.size();
-                sectionIndex++)
+            for(std::size_t sectionIndex = 0; sectionIndex < splitMeshes.size(); sectionIndex++)
             {
                 auto &splitMesh = splitMeshes[sectionIndex];
                 for(std::size_t i = 0; i < splitMesh.vertices.size(); i++)
@@ -3928,7 +3928,8 @@ struct MeshBufferImpOpenGLBuffer final : public MeshBufferImp
         else
         {
             sectionSizes[0] = mesh.triangleCount();
-            IndexedTriangle *triangles = reinterpret_cast<IndexedTriangle *>(triangleBuffer.mappedMemory);
+            IndexedTriangle *triangles =
+                reinterpret_cast<IndexedTriangle *>(triangleBuffer.mappedMemory);
             Vertex *vertices = reinterpret_cast<Vertex *>(vertexBuffer.mappedMemory);
             for(std::size_t i = 0; i < mesh.vertices.size(); i++)
                 vertices[i] = mesh.vertices[i];

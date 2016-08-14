@@ -34,19 +34,29 @@ class ShadedContainer : public Container
 {
 public:
     ColorF background;
-    ShadedContainer(float minX, float maxX, float minY, float maxY, ColorF background = GrayscaleAF(0.5f, 0.75f))
+    ShadedContainer(float minX,
+                    float maxX,
+                    float minY,
+                    float maxY,
+                    ColorF background = GrayscaleAF(0.5f, 0.75f))
         : Container(minX, maxX, minY, maxY), background(background)
     {
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override
     {
         float backgroundZ = interpolate<float>(0.9f, minZ, maxZ);
-        renderer << Generate::quadrilateral(whiteTexture(),
-                                                  VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ), background,
-                                                  VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ), background,
-                                                  VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ), background,
-                                                  VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ), background);
+        renderer << Generate::quadrilateral(
+            whiteTexture(),
+            VectorF(minX * backgroundZ, minY * backgroundZ, -backgroundZ),
+            background,
+            VectorF(maxX * backgroundZ, minY * backgroundZ, -backgroundZ),
+            background,
+            VectorF(maxX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+            background,
+            VectorF(minX * backgroundZ, maxY * backgroundZ, -backgroundZ),
+            background);
         Container::render(renderer, minZ, backgroundZ, hasFocus);
     }
 };

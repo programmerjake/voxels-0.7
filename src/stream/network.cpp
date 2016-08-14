@@ -46,7 +46,8 @@
 #include <windows.h>
 #undef min
 #undef max
-#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) \
+    || defined(__posix)
 #else
 #error unrecognized platform
 #endif
@@ -61,15 +62,15 @@ namespace voxels
 {
 namespace stream
 {
-
 namespace
 {
 #if defined(_WIN64) || defined(_WIN32)
-#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) \
+    || defined(__posix)
 initializer clearSigPipe([]()
-{
-    std::signal(SIGPIPE, SIG_IGN);
-});
+                         {
+                             std::signal(SIGPIPE, SIG_IGN);
+                         });
 #else
 #error unrecognized platform
 #endif
@@ -78,13 +79,12 @@ struct OpenSSLCallbacks final
 {
     OpenSSLCallbacks() = delete;
     OpenSSLCallbacks(OpenSSLCallbacks &) = delete;
-    OpenSSLCallbacks &operator =(OpenSSLCallbacks &) = delete;
+    OpenSSLCallbacks &operator=(OpenSSLCallbacks &) = delete;
     ~OpenSSLCallbacks() = delete;
     struct dynlock final
     {
         std::mutex lock;
-        dynlock()
-            : lock()
+        dynlock() : lock()
         {
         }
     };
@@ -111,14 +111,13 @@ struct OpenSSLCallbacks final
     {
         std::mutex *const array;
         MutexArray(const MutexArray &) = delete;
-        MutexArray &operator =(const MutexArray &) = delete;
-        MutexArray(std::size_t count)
-            : array(new std::mutex[count])
+        MutexArray &operator=(const MutexArray &) = delete;
+        MutexArray(std::size_t count) : array(new std::mutex[count])
         {
         }
         ~MutexArray()
         {
-            delete []array;
+            delete[] array;
         }
     };
     static void locking_function(int mode, int n, const char *, int)
@@ -154,7 +153,8 @@ void throwOpenSSLError()
     {
 #if defined(_WIN64) || defined(_WIN32)
         DWORD errnoValue = WSAGetLastError();
-#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID__) || defined(__APPLE__) || defined(__linux) || defined(__unix) \
+    || defined(__posix)
         int errnoValue = errno;
 #else
 #error unrecognized platform
@@ -169,7 +169,8 @@ void throwOpenSSLError()
             std::ostringstream ss;
             ss << "io error : socket error : " << errnoValue;
             throw NetworkException(ss.str());
-#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) || defined(__posix)
+#elif defined(__ANDROID) || defined(__APPLE__) || defined(__linux) || defined(__unix) \
+    || defined(__posix)
             if(errnoValue == EPIPE)
             {
                 throw NetworkDisconnectedException();
@@ -209,7 +210,7 @@ SSL_CTX *startOpenSSLLibAndClient()
     }
     RAND_add(static_cast<const void *>(buf), sizeof(buf), addedEntropy);
     const SSL_METHOD *sslMethods;
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+#if(OPENSSL_VERSION_NUMBER >= 0x10100000L)
     sslMethods = TLS_client_method();
 #else
     sslMethods = SSLv23_client_method();
@@ -220,7 +221,8 @@ SSL_CTX *startOpenSSLLibAndClient()
 #ifndef SSL_OP_NO_COMPRESSION
 #define SSL_OP_NO_COMPRESSION 0
 #endif // SSL_OP_NO_COMPRESSION
-    SSL_CTX_set_options(retval, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    SSL_CTX_set_options(retval,
+                        SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
     if(!SSL_CTX_set_default_verify_paths(retval))
         throwOpenSSLError();
     return retval;
@@ -242,8 +244,7 @@ struct BIOReader final : public Reader
     std::shared_ptr<BIO> bio;
     std::shared_ptr<SSL_CTX> sslContext;
     explicit BIOReader(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
-        : bio(bio),
-        sslContext(nullptr)
+        : bio(bio), sslContext(nullptr)
     {
     }
     virtual ~BIOReader()
@@ -292,8 +293,7 @@ struct BIOWriter final : public Writer
     std::shared_ptr<BIO> bio;
     std::shared_ptr<SSL_CTX> sslContext;
     explicit BIOWriter(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
-        : bio(bio),
-        sslContext(nullptr)
+        : bio(bio), sslContext(nullptr)
     {
     }
     virtual ~BIOWriter()
@@ -351,8 +351,7 @@ struct MyStreamServer final : public StreamServer
     std::shared_ptr<BIO> bio;
     std::shared_ptr<SSL_CTX> sslContext;
     explicit MyStreamServer(std::shared_ptr<BIO> bio, std::shared_ptr<SSL_CTX> sslContext = nullptr)
-        : bio(bio),
-        sslContext(sslContext)
+        : bio(bio), sslContext(sslContext)
     {
     }
     virtual ~MyStreamServer()
@@ -368,11 +367,13 @@ struct MyStreamServer final : public StreamServer
                 continue;
             throwOpenSSLError();
         }
-        std::shared_ptr<BIO> retval = std::shared_ptr<BIO>(BIO_pop(bio.get()), [](BIO *pbio)
-        {
-            BIO_free_all(pbio);
-        });
-        return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(retval, sslContext), std::make_shared<BIOWriter>(retval, sslContext));
+        std::shared_ptr<BIO> retval = std::shared_ptr<BIO>(BIO_pop(bio.get()),
+                                                           [](BIO *pbio)
+                                                           {
+                                                               BIO_free_all(pbio);
+                                                           });
+        return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(retval, sslContext),
+                                                 std::make_shared<BIOWriter>(retval, sslContext));
     }
 };
 
@@ -487,22 +488,25 @@ SSLCertificateValidationError translateOpenSSLX509ErrorCode(long errorCode)
     }
     UNREACHABLE();
 }
-
 }
 
-std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address, std::uint16_t defaultPort)
+std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address,
+                                                     std::uint16_t defaultPort)
 {
     initOpenSSL();
     address = handleAddressDefaultPort(std::move(address), defaultPort);
-    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_connect((char *)string_cast<std::string>(address).c_str()), [](BIO *pbio)
-    {
-        BIO_free_all(pbio);
-    });
+    std::shared_ptr<BIO> bio =
+        std::shared_ptr<BIO>(BIO_new_connect((char *)string_cast<std::string>(address).c_str()),
+                             [](BIO *pbio)
+                             {
+                                 BIO_free_all(pbio);
+                             });
     if(bio == nullptr)
         throwOpenSSLError();
     if(BIO_do_connect(bio.get()) <= 0)
         throwOpenSSLError();
-    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio), std::make_shared<BIOWriter>(bio));
+    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio),
+                                             std::make_shared<BIOWriter>(bio));
 }
 
 std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
@@ -510,10 +514,11 @@ std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
     initOpenSSL();
     std::ostringstream ss;
     ss << "*:" << listenPort;
-    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()), [](BIO *pbio)
-    {
-        BIO_free_all(pbio);
-    });
+    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()),
+                                                    [](BIO *pbio)
+                                                    {
+                                                        BIO_free_all(pbio);
+                                                    });
     if(bio == nullptr)
         throwOpenSSLError();
     if(BIO_do_accept(bio.get()) <= 0)
@@ -521,7 +526,10 @@ std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
     return std::make_shared<MyStreamServer>(bio);
 }
 
-std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
+std::shared_ptr<StreamRW> Network::makeSSLConnection(
+    std::wstring address,
+    std::uint16_t defaultPort,
+    std::function<void(SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
 {
     if(handleCertificateValidationErrorFn == nullptr)
     {
@@ -532,10 +540,11 @@ std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::
     }
     SSL_CTX *ctx = initOpenSSLLibAndClient();
     address = handleAddressDefaultPort(std::move(address), defaultPort);
-    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_ssl_connect(ctx), [](BIO *pbio)
-    {
-        BIO_free_all(pbio);
-    });
+    std::shared_ptr<BIO> bio = std::shared_ptr<BIO>(BIO_new_ssl_connect(ctx),
+                                                    [](BIO *pbio)
+                                                    {
+                                                        BIO_free_all(pbio);
+                                                    });
     if(bio == nullptr)
         throwOpenSSLError();
     SSL *ssl;
@@ -547,17 +556,20 @@ std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::
     std::size_t colonLocation = address.find_last_of(L':');
     assert(colonLocation != std::wstring::npos);
 #ifdef __ANDROID__
-    //SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
+// SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0,
+// colonLocation)).c_str());
 #else
-    SSL_set_tlsext_host_name(ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
+    SSL_set_tlsext_host_name(
+        ssl, (char *)string_cast<std::string>(address.substr(0, colonLocation)).c_str());
 #endif
     SSL_set_cipher_list(ssl, "ALL:!EXPORT:!EXPORT40:!EXPORT56:!aNULL:!LOW:!RC4:@STRENGTH");
     if(BIO_do_connect(bio.get()) <= 0)
         throwOpenSSLError();
-    std::shared_ptr<X509> peerCertificate = std::shared_ptr<X509>(SSL_get_peer_certificate(ssl), [](X509 *v)
-    {
-        X509_free(v);
-    });
+    std::shared_ptr<X509> peerCertificate = std::shared_ptr<X509>(SSL_get_peer_certificate(ssl),
+                                                                  [](X509 *v)
+                                                                  {
+                                                                      X509_free(v);
+                                                                  });
     if(peerCertificate == nullptr)
     {
         handleCertificateValidationErrorFn(SSLCertificateValidationError::NoCertificateSupplied);
@@ -581,20 +593,21 @@ std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::
         }
         if(!handledError)
         {
-
         }
     }
-    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio), std::make_shared<BIOWriter>(bio));
+    return std::make_shared<StreamRWWrapper>(std::make_shared<BIOReader>(bio),
+                                             std::make_shared<BIOWriter>(bio));
 }
 
-std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
-                                                     std::wstring certificateFile,
-                                                     std::wstring privateKeyFile,
-                                                     std::function<std::wstring()> getDecryptionPasswordFn)
+std::shared_ptr<StreamServer> Network::makeSSLServer(
+    std::uint16_t listenPort,
+    std::wstring certificateFile,
+    std::wstring privateKeyFile,
+    std::function<std::wstring()> getDecryptionPasswordFn)
 {
     if(getDecryptionPasswordFn == nullptr)
     {
-        getDecryptionPasswordFn = []()->std::wstring
+        getDecryptionPasswordFn = []() -> std::wstring
         {
             throw NetworkException("decryption password needed");
         };
@@ -604,59 +617,63 @@ std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
     {
         std::function<std::wstring()> getDecryptionPasswordFn;
         std::exception_ptr thrownException;
-        PasswordFunctionUserData()
-            : getDecryptionPasswordFn(),
-            thrownException()
+        PasswordFunctionUserData() : getDecryptionPasswordFn(), thrownException()
         {
         }
     };
     PasswordFunctionUserData *passwordUserData = new PasswordFunctionUserData();
     const SSL_METHOD *sslMethods;
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+#if(OPENSSL_VERSION_NUMBER >= 0x10100000L)
     sslMethods = TLS_server_method();
 #else
     sslMethods = SSLv23_server_method();
 #endif
-    std::shared_ptr<SSL_CTX> ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new((SSL_METHOD *)sslMethods), [passwordUserData](SSL_CTX *ctx)
-    {
-        SSL_CTX_free(ctx);
-        delete passwordUserData;
-    });
+    std::shared_ptr<SSL_CTX> ctx = std::shared_ptr<SSL_CTX>(SSL_CTX_new((SSL_METHOD *)sslMethods),
+                                                            [passwordUserData](SSL_CTX *ctx)
+                                                            {
+                                                                SSL_CTX_free(ctx);
+                                                                delete passwordUserData;
+                                                            });
     if(ctx == nullptr)
     {
         delete passwordUserData;
         throwOpenSSLError();
     }
-    SSL_CTX_set_options(ctx.get(), SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
-    SSL_CTX_set_default_passwd_cb(ctx.get(), [](char *buf, int size, int rwFlag, void *userDataIn)->int
-    {
-        assert(!rwFlag);
-        PasswordFunctionUserData *userData = (PasswordFunctionUserData *)userDataIn;
-        try
+    SSL_CTX_set_options(ctx.get(),
+                        SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+    SSL_CTX_set_default_passwd_cb(
+        ctx.get(),
+        [](char *buf, int size, int rwFlag, void *userDataIn) -> int
         {
-            assert(userData->getDecryptionPasswordFn);
-            std::string password = string_cast<std::string>(userData->getDecryptionPasswordFn());
-            if(password.size() > (std::size_t)size)
+            assert(!rwFlag);
+            PasswordFunctionUserData *userData = (PasswordFunctionUserData *)userDataIn;
+            try
             {
-                return -1;
+                assert(userData->getDecryptionPasswordFn);
+                std::string password =
+                    string_cast<std::string>(userData->getDecryptionPasswordFn());
+                if(password.size() > (std::size_t)size)
+                {
+                    return -1;
+                }
+                for(std::size_t i = 0; i < password.size(); i++)
+                    buf[i] = password[i];
+                return password.size();
             }
-            for(std::size_t i = 0; i < password.size(); i++)
-                buf[i] = password[i];
-            return password.size();
-        }
-        catch(...)
-        {
-            userData->thrownException = std::current_exception();
-        }
-        return -1;
-    });
+            catch(...)
+            {
+                userData->thrownException = std::current_exception();
+            }
+            return -1;
+        });
     SSL_CTX_set_default_passwd_cb_userdata(ctx.get(), (void *)passwordUserData);
 
-    passwordUserData->getDecryptionPasswordFn = []()->std::wstring
+    passwordUserData->getDecryptionPasswordFn = []() -> std::wstring
     {
         throw NetworkException("decryption of public certificate not supported");
     };
-    int SSL_CTX_use_certificate_file_retval = SSL_CTX_use_certificate_file(ctx.get(), string_cast<std::string>(certificateFile).c_str(), SSL_FILETYPE_PEM);
+    int SSL_CTX_use_certificate_file_retval = SSL_CTX_use_certificate_file(
+        ctx.get(), string_cast<std::string>(certificateFile).c_str(), SSL_FILETYPE_PEM);
     if(passwordUserData->thrownException != nullptr)
         std::rethrow_exception(passwordUserData->thrownException);
     passwordUserData->getDecryptionPasswordFn = nullptr;
@@ -667,16 +684,17 @@ std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
     for(;;)
     {
         passwordUserData->getDecryptionPasswordFn = getDecryptionPasswordFn;
-        int SSL_CTX_use_PrivateKey_file_retval = SSL_CTX_use_PrivateKey_file(ctx.get(), string_cast<std::string>(privateKeyFile).c_str(), SSL_FILETYPE_PEM);
+        int SSL_CTX_use_PrivateKey_file_retval = SSL_CTX_use_PrivateKey_file(
+            ctx.get(), string_cast<std::string>(privateKeyFile).c_str(), SSL_FILETYPE_PEM);
         if(passwordUserData->thrownException != nullptr)
             std::rethrow_exception(passwordUserData->thrownException);
         passwordUserData->getDecryptionPasswordFn = nullptr;
         if(!SSL_CTX_use_PrivateKey_file_retval)
         {
             unsigned long errorCode = ERR_get_error();
-            if(ERR_GET_LIB(errorCode) == ERR_LIB_PEM &&
-               (ERR_GET_REASON(errorCode) == PEM_R_BAD_DECRYPT ||
-                ERR_GET_REASON(errorCode) == PEM_R_BAD_PASSWORD_READ))
+            if(ERR_GET_LIB(errorCode) == ERR_LIB_PEM
+               && (ERR_GET_REASON(errorCode) == PEM_R_BAD_DECRYPT
+                   || ERR_GET_REASON(errorCode) == PEM_R_BAD_PASSWORD_READ))
                 continue;
             throwOpenSSLError(errorCode);
         }
@@ -708,10 +726,11 @@ std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
     {
         std::ostringstream ss;
         ss << "*:" << listenPort;
-        retval = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()), [](BIO *p)
-        {
-            BIO_free_all(p);
-        });
+        retval = std::shared_ptr<BIO>(BIO_new_accept((char *)ss.str().c_str()),
+                                      [](BIO *p)
+                                      {
+                                          BIO_free_all(p);
+                                      });
         if(retval == nullptr)
             throwOpenSSLError();
         BIO_set_accept_bios(retval.get(), sslBio);
@@ -793,17 +812,20 @@ std::string Password::sha256HashString(std::string str)
 
 namespace stream
 {
-
-std::shared_ptr<StreamServer> Network::makeSSLServer(std::uint16_t listenPort,
-                                                     std::wstring certificateFile,
-                                                     std::wstring privateKeyFile,
-                                                     std::function<std::wstring()> getDecryptionPasswordFn)
+std::shared_ptr<StreamServer> Network::makeSSLServer(
+    std::uint16_t listenPort,
+    std::wstring certificateFile,
+    std::wstring privateKeyFile,
+    std::function<std::wstring()> getDecryptionPasswordFn)
 {
     FIXME_MESSAGE(finish implementing makeSSLServer)
     throw NetworkException("finish implementing makeSSLServer");
 }
 
-std::shared_ptr<StreamRW> Network::makeSSLConnection(std::wstring address, std::uint16_t defaultPort, std::function<void (SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
+std::shared_ptr<StreamRW> Network::makeSSLConnection(
+    std::wstring address,
+    std::uint16_t defaultPort,
+    std::function<void(SSLCertificateValidationError errorCode)> handleCertificateValidationErrorFn)
 {
     FIXME_MESSAGE(finish implementing makeSSLConnection)
     throw NetworkException("finish implementing makeSSLConnection");
@@ -815,12 +837,12 @@ std::shared_ptr<StreamServer> Network::makeTCPServer(std::uint16_t listenPort)
     throw NetworkException("finish implementing makeTCPServer");
 }
 
-std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address, std::uint16_t defaultPort)
+std::shared_ptr<StreamRW> Network::makeTCPConnection(std::wstring address,
+                                                     std::uint16_t defaultPort)
 {
     FIXME_MESSAGE(finish implementing makeTCPConnection)
     throw NetworkException("finish implementing makeTCPConnection");
 }
-
 }
 }
 }

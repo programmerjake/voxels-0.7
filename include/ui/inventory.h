@@ -38,15 +38,17 @@ private:
     ItemStackArray<2, 2> inputItemStacks;
     ItemStack output;
     RecipeOutput recipeOutput;
+
 public:
     PlayerInventory(std::shared_ptr<Player> player)
         : PlayerDialog(player, TextureAtlas::InventoryUI.td()),
-        recipeInput(),
-        inputItemStacks(),
-        output(),
-        recipeOutput()
+          recipeInput(),
+          inputItemStacks(),
+          output(),
+          recipeOutput()
     {
     }
+
 private:
     void setupRecipeOutput()
     {
@@ -84,8 +86,11 @@ private:
             output = ItemStack(recipeOutput.output.item, recipeCount * recipeOutput.output.count);
         }
     }
+
 protected:
-    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount) override
+    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack,
+                                   std::shared_ptr<ItemStack> destItemStack,
+                                   unsigned transferCount) override
     {
         if(destItemStack.get() == &output)
             return 0;
@@ -103,10 +108,12 @@ protected:
                     }
                 }
             }
-            unsigned transferRecipeCount = (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
-            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count)
-                                        ? (recipeOutput.output.getMaxCount() - destItemStack->count) / recipeOutput.output.count
-                                        : 0;
+            unsigned transferRecipeCount =
+                (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
+            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count) ?
+                                          (recipeOutput.output.getMaxCount() - destItemStack->count)
+                                              / recipeOutput.output.count :
+                                          0;
             if(transferRecipeCount > maxRecipeCount)
                 transferRecipeCount = maxRecipeCount;
             transferCount = transferRecipeCount * recipeOutput.output.count;
@@ -128,7 +135,8 @@ protected:
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
             {
-                if(sourceItemStack.get() == &inputItemStacks.itemStacks[x][y] || destItemStack.get() == &inputItemStacks.itemStacks[x][y])
+                if(sourceItemStack.get() == &inputItemStacks.itemStacks[x][y]
+                   || destItemStack.get() == &inputItemStacks.itemStacks[x][y])
                 {
                     unsigned retval = destItemStack->transfer(*sourceItemStack, transferCount);
                     setupRecipeOutput();
@@ -162,15 +170,23 @@ protected:
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
             {
-                add(std::make_shared<UiItem>(imageGetPositionX(48 + 18 * x), imageGetPositionX(48 + 18 * x + 16),
-                                             imageGetPositionY(99 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)), imageGetPositionY(99 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1) + 16),
-                                             std::shared_ptr<ItemStack>(&inputItemStacks.itemStacks[x][y], deleter)));
+                add(std::make_shared<UiItem>(
+                    imageGetPositionX(48 + 18 * x),
+                    imageGetPositionX(48 + 18 * x + 16),
+                    imageGetPositionY(99
+                                      + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)),
+                    imageGetPositionY(99 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)
+                                      + 16),
+                    std::shared_ptr<ItemStack>(&inputItemStacks.itemStacks[x][y], deleter)));
             }
         }
-        add(std::make_shared<UiItem>(imageGetPositionX(104), imageGetPositionX(104 + 16),
-                                     imageGetPositionY(107), imageGetPositionY(107 + 16),
+        add(std::make_shared<UiItem>(imageGetPositionX(104),
+                                     imageGetPositionX(104 + 16),
+                                     imageGetPositionY(107),
+                                     imageGetPositionY(107 + 16),
                                      std::shared_ptr<ItemStack>(pOutput, deleter)));
     }
+
 public:
 };
 }

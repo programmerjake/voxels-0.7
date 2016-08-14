@@ -116,7 +116,8 @@ constexpr int getBlockFaceOutDirectionZ(BlockFace f)
 
 constexpr VectorI getBlockFaceOutDirection(BlockFace f)
 {
-    return VectorI(getBlockFaceOutDirectionX(f), getBlockFaceOutDirectionY(f), getBlockFaceOutDirectionZ(f));
+    return VectorI(
+        getBlockFaceOutDirectionX(f), getBlockFaceOutDirectionY(f), getBlockFaceOutDirectionZ(f));
 }
 
 constexpr int getBlockFaceInDirectionX(BlockFace f)
@@ -136,7 +137,8 @@ constexpr int getBlockFaceInDirectionZ(BlockFace f)
 
 constexpr VectorI getBlockFaceInDirection(BlockFace f)
 {
-    return VectorI(getBlockFaceInDirectionX(f), getBlockFaceInDirectionY(f), getBlockFaceInDirectionZ(f));
+    return VectorI(
+        getBlockFaceInDirectionX(f), getBlockFaceInDirectionY(f), getBlockFaceInDirectionZ(f));
 }
 
 inline BlockFace getOppositeBlockFace(BlockFace f)

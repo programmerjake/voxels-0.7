@@ -67,8 +67,7 @@ struct Ray final
         : startPosition(startPosition), direction(direction)
     {
     }
-    constexpr Ray()
-        : startPosition(), direction()
+    constexpr Ray() : startPosition(), direction()
     {
     }
     constexpr PositionF eval(float t) const
@@ -80,7 +79,8 @@ struct Ray final
         float divisor = dot(std::get<0>(planeEquation), direction);
         if(divisor == 0)
             return -1;
-        float numerator = -dot(std::get<0>(planeEquation), startPosition) - std::get<1>(planeEquation);
+        float numerator =
+            -dot(std::get<0>(planeEquation), startPosition) - std::get<1>(planeEquation);
         float retval = numerator / divisor;
         return retval >= eps ? retval : -1;
     }
@@ -88,16 +88,20 @@ struct Ray final
     {
         return collideWithPlane(std::pair<VectorF, float>(normal, d));
     }
+
 private:
     template <char ignoreAxis>
     static bool isPointInAABoxIgnoreAxis(VectorF minCorner, VectorF maxCorner, VectorF pos)
     {
-        static_assert(ignoreAxis == 'X' || ignoreAxis == 'Y' || ignoreAxis == 'Z' || ignoreAxis == ' ', "invalid ignore axis");
+        static_assert(
+            ignoreAxis == 'X' || ignoreAxis == 'Y' || ignoreAxis == 'Z' || ignoreAxis == ' ',
+            "invalid ignore axis");
         bool isPointInBoxX = ignoreAxis == 'X' || (pos.x >= minCorner.x && pos.x <= maxCorner.x);
         bool isPointInBoxY = ignoreAxis == 'Y' || (pos.y >= minCorner.y && pos.y <= maxCorner.y);
         bool isPointInBoxZ = ignoreAxis == 'Z' || (pos.z >= minCorner.z && pos.z <= maxCorner.z);
         return isPointInBoxX && isPointInBoxY && isPointInBoxZ;
     }
+
 public:
     static bool isPointInAABox(VectorF minCorner, VectorF maxCorner, VectorF pos)
     {
@@ -118,11 +122,14 @@ public:
         float zt = std::min(minCornerZ, maxCornerZ);
         BlockFace zbf = minCornerZ < maxCornerZ ? BlockFace::NZ : BlockFace::PZ;
         if(xt > yt && xt > zt)
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
         else if(yt > zt)
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
         else
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
     }
     std::tuple<bool, float, BlockFace> getAABoxExitFace(VectorF minCorner, VectorF maxCorner) const
     {
@@ -139,11 +146,14 @@ public:
         float zt = std::max(minCornerZ, maxCornerZ);
         BlockFace zbf = minCornerZ > maxCornerZ ? BlockFace::NZ : BlockFace::PZ;
         if(xt < yt && xt < zt && xt > 0)
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'X'>(minCorner, maxCorner, eval(xt)), xt, xbf);
         else if(yt < zt && yt > 0)
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'Y'>(minCorner, maxCorner, eval(yt)), yt, ybf);
         else
-            return std::tuple<bool, float, BlockFace>(isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
+            return std::tuple<bool, float, BlockFace>(
+                isPointInAABoxIgnoreAxis<'Z'>(minCorner, maxCorner, eval(zt)), zt, zbf);
     }
     friend Ray transform(Matrix tform, Ray r);
 };
@@ -157,33 +167,34 @@ class RayBlockIterator
 {
 public:
     typedef const std::pair<float, PositionI> value_type;
+
 private:
     Ray ray;
     std::pair<float, PositionI> currentValue;
     VectorF nextRayIntersectionTValues, rayIntersectionStepTValues;
     VectorI positionDeltaValues;
     explicit RayBlockIterator(Ray ray);
+
 public:
-    RayBlockIterator()
-        : RayBlockIterator(Ray())
+    RayBlockIterator() : RayBlockIterator(Ray())
     {
     }
     friend RayBlockIterator makeRayBlockIterator(Ray ray);
-    value_type &operator *() const
+    value_type &operator*() const
     {
         return currentValue;
     }
-    value_type *operator ->() const
+    value_type *operator->() const
     {
         return &currentValue;
     }
-    RayBlockIterator operator ++(int)
+    RayBlockIterator operator++(int)
     {
         RayBlockIterator retval = *this;
-        operator ++();
+        operator++();
         return retval;
     }
-    const RayBlockIterator &operator ++();
+    const RayBlockIterator &operator++();
 };
 
 inline RayBlockIterator makeRayBlockIterator(Ray ray)
@@ -207,15 +218,30 @@ struct Collision final
     BlockFaceOrNone blockFace;
     Entity *entity;
     constexpr Collision()
-        : t(-1), type(Type::None), world(nullptr), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
+        : t(-1),
+          type(Type::None),
+          world(nullptr),
+          blockPosition(),
+          blockFace(BlockFaceOrNone::None),
+          entity(nullptr)
     {
     }
     explicit Collision(World &world)
-        : t(-1), type(Type::None), world(&world), blockPosition(), blockFace(BlockFaceOrNone::None), entity(nullptr)
+        : t(-1),
+          type(Type::None),
+          world(&world),
+          blockPosition(),
+          blockFace(BlockFaceOrNone::None),
+          entity(nullptr)
     {
     }
     Collision(World &world, float t, PositionI blockPosition, BlockFaceOrNone blockFace)
-        : t(t), type(Type::Block), world(&world), blockPosition(blockPosition), blockFace(blockFace), entity(nullptr)
+        : t(t),
+          type(Type::Block),
+          world(&world),
+          blockPosition(blockPosition),
+          blockFace(blockFace),
+          entity(nullptr)
     {
     }
     Collision(World &world, float t, Entity &entity)
@@ -224,29 +250,33 @@ struct Collision final
     }
     constexpr bool valid() const
     {
-        return t >= Ray::eps && world != nullptr && ((type == Type::Entity && entity != nullptr) || (type == Type::Block && entity == nullptr));
+        return t >= Ray::eps && world != nullptr && ((type == Type::Entity && entity != nullptr)
+                                                     || (type == Type::Block && entity == nullptr));
     }
-    constexpr bool operator <(Collision r) const
+    constexpr bool operator<(Collision r) const
     {
         return valid() && (!r.valid() || t < r.t);
     }
-    constexpr bool operator ==(Collision r) const
+    constexpr bool operator==(Collision r) const
     {
-        return type == r.type && (type == Type::None || (t < Ray::eps && r.t < Ray::eps) || t == r.t) && (type != Type::Block || blockPosition == r.blockPosition) && (type != Type::Entity || entity == r.entity);
+        return type == r.type
+               && (type == Type::None || (t < Ray::eps && r.t < Ray::eps) || t == r.t)
+               && (type != Type::Block || blockPosition == r.blockPosition)
+               && (type != Type::Entity || entity == r.entity);
     }
-    constexpr bool operator !=(Collision r) const
+    constexpr bool operator!=(Collision r) const
     {
-        return !operator ==(r);
+        return !operator==(r);
     }
-    constexpr bool operator >(Collision r) const
+    constexpr bool operator>(Collision r) const
     {
         return r < *this;
     }
-    constexpr bool operator >=(Collision r) const
+    constexpr bool operator>=(Collision r) const
     {
-        return !operator <(r);
+        return !operator<(r);
     }
-    constexpr bool operator <=(Collision r) const
+    constexpr bool operator<=(Collision r) const
     {
         return !(r < *this);
     }

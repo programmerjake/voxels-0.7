@@ -37,13 +37,15 @@ template <typename T>
 class MonitoredVariable final
 {
     MonitoredVariable(const MonitoredVariable &) = delete;
-    MonitoredVariable &operator =(const MonitoredVariable &) = delete;
+    MonitoredVariable &operator=(const MonitoredVariable &) = delete;
+
 private:
     T variable;
+
 public:
     Event onChange;
-    template <typename ...Args>
-    explicit MonitoredVariable(Args &&...args)
+    template <typename... Args>
+    explicit MonitoredVariable(Args &&... args)
         : variable(std::forward<Args>(args)...), onChange()
     {
     }

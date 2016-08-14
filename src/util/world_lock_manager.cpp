@@ -26,14 +26,12 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 void WorldLockManager::handleLockedForTooLong(
     std::chrono::high_resolution_clock::duration lockedDuration)
 {
-    float floatDuration = std::chrono::duration_cast<std::chrono::duration<float>>(lockedDuration).count();
+    float floatDuration =
+        std::chrono::duration_cast<std::chrono::duration<float>>(lockedDuration).count();
     getDebugLog() << L"WorldLockManager locked for too long: " << floatDuration << postnl;
 }
-
 }
 }
-

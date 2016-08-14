@@ -27,7 +27,6 @@ namespace programmerjake
 {
 namespace voxels
 {
-
 namespace ui
 {
 namespace builtin
@@ -39,15 +38,17 @@ private:
     ItemStackArray<3, 3> inputItemStacks;
     ItemStack output;
     RecipeOutput recipeOutput;
+
 public:
     CraftingTableUi(std::shared_ptr<Player> player)
         : PlayerDialog(player, TextureAtlas::WorkBenchUI.td()),
-        recipeInput(),
-        inputItemStacks(),
-        output(),
-        recipeOutput()
+          recipeInput(),
+          inputItemStacks(),
+          output(),
+          recipeOutput()
     {
     }
+
 private:
     void setupRecipeOutput()
     {
@@ -70,7 +71,8 @@ private:
                 }
             }
         }
-        recipeInput = RecipeInput(recipeInputItems, Item(Items::builtin::CraftingTable::descriptor()));
+        recipeInput =
+            RecipeInput(recipeInputItems, Item(Items::builtin::CraftingTable::descriptor()));
         if(recipeInput.empty())
             return;
         if(!RecipeDescriptors.getFirstMatch(recipeInput, recipeOutput))
@@ -85,8 +87,11 @@ private:
             output = ItemStack(recipeOutput.output.item, recipeCount * recipeOutput.output.count);
         }
     }
+
 protected:
-    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack, std::shared_ptr<ItemStack> destItemStack, unsigned transferCount) override
+    virtual unsigned transferItems(std::shared_ptr<ItemStack> sourceItemStack,
+                                   std::shared_ptr<ItemStack> destItemStack,
+                                   unsigned transferCount) override
     {
         if(destItemStack.get() == &output)
             return 0;
@@ -104,10 +109,12 @@ protected:
                     }
                 }
             }
-            unsigned transferRecipeCount = (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
-            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count)
-                                        ? (recipeOutput.output.getMaxCount() - destItemStack->count) / recipeOutput.output.count
-                                        : 0;
+            unsigned transferRecipeCount =
+                (transferCount + recipeOutput.output.count - 1) / recipeOutput.output.count;
+            unsigned maxRecipeCount = (recipeOutput.output.getMaxCount() > destItemStack->count) ?
+                                          (recipeOutput.output.getMaxCount() - destItemStack->count)
+                                              / recipeOutput.output.count :
+                                          0;
             if(transferRecipeCount > maxRecipeCount)
                 transferRecipeCount = maxRecipeCount;
             transferCount = transferRecipeCount * recipeOutput.output.count;
@@ -129,7 +136,8 @@ protected:
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
             {
-                if(sourceItemStack.get() == &inputItemStacks.itemStacks[x][y] || destItemStack.get() == &inputItemStacks.itemStacks[x][y])
+                if(sourceItemStack.get() == &inputItemStacks.itemStacks[x][y]
+                   || destItemStack.get() == &inputItemStacks.itemStacks[x][y])
                 {
                     unsigned retval = destItemStack->transfer(*sourceItemStack, transferCount);
                     setupRecipeOutput();
@@ -163,15 +171,23 @@ protected:
         {
             for(int y = 0; y < (int)inputItemStacks.itemStacks[0].size(); y++)
             {
-                add(std::make_shared<UiItem>(imageGetPositionX(40 + 18 * x), imageGetPositionX(40 + 18 * x + 16),
-                                             imageGetPositionY(89 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)), imageGetPositionY(89 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1) + 16),
-                                             std::shared_ptr<ItemStack>(&inputItemStacks.itemStacks[x][y], deleter)));
+                add(std::make_shared<UiItem>(
+                    imageGetPositionX(40 + 18 * x),
+                    imageGetPositionX(40 + 18 * x + 16),
+                    imageGetPositionY(89
+                                      + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)),
+                    imageGetPositionY(89 + 18 * ((int)inputItemStacks.itemStacks[0].size() - y - 1)
+                                      + 16),
+                    std::shared_ptr<ItemStack>(&inputItemStacks.itemStacks[x][y], deleter)));
             }
         }
-        add(std::make_shared<UiItem>(imageGetPositionX(114), imageGetPositionX(114 + 16),
-                                     imageGetPositionY(107), imageGetPositionY(107 + 16),
+        add(std::make_shared<UiItem>(imageGetPositionX(114),
+                                     imageGetPositionX(114 + 16),
+                                     imageGetPositionY(107),
+                                     imageGetPositionY(107 + 16),
                                      std::shared_ptr<ItemStack>(pOutput, deleter)));
     }
+
 public:
 };
 }
@@ -181,12 +197,20 @@ namespace Blocks
 {
 namespace builtin
 {
-void CraftingTable::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void CraftingTable::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
-    ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::CraftingTable::descriptor())), bi.position() + VectorF(0.5));
+    ItemDescriptor::addToWorld(world,
+                               lock_manager,
+                               ItemStack(Item(Items::builtin::CraftingTable::descriptor())),
+                               bi.position() + VectorF(0.5));
     handleToolDamage(tool);
 }
-bool CraftingTable::onUse(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, std::shared_ptr<Player> player) const
+bool CraftingTable::onUse(World &world,
+                          Block b,
+                          BlockIterator bi,
+                          WorldLockManager &lock_manager,
+                          std::shared_ptr<Player> player) const
 {
     return player->setDialog(std::make_shared<ui::builtin::CraftingTableUi>(player));
 }
@@ -199,9 +223,12 @@ namespace builtin
 {
 CraftingTable::CraftingTable()
     : ItemBlock(L"builtin.crafting_table",
-                TextureAtlas::WorkBenchSide0.td(), TextureAtlas::WorkBenchSide0.td(),
-                TextureAtlas::OakPlank.td(), TextureAtlas::WorkBenchTop.td(),
-                TextureAtlas::WorkBenchSide1.td(), TextureAtlas::WorkBenchSide1.td(),
+                TextureAtlas::WorkBenchSide0.td(),
+                TextureAtlas::WorkBenchSide0.td(),
+                TextureAtlas::OakPlank.td(),
+                TextureAtlas::WorkBenchTop.td(),
+                TextureAtlas::WorkBenchSide1.td(),
+                TextureAtlas::WorkBenchSide1.td(),
                 Blocks::builtin::CraftingTable::descriptor())
 {
 }

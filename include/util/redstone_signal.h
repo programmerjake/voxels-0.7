@@ -50,7 +50,8 @@ public:
         : strength(strength), connected(true)
     {
     }
-    template <typename T, typename = typename std::enable_if<std::is_same<std::nullptr_t, T>::value>::type>
+    template <typename T,
+              typename = typename std::enable_if<std::is_same<std::nullptr_t, T>::value>::type>
     constexpr explicit RedstoneSignalComponent(T, std::nullptr_t = nullptr)
         : strength(0), connected(false)
     {

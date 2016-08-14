@@ -33,27 +33,39 @@ namespace Blocks
 {
 namespace builtin
 {
-void Stone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Stone::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Cobblestone::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-void Cobblestone::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Cobblestone::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Cobblestone::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Cobblestone::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }
-void Bedrock::onBreak(World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
+void Bedrock::onBreak(
+    World &world, Block b, BlockIterator bi, WorldLockManager &lock_manager, Item &tool) const
 {
     if(isMatchingTool(tool))
     {
-        ItemDescriptor::addToWorld(world, lock_manager, ItemStack(Item(Items::builtin::Bedrock::descriptor())), bi.position() + VectorF(0.5));
+        ItemDescriptor::addToWorld(world,
+                                   lock_manager,
+                                   ItemStack(Item(Items::builtin::Bedrock::descriptor())),
+                                   bi.position() + VectorF(0.5));
     }
     handleToolDamage(tool);
 }

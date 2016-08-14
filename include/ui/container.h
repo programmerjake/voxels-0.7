@@ -52,9 +52,10 @@ private:
             iter = std::get<0>(touchMap.emplace(touchId, TouchStruct()));
         return std::get<1>(*iter);
     }
+
 protected:
     static constexpr std::size_t npos = ~static_cast<std::size_t>(0);
-    std::shared_ptr<Element> operator [](std::size_t index)
+    std::shared_ptr<Element> operator[](std::size_t index)
     {
         return elements[index];
     }
@@ -71,12 +72,11 @@ protected:
     {
         return elements.size();
     }
+
 public:
     using Element::render;
     Container(float minX, float maxX, float minY, float maxY)
-        : Element(minX, maxX, minY, maxY),
-        elements(),
-        touchMap()
+        : Element(minX, maxX, minY, maxY), elements(), touchMap()
     {
     }
     std::shared_ptr<Container> add(std::shared_ptr<Element> element)
@@ -87,8 +87,10 @@ public:
         element->parent = sthis;
         return std::move(sthis);
     }
+
 private:
-    void onSetFocus(std::shared_ptr<Element> newFocusedElement, std::shared_ptr<Element> oldFocusedElement)
+    void onSetFocus(std::shared_ptr<Element> newFocusedElement,
+                    std::shared_ptr<Element> oldFocusedElement)
     {
         if(newFocusedElement == oldFocusedElement)
             return;
@@ -120,6 +122,7 @@ private:
                 adjustStruct.elementIndex--;
         }
     }
+
 public:
     bool remove(std::shared_ptr<Element> element)
     {
@@ -223,8 +226,7 @@ public:
                 onSetFocus(getFocusElement(), oldFocusElement);
                 return currentFocusIndex == elements.size() - 1;
             }
-        }
-        while(currentFocusIndex != elements.size() - 1);
+        } while(currentFocusIndex != elements.size() - 1);
         currentFocusIndex = oldFocusIndex;
         lastFocusElement();
         return true;
@@ -254,12 +256,12 @@ public:
                 onSetFocus(getFocusElement(), oldFocusElement);
                 return currentFocusIndex == 0;
             }
-        }
-        while(currentFocusIndex != 0);
+        } while(currentFocusIndex != 0);
         currentFocusIndex = oldFocusIndex;
         firstFocusElement();
         return true;
     }
+
 private:
     std::size_t getIndexFromPosition(float x, float y) /// viewport position
     {
@@ -275,6 +277,7 @@ private:
         assert(pos.z == -1);
         return getIndexFromPosition(pos.x, pos.y);
     }
+
 public:
     virtual bool handleTouchUp(TouchUpEvent &event) override
     {
@@ -489,7 +492,9 @@ public:
             retval = e->handleKeyDown(event);
         if(retval)
             return true;
-        if(getParent() != nullptr || (event.mods & (KeyboardModifiers_Ctrl | KeyboardModifiers_Alt | KeyboardModifiers_Meta | KeyboardModifiers_Mode)) != 0)
+        if(getParent() != nullptr
+           || (event.mods & (KeyboardModifiers_Ctrl | KeyboardModifiers_Alt | KeyboardModifiers_Meta
+                             | KeyboardModifiers_Mode)) != 0)
             return false;
         if(event.key == KeyboardKey::Tab)
         {
@@ -576,8 +581,10 @@ public:
         if(e.get() != this)
             e->handleFocusChange(gettingFocus);
     }
+
 protected:
     virtual void render(Renderer &renderer, float minZ, float maxZ, bool hasFocus) override;
+
 public:
     void setFocus(std::shared_ptr<Element> e)
     {
@@ -627,7 +634,8 @@ public:
     virtual std::shared_ptr<Container> getTopLevelParent() override final
     {
         auto retval = std::static_pointer_cast<Container>(shared_from_this());
-        for(auto nextParent = retval->getParent(); nextParent != nullptr; nextParent = retval->getParent())
+        for(auto nextParent = retval->getParent(); nextParent != nullptr;
+            nextParent = retval->getParent())
         {
             retval = nextParent;
         }
@@ -660,12 +668,14 @@ public:
     }
 };
 
-inline std::shared_ptr<Container> Element::getTopLevelParent() // this is here so that Container is defined
+inline std::shared_ptr<Container>
+    Element::getTopLevelParent() // this is here so that Container is defined
 {
     auto retval = getParent();
     if(retval == nullptr)
         return retval;
-    for(auto nextParent = retval->getParent(); nextParent != nullptr; nextParent = retval->getParent())
+    for(auto nextParent = retval->getParent(); nextParent != nullptr;
+        nextParent = retval->getParent())
     {
         retval = nextParent;
     }

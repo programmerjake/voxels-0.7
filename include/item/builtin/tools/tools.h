@@ -33,19 +33,19 @@ namespace builtin
 {
 namespace tools
 {
-
 class Pickaxe : public Tool
 {
 public:
-    Pickaxe(std::wstring name, Mesh meshFace, Mesh entityMesh)
-        : Tool(name, meshFace, entityMesh)
+    Pickaxe(std::wstring name, Mesh meshFace, Mesh entityMesh) : Tool(name, meshFace, entityMesh)
     {
     }
-    Pickaxe(std::wstring name, TextureDescriptor td)
-        : Tool(name, td)
+    Pickaxe(std::wstring name, TextureDescriptor td) : Tool(name, td)
     {
     }
-    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    virtual Item incrementDamage(Item tool,
+                                 bool toolKindMatches,
+                                 bool toolCanMine,
+                                 bool minedInstantly) const override
     {
         if(minedInstantly)
             return tool;
@@ -56,15 +56,16 @@ public:
 class Axe : public Tool
 {
 public:
-    Axe(std::wstring name, Mesh meshFace, Mesh entityMesh)
-        : Tool(name, meshFace, entityMesh)
+    Axe(std::wstring name, Mesh meshFace, Mesh entityMesh) : Tool(name, meshFace, entityMesh)
     {
     }
-    Axe(std::wstring name, TextureDescriptor td)
-        : Tool(name, td)
+    Axe(std::wstring name, TextureDescriptor td) : Tool(name, td)
     {
     }
-    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    virtual Item incrementDamage(Item tool,
+                                 bool toolKindMatches,
+                                 bool toolCanMine,
+                                 bool minedInstantly) const override
     {
         if(minedInstantly)
             return tool;
@@ -75,15 +76,16 @@ public:
 class Hoe : public Tool
 {
 public:
-    Hoe(std::wstring name, Mesh meshFace, Mesh entityMesh)
-        : Tool(name, meshFace, entityMesh)
+    Hoe(std::wstring name, Mesh meshFace, Mesh entityMesh) : Tool(name, meshFace, entityMesh)
     {
     }
-    Hoe(std::wstring name, TextureDescriptor td)
-        : Tool(name, td)
+    Hoe(std::wstring name, TextureDescriptor td) : Tool(name, td)
     {
     }
-    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    virtual Item incrementDamage(Item tool,
+                                 bool toolKindMatches,
+                                 bool toolCanMine,
+                                 bool minedInstantly) const override
     {
         return tool;
     }
@@ -92,22 +94,22 @@ public:
 class Shovel : public Tool
 {
 public:
-    Shovel(std::wstring name, Mesh meshFace, Mesh entityMesh)
-        : Tool(name, meshFace, entityMesh)
+    Shovel(std::wstring name, Mesh meshFace, Mesh entityMesh) : Tool(name, meshFace, entityMesh)
     {
     }
-    Shovel(std::wstring name, TextureDescriptor td)
-        : Tool(name, td)
+    Shovel(std::wstring name, TextureDescriptor td) : Tool(name, td)
     {
     }
-    virtual Item incrementDamage(Item tool, bool toolKindMatches, bool toolCanMine, bool minedInstantly) const override
+    virtual Item incrementDamage(Item tool,
+                                 bool toolKindMatches,
+                                 bool toolCanMine,
+                                 bool minedInstantly) const override
     {
         if(minedInstantly)
             return tool;
         return addDamage(tool, 1);
     }
 };
-
 }
 }
 }

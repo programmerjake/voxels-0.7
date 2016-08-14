@@ -35,8 +35,10 @@ namespace builtin
 class Dirt final : public ItemBlock
 {
     friend class global_instance_maker<Dirt>;
+
 private:
     Dirt();
+
 public:
     static const Dirt *pointer()
     {

@@ -36,6 +36,7 @@ namespace builtin
 class Oak : public SimpleWood
 {
     friend class global_instance_maker<Oak>;
+
 public:
     static const Oak *pointer()
     {
@@ -46,15 +47,24 @@ public:
         return pointer();
     }
     static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+
 private:
     Oak()
-        : SimpleWood(L"builtin.oak", TextureAtlas::WoodEnd.td(), TextureAtlas::OakWood.td(), TextureAtlas::OakPlank.td(), TextureAtlas::OakSapling.td(), TextureAtlas::OakLeaves.td(), TextureAtlas::OakLeavesBlocked.td(), makeTreeDescriptors())
+        : SimpleWood(L"builtin.oak",
+                     TextureAtlas::WoodEnd.td(),
+                     TextureAtlas::OakWood.td(),
+                     TextureAtlas::OakPlank.td(),
+                     TextureAtlas::OakSapling.td(),
+                     TextureAtlas::OakLeaves.td(),
+                     TextureAtlas::OakLeavesBlocked.td(),
+                     makeTreeDescriptors())
     {
     }
 };
 class Birch : public SimpleWood
 {
     friend class global_instance_maker<Birch>;
+
 public:
     static const Birch *pointer()
     {
@@ -65,15 +75,24 @@ public:
         return pointer();
     }
     static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+
 private:
     Birch()
-        : SimpleWood(L"builtin.birch", TextureAtlas::WoodEnd.td(), TextureAtlas::BirchWood.td(), TextureAtlas::BirchPlank.td(), TextureAtlas::BirchSapling.td(), TextureAtlas::BirchLeaves.td(), TextureAtlas::BirchLeavesBlocked.td(), makeTreeDescriptors())
+        : SimpleWood(L"builtin.birch",
+                     TextureAtlas::WoodEnd.td(),
+                     TextureAtlas::BirchWood.td(),
+                     TextureAtlas::BirchPlank.td(),
+                     TextureAtlas::BirchSapling.td(),
+                     TextureAtlas::BirchLeaves.td(),
+                     TextureAtlas::BirchLeavesBlocked.td(),
+                     makeTreeDescriptors())
     {
     }
 };
 class Spruce : public SimpleWood
 {
     friend class global_instance_maker<Spruce>;
+
 public:
     static const Spruce *pointer()
     {
@@ -84,15 +103,24 @@ public:
         return pointer();
     }
     static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+
 private:
     Spruce()
-        : SimpleWood(L"builtin.spruce", TextureAtlas::WoodEnd.td(), TextureAtlas::SpruceWood.td(), TextureAtlas::SprucePlank.td(), TextureAtlas::SpruceSapling.td(), TextureAtlas::SpruceLeaves.td(), TextureAtlas::SpruceLeavesBlocked.td(), makeTreeDescriptors())
+        : SimpleWood(L"builtin.spruce",
+                     TextureAtlas::WoodEnd.td(),
+                     TextureAtlas::SpruceWood.td(),
+                     TextureAtlas::SprucePlank.td(),
+                     TextureAtlas::SpruceSapling.td(),
+                     TextureAtlas::SpruceLeaves.td(),
+                     TextureAtlas::SpruceLeavesBlocked.td(),
+                     makeTreeDescriptors())
     {
     }
 };
 class Jungle : public SimpleWood
 {
     friend class global_instance_maker<Jungle>;
+
 public:
     static const Jungle *pointer()
     {
@@ -103,9 +131,17 @@ public:
         return pointer();
     }
     static std::vector<TreeDescriptorPointer> makeTreeDescriptors();
+
 private:
     Jungle()
-        : SimpleWood(L"builtin.jungle", TextureAtlas::WoodEnd.td(), TextureAtlas::JungleWood.td(), TextureAtlas::JunglePlank.td(), TextureAtlas::JungleSapling.td(), TextureAtlas::JungleLeaves.td(), TextureAtlas::JungleLeavesBlocked.td(), makeTreeDescriptors())
+        : SimpleWood(L"builtin.jungle",
+                     TextureAtlas::WoodEnd.td(),
+                     TextureAtlas::JungleWood.td(),
+                     TextureAtlas::JunglePlank.td(),
+                     TextureAtlas::JungleSapling.td(),
+                     TextureAtlas::JungleLeaves.td(),
+                     TextureAtlas::JungleLeavesBlocked.td(),
+                     makeTreeDescriptors())
     {
     }
 };

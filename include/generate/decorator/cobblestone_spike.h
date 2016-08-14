@@ -37,11 +37,12 @@ namespace builtin
 class CobblestoneSpikeDecorator : public DecoratorDescriptor
 {
     friend class global_instance_maker<CobblestoneSpikeDecorator>;
+
 private:
-    CobblestoneSpikeDecorator()
-        : DecoratorDescriptor(L"builtin.cobblestone_spike", 1, 1000)
+    CobblestoneSpikeDecorator() : DecoratorDescriptor(L"builtin.cobblestone_spike", 1, 1000)
     {
     }
+
 public:
     static const CobblestoneSpikeDecorator *pointer()
     {
@@ -60,26 +61,38 @@ public:
      * @param chunkBaseIterator a BlockIterator to chunkBasePosition
      * @param blocks the blocks for this chunk
      * @param randomSource the RandomSource
-     * @param generateNumber a number that is different for each decorator in a chunk (use for picking a different position each time)
+     * @param generateNumber a number that is different for each decorator in a chunk (use for
+     *picking a different position each time)
      * @return the new DecoratorInstance or nullptr
      *
      */
-    virtual std::shared_ptr<const DecoratorInstance> createInstance(PositionI chunkBasePosition, PositionI columnBasePosition, PositionI surfacePosition,
-                                 WorldLockManager &lock_manager, BlockIterator chunkBaseIterator,
-                                 const BlocksGenerateArray &blocks,
-                                 RandomSource &randomSource, std::uint32_t generateNumber) const override
+    virtual std::shared_ptr<const DecoratorInstance> createInstance(
+        PositionI chunkBasePosition,
+        PositionI columnBasePosition,
+        PositionI surfacePosition,
+        WorldLockManager &lock_manager,
+        BlockIterator chunkBaseIterator,
+        const BlocksGenerateArray &blocks,
+        RandomSource &randomSource,
+        std::uint32_t generateNumber) const override
     {
-        std::shared_ptr<PregeneratedDecoratorInstance> retval = std::make_shared<PregeneratedDecoratorInstance>(surfacePosition, this, VectorI(-5, 0, -5), VectorI(11, 10, 11));
+        std::shared_ptr<PregeneratedDecoratorInstance> retval =
+            std::make_shared<PregeneratedDecoratorInstance>(
+                surfacePosition, this, VectorI(-5, 0, -5), VectorI(11, 10, 11));
         for(int i = 0; i < 5; i++)
         {
             retval->setBlock(VectorI(0, i, 0), Block(Blocks::builtin::Cobblestone::descriptor()));
         }
         for(int i = 5; i < 10; i++)
         {
-            retval->setBlock(VectorI(5 - i, i, 0), Block(Blocks::builtin::Cobblestone::descriptor()));
-            retval->setBlock(VectorI(i - 5, i, 0), Block(Blocks::builtin::Cobblestone::descriptor()));
-            retval->setBlock(VectorI(0, i, 5 - i), Block(Blocks::builtin::Cobblestone::descriptor()));
-            retval->setBlock(VectorI(0, i, i - 5), Block(Blocks::builtin::Cobblestone::descriptor()));
+            retval->setBlock(VectorI(5 - i, i, 0),
+                             Block(Blocks::builtin::Cobblestone::descriptor()));
+            retval->setBlock(VectorI(i - 5, i, 0),
+                             Block(Blocks::builtin::Cobblestone::descriptor()));
+            retval->setBlock(VectorI(0, i, 5 - i),
+                             Block(Blocks::builtin::Cobblestone::descriptor()));
+            retval->setBlock(VectorI(0, i, i - 5),
+                             Block(Blocks::builtin::Cobblestone::descriptor()));
         }
         return retval;
     }

@@ -45,8 +45,7 @@ struct StreamEntityDescriptors final
     std::unordered_map<EntityDescriptorPointer, Descriptor> entityDescriptorPointerToDescriptorMap;
     std::size_t descriptorCount = 0;
     StreamEntityDescriptors()
-        : descriptorToEntityDescriptorPointerMap(),
-        entityDescriptorPointerToDescriptorMap()
+        : descriptorToEntityDescriptorPointerMap(), entityDescriptorPointerToDescriptorMap()
     {
     }
     static StreamEntityDescriptors &get(stream::Stream &stream)
@@ -54,7 +53,8 @@ struct StreamEntityDescriptors final
         struct tag_t
         {
         };
-        std::shared_ptr<StreamEntityDescriptors> retval = stream.getAssociatedValue<StreamEntityDescriptors, tag_t>();
+        std::shared_ptr<StreamEntityDescriptors> retval =
+            stream.getAssociatedValue<StreamEntityDescriptors, tag_t>();
         if(retval)
             return *retval;
         retval = std::make_shared<StreamEntityDescriptors>();
@@ -67,7 +67,8 @@ struct StreamEntityDescriptors final
         Descriptor upperLimit = static_cast<Descriptor>(me.descriptorCount + 1);
         if(upperLimit != me.descriptorCount + 1)
             upperLimit = static_cast<Descriptor>(me.descriptorCount);
-        Descriptor descriptor = stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
+        Descriptor descriptor =
+            stream::read_limited<Descriptor>(reader, NullDescriptor, upperLimit);
         if(descriptor == NullDescriptor)
             return nullptr;
         if(descriptor <= me.descriptorCount)
@@ -141,8 +142,7 @@ void Entity::readInternal(stream::Reader &reader, PositionF &position, VectorF &
     data = descriptor->read(position, velocity, reader);
 }
 
-EntityDescriptor::EntityDescriptor(wstring name)
-    : name(name)
+EntityDescriptor::EntityDescriptor(wstring name) : name(name)
 {
     EntityDescriptors.add(this);
 }

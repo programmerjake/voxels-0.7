@@ -42,6 +42,7 @@ namespace builtin
 class Tundra final : public BiomeDescriptor
 {
     friend class global_instance_maker<Tundra>;
+
 public:
     static const Tundra *pointer()
     {
@@ -51,21 +52,30 @@ public:
     {
         return pointer();
     }
+
 private:
-    Tundra()
-        : BiomeDescriptor(L"builtin.tundra", 0, 0)
+    Tundra() : BiomeDescriptor(L"builtin.tundra", 0, 0)
     {
     }
+
 public:
-    virtual float getBiomeCorrespondence(float temperature, float humidity, PositionI pos, RandomSource &randomSource) const override
+    virtual float getBiomeCorrespondence(float temperature,
+                                         float humidity,
+                                         PositionI pos,
+                                         RandomSource &randomSource) const override
     {
         return (1 - temperature) * (1 - humidity);
     }
-    virtual float getGroundHeight(PositionI columnBasePosition, RandomSource &randomSource) const override
+    virtual float getGroundHeight(PositionI columnBasePosition,
+                                  RandomSource &randomSource) const override
     {
         return 7 + World::SeaLevel;
     }
-    virtual void makeGroundColumn(PositionI chunkBasePosition, PositionI columnBasePosition, BlocksGenerateArray &blocks, RandomSource &randomSource, int groundHeight) const override
+    virtual void makeGroundColumn(PositionI chunkBasePosition,
+                                  PositionI columnBasePosition,
+                                  BlocksGenerateArray &blocks,
+                                  RandomSource &randomSource,
+                                  int groundHeight) const override
     {
         for(std::int32_t dy = 0; dy < BlockChunk::chunkSizeY; dy++)
         {

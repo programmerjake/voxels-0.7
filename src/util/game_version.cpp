@@ -30,7 +30,7 @@ const std::uint32_t programmerjake::voxels::GameVersion::FILE_VERSION = 5;
 using namespace programmerjake::voxels;
 using namespace std;
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
     const int curVersion = 1;
     if(argc > 1 && string(argv[1]) == "--next-version")
@@ -44,4 +44,3 @@ int main(int argc, char ** argv)
     return 0;
 }
 #endif // COMPILE_DUMP_VERSION
-

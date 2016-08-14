@@ -39,10 +39,10 @@ class UnorderedRecipe : public RecipeDescriptor
 protected:
     linked_map<Item, std::size_t> itemCounts;
     virtual bool fillOutput(const RecipeInput &input, RecipeOutput &output) const = 0;
+
 public:
     UnorderedRecipe(std::initializer_list<std::pair<Item, std::size_t>> elements)
-        : RecipeDescriptor(),
-        itemCounts()
+        : RecipeDescriptor(), itemCounts()
     {
         for(const std::pair<Item, std::size_t> &v : elements)
         {

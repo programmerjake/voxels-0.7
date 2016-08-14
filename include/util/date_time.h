@@ -47,6 +47,7 @@ private:
             return quotient - 1;
         return quotient;
     }
+
 public:
     static bool isLeapYear(std::int64_t year)
     {
@@ -68,8 +69,7 @@ public:
         monthsSinceJanuary %= 12;
         if(monthsSinceJanuary < 0)
             monthsSinceJanuary += 12;
-        static const int dayCount[12] =
-        {
+        static const int dayCount[12] = {
             31, // January
             28, // February
             31, // March
@@ -81,7 +81,7 @@ public:
             30, // September
             31, // October
             30, // November
-            31  // December
+            31 // December
         };
         if(monthsSinceJanuary == 1) // February
             if(leapYear)
@@ -93,24 +93,27 @@ public:
         static std::chrono::system_clock::time_point retval = makeEpoch();
         return retval;
     }
-    DateTime()
-        : DateTime(0)
+    DateTime() : DateTime(0)
     {
     }
+
 private:
     explicit DateTime(std::uint64_t millisecondsSincePosixTimeEpoch)
         : millisecondsSincePosixTimeEpoch(millisecondsSincePosixTimeEpoch)
     {
     }
     explicit DateTime(std::tm time, bool isLocalTime);
+
 public:
-    static DateTime fromMillisecondsSincePosixTimeEpoch(std::uint64_t millisecondsSincePosixTimeEpoch)
+    static DateTime fromMillisecondsSincePosixTimeEpoch(
+        std::uint64_t millisecondsSincePosixTimeEpoch)
     {
         return DateTime(millisecondsSincePosixTimeEpoch);
     }
     static DateTime fromTimePoint(std::chrono::system_clock::time_point timePoint)
     {
-        return DateTime(std::chrono::duration_cast<std::chrono::milliseconds>(timePoint - epoch()).count());
+        return DateTime(
+            std::chrono::duration_cast<std::chrono::milliseconds>(timePoint - epoch()).count());
     }
     static DateTime fromTimeT(std::time_t timeT)
     {
@@ -122,8 +125,7 @@ public:
     }
     struct FormatException : public std::runtime_error
     {
-        FormatException(const std::string &message)
-            : runtime_error(message)
+        FormatException(const std::string &message) : runtime_error(message)
         {
         }
     };
@@ -160,52 +162,53 @@ public:
     }
     std::tm asStructTm(bool isLocalTime = true) const;
     std::wstring asString(bool isLocalTime = true) const;
-    bool operator ==(const DateTime &rt) const
+    bool operator==(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch == rt.millisecondsSincePosixTimeEpoch;
     }
-    bool operator !=(const DateTime &rt) const
+    bool operator!=(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch != rt.millisecondsSincePosixTimeEpoch;
     }
-    bool operator <=(const DateTime &rt) const
+    bool operator<=(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch <= rt.millisecondsSincePosixTimeEpoch;
     }
-    bool operator >=(const DateTime &rt) const
+    bool operator>=(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch >= rt.millisecondsSincePosixTimeEpoch;
     }
-    bool operator <(const DateTime &rt) const
+    bool operator<(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch < rt.millisecondsSincePosixTimeEpoch;
     }
-    bool operator >(const DateTime &rt) const
+    bool operator>(const DateTime &rt) const
     {
         return millisecondsSincePosixTimeEpoch > rt.millisecondsSincePosixTimeEpoch;
     }
-    friend DateTime operator +(const std::chrono::milliseconds &d, const DateTime &dt)
+    friend DateTime operator+(const std::chrono::milliseconds &d, const DateTime &dt)
     {
         return DateTime(dt.millisecondsSincePosixTimeEpoch + d.count());
     }
-    friend std::chrono::milliseconds operator -(const DateTime &a, const DateTime &b)
+    friend std::chrono::milliseconds operator-(const DateTime &a, const DateTime &b)
     {
-        return std::chrono::milliseconds(a.millisecondsSincePosixTimeEpoch - b.millisecondsSincePosixTimeEpoch);
+        return std::chrono::milliseconds(a.millisecondsSincePosixTimeEpoch
+                                         - b.millisecondsSincePosixTimeEpoch);
     }
-    DateTime operator +(const std::chrono::milliseconds &d) const
+    DateTime operator+(const std::chrono::milliseconds &d) const
     {
         return DateTime(millisecondsSincePosixTimeEpoch + d.count());
     }
-    DateTime operator -(const std::chrono::milliseconds &d) const
+    DateTime operator-(const std::chrono::milliseconds &d) const
     {
         return DateTime(millisecondsSincePosixTimeEpoch - d.count());
     }
-    DateTime &operator +=(const std::chrono::milliseconds &d)
+    DateTime &operator+=(const std::chrono::milliseconds &d)
     {
         millisecondsSincePosixTimeEpoch += d.count();
         return *this;
     }
-    DateTime &operator -=(const std::chrono::milliseconds &d)
+    DateTime &operator-=(const std::chrono::milliseconds &d)
     {
         millisecondsSincePosixTimeEpoch -= d.count();
         return *this;
